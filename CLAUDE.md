@@ -1,0 +1,18 @@
+# PeopleCore — guidance for coding agents
+
+- PeopleCore is a standalone product. **Never read, modify or reuse `~/Projects/gossip-app` (Vibe Upp)** or its Supabase project/keys.
+- Only one agent session should write to this repo at a time.
+- Package manager: `corepack pnpm …` (pinned in `package.json`). Gate before moving on: `corepack pnpm check`.
+- Read `BUILD_STATUS.md` first; update it when you finish a unit of work.
+- Architecture: `docs/01-architecture-decisions.md`. Permissions: `docs/05-permissions.md` + `packages/shared/src/permissions.ts`.
+
+## Database rules
+- New migration per change (`supabase/migrations/YYYYMMDDHHMMSS_name.sql`). Once a migration has been applied to any shared environment, never edit it.
+- Every tenant table: `organization_id`, RLS enabled, policies `to authenticated`, composite `(organization_id, id)` FKs, audit trigger if sensitive, and tests in `packages/db/test`.
+- Changing the permission catalog: edit `permissions.ts`, then write a new migration (use `node scripts/gen-rbac-seed.ts` as a starting point). `rbac-catalog.test.ts` must pass.
+
+## Security rules
+- The service-role key is only used in `apps/web/src/server/admin.ts` and the worker, after an explicit authorization check. Never in client code or `NEXT_PUBLIC_*`.
+- Never trust client-supplied organization IDs for authorization; RLS decides.
+- No real personal data in fixtures or seeds; use `example.test` and mark demo tenants `is_demo`.
+- AI output is a suggestion until a human confirms it through the normal module code path.

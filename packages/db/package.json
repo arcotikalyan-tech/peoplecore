@@ -1,0 +1,22 @@
+{
+  "name": "@peoplecore/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src test",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.10"
+  },
+  "devDependencies": {
+    "@peoplecore/shared": "workspace:*",
+    "@types/node": "^24.19.2",
+    "vitest": "5.0.5"
+  }
+}

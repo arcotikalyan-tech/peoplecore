@@ -1,0 +1,27 @@
+{
+  "name": "peoplecore",
+  "private": true,
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=@peoplecore/web",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "check": "turbo run typecheck lint test",
+    "seed:demo": "node --experimental-strip-types scripts/seed-demo.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "10.13.0",
+    "pnpm": "12.14.0",
+    "prettier": "^3.9.10",
+    "turbo": "2.11.9",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2"
+  },
+  "type": "module"
+}
