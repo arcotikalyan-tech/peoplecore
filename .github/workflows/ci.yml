@@ -28,3 +28,47 @@ jobs:
       - run: pnpm audit --prod --audit-level high
       - run: pnpm audit --audit-level high
         continue-on-error: true
+
+  # Browser journeys against a throwaway local Supabase (database, Auth, Storage and the Mailpit test
+  # inbox), started fresh for every run. Never touches the live project; no secrets needed.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      # Applies every migration (the same files `supabase db push` sends to the live project).
+      - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,supavisor
+      - name: Write apps/web/.env.local for the local stack
+        run: |
+          eval "$(supabase status -o env)"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${PUBLISHABLE_KEY:-$ANON_KEY}"
+            echo "SUPABASE_SECRET_KEY=${SECRET_KEY:-$SERVICE_ROLE_KEY}"
+            # Synthetic accounts in a throwaway database: a fresh random password per run.
+            echo "DEMO_USER_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=')"
+            echo "MAILPIT_URL=${MAILPIT_URL:-${INBUCKET_URL:-http://127.0.0.1:54324}}"
+          } > apps/web/.env.local
+      - run: pnpm --filter @peoplecore/web seed:demo --yes --platform-admin
+      - run: pnpm --filter @peoplecore/web demo:mfa
+      - run: pnpm --filter @peoplecore/web verify:demo
+      - run: pnpm --filter @peoplecore/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @peoplecore/web test:e2e
+        env:
+          E2E_BROWSER_CHANNEL: chromium
+          NEXT_TELEMETRY_DISABLED: '1'
+      # Screenshots of failures only; they show synthetic demo data.
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failures
+          path: apps/web/test-results/
+          retention-days: 7
