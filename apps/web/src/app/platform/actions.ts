@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { createOrganizationSchema } from '@peoplecore/shared';
+import { z } from 'zod';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { findOrInviteUser } from '@/server/admin-users';
@@ -39,4 +40,20 @@ export async function createOrganizationAction(_prev: ActionState, formData: For
   revalidatePath('/platform');
   const ownerNote = ownerId ? (invited ? ' An invitation was sent to the owner.' : ' The existing user was added as owner.') : '';
   return { ok: true, message: `Organization “${name}” created.${ownerNote}` };
+}
+
+const statusSchema = z.object({ orgId: z.uuid(), status: z.enum(['active', 'suspended']) });
+
+/** Suspends or reactivates a tenant. The RPC re-checks platform-admin status and the change is audited. */
+export async function setOrganizationStatusAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await isPlatformAdmin())) return { ok: false, message: 'Only platform administrators can change an organization’s status.' };
+  const parsed = statusSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, message: 'Invalid request.' };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_organization_status', { p_org: parsed.data.orgId, p_status: parsed.data.status });
+  if (error) return { ok: false, message: toUserMessage(error) };
+
+  revalidatePath('/platform');
+  return { ok: true, message: parsed.data.status === 'suspended' ? 'Organization suspended.' : 'Organization reactivated.' };
 }

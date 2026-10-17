@@ -48,7 +48,12 @@ export const getOrgContext = cache(async (slug: string): Promise<OrgContext> => 
     .eq('slug', slug)
     .maybeSingle();
   if (error) throw new Error('Failed to load organization');
-  if (!org) notFound();
+  if (!org) {
+    // Explain suspension, but only for the caller's own memberships; anything else stays a plain 404.
+    const { data: mine } = await supabase.rpc('my_organizations');
+    if (mine?.some((o) => o.slug === slug && o.status !== 'active')) redirect(`/app?suspended=${encodeURIComponent(slug)}`);
+    notFound();
+  }
 
   const { data: grants, error: grantsError } = await supabase.rpc('my_permissions', { p_org: org.id });
   if (grantsError) throw new Error('Failed to load permissions');

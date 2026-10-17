@@ -30,6 +30,14 @@ describe('table privileges (least privilege, independent of Supabase defaults)',
     expect(await tablesWhere('authenticated', 'SELECT')).toEqual(all.rows.map((r) => r.relname));
   });
 
+  it('anonymous users cannot execute any API function', async () => {
+    const { rows } = await ctx.t.db.query<{ proname: string }>(
+      `select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1`,
+    );
+    expect(rows.map((r) => r.proname)).toEqual([]);
+  });
+
   it('append-only and never-deleted tables cannot be deleted from by signed-in users', async () => {
     const deletable = await tablesWhere('authenticated', 'DELETE');
     for (const table of ['audit_events', 'employees', 'employment_records', 'organizations', 'permissions', 'platform_admins']) {

@@ -28,6 +28,8 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  // Never leave the demo tenant suspended, even if the suspension journey failed halfway.
+  await admin.from('organizations').update({ status: 'active' }).eq('slug', 'demo').eq('is_demo', true);
   // Employees first (their history cascades), then the department they referenced, then the test tenant.
   await admin.from('employees').delete().eq('organization_id', orgId).ilike('work_email', `%${run.toLowerCase()}%`);
   await admin.from('departments').delete().eq('organization_id', orgId).eq('code', dept.code);
@@ -179,6 +181,30 @@ test('the platform admin creates a tenant and cannot see inside it', async ({ pa
 
   await open(page, `/app/${tenant.slug}`);
   await expectNotFound(page);
+});
+
+test('suspending an organization locks its members out until it is reactivated', async ({ browser }) => {
+  const platform = await (await browser.newContext()).newPage();
+  await signIn(platform, 'demo.platform');
+  await open(platform, '/platform');
+  const demoRow = platform.getByRole('row').filter({ hasText: 'PeopleCore Demo (synthetic data)' });
+  await demoRow.getByRole('button', { name: 'Suspend' }).click();
+  await demoRow.getByRole('button', { name: 'Confirm suspension' }).click();
+  await expect(demoRow.getByText('suspended', { exact: true })).toBeVisible();
+
+  const hr = await (await browser.newContext()).newPage();
+  await signIn(hr, 'demo.hr');
+  await hr.goto('/app/demo/employees');
+  await expect(hr).toHaveURL(/\/app\?suspended=demo$/);
+  await expect(hr.getByText('Access to PeopleCore Demo (synthetic data) is suspended')).toBeVisible();
+  await expect(hr.getByText('Suspended', { exact: true })).toBeVisible();
+
+  await demoRow.getByRole('button', { name: 'Reactivate' }).click();
+  await demoRow.getByRole('button', { name: 'Confirm reactivation' }).click();
+  await expect(demoRow.getByText('active', { exact: true })).toBeVisible();
+
+  await open(hr, '/app/demo');
+  await expect(hr.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
 });
 
 test('signing out ends the session', async ({ page }) => {

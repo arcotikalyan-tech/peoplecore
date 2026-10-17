@@ -581,11 +581,22 @@ export type Database = {
         };
         Returns: string;
       };
+      my_organizations: {
+        Args: never;
+        Returns: { id: string; name: string; slug: string; is_demo: boolean; status: Database['public']['Enums']['org_status'] }[];
+      };
       my_permissions: {
         Args: {
           p_org: string;
         };
         Returns: { permission_key: string; scope: Database['public']['Enums']['permission_scope'] }[];
+      };
+      set_organization_status: {
+        Args: {
+          p_org: string;
+          p_status: Database['public']['Enums']['org_status'];
+        };
+        Returns: undefined;
       };
     };
     Enums: {

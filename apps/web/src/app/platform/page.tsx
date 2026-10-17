@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/format';
 import { isPlatformAdmin, requireUser } from '@/server/context';
 import { createClient } from '@/server/supabase';
 import { CreateOrgForm } from './create-org-form';
+import { OrgStatusControl } from './org-status-control';
 
 export const metadata: Metadata = { title: 'Platform console' };
 
@@ -52,7 +53,7 @@ export default async function PlatformPage() {
             ) : (
               <Table caption="Organizations">
                 <thead>
-                  <tr><Th>Name</Th><Th>URL</Th><Th>Status</Th><Th>Created</Th></tr>
+                  <tr><Th>Name</Th><Th>URL</Th><Th>Status</Th><Th>Created</Th><Th><span className="sr-only">Actions</span></Th></tr>
                 </thead>
                 <tbody>
                   {orgs.map((o) => (
@@ -63,6 +64,10 @@ export default async function PlatformPage() {
                       <Td className="font-mono text-xs text-muted">/app/{o.slug}</Td>
                       <Td><Badge tone={statusTone[o.status]}>{o.status}</Badge></Td>
                       <Td className="text-muted">{formatDate(o.created_at)}</Td>
+                      <Td className="text-right">
+                        {/* key: remount after a status change so the confirmation step resets */}
+                        <OrgStatusControl key={o.status} orgId={o.id} name={o.name} status={o.status} />
+                      </Td>
                     </tr>
                   ))}
                 </tbody>

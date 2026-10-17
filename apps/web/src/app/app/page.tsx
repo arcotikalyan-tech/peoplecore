@@ -3,38 +3,39 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Brand } from '@/components/brand';
 import { ButtonLink } from '@/components/ui/button';
-import { Badge, Card, EmptyState } from '@/components/ui/surface';
+import { Alert, Badge, Card, EmptyState } from '@/components/ui/surface';
 import { isPlatformAdmin, requireUser } from '@/server/context';
 import { createClient } from '@/server/supabase';
 
 export const metadata: Metadata = { title: 'Choose organization' };
 
-export default async function OrganizationPicker() {
+export default async function OrganizationPicker({ searchParams }: { searchParams: Promise<{ suspended?: string }> }) {
   const user = await requireUser();
   const supabase = await createClient();
 
-  // Membership first: platform admins can *see* every organization row, but only open their own.
-  const { data: memberships, error } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .eq('status', 'active');
-  if (error) throw new Error('Failed to load memberships');
-
-  const ids = memberships.map((m) => m.organization_id);
-  const { data: orgs, error: orgError } = ids.length
-    ? await supabase.from('organizations').select('id, name, slug, is_demo').in('id', ids).order('name')
-    : { data: [], error: null };
-  if (orgError) throw new Error('Failed to load organizations');
+  // The caller's own memberships, including suspended organizations. (Platform admins can *see* every
+  // organization row, but only open those they belong to.)
+  const { data: orgs, error } = await supabase.rpc('my_organizations');
+  if (error) throw new Error('Failed to load organizations');
 
   const platformAdmin = await isPlatformAdmin();
-  if (orgs.length === 1 && !platformAdmin) redirect(`/app/${orgs[0]!.slug}`);
+  const { suspended } = await searchParams;
+  const suspendedOrg = suspended ? orgs.find((o) => o.slug === suspended && o.status !== 'active') : undefined;
+  if (orgs.length === 1 && orgs[0]!.status === 'active' && !platformAdmin && !suspendedOrg) redirect(`/app/${orgs[0]!.slug}`);
 
   return (
     <main className="mx-auto max-w-lg px-4 py-16">
       <Brand />
       <h1 className="mt-8 text-xl font-semibold tracking-tight">Choose an organization</h1>
       <p className="mt-1 text-sm text-muted">Signed in as {user.email}</p>
+      {suspendedOrg && (
+        <div className="mt-6">
+          <Alert tone="warning" title={`Access to ${suspendedOrg.name} is suspended`}>
+            Your organization’s PeopleCore account has been suspended, so its records can’t be opened right now. Contact your HR
+            administrator or PeopleCore support.
+          </Alert>
+        </div>
+      )}
       <Card className="mt-6">
         {orgs.length === 0 ? (
           <EmptyState
@@ -43,14 +44,21 @@ export default async function OrganizationPicker() {
           />
         ) : (
           <ul className="divide-y divide-line">
-            {orgs.map((o) => (
-              <li key={o.id}>
-                <Link href={`/app/${o.slug}`} className="flex items-center justify-between gap-3 px-5 py-4 hover:bg-subtle">
-                  <span className="font-medium">{o.name}</span>
-                  {o.is_demo && <Badge tone="warning">Demo</Badge>}
-                </Link>
-              </li>
-            ))}
+            {orgs.map((o) =>
+              o.status === 'active' ? (
+                <li key={o.id}>
+                  <Link href={`/app/${o.slug}`} className="flex items-center justify-between gap-3 px-5 py-4 hover:bg-subtle">
+                    <span className="font-medium">{o.name}</span>
+                    {o.is_demo && <Badge tone="warning">Demo</Badge>}
+                  </Link>
+                </li>
+              ) : (
+                <li key={o.id} className="flex items-center justify-between gap-3 px-5 py-4">
+                  <span className="font-medium text-muted">{o.name}</span>
+                  <Badge tone="neutral">{o.status === 'suspended' ? 'Suspended' : 'Archived'}</Badge>
+                </li>
+              ),
+            )}
           </ul>
         )}
       </Card>
