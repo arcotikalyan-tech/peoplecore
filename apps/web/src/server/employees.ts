@@ -146,3 +146,33 @@ export async function managerOptions(orgId: string) {
   if (error) throw new Error(`Failed to load managers (${error.code})`);
   return data.map((e) => ({ value: e.id, label: `${legalName(e)} (${e.employee_code})` }));
 }
+
+export const EXPORT_ROW_LIMIT = 50_000;
+const EXPORT_PAGE = 1000; // PostgREST's default max rows per request
+
+/**
+ * Every employee matching the directory filters, for CSV export (RLS applies; the caller must also hold
+ * employee.export, which the audit step checks). Work fields only. `truncated` if over EXPORT_ROW_LIMIT.
+ */
+export async function exportEmployees(orgId: string, query: Omit<EmployeeListQuery, 'page'>) {
+  const supabase = await createClient();
+  const rows: Array<Pick<Employee,
+    'id' | 'employee_code' | 'first_name' | 'middle_name' | 'last_name' | 'work_email' | 'work_phone' | 'status' |
+    'employment_type' | 'date_of_joining' | 'probation_end_date' | 'date_of_exit' | 'department_id' | 'designation_id' |
+    'location_id' | 'manager_employee_id'>> = [];
+  for (let from = 0; from < EXPORT_ROW_LIMIT + 1; from += EXPORT_PAGE) {
+    let request = supabase
+      .from('employees')
+      .select('id, employee_code, first_name, middle_name, last_name, work_email, work_phone, status, employment_type, date_of_joining, probation_end_date, date_of_exit, department_id, designation_id, location_id, manager_employee_id')
+      .eq('organization_id', orgId);
+    if (query.q) request = request.ilike('search_text', `%${escapeLikePattern(query.q.toLowerCase())}%`);
+    if (query.status) request = request.eq('status', query.status);
+    if (query.department) request = request.eq('department_id', query.department);
+    const { data, error } = await request.order('employee_code').order('id').range(from, from + EXPORT_PAGE - 1);
+    if (error) throw new Error(`Failed to export employees (${error.code})`);
+    rows.push(...data);
+    if (data.length < EXPORT_PAGE) break;
+  }
+  const truncated = rows.length > EXPORT_ROW_LIMIT;
+  return { rows: truncated ? rows.slice(0, EXPORT_ROW_LIMIT) : rows, truncated };
+}

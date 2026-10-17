@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { EMPLOYEE_STATUSES, EMPLOYEE_STATUS_LABELS, employeeListQuerySchema, legalName, type EmployeeListQuery } from '@peoplecore/shared';
 import { EmployeeStatusBadge } from '@/components/status-badge';
-import { Button, ButtonLink } from '@/components/ui/button';
+import { Button, ButtonLink, buttonClass } from '@/components/ui/button';
 import { Card, EmptyState, PageHeader } from '@/components/ui/surface';
 import { Pagination, Table, Td, Th } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
@@ -21,6 +21,13 @@ function href(base: string, q: EmployeeListQuery, page: number) {
   if (page > 1) sp.set('page', String(page));
   const s = sp.toString();
   return s ? `${base}?${s}` : base;
+}
+
+/** The directory's filters (not the page) as export query parameters. */
+function exportParams(query: { q?: string; status?: string; department?: string }) {
+  const params = new URLSearchParams();
+  for (const key of ['q', 'status', 'department'] as const) if (query[key]) params.set(key, query[key]);
+  return params.toString();
 }
 
 export default async function EmployeesPage({
@@ -53,7 +60,17 @@ export default async function EmployeesPage({
       <PageHeader
         title="Employees"
         description={scopeNote}
-        actions={ctx.can('employee.create') && <ButtonLink href={`${base}/new`}>Add employee</ButtonLink>}
+        actions={
+          <div className="flex gap-2">
+            {/* A plain link to a route handler: it checks employee.export and records the export first. */}
+            {ctx.can('employee.export', 'org') && (
+              <a className={buttonClass('secondary')} href={`${base}/export?${exportParams(query)}`} download>
+                Export CSV
+              </a>
+            )}
+            {ctx.can('employee.create') && <ButtonLink href={`${base}/new`}>Add employee</ButtonLink>}
+          </div>
+        }
       />
       <Card>
         <form role="search" className="flex flex-wrap items-end gap-3 border-b border-line p-4" action={base}>

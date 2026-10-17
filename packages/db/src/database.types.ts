@@ -774,6 +774,14 @@ export type Database = {
         };
         Returns: { id: string; key: string; name: string; description: string }[];
       };
+      log_employee_export: {
+        Args: {
+          p_org: string;
+          p_filters: Json;
+          p_row_count: number;
+        };
+        Returns: number;
+      };
       my_mfa_requirement: {
         Args: never;
         Returns: boolean;
