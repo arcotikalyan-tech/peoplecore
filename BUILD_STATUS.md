@@ -14,7 +14,8 @@ A module only counts as **complete** when its schema, authorization, business lo
 | `next build` (production) | ✅ |
 | Production server smoke test | ✅ Login renders the "not configured" notice, security headers present, `X-Powered-By` removed |
 | `pnpm audit --prod` | ✅ No known vulnerabilities in runtime dependencies |
-| **Anything needing a live Supabase project** (sign-in, PostgREST queries, server actions, invitations, seed script) | ❌ **Not yet run.** No PeopleCore Supabase project is configured, and Docker isn't installed for a local stack. |
+| Live Supabase project **Peoplecore** (`rncjncpazqxqkfqoumsk`, Postgres 17) | ✅ Migrations 100–400 applied with `supabase db push`; history recorded. Permission catalog present (24). Anonymous API read of `employees` refused (`42501`). |
+| Sign-in, server actions, seed script, invitations against the live project | ❌ **Not yet run** (next step) |
 
 The database tests apply every migration to PGlite (Postgres 17 in WASM) with a shim for Supabase's `auth` schema and roles (ADR-005). The shim grants **no** default table privileges, so the tests also prove the migrations' explicit grants are sufficient whether or not a Supabase project auto-grants. They give strong evidence for schema, RLS and RPC behaviour, but they don't replace a run against hosted Supabase.
 
@@ -60,7 +61,7 @@ The database tests apply every migration to PGlite (Postgres 17 in WASM) with a 
 | `20261017000300_org_structure_core_hr.sql` | Org structure, employees, employment records, counters, scoped access functions, RPCs, RLS |
 | `20261017000400_explicit_grants.sql` | Explicit least-privilege table grants; turns off automatic grants for future objects |
 
-These haven't been applied to any shared environment yet, so they may still be edited. Once they are applied to staging they become immutable, and every change goes in a new migration.
+Applied to the Peoplecore project on 2026-10-17, so they are now **immutable**: every change goes in a new migration (`supabase db push` applies only new ones).
 
 **Rollback approach:** migrations are forward-only. A bad schema change is reverted by a new corrective migration. Data recovery relies on Supabase point-in-time recovery, and the restore drill is a Phase 8 deliverable. Destructive migrations (drops, type narrowing) must ship in two steps: expand, then contract.
 
