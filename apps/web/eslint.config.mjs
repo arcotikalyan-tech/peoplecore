@@ -16,4 +16,6 @@ export default [
     },
   },
   { files: ['src/lib/env.ts'], rules: { 'no-restricted-properties': 'off' } },
+  // Command-line scripts report their results on stdout.
+  { files: ['scripts/**/*.ts'], rules: { 'no-console': 'off' } },
 ];

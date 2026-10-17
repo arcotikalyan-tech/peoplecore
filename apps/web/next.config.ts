@@ -11,6 +11,8 @@ const securityHeaders = [
 const config: NextConfig = {
   transpilePackages: ['@peoplecore/shared'],
   poweredByHeader: false,
+  // Dev-only badge. Its default bottom-left spot covers the sidebar's Sign out link; top-left only overlaps the logo.
+  devIndicators: { position: 'top-left' },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

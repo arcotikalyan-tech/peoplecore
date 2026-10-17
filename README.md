@@ -25,8 +25,9 @@ To run the web app you need a **PeopleCore** Supabase project (never the Vibe Up
 4. Optionally seed the clearly-marked demo tenant (synthetic people only; you choose the password):
    `DEMO_USER_PASSWORD='<12+ chars>' corepack pnpm --filter @peoplecore/web seed:demo --yes --platform-admin`
 5. `corepack pnpm dev`, then open http://localhost:3000.
-6. Check the live setup end to end (reads only; needs the dev server running):
-   `corepack pnpm --filter @peoplecore/web verify:demo --app http://localhost:3000`
+6. Check the live setup end to end (needs the dev server running and the demo tenant seeded):
+   - `corepack pnpm --filter @peoplecore/web verify:demo --app http://localhost:3000`: read-only access checks for every role.
+   - `corepack pnpm --filter @peoplecore/web test:e2e`: browser journeys in headless Chrome (creates test records, then deletes them).
 
 Changing the schema: add a migration, then run `corepack pnpm --filter @peoplecore/db gen:types` to refresh `database.types.ts` (a test fails if you forget).
 

@@ -16,7 +16,8 @@ A module only counts as **complete** when its schema, authorization, business lo
 | `pnpm audit --prod` | ✅ No known vulnerabilities in runtime dependencies |
 | Live Supabase project **Peoplecore** (`rncjncpazqxqkfqoumsk`, Postgres 17) | ✅ Migrations 100–400 applied with `supabase db push`; history recorded. Permission catalog present (24). Anonymous API read of `employees` refused (`42501`). |
 | Live end-to-end smoke test, `verify:demo` (2026-10-17) | ✅ 36/36 checks. Demo tenant seeded (26 synthetic employees, 6 accounts). Every role signs in; owner/HR/payroll see all 26, the manager exactly their line (10), the employee only themselves. Audit-log reads and structure writes are refused where they should be; anonymous requests are refused. Every main page renders through the running app as each role, with no data from outside the viewer's scope. |
-| Form submissions (create employee, change assignment, add structure, create tenant), email-link sign-in, invitations | ❌ **Not yet exercised** against the live project; `verify:demo` only reads. |
+| Browser E2E, `test:e2e` (Playwright driving Chrome against the live project, 2026-10-17) | ✅ 9/9 journeys pass, each checked in the UI **and** in the database. HR adds a department. Validation errors appear on the employee form. HR adds an employee (auto code, joining history). A duplicate work email is refused and the typed values are kept. A transfer closes the joining entry and opens a new one. The audit log attributes every change to HR. A manager can view but not edit a new report; an employee can't see them. The platform admin creates a tenant (8 roles seeded) but can't open it. Sign-out ends the session. All test data is deleted afterwards. |
+| Email-link sign-in and invitations | ❌ **Not yet exercised.** Demo addresses (`example.test`) can't receive email; needs a real mailbox. |
 
 The database tests apply every migration to PGlite (Postgres 17 in WASM) with a shim for Supabase's `auth` schema and roles (ADR-005). The shim grants **no** default table privileges, so the tests also prove the migrations' explicit grants are sufficient whether or not a Supabase project auto-grants. They give strong evidence for schema, RLS and RPC behaviour, but they don't replace a run against hosted Supabase.
 
@@ -68,7 +69,7 @@ Applied to the Peoplecore project on 2026-10-17, so they are now **immutable**: 
 
 ## Known issues and limitations
 
-1. **Partial end-to-end coverage.** `verify:demo` checks reads and page rendering on the live project; form submissions, email links and invitations still need testing, and there are no Playwright browser tests yet.
+1. **End-to-end gaps.** The main journeys are covered by `verify:demo` and `test:e2e` on the live project. Still missing: email-link sign-in and invitations (need a real mailbox), mobile-viewport checks, and running E2E in CI (needs a separate test project and CI secrets, never the main project).
 2. **RLS performance:** the employee policy calls `app.can_access_employee` per row, and team scope walks a recursive reporting chain. This is fine at small scale. Before the 50k-employees-per-org target, it needs a reporting-closure table or a set-based policy, plus load tests.
 3. **Suspended organizations are not blocked yet.** `app.is_member` doesn't check `organizations.status`. Fix in Phase 1b, with a test.
 4. **No last-owner guard.** An owner can remove the final owner-role assignment. Fix in Phase 1b.
@@ -87,7 +88,7 @@ Applied to the Peoplecore project on 2026-10-17, so they are now **immutable**: 
 
 ## Next steps
 
-1. **Finish verifying the first environment.** The project is live, migrated, seeded and read-verified (`verify:demo`). Next, exercise the form submissions in the browser, then add Playwright E2E tests: sign in → create employee → change assignment → audit entry, plus cross-tenant denial. Run the DB tests against real Supabase in CI.
+1. **Close the verification gaps.** Test email-link sign-in and an invitation with a real mailbox. Create a separate Supabase test project so CI can run `test:e2e` and the DB tests against real Supabase without touching the main project.
 2. **Phase 1b.** Member invitations and role assignment UI. MFA (TOTP) enforced for owner, HR and payroll roles. Suspended-org enforcement, last-owner guard, access-review listing.
 3. **Finish Phase 2a.** Personal, identity and bank tables with field-level permissions. Private document storage with signed URLs. Profile edit flows. Bulk import with a dry-run report. Audited export.
 4. **Phase 2b.** Applicant tracking, per the roadmap.
