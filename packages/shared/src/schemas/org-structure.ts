@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { code, optionalText, optionalUuid, requiredText } from './common.ts';
+import { code, optionalText, optionalUuid, requiredText, uuid } from './common.ts';
 
 export const RESERVED_SLUGS = ['admin', 'api', 'app', 'auth', 'login', 'new', 'o', 'platform', 'settings', 'www'];
 
@@ -38,3 +38,24 @@ export const createLocationSchema = z.object({
   stateCode: z.preprocess((v) => (v === '' ? undefined : v), z.string().trim().toUpperCase().max(10).optional()),
 });
 export type CreateLocationInput = z.infer<typeof createLocationSchema>;
+
+// Edits submit the same fields plus the row id. Clearing an optional field sends '' and must clear the
+// stored value, so the server maps undefined → null.
+export const updateDepartmentSchema = createDepartmentSchema.extend({ id: uuid });
+export type UpdateDepartmentInput = z.infer<typeof updateDepartmentSchema>;
+
+export const updateDesignationSchema = createDesignationSchema.extend({ id: uuid });
+export type UpdateDesignationInput = z.infer<typeof updateDesignationSchema>;
+
+export const updateLocationSchema = createLocationSchema.extend({ id: uuid });
+export type UpdateLocationInput = z.infer<typeof updateLocationSchema>;
+
+export const STRUCTURE_KINDS = ['department', 'designation', 'location'] as const;
+export type StructureKind = (typeof STRUCTURE_KINDS)[number];
+
+export const archiveStructureSchema = z.object({
+  kind: z.enum(STRUCTURE_KINDS),
+  id: uuid,
+  archive: z.enum(['true', 'false']).transform((v) => v === 'true'),
+});
+export type ArchiveStructureInput = z.infer<typeof archiveStructureSchema>;

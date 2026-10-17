@@ -771,6 +771,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      structure_usage: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { kind: string; item_id: string; current_employees: number }[];
+      };
     };
     Enums: {
       assignment_change_reason: 'joining' | 'transfer' | 'promotion' | 'manager_change' | 'type_change' | 'correction' | 'other';
