@@ -11,8 +11,11 @@ export const MIGRATIONS_DIR = join(here, '../../../supabase/migrations');
 export interface TestDatabase {
   /** Superuser connection (bypasses RLS). Use only for fixtures. */
   db: PGlite;
-  /** Run `fn` as an authenticated Supabase user inside a transaction that is always rolled back. */
-  asUser<T>(userId: string, fn: (tx: Transaction) => Promise<T>): Promise<T>;
+  /**
+   * Run `fn` as an authenticated Supabase user inside a transaction that is always rolled back.
+   * Sessions default to `aal2` (second factor completed); pass `{ aal: 'aal1' }` for password-only.
+   */
+  asUser<T>(userId: string, fn: (tx: Transaction) => Promise<T>, opts?: { aal?: 'aal1' | 'aal2' }): Promise<T>;
   /** Run `fn` as the anonymous role inside a rolled-back transaction. */
   asAnon<T>(fn: (tx: Transaction) => Promise<T>): Promise<T>;
   createUser(email: string): Promise<string>;
@@ -38,11 +41,13 @@ export async function createTestDatabase(): Promise<TestDatabase> {
     }
   }
 
-  async function scoped<T>(role: 'authenticated' | 'anon', sub: string | null, fn: (tx: Transaction) => Promise<T>) {
+  async function scoped<T>(role: 'authenticated' | 'anon', sub: string | null, fn: (tx: Transaction) => Promise<T>, aal = 'aal2') {
     let result: T | undefined;
     try {
       await db.transaction(async (tx) => {
+        // Mirrors what PostgREST sets for each request.
         await tx.query(`select set_config('request.jwt.claim.sub', $1, true)`, [sub ?? '']);
+        await tx.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify(sub ? { sub, role, aal } : { role })]);
         await tx.exec(`set local role ${role}`);
         result = await fn(tx);
         throw new Rollback();
@@ -55,7 +60,7 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 
   return {
     db,
-    asUser: (userId, fn) => scoped('authenticated', userId, fn),
+    asUser: (userId, fn, opts) => scoped('authenticated', userId, fn, opts?.aal ?? 'aal2'),
     asAnon: (fn) => scoped('anon', null, fn),
     async createUser(email) {
       const { rows } = await db.query<{ id: string }>('insert into auth.users (email) values ($1) returning id', [email]);

@@ -32,6 +32,15 @@ describe('permission catalog ↔ database seed', () => {
     expect(Object.fromEntries(orgRoles.rows.map((r) => [r.key, r.assignment_permission]))).toEqual(expected);
   });
 
+  it('which roles require two-factor sign-in matches packages/shared, in templates and organizations', async () => {
+    const expected = Object.fromEntries(ROLE_KEYS.map((r) => [r, ROLE_TEMPLATES[r].requiresMfa]));
+    const templates = await ctx.t.db.query<{ role_key: string; requires_mfa: boolean }>('select role_key, requires_mfa from app.role_templates');
+    expect(Object.fromEntries(templates.rows.map((r) => [r.role_key, r.requires_mfa]))).toEqual(expected);
+    const orgRoles = await ctx.t.db.query<{ key: string; requires_mfa: boolean }>(
+      'select key, requires_mfa from roles where organization_id = $1 and is_system', [ctx.f.orgA]);
+    expect(Object.fromEntries(orgRoles.rows.map((r) => [r.key, r.requires_mfa]))).toEqual(expected);
+  });
+
   it('every new organization receives all system roles', async () => {
     const { rows } = await ctx.t.db.query<{ key: string }>(
       'select key from roles where organization_id = $1 and is_system order by key', [ctx.f.orgA]);

@@ -515,6 +515,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           assignment_permission: string;
+          requires_mfa: boolean;
         };
         Insert: {
           id?: string;
@@ -526,6 +527,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           assignment_permission?: string;
+          requires_mfa?: boolean;
         };
         Update: {
           id?: string;
@@ -537,6 +539,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           assignment_permission?: string;
+          requires_mfa?: boolean;
         };
         Relationships: [];
       };
@@ -602,6 +605,10 @@ export type Database = {
           p_org: string;
         };
         Returns: { id: string; key: string; name: string; description: string }[];
+      };
+      my_mfa_requirement: {
+        Args: never;
+        Returns: boolean;
       };
       my_organizations: {
         Args: never;

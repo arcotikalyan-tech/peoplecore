@@ -11,6 +11,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@peoplecore/db/types';
+import { readMfaSecrets } from './lib/demo-mfa.ts';
+import { totp } from './lib/totp.ts';
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -85,11 +87,20 @@ function makeClient(jar: Map<string, string>) {
 }
 type Client = ReturnType<typeof makeClient>;
 
-async function signIn(local: string): Promise<{ client: Client; userId: string; cookie: string } | null> {
+const mfaSecrets = await readMfaSecrets();
+
+/** Password sign-in, then the second factor for accounts that have one (unless secondFactor is false). */
+async function signIn(local: string, { secondFactor = true } = {}): Promise<{ client: Client; userId: string; cookie: string } | null> {
   const jar = new Map<string, string>();
   const client = makeClient(jar);
-  const { data, error } = await client.auth.signInWithPassword({ email: `${local}@${domain}`, password: password! });
+  const email = `${local}@${domain}`;
+  const { data, error } = await client.auth.signInWithPassword({ email, password: password! });
   if (error || !data.user) return null;
+  const factor = mfaSecrets[email];
+  if (secondFactor && factor) {
+    const { error: mfaError } = await client.auth.mfa.challengeAndVerify({ factorId: factor.factorId, code: totp(factor.secret) });
+    if (mfaError) return null;
+  }
   return { client, userId: data.user.id, cookie: [...jar].map(([n, v]) => `${n}=${v}`).join('; ') };
 }
 
@@ -134,6 +145,12 @@ check('manager sees exactly themselves + their reporting line', sameSet(managerS
 const employeeSelf = employeeOf(employee.userId)!;
 const employeeSeen = await visibleIds(employee.client);
 check('employee sees only their own record', sameSet(employeeSeen, new Set([employeeSelf.id])), `${employeeSeen.size} visible`);
+
+const hrPasswordOnly = await signIn('demo.hr', { secondFactor: false });
+// Without the second factor the HR-admin role is switched off; only their everyday Employee role remains.
+const hrSelf = employeeOf(hr.userId)!;
+const hrPasswordOnlySeen = hrPasswordOnly ? await visibleIds(hrPasswordOnly.client) : new Set<string>();
+check('HR with a password only (no second factor) sees just their own record', sameSet(hrPasswordOnlySeen, new Set([hrSelf.id])), `${hrPasswordOnlySeen.size} visible`);
 
 const auditCount = async (c: Client) => (await c.from('audit_events').select('id', { count: 'exact', head: true }).eq('organization_id', org.id)).count ?? 0;
 check('HR can read the audit log', (await auditCount(hr.client)) > 0);
@@ -186,6 +203,11 @@ if (appUrl) {
       .filter(Boolean)
       .join('; ');
     check(name, healthy(p) && missing.length === 0 && leaked.length === 0, detail || undefined);
+  }
+
+  if (hrPasswordOnly) {
+    const pending = await page('/app/demo/employees', hrPasswordOnly.cookie);
+    check('HR without the second factor is sent to two-step verification', [302, 303, 307].includes(pending.status) && pending.location.includes('/mfa'), `HTTP ${pending.status}`);
   }
 
   const anonPage = await page('/app/demo');

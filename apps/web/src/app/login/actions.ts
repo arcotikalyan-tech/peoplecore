@@ -19,7 +19,10 @@ export async function signInWithPassword(_prev: ActionState, formData: FormData)
     // One generic message: never reveal whether the account exists.
     return { ok: false, message: 'Incorrect email or password.', values: { email: parsed.data.email } };
   }
-  redirect(safeNextPath(parsed.data.next));
+  const next = safeNextPath(parsed.data.next);
+  // Roles that need two-factor go straight to the second step.
+  const { data: needsMfa } = await supabase.rpc('my_mfa_requirement');
+  redirect(needsMfa ? `/mfa?next=${encodeURIComponent(next)}` : next);
 }
 
 const linkSchema = z.object({ email: z.email(), next: z.string().optional() });

@@ -13,6 +13,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@peoplecore/db/types';
+import { ensureDemoMfa } from './lib/demo-mfa.ts';
 
 type RoleKey = 'owner' | 'hr_admin' | 'payroll_admin' | 'manager' | 'employee';
 type EmploymentType = Database['public']['Enums']['employment_type'];
@@ -26,6 +27,7 @@ function fail(message: string): never {
 const args = new Set(process.argv.slice(2));
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const secretKey = process.env.SUPABASE_SECRET_KEY;
+const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const password = process.env.DEMO_USER_PASSWORD;
 const domain = process.env.DEMO_EMAIL_DOMAIN ?? 'example.test';
 
@@ -260,6 +262,15 @@ async function main() {
   }
 
   createdOrgId = null; // success: keep the tenant
+
+  // Owner, HR, payroll and platform roles require two-step sign-in; enroll the demo accounts' authenticators.
+  const mfaEmails = [accounts.owner.email, accounts.hr.email, accounts.payroll.email, ...(platform ? [platform.email] : [])];
+  if (publishableKey) {
+    await ensureDemoMfa({ url: url!, publishableKey, secretKey: secretKey!, password: password! }, mfaEmails);
+    console.log('✓ two-step verification set up for the demo admin accounts (codes: demo:totp <account>)');
+  } else {
+    console.warn('! NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY not set: run demo:mfa to set up two-step verification');
+  }
   console.log(`✓ Demo tenant created: /app/demo (${seq} synthetic employees)`);
   for (const [role, a] of Object.entries(accounts)) console.log(`  ${role.padEnd(9)} ${a.email}`);
   if (platform) console.log(`  platform  ${platform.email} (platform admin, not a tenant member)`);

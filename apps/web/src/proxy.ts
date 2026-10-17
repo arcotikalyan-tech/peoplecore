@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isSupabaseConfigured, publicEnv } from '@/lib/env';
 
-const PROTECTED = ['/app', '/platform'];
+const PROTECTED = ['/app', '/platform', '/mfa'];
 
 /**
  * Refreshes the Supabase session cookie and redirects signed-out users away from protected areas.

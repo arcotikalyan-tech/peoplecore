@@ -13,3 +13,4 @@ supabase/.branches/
 playwright-report/
 test-results/
 next-env.d.ts
+.demo-mfa.json

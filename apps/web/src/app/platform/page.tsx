@@ -5,7 +5,7 @@ import { Brand } from '@/components/brand';
 import { Badge, Card, CardHeader, EmptyState, PageHeader } from '@/components/ui/surface';
 import { Table, Td, Th } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
-import { isPlatformAdmin, requireUser } from '@/server/context';
+import { isPlatformAdmin, requireMfaIfNeeded, requireUser } from '@/server/context';
 import { createClient } from '@/server/supabase';
 import { CreateOrgForm } from './create-org-form';
 import { OrgStatusControl } from './org-status-control';
@@ -17,6 +17,7 @@ const statusTone = { active: 'success', suspended: 'warning', archived: 'neutral
 export default async function PlatformPage() {
   const user = await requireUser();
   if (!(await isPlatformAdmin())) notFound();
+  await requireMfaIfNeeded(user, '/platform');
 
   // Platform admins can list tenants (organizations RLS) but cannot read tenant data without membership.
   const supabase = await createClient();

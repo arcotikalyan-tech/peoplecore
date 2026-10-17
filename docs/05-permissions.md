@@ -53,6 +53,10 @@ Platform super-admins are **not** org members by default (tested). They manage t
 - Every organization keeps at least one active, permanent owner. The rule is checked at commit, so ownership can be handed over within one change.
 - Suspending an organization (platform admins only) removes all member access immediately.
 
+## Two-step sign-in (enforced in the database)
+
+Organization owner, HR administrator, Payroll / finance administrator and Auditor roles, and platform-admin status, only take effect once the session has completed a second factor (TOTP, session `aal2`). With a password alone, a person keeps only their everyday roles (Employee, Manager, Department head, Recruiter). The app sends them to `/mfa` to set up or enter a code, but the database enforces the rule even for direct API calls.
+
 ## Delegation & access review
 - `member_roles.valid_until` supports temporary delegation, such as a manager on leave delegating `leave.approve`.
 - A quarterly access-review job (Phase 5) lists sensitive grants per org for owner recertification.

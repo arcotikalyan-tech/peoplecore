@@ -8,6 +8,8 @@ import { createClient } from './supabase';
 export interface SessionUser {
   id: string;
   email: string | null;
+  /** 'aal2' once the user completed a second factor (TOTP) in this session. */
+  aal: 'aal1' | 'aal2';
 }
 
 /** Verified identity from the JWT (getClaims validates the signature; getSession alone would not). */
@@ -16,13 +18,33 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims?.sub) return null;
-  return { id: claims.sub, email: typeof claims.email === 'string' ? claims.email : null };
+  return {
+    id: claims.sub,
+    email: typeof claims.email === 'string' ? claims.email : null,
+    aal: claims.aal === 'aal2' ? 'aal2' : 'aal1',
+  };
 });
 
 export async function requireUser(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) redirect('/login');
   return user;
+}
+
+/** Whether the user's roles need two-factor sign-in (owner, HR, payroll, auditor, platform admin). */
+export const needsMfa = cache(async (): Promise<boolean> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('my_mfa_requirement');
+  if (error) throw new Error('Failed to check two-factor requirement');
+  return data;
+});
+
+/**
+ * Sends users whose roles need two-factor to /mfa until they complete it for this session. UX only:
+ * the database already withholds those roles' permissions from password-only (aal1) sessions.
+ */
+export async function requireMfaIfNeeded(user: SessionUser, nextPath: string) {
+  if (user.aal !== 'aal2' && (await needsMfa())) redirect(`/mfa?next=${encodeURIComponent(nextPath)}`);
 }
 
 export type Organization = Pick<Tables<'organizations'>, 'id' | 'name' | 'slug' | 'is_demo' | 'timezone' | 'status'>;
@@ -41,6 +63,8 @@ export interface OrgContext {
  */
 export const getOrgContext = cache(async (slug: string): Promise<OrgContext> => {
   const user = await requireUser();
+  // Before loading permissions: at aal1 the database hides privileged roles' grants entirely.
+  await requireMfaIfNeeded(user, `/app/${slug}`);
   const supabase = await createClient();
   const { data: org, error } = await supabase
     .from('organizations')
@@ -69,6 +93,16 @@ export async function requirePermission(slug: string, key: PermissionKey, scope?
   return ctx;
 }
 
+/**
+ * Platform admin with two-factor completed: the same rule the database applies (app.is_platform_admin).
+ * Use this before any secret-key operation; isPlatformAdmin alone is for navigation.
+ */
+export async function isVerifiedPlatformAdmin(): Promise<boolean> {
+  const user = await getSessionUser();
+  return Boolean(user && user.aal === 'aal2' && (await isPlatformAdmin()));
+}
+
+/** Listed as a platform admin (UI/navigation only; powers additionally need two-factor). */
 export const isPlatformAdmin = cache(async (): Promise<boolean> => {
   const user = await getSessionUser();
   if (!user) return false;

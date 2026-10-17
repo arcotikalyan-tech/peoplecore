@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { adminClient, domain, expectNotFound, open, signIn } from './helpers';
+import { adminClient, completeMfa, domain, expectNotFound, open, signIn } from './helpers';
 
 /**
  * Core journeys on the live demo tenant, in order. Every step goes through the real UI; the database is
@@ -203,7 +203,11 @@ test('suspending an organization locks its members out until it is reactivated',
   await demoRow.getByRole('button', { name: 'Confirm reactivation' }).click();
   await expect(demoRow.getByText('active', { exact: true })).toBeVisible();
 
-  await open(hr, '/app/demo');
+  // HR signed in while the organization was suspended, so no privileged role applied and no second step
+  // was asked. Now that the HR-admin role applies again, two-step verification comes first.
+  await hr.goto('/app/demo');
+  await expect(hr).toHaveURL(/\/mfa\?next=%2Fapp%2Fdemo$/);
+  await completeMfa(hr, 'demo.hr');
   await expect(hr.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
 });
 

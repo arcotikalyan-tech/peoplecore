@@ -21,7 +21,15 @@ create function auth.uid() returns uuid language sql stable as $$
   )::uuid
 $$;
 
+-- Same as Supabase's auth.jwt(): the request's JWT claims (carries 'aal').
+create function auth.jwt() returns jsonb language sql stable as $$
+  select coalesce(
+    nullif(current_setting('request.jwt.claim', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')
+  )::jsonb
+$$;
+
 grant usage on schema auth, extensions, public to anon, authenticated, service_role;
-grant execute on function auth.uid() to anon, authenticated, service_role;
+grant execute on function auth.uid(), auth.jwt() to anon, authenticated, service_role;
 -- Deliberately NO default table/sequence privileges (Supabase projects may auto-grant them; ours must not
 -- depend on that). Migrations grant explicitly, and the tests prove those grants are sufficient.

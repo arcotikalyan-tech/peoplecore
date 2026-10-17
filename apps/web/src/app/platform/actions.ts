@@ -7,12 +7,12 @@ import { z } from 'zod';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { findOrInviteUser } from '@/server/admin-users';
-import { isPlatformAdmin } from '@/server/context';
+import { isVerifiedPlatformAdmin } from '@/server/context';
 import { createClient } from '@/server/supabase';
 
 export async function createOrganizationAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  // Authorization BEFORE any service-role use. The RPC re-checks platform-admin status in the database.
-  if (!(await isPlatformAdmin())) return { ok: false, message: 'Only platform administrators can create organizations.' };
+  // Authorization BEFORE any service-role use (two-factor included). The RPC re-checks in the database.
+  if (!(await isVerifiedPlatformAdmin())) return { ok: false, message: 'Only platform administrators who completed two-step verification can create organizations.' };
 
   const parsed = createOrganizationSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(parsed.error, formData);
@@ -46,7 +46,7 @@ const statusSchema = z.object({ orgId: z.uuid(), status: z.enum(['active', 'susp
 
 /** Suspends or reactivates a tenant. The RPC re-checks platform-admin status and the change is audited. */
 export async function setOrganizationStatusAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  if (!(await isPlatformAdmin())) return { ok: false, message: 'Only platform administrators can change an organization’s status.' };
+  if (!(await isVerifiedPlatformAdmin())) return { ok: false, message: 'Only platform administrators who completed two-step verification can change an organization’s status.' };
   const parsed = statusSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, message: 'Invalid request.' };
 

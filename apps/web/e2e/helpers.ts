@@ -1,6 +1,8 @@
 import { expect, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@peoplecore/db/types';
+import { readMfaSecrets } from '../scripts/lib/demo-mfa';
+import { totp } from '../scripts/lib/totp';
 
 export const domain = process.env.DEMO_EMAIL_DOMAIN ?? 'example.test';
 
@@ -20,12 +22,22 @@ export function adminClient() {
   return createClient<Database>(url, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-/** Signs in through the real login form, exactly as a person would. */
+/** Signs in through the real login form, exactly as a person would, including the two-step code. */
 export async function signIn(page: Page, local: string) {
   await page.goto('/login');
   await page.getByLabel('Work email').fill(`${local}@${domain}`);
   await page.getByLabel('Password').fill(liveEnv().password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.waitForURL(/\/(app|mfa)(\/|$|\?)/);
+  if (new URL(page.url()).pathname === '/mfa') await completeMfa(page, local);
+}
+
+/** On the two-step page: enters the demo account's current code and waits to be sent on. */
+export async function completeMfa(page: Page, local: string) {
+  const factor = (await readMfaSecrets())[`${local}@${domain}`];
+  if (!factor) throw new Error(`${local} needs two-step verification but has no demo secret (run demo:mfa)`);
+  await page.getByLabel('Authentication code').fill(totp(factor.secret));
+  await page.getByRole('button', { name: 'Verify' }).click();
   await page.waitForURL(/\/app(\/|$|\?)/);
 }
 
