@@ -68,6 +68,7 @@ export default async function EmployeesPage({
                 Export CSV
               </a>
             )}
+            {ctx.can('employee.create', 'org') && <ButtonLink href={`${base}/import`} variant="secondary">Import</ButtonLink>}
             {ctx.can('employee.create') && <ButtonLink href={`${base}/new`}>Add employee</ButtonLink>}
           </div>
         }

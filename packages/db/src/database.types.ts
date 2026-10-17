@@ -774,6 +774,14 @@ export type Database = {
         };
         Returns: { id: string; key: string; name: string; description: string }[];
       };
+      import_employees: {
+        Args: {
+          p_org: string;
+          p_rows: Json;
+          p_dry_run?: boolean;
+        };
+        Returns: Json;
+      };
       log_employee_export: {
         Args: {
           p_org: string;
