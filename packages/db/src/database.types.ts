@@ -6,6 +6,45 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      applications: {
+        Row: {
+          id: string;
+          organization_id: string;
+          requisition_id: string;
+          candidate_id: string;
+          stage: Database['public']['Enums']['application_stage'];
+          stage_changed_at: string;
+          outcome_note: string | null;
+          converted_employee_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          requisition_id: string;
+          candidate_id: string;
+          stage?: Database['public']['Enums']['application_stage'];
+          stage_changed_at?: string;
+          outcome_note?: string | null;
+          converted_employee_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          requisition_id?: string;
+          candidate_id?: string;
+          stage?: Database['public']['Enums']['application_stage'];
+          stage_changed_at?: string;
+          outcome_note?: string | null;
+          converted_employee_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       audit_events: {
         Row: {
           id: number;
@@ -39,6 +78,51 @@ export type Database = {
           entity_id?: string | null;
           changes?: Json | null;
           metadata?: Json;
+        };
+        Relationships: [];
+      };
+      candidates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          first_name: string;
+          last_name: string | null;
+          email: string | null;
+          phone: string | null;
+          source: Database['public']['Enums']['candidate_source'];
+          current_company: string | null;
+          consent_at: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          first_name: string;
+          last_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          source?: Database['public']['Enums']['candidate_source'];
+          current_company?: string | null;
+          consent_at: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          first_name?: string;
+          last_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          source?: Database['public']['Enums']['candidate_source'];
+          current_company?: string | null;
+          consent_at?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -405,6 +489,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      job_requisitions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          code: string;
+          title: string;
+          department_id: string | null;
+          designation_id: string | null;
+          location_id: string | null;
+          hiring_manager_employee_id: string | null;
+          employment_type: Database['public']['Enums']['employment_type'];
+          openings: number;
+          status: Database['public']['Enums']['requisition_status'];
+          description: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          code: string;
+          title: string;
+          department_id?: string | null;
+          designation_id?: string | null;
+          location_id?: string | null;
+          hiring_manager_employee_id?: string | null;
+          employment_type?: Database['public']['Enums']['employment_type'];
+          openings?: number;
+          status?: Database['public']['Enums']['requisition_status'];
+          description?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          code?: string;
+          title?: string;
+          department_id?: string | null;
+          designation_id?: string | null;
+          location_id?: string | null;
+          hiring_manager_employee_id?: string | null;
+          employment_type?: Database['public']['Enums']['employment_type'];
+          openings?: number;
+          status?: Database['public']['Enums']['requisition_status'];
+          description?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       legal_entities: {
         Row: {
           id: string;
@@ -682,6 +820,19 @@ export type Database = {
         Args: never;
         Returns: number;
       };
+      add_application: {
+        Args: {
+          p_requisition: string;
+          p_first_name: string;
+          p_last_name?: string;
+          p_email?: string;
+          p_phone?: string;
+          p_source?: Database['public']['Enums']['candidate_source'];
+          p_current_company?: string;
+          p_consent?: boolean;
+        };
+        Returns: Json;
+      };
       add_employee_document: {
         Args: {
           p_employee: string;
@@ -744,6 +895,20 @@ export type Database = {
         };
         Returns: string;
       };
+      create_requisition: {
+        Args: {
+          p_org: string;
+          p_title: string;
+          p_openings?: number;
+          p_employment_type?: Database['public']['Enums']['employment_type'];
+          p_department_id?: string;
+          p_designation_id?: string;
+          p_location_id?: string;
+          p_hiring_manager?: string;
+          p_description?: string;
+        };
+        Returns: string;
+      };
       delete_employee_document: {
         Args: {
           p_document: string;
@@ -768,11 +933,27 @@ export type Database = {
         };
         Returns: { pan: string; aadhaar_last4: string; uan: string; esic_number: string; passport_number: string; passport_expiry: string; updated_at: string; can_edit: boolean }[];
       };
+      erase_candidate: {
+        Args: {
+          p_candidate: string;
+        };
+        Returns: undefined;
+      };
       grantable_roles: {
         Args: {
           p_org: string;
         };
         Returns: { id: string; key: string; name: string; description: string }[];
+      };
+      hire_application: {
+        Args: {
+          p_application: string;
+          p_date_of_joining: string;
+          p_work_email?: string;
+          p_employee_code?: string;
+          p_employment_type?: Database['public']['Enums']['employment_type'];
+        };
+        Returns: string;
       };
       import_employees: {
         Args: {
@@ -789,6 +970,14 @@ export type Database = {
           p_row_count: number;
         };
         Returns: number;
+      };
+      move_application: {
+        Args: {
+          p_application: string;
+          p_stage: Database['public']['Enums']['application_stage'];
+          p_note?: string;
+        };
+        Returns: undefined;
       };
       my_mfa_requirement: {
         Args: never;
@@ -867,8 +1056,10 @@ export type Database = {
       };
     };
     Enums: {
+      application_stage: 'applied' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected' | 'withdrawn';
       assignment_change_reason: 'joining' | 'transfer' | 'promotion' | 'manager_change' | 'type_change' | 'correction' | 'other';
       bank_account_type: 'savings' | 'current' | 'salary';
+      candidate_source: 'careers_site' | 'referral' | 'agency' | 'job_board' | 'direct' | 'other';
       document_category: 'identity' | 'address' | 'education' | 'employment' | 'contract' | 'medical' | 'other';
       employee_status: 'pre_joining' | 'active' | 'on_notice' | 'exited';
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
@@ -876,6 +1067,7 @@ export type Database = {
       member_status: 'invited' | 'active' | 'suspended';
       org_status: 'active' | 'suspended' | 'archived';
       permission_scope: 'org' | 'team' | 'self';
+      requisition_status: 'open' | 'on_hold' | 'closed';
     };
     CompositeTypes: { [_ in never]: never };
   };

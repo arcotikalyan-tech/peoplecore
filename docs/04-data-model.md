@@ -43,6 +43,8 @@ Legend: ✅ built in the current slice · 🔜 next phase · 📋 planned.
 ## Recruitment (Phase 2)
 `job_requisitions` → `positions` → `job_postings`. `candidates` (dedupe keys: normalised email/phone) → `applications` (stage, source). `resumes` (document + parsed JSON *and* extracted normalised fields). `interview_rounds`, `interviews`, `interview_panelists`, `scorecards` (criterion rows, not a JSON blob), `offers` + `offer_versions`, `bgv_checks`, `candidate_consents` (purpose, granted_at, expires_at). `applications.converted_employee_id` links to `employees` so records aren't duplicated on hire.
 
+**Built (slice 1, migration 20261018000800):** `job_requisitions` (positions and postings are folded into the requisition for now), `candidates` (email/phone dedupe, `consent_at`), `applications` (stage pipeline, `converted_employee_id` unique). 🔜 `resumes`, interviews and scorecards, `offers` + `offer_versions`, `bgv_checks`, `candidate_consents` with expiry.
+
 ## Onboarding & documents (Phase 3)
 `onboarding_templates`/`template_tasks` → `onboarding_plans`/`onboarding_tasks`, `policy_documents` + `policy_acknowledgements`, `esign_requests`, `probation_plans`.
 

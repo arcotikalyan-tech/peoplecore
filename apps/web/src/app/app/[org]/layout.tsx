@@ -14,6 +14,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
   const nav = [
     { href: base, label: 'Dashboard', exact: true },
     ...(ctx.can('employee.read') ? [{ href: `${base}/employees`, label: 'Employees' }] : []),
+    ...(ctx.can('recruitment.read') ? [{ href: `${base}/recruitment`, label: 'Recruitment' }] : []),
     ...(ctx.can('org.read') ? [{ href: `${base}/structure`, label: 'Organization' }] : []),
     ...(ctx.can('member.manage', 'org') ? [{ href: `${base}/members`, label: 'Members' }] : []),
     ...(ctx.can('audit.read') ? [{ href: `${base}/audit`, label: 'Audit log' }] : []),
