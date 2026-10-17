@@ -7,3 +7,4 @@ export * from './schemas/employee.ts';
 export * from './schemas/org-structure.ts';
 export * from './schemas/members.ts';
 export * from './schemas/sensitive.ts';
+export * from './schemas/documents.ts';

@@ -19,6 +19,12 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | employee.personal.read † | O | O | | | | | S | |
 | employee.identity.read † | O | O | | O | | | S | |
 | employee.bank.read † | O | | | O | | | S | |
+| employee.personal.update † | O | O | | | | | S | |
+| employee.identity.update † | O | O | | | | | | |
+| employee.bank.update † | O | | | O | | | | |
+| employee.document.read † | O | O | | | | | S | |
+| employee.document.upload † | O | O | | | | | S | |
+| employee.document.delete † | O | O | | | | | | |
 | compensation.read † | O | | | O | ² | | S | O |
 | compensation.update † | | | | O | | | | |
 | payroll.prepare (maker) | | | | O | | | | |

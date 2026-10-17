@@ -33,3 +33,15 @@ grant usage on schema auth, extensions, public to anon, authenticated, service_r
 grant execute on function auth.uid(), auth.jwt() to anon, authenticated, service_role;
 -- Deliberately NO default table/sequence privileges (Supabase projects may auto-grant them; ours must not
 -- depend on that). Migrations grant explicitly, and the tests prove those grants are sufficient.
+
+-- Storage: just the bucket catalogue (columns migrations set). Objects live outside Postgres in tests.
+create schema storage;
+create table storage.buckets (
+  id                 text primary key,
+  name               text not null unique,
+  public             boolean default false,
+  file_size_limit    bigint,
+  allowed_mime_types text[],
+  created_at         timestamptz default now(),
+  updated_at         timestamptz default now()
+);

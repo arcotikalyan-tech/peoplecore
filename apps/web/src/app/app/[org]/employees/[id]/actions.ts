@@ -1,8 +1,12 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import {
   bankAccountSchema,
+  checkDocumentFile,
+  safeFileName,
+  uploadDocumentSchema,
   emergencyContactSchema,
   identitySchema,
   personalDetailsSchema,
@@ -11,7 +15,9 @@ import {
 import { z } from 'zod';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
-import { getOrgContext } from '@/server/context';
+import { getOrgContext, type OrgContext } from '@/server/context';
+import { removeDocumentFile, storeDocumentFile } from '@/server/document-storage';
+import { getEmployee } from '@/server/employees';
 import { createClient } from '@/server/supabase';
 
 /**
@@ -186,4 +192,72 @@ export async function saveBankAccountAction(orgSlug: string, employeeId: string,
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   revalidatePath(profilePath(orgSlug, employeeId));
   return { ok: true, message: 'Bank account updated. The previous account was archived.' };
+}
+
+// ─── Documents ──────────────────────────────────────────────────────────────
+
+/** Org-wide permission, or self scope on the caller's own record. Checked before any file is touched. */
+async function mayForEmployee(ctx: OrgContext, employeeId: string, key: 'employee.document.upload' | 'employee.document.delete') {
+  if (ctx.can(key, 'org')) return true;
+  if (!ctx.can(key, 'self')) return false;
+  const employee = await getEmployee(ctx.org.id, employeeId);
+  return employee?.user_id === ctx.user.id;
+}
+
+export async function uploadDocumentAction(orgSlug: string, employeeId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  const id = employeeIdSchema.parse(employeeId);
+  if (!(await mayForEmployee(ctx, id, 'employee.document.upload'))) {
+    return { ok: false, message: 'You don’t have permission to add documents for this employee.' };
+  }
+  const parsed = uploadDocumentSchema.safeParse({ category: formData.get('category'), title: formData.get('title') });
+  if (!parsed.success) return invalid(parsed.error, formData);
+
+  const file = formData.get('file');
+  if (!(file instanceof File)) return { ok: false, fieldErrors: { file: 'Choose a file to upload.' }, values: formValues(formData) };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const check = checkDocumentFile(bytes.byteLength, bytes.subarray(0, 16));
+  if (!check.ok) return { ok: false, message: 'Please fix the highlighted fields.', fieldErrors: { file: check.message }, values: formValues(formData) };
+
+  const documentId = randomUUID();
+  const path = `${ctx.org.id}/${id}/${documentId}`;
+  if (!(await storeDocumentFile(path, bytes, check.type))) {
+    return { ok: false, message: 'The file could not be stored. Please try again.', values: formValues(formData) };
+  }
+  // The database re-checks the permission as the caller and has the final say.
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('add_employee_document', {
+    p_employee: id,
+    p_id: documentId,
+    p_category: parsed.data.category,
+    p_title: parsed.data.title,
+    p_file_name: safeFileName(file.name),
+    p_content_type: check.type,
+    p_size_bytes: bytes.byteLength,
+  });
+  if (error) {
+    await removeDocumentFile(path);
+    return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  }
+  revalidatePath(profilePath(orgSlug, employeeId));
+  return { ok: true, message: `“${parsed.data.title}” uploaded.` };
+}
+
+export async function deleteDocumentAction(orgSlug: string, employeeId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  const id = employeeIdSchema.parse(employeeId);
+  const documentId = z.uuid().safeParse(formData.get('documentId'));
+  if (!documentId.success) return { ok: false, message: 'Invalid request.' };
+  if (!(await mayForEmployee(ctx, id, 'employee.document.delete'))) {
+    return { ok: false, message: 'You don’t have permission to delete this document.' };
+  }
+
+  const supabase = await createClient();
+  const { data: path, error } = await supabase.rpc('delete_employee_document', { p_document: documentId.data });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  // The record is already hidden and audited. If removing the file fails it stays unreachable (no signed
+  // URL is ever issued for a deleted record) until a cleanup job exists; see BUILD_STATUS known issues.
+  await removeDocumentFile(path);
+  revalidatePath(profilePath(orgSlug, employeeId));
+  return { ok: true, message: 'Document deleted.' };
 }

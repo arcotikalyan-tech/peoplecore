@@ -171,6 +171,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      employee_documents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          category: Database['public']['Enums']['document_category'];
+          title: string;
+          file_name: string;
+          content_type: string;
+          size_bytes: number;
+          storage_path: string;
+          uploaded_by: string | null;
+          created_at: string;
+          deleted_at: string | null;
+          deleted_by: string | null;
+        };
+        Insert: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          category: Database['public']['Enums']['document_category'];
+          title: string;
+          file_name: string;
+          content_type: string;
+          size_bytes: number;
+          storage_path: string;
+          uploaded_by?: string | null;
+          created_at?: string;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          category?: Database['public']['Enums']['document_category'];
+          title?: string;
+          file_name?: string;
+          content_type?: string;
+          size_bytes?: number;
+          storage_path?: string;
+          uploaded_by?: string | null;
+          created_at?: string;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
+        };
+        Relationships: [];
+      };
       employee_personal: {
         Row: {
           id: string;
@@ -634,6 +682,18 @@ export type Database = {
         Args: never;
         Returns: number;
       };
+      add_employee_document: {
+        Args: {
+          p_employee: string;
+          p_id: string;
+          p_category: Database['public']['Enums']['document_category'];
+          p_title: string;
+          p_file_name: string;
+          p_content_type: string;
+          p_size_bytes: number;
+        };
+        Returns: string;
+      };
       add_member: {
         Args: {
           p_org: string;
@@ -683,6 +743,18 @@ export type Database = {
           p_owner_user_id?: string;
         };
         Returns: string;
+      };
+      delete_employee_document: {
+        Args: {
+          p_document: string;
+        };
+        Returns: string;
+      };
+      document_download: {
+        Args: {
+          p_document: string;
+        };
+        Returns: { storage_path: string; file_name: string; content_type: string }[];
       };
       employee_bank_summary: {
         Args: {
@@ -781,6 +853,7 @@ export type Database = {
     Enums: {
       assignment_change_reason: 'joining' | 'transfer' | 'promotion' | 'manager_change' | 'type_change' | 'correction' | 'other';
       bank_account_type: 'savings' | 'current' | 'salary';
+      document_category: 'identity' | 'address' | 'education' | 'employment' | 'contract' | 'medical' | 'other';
       employee_status: 'pre_joining' | 'active' | 'on_notice' | 'exited';
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
       gender: 'female' | 'male' | 'non_binary' | 'undisclosed';

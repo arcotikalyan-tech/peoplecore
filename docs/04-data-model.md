@@ -38,7 +38,7 @@ Legend: ✅ built in the current slice · 🔜 next phase · 📋 planned.
 | 🔜 `employee_identity_docs` | PAN/Aadhaar/passport refs. Encrypted columns + storage objects. `employee.identity.read` |
 | 🔜 `employee_bank_accounts` | Effective-dated, verification status. `employee.bank.read` |
 | 🔜 `dependants`, `emergency_contacts`, `qualifications`, `skills`, `employee_skills`, `certifications`, `work_experience` | |
-| 🔜 `documents` | Storage object path, category, sensitivity, retention_class, linked entity |
+| ✅ `employee_documents` | Category, title, file name, type, size, storage path `<org>/<employee>/<id>` in the private `employee-documents` bucket, uploader, soft delete. Retention class: Phase 6 |
 
 ## Recruitment (Phase 2)
 `job_requisitions` → `positions` → `job_postings`. `candidates` (dedupe keys: normalised email/phone) → `applications` (stage, source). `resumes` (document + parsed JSON *and* extracted normalised fields). `interview_rounds`, `interviews`, `interview_panelists`, `scorecards` (criterion rows, not a JSON blob), `offers` + `offer_versions`, `bgv_checks`, `candidate_consents` (purpose, granted_at, expires_at). `applications.converted_employee_id` links to `employees` so records aren't duplicated on hire.

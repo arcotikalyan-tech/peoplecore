@@ -17,11 +17,13 @@ import { formatDate, formatDateTime, humanize } from '@/lib/format';
 import { activityForEmployee, type AuditEvent } from '@/server/audit';
 import { getOrgContext } from '@/server/context';
 import { employeeNames, getEmployee, getEmploymentHistory, managerOptions, namesForUsers } from '@/server/employees';
+import { listDocuments } from '@/server/documents';
 import { getBankSummary, getIdentitySummary, getPersonalDetails } from '@/server/sensitive';
 import { getStructure, structureOptions } from '@/server/structure';
 import { changeAssignmentAction } from '../actions';
 import {
   addEmergencyContactAction,
+  deleteDocumentAction,
   removeEmergencyContactAction,
   revealBankAction,
   revealIdentityAction,
@@ -29,8 +31,10 @@ import {
   saveIdentityAction,
   savePersonalDetailsAction,
   updateWorkDetailsAction,
+  uploadDocumentAction,
 } from './actions';
 import { AssignmentForm } from './assignment-form';
+import { DocumentsPanel } from './documents-panel';
 import { EmergencyContacts, PersonalDetailsForm, WorkDetailsForm } from './profile-forms';
 import { BankPanel, IdentityPanel } from './sensitive-panels';
 
@@ -43,11 +47,18 @@ const SUBJECTS: Record<string, string> = {
   emergency_contacts: 'an emergency contact',
   employee_identity: 'identity details',
   employee_bank_accounts: 'bank details',
+  employee_documents: 'a document',
 };
+
+const formatBytes = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / (1024 * 1024)).toFixed(1)} MB`);
 
 function describeActivity(a: AuditEvent): string {
   const subject = SUBJECTS[a.entity_type] ?? humanize(a.entity_type).toLowerCase();
   if (a.action === 'reveal') return `viewed the full ${subject}`;
+  if (a.action === 'download') return `downloaded ${subject}`;
+  // Documents are soft-deleted: the update that sets deleted_at is the deletion.
+  if (a.entity_type === 'employee_documents' && a.action === 'update' && a.changes && typeof a.changes === 'object'
+      && !Array.isArray(a.changes) && 'deleted_at' in a.changes) return `deleted ${subject}`;
   const verb = a.action === 'insert' ? (a.entity_type === 'employees' ? 'created' : 'added') : a.action === 'update' ? 'updated' : 'removed';
   return `${verb} ${subject}`;
 }
@@ -74,18 +85,20 @@ export default async function EmployeePage({
   const canEditWork = ctx.can('employee.update', 'org');
   const canAudit = ctx.can('audit.read', 'org');
 
-  const [history, structure, managers, personal, identity, bank] = await Promise.all([
+  const [history, structure, managers, personal, identity, bank, documents] = await Promise.all([
     getEmploymentHistory(orgId, id),
     getStructure(orgId),
     canEditWork ? managerOptions(orgId) : Promise.resolve([]),
     allowed('employee.personal.read') ? getPersonalDetails(orgId, id) : Promise.resolve(null),
     allowed('employee.identity.read') ? getIdentitySummary(id) : Promise.resolve(null),
     allowed('employee.bank.read') ? getBankSummary(id) : Promise.resolve(null),
+    allowed('employee.document.read') ? listDocuments(orgId, id) : Promise.resolve(null),
   ]);
   const activity = canAudit ? await activityForEmployee(orgId, id, history.map((h) => h.id)) : [];
   const [names, actors] = await Promise.all([
     employeeNames(orgId, [employee.manager_employee_id, ...history.map((h) => h.manager_employee_id)].filter((x): x is string => !!x)),
-    namesForUsers(orgId, activity.map((a) => a.actor_user_id).filter((x): x is string => !!x)),
+    namesForUsers(orgId, [...activity.map((a) => a.actor_user_id), ...(documents ?? []).map((d) => d.uploaded_by)]
+      .filter((x): x is string => !!x)),
   ]);
 
   const dept = new Map(structure.departments.map((d) => [d.id, d.name]));
@@ -233,6 +246,26 @@ export default async function EmployeePage({
                 summary={bank}
                 reveal={revealBankAction.bind(null, slug, id)}
                 save={saveBankAccountAction.bind(null, slug, id)}
+              />
+            </Card>
+          )}
+
+          {documents && (
+            <Card>
+              <CardHeader title="Documents" description="Stored privately. Every download is recorded." />
+              <DocumentsPanel
+                documents={documents.map((d) => ({
+                  id: d.id,
+                  category: d.category,
+                  title: d.title,
+                  fileName: d.file_name,
+                  size: formatBytes(d.size_bytes),
+                  uploaded: formatDateTime(d.created_at, ctx.org.timezone),
+                  uploadedBy: d.uploaded_by ? (actors.get(d.uploaded_by) ?? null) : null,
+                }))}
+                downloadHref={`${base}/employees/${id}/documents`}
+                upload={allowed('employee.document.upload') ? uploadDocumentAction.bind(null, slug, id) : undefined}
+                remove={allowed('employee.document.delete') ? deleteDocumentAction.bind(null, slug, id) : undefined}
               />
             </Card>
           )}
