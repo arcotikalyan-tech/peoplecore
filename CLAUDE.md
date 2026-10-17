@@ -18,3 +18,4 @@
 - Never trust client-supplied organization IDs for authorization; RLS decides.
 - No real personal data in fixtures or seeds; use `example.test` and mark demo tenants `is_demo`.
 - AI output is a suggestion until a human confirms it through the normal module code path.
+- Privileged roles (`roles.requires_mfa`) and platform admin only apply in `aal2` sessions. DB tests default to `aal2`; use `asUser(id, fn, { aal: 'aal1' })` to test password-only sessions.

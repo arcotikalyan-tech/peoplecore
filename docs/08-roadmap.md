@@ -16,7 +16,7 @@ Inspect the environment, write the ADRs and plans, set up the monorepo, standard
 3. Permission checks match the matrix in `05-permissions.md` (catalog ↔ DB test).
 4. Audit events are written for sensitive mutations and cannot be modified or deleted.
 5. Service-role usage is confined to server modules (lint rule).
-6. 🔜 MFA enrolment and enforcement for owner/HR/payroll roles. 🔜 member invite flow.
+6. ✅ Two-step sign-in (TOTP) enforced in the database for owner/HR/payroll/auditor roles and platform admins. ✅ Member invitations and role assignment with safe delegation. ✅ Suspended organizations and last-owner protection.
 
 ### Phase 2: Core HR + Recruitment
 **2a Core HR (slice 1 in progress):** employees, effective-dated employment records, org structure CRUD, search, filters, pagination, audit timeline. 🔜 personal/identity/bank tables, documents, bulk import with dry-run validation report, export with audit.

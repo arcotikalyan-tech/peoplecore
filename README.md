@@ -24,6 +24,8 @@ To run the web app you need a **PeopleCore** Supabase project (never the Vibe Up
 3. Copy `.env.example` to `apps/web/.env.local` and paste the **Publishable key** and **Secret key** from Dashboard → Settings → API Keys (the project URL is `https://<project-ref>.supabase.co`).
 4. Optionally seed the clearly-marked demo tenant (synthetic people only; you choose the password):
    `DEMO_USER_PASSWORD='<12+ chars>' corepack pnpm --filter @peoplecore/web seed:demo --yes --platform-admin`
+   Demo owner, HR, payroll and platform accounts use two-step sign-in. The seed enrolls their authenticators (`demo:mfa` re-runs that). To sign in as one in the browser, get the current code with
+   `corepack pnpm --filter @peoplecore/web demo:totp demo.hr`.
 5. `corepack pnpm dev`, then open http://localhost:3000.
 6. Check the live setup end to end (needs the dev server running and the demo tenant seeded):
    - `corepack pnpm --filter @peoplecore/web verify:demo --app http://localhost:3000`: read-only access checks for every role.
