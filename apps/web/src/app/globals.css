@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+
+/* Design tokens. Components use the semantic utilities below (bg-surface, text-muted, …), never raw colors. */
+:root {
+  --canvas: #f6f7f9;
+  --surface: #ffffff;
+  --subtle: #f1f3f6;
+  --line: #e3e6eb;
+  --line-strong: #cfd4dc;
+  --fg: #111827;
+  --muted: #5b6474;
+  --primary: #1f4fd1;
+  --primary-fg: #ffffff;
+  --primary-soft: #e8eefc;
+  --danger: #c4282d;
+  --danger-soft: #fdecec;
+  --success: #17803d;
+  --success-soft: #e7f6ec;
+  --warning: #a65c00;
+  --warning-soft: #fdf3e2;
+  /* AI suggestions are always rendered in this distinct hue so they are never mistaken for records. */
+  --ai: #6d3fd1;
+  --ai-soft: #f1ebfd;
+  --ring: #1f4fd1;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #0d1117;
+    --surface: #151b23;
+    --subtle: #1c232d;
+    --line: #2a323d;
+    --line-strong: #3a4350;
+    --fg: #e8ebf0;
+    --muted: #9aa3b2;
+    --primary: #6b93ff;
+    --primary-fg: #0b1020;
+    --primary-soft: #1a2647;
+    --danger: #ff7b7f;
+    --danger-soft: #3a1618;
+    --success: #5fd38a;
+    --success-soft: #12301e;
+    --warning: #f0b45a;
+    --warning-soft: #33250f;
+    --ai: #b79bff;
+    --ai-soft: #271d41;
+    --ring: #6b93ff;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-soft: var(--primary-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-ai: var(--ai);
+  --color-ai-soft: var(--ai-soft);
+  --color-ring: var(--ring);
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html {
+  background: var(--canvas);
+  color: var(--fg);
+}
+
+body {
+  @apply bg-canvas text-fg antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

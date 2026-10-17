@@ -281,10 +281,10 @@ create function public.change_employee_assignment(
   p_employee_id         uuid,
   p_effective_from      date,
   p_change_reason       public.assignment_change_reason,
-  p_department_id       uuid,
-  p_designation_id      uuid,
-  p_location_id         uuid,
-  p_manager_employee_id uuid,
+  p_department_id       uuid default null,
+  p_designation_id      uuid default null,
+  p_location_id         uuid default null,
+  p_manager_employee_id uuid default null,
   p_notes               text default null
 ) returns uuid
 language plpgsql security invoker set search_path = '' as $$

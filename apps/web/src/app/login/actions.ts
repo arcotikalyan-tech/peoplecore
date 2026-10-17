@@ -1,0 +1,40 @@
+'use server';
+
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
+import type { ActionState } from '@/lib/action-state';
+import { safeNextPath } from '@/lib/safe-redirect';
+import { createClient } from '@/server/supabase';
+
+const passwordSchema = z.object({ email: z.email(), password: z.string().min(1), next: z.string().optional() });
+
+export async function signInWithPassword(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = passwordSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, message: 'Enter your email and password.', values: { email: String(formData.get('email') ?? '') } };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email: parsed.data.email, password: parsed.data.password });
+  if (error) {
+    // One generic message: never reveal whether the account exists.
+    return { ok: false, message: 'Incorrect email or password.', values: { email: parsed.data.email } };
+  }
+  redirect(safeNextPath(parsed.data.next));
+}
+
+const linkSchema = z.object({ email: z.email(), next: z.string().optional() });
+
+export async function sendMagicLink(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = linkSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, message: 'Enter a valid email address.' };
+
+  const origin = (await headers()).get('origin') ?? '';
+  const supabase = await createClient();
+  await supabase.auth.signInWithOtp({
+    email: parsed.data.email,
+    // Accounts are provisioned by invitation only; a sign-in link must never create a user.
+    options: { shouldCreateUser: false, emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(safeNextPath(parsed.data.next))}` },
+  });
+  // Same response whether or not the address has an account.
+  return { ok: true, message: 'If that email has a PeopleCore account, a sign-in link is on its way.' };
+}
