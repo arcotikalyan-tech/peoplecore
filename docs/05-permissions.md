@@ -40,6 +40,19 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 
 Platform super-admins are **not** org members by default (tested). They manage tenants through `/platform`. Time-boxed support access will use an audited `member_roles.valid_until` grant; the mechanism exists and is tested, the support-access workflow is Phase 1b.
 
+## Who can grant which role (enforced in the database)
+
+| Role | Can be granted or revoked by |
+|---|---|
+| Organization owner, HR administrator, Payroll / finance administrator, Auditor | `role.manage` only (owners) |
+| Employee, Reporting manager, Department head, Recruiter | `member.manage` (HR) or `role.manage` |
+
+- Each role stores its `assignment_permission`; custom roles default to owner-only.
+- Nobody can suspend, remove or change the roles of a member who holds a role they could not grant themselves. HR therefore cannot touch owners or payroll administrators, and cannot promote anyone (themselves included) to HR admin.
+- Invited members get access only after their first sign-in. Only a membership's status can be edited, never whose or which organization's it is.
+- Every organization keeps at least one active, permanent owner. The rule is checked at commit, so ownership can be handed over within one change.
+- Suspending an organization (platform admins only) removes all member access immediately.
+
 ## Delegation & access review
 - `member_roles.valid_until` supports temporary delegation, such as a manager on leave delegating `leave.approve`.
 - A quarterly access-review job (Phase 5) lists sensitive grants per org for owner recertification.

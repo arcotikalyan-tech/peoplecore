@@ -514,6 +514,7 @@ export type Database = {
           is_system: boolean;
           created_at: string;
           updated_at: string;
+          assignment_permission: string;
         };
         Insert: {
           id?: string;
@@ -524,6 +525,7 @@ export type Database = {
           is_system?: boolean;
           created_at?: string;
           updated_at?: string;
+          assignment_permission?: string;
         };
         Update: {
           id?: string;
@@ -534,12 +536,26 @@ export type Database = {
           is_system?: boolean;
           created_at?: string;
           updated_at?: string;
+          assignment_permission?: string;
         };
         Relationships: [];
       };
     };
     Views: { [_ in never]: never };
     Functions: {
+      accept_invitations: {
+        Args: never;
+        Returns: number;
+      };
+      add_member: {
+        Args: {
+          p_org: string;
+          p_user_id: string;
+          p_role_ids: string[];
+          p_employee_id?: string;
+        };
+        Returns: string;
+      };
       change_employee_assignment: {
         Args: {
           p_employee_id: string;
@@ -581,6 +597,12 @@ export type Database = {
         };
         Returns: string;
       };
+      grantable_roles: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { id: string; key: string; name: string; description: string }[];
+      };
       my_organizations: {
         Args: never;
         Returns: { id: string; name: string; slug: string; is_demo: boolean; status: Database['public']['Enums']['org_status'] }[];
@@ -590,6 +612,19 @@ export type Database = {
           p_org: string;
         };
         Returns: { permission_key: string; scope: Database['public']['Enums']['permission_scope'] }[];
+      };
+      org_members: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { member_id: string; user_id: string; email: string; status: Database['public']['Enums']['member_status']; joined_at: string; last_sign_in_at: string; role_ids: string[]; employee_id: string; employee_name: string }[];
+      };
+      set_member_roles: {
+        Args: {
+          p_member: string;
+          p_role_ids: string[];
+        };
+        Returns: undefined;
       };
       set_organization_status: {
         Args: {

@@ -10,13 +10,13 @@ A module only counts as **complete** when its schema, authorization, business lo
 
 | Check | Result |
 |---|---|
-| `corepack pnpm check` (typecheck + lint + tests, 3 packages) | ✅ 97 tests pass: 50 database/RLS/privileges, 37 shared, 10 web |
+| `corepack pnpm check` (typecheck + lint + tests, 3 packages) | ✅ 117 tests pass: 68 database/RLS/privileges, 39 shared, 10 web |
 | `next build` (production) | ✅ |
 | Production server smoke test | ✅ Login renders the "not configured" notice, security headers present, `X-Powered-By` removed |
 | `pnpm audit --prod` | ✅ No known vulnerabilities in runtime dependencies |
 | Live Supabase project **Peoplecore** (`rncjncpazqxqkfqoumsk`, Postgres 17) | ✅ Migrations 100–400 applied with `supabase db push`; history recorded. Permission catalog present (24). Anonymous API read of `employees` refused (`42501`). |
 | Live end-to-end smoke test, `verify:demo` (2026-10-17) | ✅ 36/36 checks. Demo tenant seeded (26 synthetic employees, 6 accounts). Every role signs in; owner/HR/payroll see all 26, the manager exactly their line (10), the employee only themselves. Audit-log reads and structure writes are refused where they should be; anonymous requests are refused. Every main page renders through the running app as each role, with no data from outside the viewer's scope. |
-| Browser E2E, `test:e2e` (Playwright driving Chrome against the live project, 2026-10-17) | ✅ 10/10 journeys pass, each checked in the UI **and** in the database. HR adds a department. Validation errors appear on the employee form. HR adds an employee (auto code, joining history). A duplicate work email is refused and the typed values are kept. A transfer closes the joining entry and opens a new one. The audit log attributes every change to HR. A manager can view but not edit a new report; an employee can't see them. The platform admin creates a tenant (8 roles seeded) but can't open it. Suspending an organization locks its members out with a clear notice until it is reactivated. Sign-out ends the session. All test data is deleted afterwards. |
+| Browser E2E, `test:e2e` (Playwright driving Chrome against the live project, 2026-10-17) | ✅ 11/11 journeys pass, each checked in the UI **and** in the database. HR adds a department. Validation errors appear on the employee form. HR adds an employee (auto code, joining history). A duplicate work email is refused and the typed values are kept. A transfer closes the joining entry and opens a new one. The audit log attributes every change to HR. A manager can view but not edit a new report; an employee can't see them. The platform admin creates a tenant (8 roles seeded) but can't open it. Suspending an organization locks its members out with a clear notice until it is reactivated. HR invites an existing account (only everyday roles offered), the invitee gets access on first sign-in, HR changes their roles, suspends and removes them, and cannot touch the owner. Sign-out ends the session. All test data is deleted afterwards. |
 | Email-link sign-in and invitations | ❌ **Not yet exercised.** Demo addresses (`example.test`) can't receive email; needs a real mailbox. |
 
 The database tests apply every migration to PGlite (Postgres 17 in WASM) with a shim for Supabase's `auth` schema and roles (ADR-005). The shim grants **no** default table privileges, so the tests also prove the migrations' explicit grants are sufficient whether or not a Supabase project auto-grants. They give strong evidence for schema, RLS and RPC behaviour, but they don't replace a run against hosted Supabase.
@@ -63,6 +63,8 @@ The database tests apply every migration to PGlite (Postgres 17 in WASM) with a 
 | `20261017000300_org_structure_core_hr.sql` | Org structure, employees, employment records, counters, scoped access functions, RPCs, RLS |
 | `20261017000400_explicit_grants.sql` | Explicit least-privilege table grants; turns off automatic grants for future objects |
 | `20261017000500_suspension_and_owner_guard.sql` | Suspended organizations lose all access; last-owner protection (checked at commit); slug/status/demo flag platform-only; `set_organization_status`, `my_organizations` |
+| `20261017000600_member_management.sql` | Safe role delegation (`assignment_permission`, `can_grant_role`, `can_manage_member`); `org_members`, `grantable_roles`, `add_member`, `set_member_roles`, `accept_invitations`; only membership status is editable |
+| `20261018000100_org_local_dates.sql` | Fix: "today" uses the organization's time zone, not UTC (found by the browser tests just after midnight IST) |
 
 Applied to the Peoplecore project on 2026-10-17, so they are now **immutable**: every change goes in a new migration (`supabase db push` applies only new ones).
 
@@ -84,10 +86,11 @@ Applied to the Peoplecore project on 2026-10-17, so they are now **immutable**: 
     - Invite email template points at `/auth/callback?token_hash={{ .TokenHash }}&type=invite`.
 11. **Demo password:** the demo accounts use a 10-character password, accepted with `--allow-short-password` at the owner's request. To strengthen it, change `DEMO_USER_PASSWORD` to 12+ characters and re-run `seed:demo --yes --reset --platform-admin`; existing accounts get the new password.
 12. **Process note:** on 2026-10-17 a second agent session (`peoplecore-a6`) wrote into this repo concurrently. Its overlapping files were reconciled into this structure and its duplicates removed. Only one session should write here.
+13. **Invitation emails to new people need custom SMTP.** Supabase's built-in email service is heavily rate-limited and meant for testing (it may only deliver to your project team's addresses). Configure custom SMTP before inviting real users. Adding people who already have a PeopleCore sign-in sends no email and works today.
 
 ## Next steps
 
 1. **Close the verification gaps.** Test email-link sign-in and an invitation with a real mailbox. Create a separate Supabase test project so CI can run `test:e2e` and the DB tests against real Supabase without touching the main project.
-2. **Phase 1b.** Member invitations and role assignment UI. MFA (TOTP) enforced for owner, HR and payroll roles. Suspended-org enforcement, last-owner guard, access-review listing.
+2. **Finish Phase 1b.** Done: suspended organizations, last-owner protection, member invitations and role assignment. Remaining: two-factor sign-in (TOTP) enforced for owner, HR, payroll and auditor roles and platform admins; access-review listing.
 3. **Finish Phase 2a.** Personal, identity and bank tables with field-level permissions. Private document storage with signed URLs. Profile edit flows. Bulk import with a dry-run report. Audited export.
 4. **Phase 2b.** Applicant tracking, per the roadmap.

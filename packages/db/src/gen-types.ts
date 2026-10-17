@@ -23,8 +23,10 @@ interface FunctionRow {
   proname: string;
   arg_names: string[] | null;
   arg_modes: string[] | null;
-  arg_types: string[];
+  arg_typnames: string[];
   arg_typtypes: string[];
+  arg_elem_typnames: string[];
+  arg_elem_typtypes: string[];
   nargs: number;
   ndefaults: number;
   ret_typname: string;
@@ -75,9 +77,19 @@ export async function generateDatabaseTypes(db: PGlite): Promise<string> {
 
   const functions = (
     await db.query<FunctionRow>(`
+      with args as (
+        select p.oid as proc, a.n, t.typname::text as typname, t.typtype::text as typtype,
+               coalesce(et.typname::text, '') as elem_typname, coalesce(et.typtype::text, '') as elem_typtype
+          from pg_proc p
+          cross join lateral unnest(coalesce(p.proallargtypes, p.proargtypes::oid[])) with ordinality a(oid, n)
+          join pg_type t on t.oid = a.oid
+          left join pg_type et on et.oid = t.typelem and t.typcategory = 'A'
+      )
       select p.proname, p.proargnames as arg_names, p.proargmodes::text[] as arg_modes,
-             array(select format_type(x, null) from unnest(coalesce(p.proallargtypes, p.proargtypes::oid[])) x) as arg_types,
-             array(select (select typtype::text from pg_type where oid = x) from unnest(coalesce(p.proallargtypes, p.proargtypes::oid[])) x) as arg_typtypes,
+             array(select typname from args where proc = p.oid order by n) as arg_typnames,
+             array(select typtype from args where proc = p.oid order by n) as arg_typtypes,
+             array(select elem_typname from args where proc = p.oid order by n) as arg_elem_typnames,
+             array(select elem_typtype from args where proc = p.oid order by n) as arg_elem_typtypes,
              p.pronargs as nargs, p.pronargdefaults as ndefaults,
              rt.typname as ret_typname, rt.typtype::text as ret_typtype, p.proretset as retset
         from pg_proc p
@@ -129,15 +141,17 @@ export async function generateDatabaseTypes(db: PGlite): Promise<string> {
   out.push('    Functions: {');
   for (const f of functions) {
     const names = f.arg_names ?? [];
-    const modes = f.arg_modes ?? f.arg_types.map(() => 'i');
+    const modes = f.arg_modes ?? f.arg_typnames.map(() => 'i');
     const inputs: string[] = [];
     const outputs: string[] = [];
     let inputIndex = 0;
     const firstDefault = f.nargs - f.ndefaults;
-    f.arg_types.forEach((type, i) => {
+    f.arg_typnames.forEach((typname, i) => {
       const name = names[i] ?? `arg${i}`;
-      const typname = type.replace(/^public\./, '').replace(/^"|"$/g, '');
-      const ts = tsType(pgTypname(typname), f.arg_typtypes[i] ?? 'b');
+      const ts = tsType(typname, f.arg_typtypes[i] ?? 'b', {
+        typname: f.arg_elem_typnames[i] || null,
+        typtype: f.arg_elem_typtypes[i] || null,
+      });
       if (modes[i] === 'i' || modes[i] === 'b') {
         inputs.push(`          ${name}${inputIndex >= firstDefault ? '?' : ''}: ${ts};`);
         inputIndex += 1;
@@ -167,23 +181,4 @@ export async function generateDatabaseTypes(db: PGlite): Promise<string> {
   out.push("export type Enums<T extends keyof PublicSchema['Enums']> = PublicSchema['Enums'][T];");
   out.push('');
   return out.join('\n');
-}
-
-/** format_type() output → pg_type.typname for the handful of SQL-standard spellings it uses. */
-function pgTypname(formatted: string): string {
-  const map: Record<string, string> = {
-    'uuid': 'uuid',
-    'text': 'text',
-    'date': 'date',
-    'boolean': 'bool',
-    'integer': 'int4',
-    'bigint': 'int8',
-    'smallint': 'int2',
-    'numeric': 'numeric',
-    'jsonb': 'jsonb',
-    'json': 'json',
-    'timestamp with time zone': 'timestamptz',
-    'character varying': 'varchar',
-  };
-  return map[formatted] ?? formatted;
 }

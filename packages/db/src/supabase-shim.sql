@@ -7,9 +7,10 @@ create role service_role nologin noinherit bypassrls;
 create schema extensions;
 create schema auth;
 create table auth.users (
-  id         uuid primary key default gen_random_uuid(),
-  email      text unique,
-  created_at timestamptz not null default now()
+  id              uuid primary key default gen_random_uuid(),
+  email           text unique,
+  last_sign_in_at timestamptz,
+  created_at      timestamptz not null default now()
 );
 
 -- Same resolution order as Supabase's auth.uid().

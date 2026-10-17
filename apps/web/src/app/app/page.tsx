@@ -13,6 +13,10 @@ export default async function OrganizationPicker({ searchParams }: { searchParam
   const user = await requireUser();
   const supabase = await createClient();
 
+  // First visit after an invitation: activate pending memberships (idempotent, audited).
+  const { error: acceptError } = await supabase.rpc('accept_invitations');
+  if (acceptError) throw new Error('Failed to accept invitations');
+
   // The caller's own memberships, including suspended organizations. (Platform admins can *see* every
   // organization row, but only open those they belong to.)
   const { data: orgs, error } = await supabase.rpc('my_organizations');

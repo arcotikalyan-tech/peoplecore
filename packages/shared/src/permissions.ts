@@ -63,6 +63,11 @@ export type RoleKey = (typeof ROLE_KEYS)[number];
 interface RoleTemplate {
   name: string;
   description: string;
+  /**
+   * Permission that lets someone grant or revoke this role (besides role.manage, which grants any role).
+   * Administrative roles are owner-only; everyday roles can be assigned by HR (member.manage).
+   */
+  assignableWith: 'role.manage' | 'member.manage';
   grants: Partial<Record<PermissionKey, PermissionScope>>;
 }
 
@@ -70,6 +75,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
   owner: {
     name: 'Organization owner',
     description: 'Full administrative control of the organization',
+    assignableWith: 'role.manage',
     grants: {
       'org.read': 'org', 'org.manage': 'org', 'member.manage': 'org', 'role.manage': 'org', 'audit.read': 'org',
       'employee.read': 'org', 'employee.create': 'org', 'employee.update': 'org', 'employee.export': 'org',
@@ -83,6 +89,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
   hr_admin: {
     name: 'HR administrator',
     description: 'Manages employees, structure and HR operations',
+    assignableWith: 'role.manage',
     grants: {
       'org.read': 'org', 'org.manage': 'org', 'member.manage': 'org', 'audit.read': 'org',
       'employee.read': 'org', 'employee.create': 'org', 'employee.update': 'org', 'employee.export': 'org',
@@ -95,12 +102,14 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
   recruiter: {
     name: 'Recruiter',
     description: 'Manages requisitions, candidates and offers',
+    assignableWith: 'member.manage',
     // Directory access (name/department/designation only) arrives with a restricted view in Phase 2b.
     grants: { 'org.read': 'org', 'recruitment.read': 'org', 'recruitment.manage': 'org', 'ai.use': 'org' },
   },
   payroll_admin: {
     name: 'Payroll / finance administrator',
     description: 'Prepares payroll and manages compensation',
+    assignableWith: 'role.manage',
     grants: {
       'org.read': 'org', 'employee.read': 'org', 'employee.export': 'org',
       'employee.identity.read': 'org', 'employee.bank.read': 'org',
@@ -112,6 +121,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
   department_head: {
     name: 'Department head',
     description: 'Leads a department; sees their reporting line',
+    assignableWith: 'member.manage',
     grants: {
       'org.read': 'org', 'employee.read': 'team', 'recruitment.read': 'team',
       'attendance.read': 'team', 'attendance.approve': 'team', 'leave.approve': 'team', 'expense.approve': 'team',
@@ -121,6 +131,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
   manager: {
     name: 'Reporting manager',
     description: 'Approves requests for direct and indirect reports',
+    assignableWith: 'member.manage',
     grants: {
       'org.read': 'org', 'employee.read': 'team', 'recruitment.read': 'team',
       'attendance.read': 'team', 'attendance.approve': 'team', 'leave.approve': 'team', 'expense.approve': 'team',
@@ -130,6 +141,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
   employee: {
     name: 'Employee',
     description: 'Self-service access to own records',
+    assignableWith: 'member.manage',
     grants: {
       'org.read': 'org', 'employee.read': 'self', 'employee.personal.read': 'self',
       'employee.identity.read': 'self', 'employee.bank.read': 'self', 'compensation.read': 'self',
@@ -139,6 +151,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
   auditor: {
     name: 'Auditor (read-only)',
     description: 'Read-only access for audit and compliance review',
+    assignableWith: 'role.manage',
     grants: {
       'org.read': 'org', 'audit.read': 'org', 'employee.read': 'org', 'employee.export': 'org',
       'compensation.read': 'org', 'recruitment.read': 'org', 'attendance.read': 'org',

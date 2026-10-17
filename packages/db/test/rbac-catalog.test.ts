@@ -22,6 +22,16 @@ describe('permission catalog ↔ database seed', () => {
     }
   });
 
+  it('who can grant each role matches packages/shared, in templates and in existing organizations', async () => {
+    const expected = Object.fromEntries(ROLE_KEYS.map((r) => [r, ROLE_TEMPLATES[r].assignableWith]));
+    const templates = await ctx.t.db.query<{ role_key: string; assignment_permission: string }>(
+      'select role_key, assignment_permission from app.role_templates');
+    expect(Object.fromEntries(templates.rows.map((r) => [r.role_key, r.assignment_permission]))).toEqual(expected);
+    const orgRoles = await ctx.t.db.query<{ key: string; assignment_permission: string }>(
+      'select key, assignment_permission from roles where organization_id = $1 and is_system', [ctx.f.orgA]);
+    expect(Object.fromEntries(orgRoles.rows.map((r) => [r.key, r.assignment_permission]))).toEqual(expected);
+  });
+
   it('every new organization receives all system roles', async () => {
     const { rows } = await ctx.t.db.query<{ key: string }>(
       'select key from roles where organization_id = $1 and is_system order by key', [ctx.f.orgA]);

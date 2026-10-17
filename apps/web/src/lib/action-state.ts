@@ -21,3 +21,8 @@ export function formValues(formData: FormData): Record<string, string> {
 export function invalid(error: z.ZodError, formData: FormData): ActionState {
   return { ok: false, message: 'Please fix the highlighted fields.', fieldErrors: fieldErrors(error), values: formValues(formData) };
 }
+
+/** Reads repeated form fields (checkbox groups), which Object.fromEntries would collapse to one value. */
+export function formDataAll(formData: FormData, name: string): string[] {
+  return formData.getAll(name).filter((v): v is string => typeof v === 'string' && v !== '');
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createEmployeeSchema, createOrganizationSchema, employeeListQuerySchema, fieldErrors } from '../src/index.ts';
+import { createEmployeeSchema, createOrganizationSchema, employeeListQuerySchema, fieldErrors, inviteMemberSchema } from '../src/index.ts';
 
 const base = { firstName: ' Asha ', employmentType: 'permanent', dateOfJoining: '2026-01-05' };
 
@@ -45,5 +45,18 @@ describe('createOrganizationSchema', () => {
     expect(createOrganizationSchema.safeParse({ name: 'Acme', slug: 'platform' }).success).toBe(false);
     expect(createOrganizationSchema.safeParse({ name: 'Acme', slug: '-acme' }).success).toBe(false);
     expect(createOrganizationSchema.parse({ name: 'Acme', slug: 'Acme-India' }).slug).toBe('acme-india');
+  });
+});
+
+describe('inviteMemberSchema', () => {
+  const role = '00000000-0000-4000-8000-000000000001';
+  it('normalises the email and requires at least one role', () => {
+    expect(inviteMemberSchema.parse({ email: ' New.Person@Example.TEST ', roleIds: [role] }).email).toBe('new.person@example.test');
+    const r = inviteMemberSchema.safeParse({ email: 'a@example.test', roleIds: [] });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(fieldErrors(r.error)).toHaveProperty('roleIds', 'Choose at least one role');
+  });
+  it('treats an empty employee selection as none', () => {
+    expect(inviteMemberSchema.parse({ email: 'a@example.test', roleIds: [role], employeeId: '' }).employeeId).toBeUndefined();
   });
 });

@@ -13,6 +13,7 @@ const UNIQUE_MESSAGES: Record<string, string> = {
   designations_organization_id_title_key: 'A designation with this title already exists.',
   locations_organization_id_code_key: 'A location with this code already exists.',
   organizations_slug_key: 'That organization URL is already taken.',
+  organization_members_organization_id_user_id_key: 'This person is already a member of this organization.',
 };
 
 export function toUserMessage(error: DbError): string {

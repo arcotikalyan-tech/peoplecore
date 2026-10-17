@@ -99,3 +99,50 @@ export function TextAreaField({
     </FieldShell>
   );
 }
+
+export interface CheckboxOption extends Option {
+  description?: string | null;
+  disabled?: boolean;
+}
+
+/** A labelled group of checkboxes sharing one name (read server-side with formData.getAll). */
+export function CheckboxGroup({
+  name, legend, options, defaultValues, error, hint, idPrefix, className,
+}: {
+  name: string;
+  legend: string;
+  options: readonly CheckboxOption[];
+  defaultValues?: readonly string[];
+  error?: string;
+  hint?: string;
+  idPrefix?: string;
+  className?: string;
+}) {
+  const id = fieldId(name, idPrefix);
+  const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
+  return (
+    <fieldset className={className} aria-describedby={describedBy}>
+      <legend className="mb-1.5 text-sm font-medium text-fg">{legend}</legend>
+      <div className="space-y-2">
+        {options.map((o) => (
+          <label key={o.value} className={cn('flex items-start gap-2 text-sm', o.disabled && 'opacity-60')}>
+            <input
+              type="checkbox"
+              name={name}
+              value={o.value}
+              defaultChecked={defaultValues?.includes(o.value)}
+              disabled={o.disabled}
+              className="mt-0.5 size-4 shrink-0 rounded border-line-strong accent-primary"
+            />
+            <span>
+              <span className="font-medium text-fg">{o.label}</span>
+              {o.description && <span className="block text-xs text-muted">{o.description}</span>}
+            </span>
+          </label>
+        ))}
+      </div>
+      {hint && <p id={`${id}-hint`} className="mt-1 text-xs text-muted">{hint}</p>}
+      {error && <p id={`${id}-error`} className="mt-1 text-xs font-medium text-danger">{error}</p>}
+    </fieldset>
+  );
+}

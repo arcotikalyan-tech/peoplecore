@@ -24,6 +24,9 @@ class Rollback extends Error {}
 /** Fresh in-memory Postgres with the Supabase shim and every migration applied, in order. */
 export async function createTestDatabase(): Promise<TestDatabase> {
   const db = await PGlite.create({ extensions: { btree_gist, pg_trgm } });
+  // Hosted Supabase runs in UTC; PGlite would otherwise follow this machine's time zone, which hid a
+  // UTC-vs-local-date bug (see migration 20261018000100).
+  await db.exec(`set timezone = 'UTC'`);
   await db.exec(await readFile(join(here, 'supabase-shim.sql'), 'utf8'));
 
   const files = (await readdir(MIGRATIONS_DIR)).filter((f) => f.endsWith('.sql')).sort();
