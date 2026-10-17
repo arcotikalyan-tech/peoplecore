@@ -117,7 +117,8 @@ export default async function StructurePage({ params }: { params: Promise<{ org:
           )}
         </Card>
 
-        <div className="grid gap-6 xl:grid-cols-2">
+        {/* Full width, like departments: with People and action columns the tables need the room. */}
+        <div className="space-y-6">
           <Card>
             <CardHeader title="Designations" description={`${desigs.length} active`} />
             <Table caption="Designations">
