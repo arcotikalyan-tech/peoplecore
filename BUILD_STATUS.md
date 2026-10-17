@@ -1,6 +1,6 @@
 # Build status
 
-_Last updated: 2026-10-17_
+_Last updated: 2026-10-18_
 
 **Current phase:** Phase 1 (foundation) and Phase 2a (Core HR), first vertical slice. Phase 0 is complete.
 
@@ -10,13 +10,13 @@ A module only counts as **complete** when its schema, authorization, business lo
 
 | Check | Result |
 |---|---|
-| `corepack pnpm check` (typecheck + lint + tests, 3 packages) | ✅ 130 tests pass: 74 database/RLS/privileges, 39 shared, 17 web |
+| `corepack pnpm check` (typecheck + lint + tests, 3 packages) | ✅ 147 tests pass: 85 database/RLS/privileges, 45 shared, 17 web |
 | `next build` (production) | ✅ |
 | Production server smoke test | ✅ Login renders the "not configured" notice, security headers present, `X-Powered-By` removed |
 | `pnpm audit --prod` | ✅ No known vulnerabilities in runtime dependencies |
-| Live Supabase project **Peoplecore** (`rncjncpazqxqkfqoumsk`, Postgres 17) | ✅ Migrations 100–400 applied with `supabase db push`; history recorded. Permission catalog present (24). Anonymous API read of `employees` refused (`42501`). |
+| Live Supabase project **Peoplecore** (`rncjncpazqxqkfqoumsk`, Postgres 17) | ✅ All 9 migrations applied with `supabase db push`; history recorded. Permission catalog present (27). Anonymous API read of `employees` refused (`42501`). |
 | Live end-to-end smoke test, `verify:demo` (2026-10-17) | ✅ 36/36 checks. Demo tenant seeded (26 synthetic employees, 6 accounts). Every role signs in (admins with two-step codes); owner/HR/payroll see all 26, the manager exactly their line (10), the employee only themselves. HR with a password alone sees only their own record and is sent to two-step verification. Audit-log reads and structure writes are refused where they should be; anonymous requests are refused. Every main page renders through the running app as each role, with no data from outside the viewer's scope. |
-| Browser E2E, `test:e2e` (Playwright driving Chrome against the live project, 2026-10-17) | ✅ 12/12 journeys pass, each checked in the UI **and** in the database. HR adds a department. Validation errors appear on the employee form. HR adds an employee (auto code, joining history). A duplicate work email is refused and the typed values are kept. A transfer closes the joining entry and opens a new one. The audit log attributes every change to HR. A manager can view but not edit a new report; an employee can't see them. The platform admin creates a tenant (8 roles seeded) but can't open it. Suspending an organization locks its members out with a clear notice until it is reactivated. HR invites an existing account (only everyday roles offered), the invitee gets access on first sign-in, HR changes their roles, suspends and removes them, and cannot touch the owner. A brand-new HR admin must set up an authenticator (wrong codes refused) before any HR data is reachable. Sign-out ends the session. All test data is deleted afterwards. |
+| Browser E2E, `test:e2e` (Playwright driving Chrome against the live project, 2026-10-18) | ✅ 17/17 journeys pass, each checked in the UI **and** in the database. HR adds a department. Validation errors appear on the employee form. HR adds an employee (auto code, joining history). A duplicate work email is refused and the typed values are kept. A transfer closes the joining entry and opens a new one. The audit log attributes every change to HR. A manager can view but not edit a new report; an employee can't see them. The platform admin creates a tenant (8 roles seeded) but can't open it. Suspending an organization locks its members out with a clear notice until it is reactivated. HR invites an existing account (only everyday roles offered), the invitee gets access on first sign-in, HR changes their roles, suspends and removes them, and cannot touch the owner. A brand-new HR admin must set up an authenticator (wrong codes refused) before any HR data is reachable. HR edits work and personal details. HR records identity numbers (an invalid individual PAN is refused); they show masked, and "Show full numbers" is recorded in the activity feed. Payroll adds a bank account (mismatched confirmation refused, shown masked); HR sees no bank section at all. An employee edits their own personal details and emergency contacts but can't open a colleague. A manager sees a report's work profile but no personal, identity or bank details. Sign-out ends the session. All test data is deleted afterwards. |
 | Email-link sign-in and invitations | ❌ **Not yet exercised.** Demo addresses (`example.test`) can't receive email; needs a real mailbox. |
 
 The database tests apply every migration to PGlite (Postgres 17 in WASM) with a shim for Supabase's `auth` schema and roles (ADR-005). The shim grants **no** default table privileges, so the tests also prove the migrations' explicit grants are sufficient whether or not a Supabase project auto-grants. They give strong evidence for schema, RLS and RPC behaviour, but they don't replace a run against hosted Supabase.
@@ -29,13 +29,14 @@ The database tests apply every migration to PGlite (Postgres 17 in WASM) with a 
 - Append-only audit log: trigger-written, diffed updates, redaction support, blocks UPDATE/DELETE/TRUNCATE.
 - Org structure: legal entities, locations, cost centres, departments, designations.
 - Employees, plus effective-dated employment history. Overlaps are blocked by an exclusion constraint.
+- Sensitive employee data: `employee_personal` and `emergency_contacts` (RLS; employees edit their own); identity numbers and bank accounts in the `restricted` schema, which the API can't reach, read and written only through permission-checked functions (`employee_identity_summary` / `reveal_employee_identity` / `set_employee_identity`, and the bank equivalents). Summaries are masked; every reveal is audited. Only Aadhaar's last 4 digits are stored. Changing a bank account archives the previous one.
 - RPCs: `create_employee` (auto codes), `change_employee_assignment`, `create_organization`, `my_permissions`.
 
 **Web** (`apps/web`)
 - Auth: password sign-in and email-link sign-in (no self-signup), auth callback, sign out, and a session-refreshing `proxy.ts`.
 - Org picker and workspace shell: permission-filtered navigation, mobile navigation, demo banner, skip link.
 - Dashboard: headcount by status, upcoming joiners, probation reviews due, "my profile". Figures are scoped to what the viewer may see.
-- Employees: directory with search, filters and pagination; create form with validation; profile page with history timeline, assignment changes and an activity feed from the audit log.
+- Employees: directory with search, filters and pagination; create form with validation; profile page with history timeline, assignment changes, editable work and personal details, emergency contacts, masked identity and bank panels with audited reveal, and an activity feed from the audit log.
 - Organization structure: list and create departments, designations and locations.
 - Audit log viewer.
 - Platform console: list tenants; create a tenant and invite or attach its owner.
@@ -50,7 +51,7 @@ The database tests apply every migration to PGlite (Postgres 17 in WASM) with a 
 |---|---|---|---|---|---|---|---|
 | Tenancy, RBAC, audit | ✅ | ✅ | ✅ | ✅ | Partial: no member or role management UI | DB ✅ | In progress |
 | Org structure | ✅ | ✅ | ✅ | ✅ | Create and list only (no edit or archive) | DB ✅ | In progress |
-| Core HR: employees | ✅ | ✅ | ✅ | ✅ | List, create, profile, assignment | DB ✅ · unit ✅ · E2E ❌ | In progress |
+| Core HR: employees | ✅ | ✅ | ✅ | ✅ | List, create, profile (incl. personal, identity, bank), assignment | DB ✅ · unit ✅ · E2E ✅ | In progress |
 | Platform console | ✅ | ✅ | ✅ | ✅ | ✅ | DB ✅ · E2E ❌ | In progress |
 | Recruitment, onboarding, attendance, leave, payroll, expenses, performance, services, assets, ER, offboarding, AI, workflows, mobile, worker | — | — | — | — | — | — | Not started |
 
@@ -66,8 +67,9 @@ The database tests apply every migration to PGlite (Postgres 17 in WASM) with a 
 | `20261017000600_member_management.sql` | Safe role delegation (`assignment_permission`, `can_grant_role`, `can_manage_member`); `org_members`, `grantable_roles`, `add_member`, `set_member_roles`, `accept_invitations`; only membership status is editable |
 | `20261018000100_org_local_dates.sql` | Fix: "today" uses the organization's time zone, not UTC (found by the browser tests just after midnight IST) |
 | `20261018000200_mfa_enforcement.sql` | Two-step sign-in: `requires_mfa` roles and platform admin only apply at `aal2`; `my_mfa_requirement` |
+| `20261018000300_sensitive_employee_data.sql` | Personal details, emergency contacts, `restricted` identity and bank tables with masked/audited access functions; `employee.personal/identity/bank.update` permissions; audit fix (diff before redacting, so changes to redacted columns are logged; `metadata.employee_id` tag) |
 
-Applied to the Peoplecore project on 2026-10-17, so they are now **immutable**: every change goes in a new migration (`supabase db push` applies only new ones).
+Applied to the Peoplecore project (100–400 on 2026-10-17, the rest on 2026-10-18), so they are now **immutable**: every change goes in a new migration (`supabase db push` applies only new ones).
 
 **Rollback approach:** migrations are forward-only. A bad schema change is reverted by a new corrective migration. Data recovery relies on Supabase point-in-time recovery, and the restore drill is a Phase 8 deliverable. Destructive migrations (drops, type narrowing) must ship in two steps: expand, then contract.
 

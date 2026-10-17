@@ -2,18 +2,55 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
-import { ASSIGNMENT_CHANGE_REASON_LABELS, EMPLOYMENT_TYPE_LABELS, legalName, todayIn } from '@peoplecore/shared';
+import {
+  ASSIGNMENT_CHANGE_REASON_LABELS,
+  EMPLOYMENT_TYPE_LABELS,
+  GENDER_LABELS,
+  legalName,
+  todayIn,
+  type PermissionKey,
+} from '@peoplecore/shared';
+import { EditableSection } from '@/components/editable-section';
 import { EmployeeStatusBadge } from '@/components/status-badge';
 import { Alert, Badge, Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surface';
 import { formatDate, formatDateTime, humanize } from '@/lib/format';
-import { auditForEntities } from '@/server/audit';
+import { activityForEmployee, type AuditEvent } from '@/server/audit';
 import { getOrgContext } from '@/server/context';
 import { employeeNames, getEmployee, getEmploymentHistory, managerOptions, namesForUsers } from '@/server/employees';
+import { getBankSummary, getIdentitySummary, getPersonalDetails } from '@/server/sensitive';
 import { getStructure, structureOptions } from '@/server/structure';
 import { changeAssignmentAction } from '../actions';
+import {
+  addEmergencyContactAction,
+  removeEmergencyContactAction,
+  revealBankAction,
+  revealIdentityAction,
+  saveBankAccountAction,
+  saveIdentityAction,
+  savePersonalDetailsAction,
+  updateWorkDetailsAction,
+} from './actions';
 import { AssignmentForm } from './assignment-form';
+import { EmergencyContacts, PersonalDetailsForm, WorkDetailsForm } from './profile-forms';
+import { BankPanel, IdentityPanel } from './sensitive-panels';
 
 export const metadata: Metadata = { title: 'Employee' };
+
+const SUBJECTS: Record<string, string> = {
+  employees: 'the profile',
+  employment_records: 'an employment-history entry',
+  employee_personal: 'personal details',
+  emergency_contacts: 'an emergency contact',
+  employee_identity: 'identity details',
+  employee_bank_accounts: 'bank details',
+};
+
+function describeActivity(a: AuditEvent): string {
+  const subject = SUBJECTS[a.entity_type] ?? humanize(a.entity_type).toLowerCase();
+  if (a.action === 'reveal') return `viewed the full ${subject}`;
+  const verb = a.action === 'insert' ? (a.entity_type === 'employees' ? 'created' : 'added') : a.action === 'update' ? 'updated' : 'removed';
+  return `${verb} ${subject}`;
+}
 
 export default async function EmployeePage({
   params,
@@ -31,14 +68,21 @@ export default async function EmployeePage({
   const employee = await getEmployee(orgId, id);
   if (!employee) notFound();
 
-  const canEdit = ctx.can('employee.update', 'org');
+  // UI gating mirrors the database rules (which enforce them regardless): org-wide, or self for own record.
+  const isSelf = employee.user_id === ctx.user.id;
+  const allowed = (key: PermissionKey) => ctx.can(key, 'org') || (isSelf && ctx.can(key, 'self'));
+  const canEditWork = ctx.can('employee.update', 'org');
   const canAudit = ctx.can('audit.read', 'org');
-  const [history, structure, managers] = await Promise.all([
+
+  const [history, structure, managers, personal, identity, bank] = await Promise.all([
     getEmploymentHistory(orgId, id),
     getStructure(orgId),
-    canEdit ? managerOptions(orgId) : Promise.resolve([]),
+    canEditWork ? managerOptions(orgId) : Promise.resolve([]),
+    allowed('employee.personal.read') ? getPersonalDetails(orgId, id) : Promise.resolve(null),
+    allowed('employee.identity.read') ? getIdentitySummary(id) : Promise.resolve(null),
+    allowed('employee.bank.read') ? getBankSummary(id) : Promise.resolve(null),
   ]);
-  const activity = canAudit ? await auditForEntities(orgId, [id, ...history.map((h) => h.id)]) : [];
+  const activity = canAudit ? await activityForEmployee(orgId, id, history.map((h) => h.id)) : [];
   const [names, actors] = await Promise.all([
     employeeNames(orgId, [employee.manager_employee_id, ...history.map((h) => h.manager_employee_id)].filter((x): x is string => !!x)),
     namesForUsers(orgId, activity.map((a) => a.actor_user_id).filter((x): x is string => !!x)),
@@ -63,6 +107,8 @@ export default async function EmployeePage({
   ) : null;
 
   const canBrowse = ctx.can('employee.read', 'org') || ctx.can('employee.read', 'team');
+  const p = personal?.personal;
+  const address = p ? [p.address_line1, p.address_line2, p.city, p.state_code, p.postal_code].filter(Boolean).join(', ') : '';
 
   return (
     <>
@@ -86,23 +132,112 @@ export default async function EmployeePage({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
         <div className="space-y-6">
-          <Card>
-            <CardHeader title="Work details" />
-            <DetailList
-              items={[
-                { label: 'Work email', value: employee.work_email },
-                { label: 'Work phone', value: employee.work_phone },
-                { label: 'Employment type', value: EMPLOYMENT_TYPE_LABELS[employee.employment_type] },
-                { label: 'Date of joining', value: formatDate(employee.date_of_joining) },
-                { label: 'Probation ends', value: employee.probation_end_date ? formatDate(employee.probation_end_date) : null },
-                { label: 'Reporting manager', value: manager },
-                { label: 'Location', value: lookup(loc, employee.location_id) },
-                { label: 'Legal entity', value: lookup(entity, employee.legal_entity_id) },
-              ]}
+          <EditableSection
+            key={`work:${employee.updated_at}`}
+            title="Work details"
+            canEdit={canEditWork}
+            view={
+              <DetailList
+                items={[
+                  { label: 'Work email', value: employee.work_email },
+                  { label: 'Work phone', value: employee.work_phone },
+                  { label: 'Employment type', value: EMPLOYMENT_TYPE_LABELS[employee.employment_type] },
+                  { label: 'Date of joining', value: formatDate(employee.date_of_joining) },
+                  { label: 'Probation ends', value: employee.probation_end_date ? formatDate(employee.probation_end_date) : null },
+                  { label: 'Reporting manager', value: manager },
+                  { label: 'Location', value: lookup(loc, employee.location_id) },
+                  { label: 'Legal entity', value: lookup(entity, employee.legal_entity_id) },
+                ]}
+              />
+            }
+          >
+            <WorkDetailsForm
+              action={updateWorkDetailsAction.bind(null, slug, id)}
+              legalEntities={structureOptions(structure).legalEntities}
+              defaults={{
+                firstName: employee.first_name,
+                middleName: employee.middle_name,
+                lastName: employee.last_name,
+                workEmail: employee.work_email,
+                workPhone: employee.work_phone,
+                probationEndDate: employee.probation_end_date,
+                legalEntityId: employee.legal_entity_id,
+              }}
             />
-          </Card>
+          </EditableSection>
 
-          {canEdit && (
+          {personal && (
+            <EditableSection
+              key={`personal:${p?.updated_at ?? 'none'}`}
+              title="Personal details"
+              description={isSelf ? 'Visible to you and HR.' : 'Visible to HR and the employee.'}
+              canEdit={allowed('employee.personal.update')}
+              view={
+                <>
+                  {p ? (
+                    <DetailList
+                      items={[
+                        { label: 'Date of birth', value: p.date_of_birth ? formatDate(p.date_of_birth) : null },
+                        { label: 'Gender', value: p.gender ? GENDER_LABELS[p.gender] : null },
+                        { label: 'Personal email', value: p.personal_email },
+                        { label: 'Personal phone', value: p.personal_phone },
+                        { label: 'Address', value: address || null },
+                      ]}
+                    />
+                  ) : (
+                    <p className="px-5 py-4 text-sm text-muted">No personal details recorded.</p>
+                  )}
+                  <EmergencyContacts
+                    contacts={personal.contacts}
+                    canEdit={allowed('employee.personal.update')}
+                    add={addEmergencyContactAction.bind(null, slug, id)}
+                    remove={removeEmergencyContactAction.bind(null, slug, id)}
+                  />
+                </>
+              }
+            >
+              <PersonalDetailsForm
+                action={savePersonalDetailsAction.bind(null, slug, id)}
+                defaults={{
+                  dateOfBirth: p?.date_of_birth,
+                  gender: p?.gender,
+                  personalEmail: p?.personal_email,
+                  personalPhone: p?.personal_phone,
+                  addressLine1: p?.address_line1,
+                  addressLine2: p?.address_line2,
+                  city: p?.city,
+                  stateCode: p?.state_code,
+                  postalCode: p?.postal_code,
+                }}
+              />
+            </EditableSection>
+          )}
+
+          {identity && (
+            <Card>
+              <CardHeader title="Identity numbers" description="PAN, PF, ESIC and passport. Restricted access." />
+              <IdentityPanel
+                key={`identity:${identity.updated_at ?? 'none'}`}
+                summary={identity}
+                reveal={revealIdentityAction.bind(null, slug, id)}
+                save={saveIdentityAction.bind(null, slug, id)}
+              />
+            </Card>
+          )}
+
+          {bank && (
+            <Card>
+              <CardHeader title="Bank account" description="Used for salary payments. Restricted access." />
+              <BankPanel
+                key={`bank:${bank.since ?? 'none'}`}
+                summary={bank}
+                reveal={revealBankAction.bind(null, slug, id)}
+                save={saveBankAccountAction.bind(null, slug, id)}
+              />
+            </Card>
+          )}
+
+          {canEditWork && (
             <Card>
               <CardHeader
                 title="Change assignment"
@@ -152,7 +287,7 @@ export default async function EmployeePage({
 
           {canAudit && (
             <Card>
-              <CardHeader title="Activity" description="From the append-only audit log." />
+              <CardHeader title="Activity" description="From the append-only audit log, including who viewed restricted details." />
               {activity.length === 0 ? (
                 <p className="px-5 py-4 text-sm text-muted">No activity recorded.</p>
               ) : (
@@ -161,8 +296,7 @@ export default async function EmployeePage({
                     <li key={a.id} className="px-5 py-3 text-sm">
                       <p>
                         <span className="font-medium">{a.actor_user_id ? (actors.get(a.actor_user_id) ?? 'A user') : 'System'}</span>{' '}
-                        {a.action === 'insert' ? 'created' : a.action === 'update' ? 'updated' : 'deleted'}{' '}
-                        {a.entity_type === 'employees' ? 'the profile' : 'an employment-history entry'}
+                        {describeActivity(a)}
                         {a.action === 'update' && a.changes && typeof a.changes === 'object' && !Array.isArray(a.changes) && (
                           <span className="text-muted"> ({Object.keys(a.changes).map(humanize).join(', ')})</span>
                         )}

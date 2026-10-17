@@ -28,6 +28,9 @@ export const PERMISSIONS = {
   'employee.personal.read': { module: 'core_hr', description: 'View personal details', sensitive: true },
   'employee.identity.read': { module: 'core_hr', description: 'View identity documents', sensitive: true },
   'employee.bank.read': { module: 'core_hr', description: 'View bank details', sensitive: true },
+  'employee.personal.update': { module: 'core_hr', description: 'Edit personal details and emergency contacts', sensitive: true },
+  'employee.identity.update': { module: 'core_hr', description: 'Edit identity numbers (PAN, UAN, ESIC, passport)', sensitive: true },
+  'employee.bank.update': { module: 'core_hr', description: 'Change bank accounts', sensitive: true },
 
   'compensation.read': { module: 'payroll', description: 'View compensation', sensitive: true },
   'compensation.update': { module: 'payroll', description: 'Change compensation', sensitive: true },
@@ -80,6 +83,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
     assignableWith: 'role.manage',
     requiresMfa: true,
     grants: {
+      'employee.personal.update': 'org', 'employee.identity.update': 'org', 'employee.bank.update': 'org',
       'org.read': 'org', 'org.manage': 'org', 'member.manage': 'org', 'role.manage': 'org', 'audit.read': 'org',
       'employee.read': 'org', 'employee.create': 'org', 'employee.update': 'org', 'employee.export': 'org',
       'employee.personal.read': 'org', 'employee.identity.read': 'org', 'employee.bank.read': 'org',
@@ -95,6 +99,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
     assignableWith: 'role.manage',
     requiresMfa: true,
     grants: {
+      'employee.personal.update': 'org', 'employee.identity.update': 'org',
       'org.read': 'org', 'org.manage': 'org', 'member.manage': 'org', 'audit.read': 'org',
       'employee.read': 'org', 'employee.create': 'org', 'employee.update': 'org', 'employee.export': 'org',
       'employee.personal.read': 'org', 'employee.identity.read': 'org',
@@ -117,6 +122,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
     assignableWith: 'role.manage',
     requiresMfa: true,
     grants: {
+      'employee.bank.update': 'org',
       'org.read': 'org', 'employee.read': 'org', 'employee.export': 'org',
       'employee.identity.read': 'org', 'employee.bank.read': 'org',
       'compensation.read': 'org', 'compensation.update': 'org',
@@ -152,6 +158,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
     assignableWith: 'member.manage',
     requiresMfa: false,
     grants: {
+      'employee.personal.update': 'self',
       'org.read': 'org', 'employee.read': 'self', 'employee.personal.read': 'self',
       'employee.identity.read': 'self', 'employee.bank.read': 'self', 'compensation.read': 'self',
       'attendance.read': 'self', 'grievance.read': 'self', 'ai.use': 'org',

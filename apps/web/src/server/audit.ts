@@ -18,18 +18,23 @@ export async function listAuditEvents(orgId: string, page: number) {
   return { rows: data, total: count ?? 0 };
 }
 
-export async function auditForEntities(orgId: string, entityIds: readonly string[], limit = 25) {
-  if (entityIds.length === 0) return [];
+/**
+ * Activity for one employee: their own row, their history rows (by id, for entries recorded before
+ * metadata.employee_id existed) and everything tagged with their employee id (personal, identity, bank…).
+ */
+export async function activityForEmployee(orgId: string, employeeId: string, relatedIds: readonly string[], limit = 30) {
   const supabase = await createClient();
+  const ids = [employeeId, ...relatedIds].join(',');
   const { data, error } = await supabase
     .from('audit_events')
     .select('id, occurred_at, actor_user_id, action, entity_type, entity_id, changes')
     .eq('organization_id', orgId)
-    .in('entity_id', [...entityIds])
+    .or(`entity_id.in.(${ids}),metadata->>employee_id.eq.${employeeId}`)
+    .order('occurred_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(limit);
   if (error) throw new Error(`Failed to load activity (${error.code})`);
   return data;
 }
 
-export type AuditEvent = Awaited<ReturnType<typeof auditForEntities>>[number];
+export type AuditEvent = Awaited<ReturnType<typeof activityForEmployee>>[number];

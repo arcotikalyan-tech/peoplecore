@@ -141,6 +141,90 @@ export type Database = {
         };
         Relationships: [];
       };
+      emergency_contacts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          name: string;
+          relationship: string;
+          phone: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          name: string;
+          relationship: string;
+          phone: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          name?: string;
+          relationship?: string;
+          phone?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      employee_personal: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          date_of_birth: string | null;
+          gender: Database['public']['Enums']['gender'] | null;
+          personal_email: string | null;
+          personal_phone: string | null;
+          address_line1: string | null;
+          address_line2: string | null;
+          city: string | null;
+          state_code: string | null;
+          postal_code: string | null;
+          country_code: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          date_of_birth?: string | null;
+          gender?: Database['public']['Enums']['gender'] | null;
+          personal_email?: string | null;
+          personal_phone?: string | null;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          state_code?: string | null;
+          postal_code?: string | null;
+          country_code?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          date_of_birth?: string | null;
+          gender?: Database['public']['Enums']['gender'] | null;
+          personal_email?: string | null;
+          personal_phone?: string | null;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          city?: string | null;
+          state_code?: string | null;
+          postal_code?: string | null;
+          country_code?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       employees: {
         Row: {
           id: string;
@@ -600,6 +684,18 @@ export type Database = {
         };
         Returns: string;
       };
+      employee_bank_summary: {
+        Args: {
+          p_employee: string;
+        };
+        Returns: { account_holder_name: string; bank_name: string; account_number: string; ifsc: string; account_type: Database['public']['Enums']['bank_account_type']; since: string; previous_accounts: number; can_edit: boolean }[];
+      };
+      employee_identity_summary: {
+        Args: {
+          p_employee: string;
+        };
+        Returns: { pan: string; aadhaar_last4: string; uan: string; esic_number: string; passport_number: string; passport_expiry: string; updated_at: string; can_edit: boolean }[];
+      };
       grantable_roles: {
         Args: {
           p_org: string;
@@ -626,6 +722,41 @@ export type Database = {
         };
         Returns: { member_id: string; user_id: string; email: string; status: Database['public']['Enums']['member_status']; joined_at: string; last_sign_in_at: string; role_ids: string[]; employee_id: string; employee_name: string }[];
       };
+      reveal_employee_bank_account: {
+        Args: {
+          p_employee: string;
+        };
+        Returns: { account_holder_name: string; bank_name: string; account_number: string; ifsc: string; account_type: Database['public']['Enums']['bank_account_type'] }[];
+      };
+      reveal_employee_identity: {
+        Args: {
+          p_employee: string;
+        };
+        Returns: { pan: string; aadhaar_last4: string; uan: string; esic_number: string; passport_number: string; passport_expiry: string }[];
+      };
+      set_employee_bank_account: {
+        Args: {
+          p_employee: string;
+          p_account_holder_name: string;
+          p_bank_name: string;
+          p_account_number: string;
+          p_ifsc: string;
+          p_account_type: Database['public']['Enums']['bank_account_type'];
+        };
+        Returns: undefined;
+      };
+      set_employee_identity: {
+        Args: {
+          p_employee: string;
+          p_pan?: string;
+          p_aadhaar_last4?: string;
+          p_uan?: string;
+          p_esic_number?: string;
+          p_passport_number?: string;
+          p_passport_expiry?: string;
+        };
+        Returns: undefined;
+      };
       set_member_roles: {
         Args: {
           p_member: string;
@@ -643,8 +774,10 @@ export type Database = {
     };
     Enums: {
       assignment_change_reason: 'joining' | 'transfer' | 'promotion' | 'manager_change' | 'type_change' | 'correction' | 'other';
+      bank_account_type: 'savings' | 'current' | 'salary';
       employee_status: 'pre_joining' | 'active' | 'on_notice' | 'exited';
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
+      gender: 'female' | 'male' | 'non_binary' | 'undisclosed';
       member_status: 'invited' | 'active' | 'suspended';
       org_status: 'active' | 'suspended' | 'archived';
       permission_scope: 'org' | 'team' | 'self';
