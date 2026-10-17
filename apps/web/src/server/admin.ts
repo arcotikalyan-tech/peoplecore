@@ -4,17 +4,17 @@ import type { Database } from '@peoplecore/db/types';
 import { publicEnv } from '@/lib/env';
 
 /**
- * Service-role client. BYPASSES ROW LEVEL SECURITY.
+ * Service-role client, authenticated with the project's *secret* key. BYPASSES ROW LEVEL SECURITY.
  *
  * Rules: only call after an explicit authorization check in the calling server action, never return
  * its raw results to the client without filtering, and never import this from client components.
  */
 export function createAdminClient() {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceRoleKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured on the server.');
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error('SUPABASE_SECRET_KEY is not configured on the server.');
   }
-  return createClient<Database>(publicEnv().url, serviceRoleKey, {
+  return createClient<Database>(publicEnv().url, secretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

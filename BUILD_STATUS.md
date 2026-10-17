@@ -10,13 +10,13 @@ A module only counts as **complete** when its schema, authorization, business lo
 
 | Check | Result |
 |---|---|
-| `corepack pnpm check` (typecheck + lint + tests, 3 packages) | ✅ 84 tests pass: 37 database/RLS, 37 shared, 10 web |
+| `corepack pnpm check` (typecheck + lint + tests, 3 packages) | ✅ 88 tests pass: 41 database/RLS/privileges, 37 shared, 10 web |
 | `next build` (production) | ✅ |
 | Production server smoke test | ✅ Login renders the "not configured" notice, security headers present, `X-Powered-By` removed |
 | `pnpm audit --prod` | ✅ No known vulnerabilities in runtime dependencies |
 | **Anything needing a live Supabase project** (sign-in, PostgREST queries, server actions, invitations, seed script) | ❌ **Not yet run.** No PeopleCore Supabase project is configured, and Docker isn't installed for a local stack. |
 
-The database tests apply every migration to PGlite (Postgres 17 in WASM) with a shim for Supabase's `auth` schema and roles (ADR-005). They give strong evidence for schema, RLS and RPC behaviour, but they don't replace a run against hosted Supabase.
+The database tests apply every migration to PGlite (Postgres 17 in WASM) with a shim for Supabase's `auth` schema and roles (ADR-005). The shim grants **no** default table privileges, so the tests also prove the migrations' explicit grants are sufficient whether or not a Supabase project auto-grants. They give strong evidence for schema, RLS and RPC behaviour, but they don't replace a run against hosted Supabase.
 
 ## Vertical slice: what exists
 
@@ -58,6 +58,7 @@ The database tests apply every migration to PGlite (Postgres 17 in WASM) with a 
 | `20261017000100_foundation.sql` | Extensions, `app` schema, tenancy, RBAC, audit, authorization helpers, RLS |
 | `20261017000200_rbac_seed.sql` | Permission catalog and role templates (generated from `permissions.ts`) |
 | `20261017000300_org_structure_core_hr.sql` | Org structure, employees, employment records, counters, scoped access functions, RPCs, RLS |
+| `20261017000400_explicit_grants.sql` | Explicit least-privilege table grants; turns off automatic grants for future objects |
 
 These haven't been applied to any shared environment yet, so they may still be edited. Once they are applied to staging they become immutable, and every change goes in a new migration.
 
@@ -83,7 +84,7 @@ These haven't been applied to any shared environment yet, so they may still be e
 
 ## Next steps
 
-1. **Stand up staging.** Create a PeopleCore Supabase project (separate from Vibe Upp) and apply the migrations. Run `seed:demo`, walk the slice manually, then add Playwright E2E tests: sign in → create employee → change assignment → audit entry, plus cross-tenant denial. Run the DB tests against real Supabase in CI.
+1. **Stand up the first environment.** The PeopleCore Supabase project now exists (ref `rncjncpazqxqkfqoumsk`) and `apps/web/.env.local` has its URL; the keys are pasted by the owner. Apply the migrations (`supabase login` / `link` / `db push`). Run `seed:demo`, walk the slice manually, then add Playwright E2E tests: sign in → create employee → change assignment → audit entry, plus cross-tenant denial. Run the DB tests against real Supabase in CI.
 2. **Phase 1b.** Member invitations and role assignment UI. MFA (TOTP) enforced for owner, HR and payroll roles. Suspended-org enforcement, last-owner guard, access-review listing.
 3. **Finish Phase 2a.** Personal, identity and bank tables with field-level permissions. Private document storage with signed URLs. Profile edit flows. Bulk import with a dry-run report. Audited export.
 4. **Phase 2b.** Applicant tracking, per the roadmap.

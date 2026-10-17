@@ -15,12 +15,13 @@ The database tests run every migration on an in-memory Postgres (PGlite). See AD
 
 To run the web app you need a **PeopleCore** Supabase project (never the Vibe Upp one):
 
-1. Create a project, then apply migrations: `npx supabase@2 link --project-ref <ref> && npx supabase@2 db push`.
+1. Create a project, then apply migrations from the repo root (each command is interactive):
+   `npx supabase@2 login`, then `npx supabase@2 link --project-ref <ref>` (asks for the database password), then `npx supabase@2 db push`.
 2. In Supabase Auth settings:
    - Disable public sign-ups.
    - Set the Site URL and add `<site>/auth/callback` to the redirect allowlist.
    - Point the invite and magic-link email templates at `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=<invite|magiclink>`.
-3. Copy `.env.example` to `apps/web/.env.local` and fill in the project URL, anon key and service-role key.
+3. Copy `.env.example` to `apps/web/.env.local` and paste the **Publishable key** and **Secret key** from Dashboard → Settings → API Keys (the project URL is `https://<project-ref>.supabase.co`).
 4. Optionally seed the clearly-marked demo tenant (synthetic people only; you choose the password):
    `DEMO_USER_PASSWORD='<12+ chars>' corepack pnpm --filter @peoplecore/web seed:demo --yes --platform-admin`
 5. `corepack pnpm dev`, then open http://localhost:3000.

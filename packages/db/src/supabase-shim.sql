@@ -22,6 +22,5 @@ $$;
 
 grant usage on schema auth, extensions, public to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
-alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
-alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+-- Deliberately NO default table/sequence privileges (Supabase projects may auto-grant them; ours must not
+-- depend on that). Migrations grant explicitly, and the tests prove those grants are sufficient.

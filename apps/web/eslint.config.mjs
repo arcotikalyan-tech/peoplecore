@@ -5,7 +5,7 @@ export default [
   ...root,
   ...nextVitals,
   {
-    // The service-role key bypasses RLS. It may only be read in the admin module (see CLAUDE.md).
+    // The secret key (service-role privileges) bypasses RLS. It may only be read in the admin module (see CLAUDE.md).
     files: ['src/**/*.{ts,tsx}'],
     ignores: ['src/server/admin.ts'],
     rules: {

@@ -7,8 +7,8 @@ peoplecore/
 │   │   └── src/
 │   │       ├── app/            routes (login, /app/[org]/…, /platform)
 │   │       ├── components/ui/  design-system primitives
-│   │       ├── lib/supabase/   browser/server clients (anon key + user session only)
-│   │       └── server/         server-only code (actions, admin client, authz helpers)
+│   │       ├── lib/            env access (publishable key only), formatting, error mapping
+│   │       └── server/         server-only: Supabase clients (user session; secret-key admin), data access, authz
 │   ├── mobile/      (Phase 3)  Expo app: employee + manager experiences
 │   └── worker/      (Phase 3)  job queue consumer, workflow executor, AI batch tasks
 ├── packages/

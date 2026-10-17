@@ -27,7 +27,7 @@ The **platform super-admin console** lives in `apps/web` under `/platform`. It i
 
 - Every tenant-owned table has `organization_id uuid not null` and RLS enabled with **no permissive default**.
 - Authorization helpers are `security definer` SQL functions in schema `app` (`app.is_member`, `app.has_permission`, `app.can_access_employee`). Policies call them. The same rules therefore protect web, mobile, worker and direct PostgREST calls.
-- Clients **never** hold the service-role key. Its use is confined to `apps/web/src/server/admin.ts` (`server-only`) and `apps/worker`. Every call site must perform its own authorization check first.
+- Clients **never** hold the secret key (`SUPABASE_SECRET_KEY`, service-role privileges); browsers get only the publishable key. Its use is confined to `apps/web/src/server/admin.ts` (`server-only`) and `apps/worker`. Every call site must perform its own authorization check first.
 - The client may *name* an organization (URL slug), but it is never *trusted*. RLS re-checks membership on every row.
 
 ## ADR-004 · Permission model: roles → permissions with scope — Accepted

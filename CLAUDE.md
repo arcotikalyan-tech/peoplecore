@@ -9,10 +9,12 @@
 ## Database rules
 - New migration per change (`supabase/migrations/YYYYMMDDHHMMSS_name.sql`). Once a migration has been applied to any shared environment, never edit it.
 - Every tenant table: `organization_id`, RLS enabled, policies `to authenticated`, composite `(organization_id, id)` FKs, audit trigger if sensitive, and tests in `packages/db/test`.
+- Every new table or function needs **explicit grants** in the same migration (`grant select, … to authenticated`, `grant all … to service_role`; RPCs: `grant execute`). No default privileges exist; the test DB has none either, so a missing grant fails tests. Never grant `anon` without an RLS-reviewed public use case.
+- After a schema change run `corepack pnpm --filter @peoplecore/db gen:types`.
 - Changing the permission catalog: edit `permissions.ts`, then write a new migration (use `node scripts/gen-rbac-seed.ts` as a starting point). `rbac-catalog.test.ts` must pass.
 
 ## Security rules
-- The service-role key is only used in `apps/web/src/server/admin.ts` and the worker, after an explicit authorization check. Never in client code or `NEXT_PUBLIC_*`.
+- The Supabase secret key (`SUPABASE_SECRET_KEY`, service-role privileges) is only used in `apps/web/src/server/admin.ts`, the seed script and the worker, after an explicit authorization check. Never in client code or `NEXT_PUBLIC_*`.
 - Never trust client-supplied organization IDs for authorization; RLS decides.
 - No real personal data in fixtures or seeds; use `example.test` and mark demo tenants `is_demo`.
 - AI output is a suggestion until a human confirms it through the normal module code path.

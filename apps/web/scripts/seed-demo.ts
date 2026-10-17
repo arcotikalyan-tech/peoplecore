@@ -3,7 +3,7 @@
  *
  *   DEMO_USER_PASSWORD='…' corepack pnpm --filter @peoplecore/web seed:demo --yes [--platform-admin]
  *
- * Reads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from apps/web/.env.local or the shell.
+ * Reads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY from apps/web/.env.local or the shell.
  * Every name is fictional; every email is on DEMO_EMAIL_DOMAIN (default example.test, a reserved TLD).
  * The password is supplied by you and is never generated or printed.
  */
@@ -15,7 +15,7 @@ type EmploymentType = Database['public']['Enums']['employment_type'];
 
 const args = new Set(process.argv.slice(2));
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const secretKey = process.env.SUPABASE_SECRET_KEY;
 const password = process.env.DEMO_USER_PASSWORD;
 const domain = process.env.DEMO_EMAIL_DOMAIN ?? 'example.test';
 
@@ -24,11 +24,11 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-if (!url || !serviceKey) fail('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (see .env.example).');
+if (!url || !secretKey) fail('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY (see .env.example).');
 if (!password || password.length < 12) fail('Set DEMO_USER_PASSWORD (12+ characters) for the demo sign-in accounts.');
 if (!args.has('--yes')) fail(`This creates a demo tenant in ${url}. Re-run with --yes to continue.`);
 
-const db = createClient<Database>(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+const db = createClient<Database>(url, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
 // Helpers take the whole awaited response type R and read R['data'] from it. (Inferring a row type
 // parameter from Supabase's success|failure response union collapses it to `null`.)

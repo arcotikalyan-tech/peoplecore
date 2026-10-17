@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | T1 | Tenant A reads tenant B's data by changing an org id or slug | I | RLS on every tenant table. Membership derived from `auth.uid()`. Composite FKs prevent cross-tenant links | `packages/db/test/rls.*.test.ts` cross-tenant suite ✅ |
 | T2 | Employee escalates by self-assigning a role | E | `member_roles` insert requires `role.manage`. Owner role protected. Audit trigger | RLS test ✅ |
-| T3 | Service-role key leaked to client | E/I | Key only in server env. `server-only` import guard. Lint rule bans `SUPABASE_SERVICE_ROLE_KEY` outside `src/server` and `apps/worker`. `NEXT_PUBLIC_` vars never contain it | lint + review |
+| T3 | Secret (service-role) key leaked to client | E/I | Key only in server env. `server-only` import guard. Lint rule bans reading `process.env` in `apps/web/src` outside `lib/env.ts` (publishable values) and `server/admin.ts`. `NEXT_PUBLIC_` vars never contain it | lint + review |
 | T4 | Manager sees non-reports | I | `team` scope resolved by recursive reporting-line function with cycle guard | RLS test ✅ |
 | T5 | Payroll fraud by a single insider | T/E | Maker-checker DB constraint. Run locking. Bank file hash + audit. Anomaly auditor | Phase 4 tests |
 | T6 | Audit log tampering | T/R | Append-only trigger, no UPDATE/DELETE grants, actor from `auth.uid()` not client input. Periodic export to WORM storage (Phase 8) | test ✅ |
