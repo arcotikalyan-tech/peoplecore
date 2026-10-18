@@ -3000,6 +3000,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      recruitment_settings: {
+        Row: {
+          organization_id: string;
+          candidate_retention_days: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          candidate_retention_days?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          candidate_retention_days?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       regularization_requests: {
         Row: {
           id: string;
@@ -4147,6 +4168,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      candidates_due_for_erasure: {
+        Args: {
+          p_org: string;
+          p_days?: number;
+        };
+        Returns: { candidate_id: string; name: string; last_activity_at: string; erase_after: string }[];
+      };
       change_employee_assignment: {
         Args: {
           p_employee_id: string;
@@ -4661,6 +4689,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      save_candidate_retention: {
+        Args: {
+          p_org: string;
+          p_days: number;
+        };
+        Returns: undefined;
+      };
       save_exit_interview: {
         Args: {
           p_separation: string;
@@ -4974,6 +5009,10 @@ export type Database = {
         Returns: Json;
       };
       worker_attendance_daily: {
+        Args: never;
+        Returns: Json;
+      };
+      worker_candidate_retention: {
         Args: never;
         Returns: Json;
       };

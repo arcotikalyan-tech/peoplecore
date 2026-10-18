@@ -64,6 +64,12 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       }
       log('retention.daily', { actions: result.actions, files: result.storagePaths.length });
     },
+    // Candidates whose consent has expired are erased exactly as a recruiter's "Erase" would (audited).
+    'recruitment.retention': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_candidate_retention');
+      if (error) throw new Error(error.message);
+      log('recruitment.retention', data as Record<string, unknown>);
+    },
     'ai.retention': async (_job, log) => {
       const { data, error } = await db.rpc('worker_ai_retention');
       if (error) throw new Error(error.message);

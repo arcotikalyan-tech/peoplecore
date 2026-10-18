@@ -44,7 +44,7 @@ These run in `corepack pnpm check` on every change; a regression fails the build
 | T12 | Webhook spoofing | n/a: no inbound integrations yet. Design rule for when they come: HMAC signature, timestamp tolerance, idempotency key |
 | T13 | Bulk export exfiltration | ✅ `employee.export` permission, each export audited with its filters |
 | T14 | Injection and XSS | ✅ Parameterised queries (PostgREST and RPC), zod at every boundary, React escaping, no `dangerouslySetInnerHTML`. **Fixed in this review: no Content-Security-Policy was sent.** There is now a nonce-based CSP (below) |
-| T15 | Over-retention | ✅ Retention per data class for leavers, AI prompts cleared after 30 days. ⏳ Candidate consent expiry |
+| T15 | Over-retention | ✅ Retention per data class for leavers, AI prompts cleared after 30 days. ✅ Candidate consent expiry: candidates with no open or hired application are erased a per-organization number of days (365 by default) after their consent or last application activity, by a daily worker job through the same audited path as a manual erasure (migration 20261018003400, `candidate-retention.test.ts`; not yet applied to the live project) |
 | T16 | AI cost exhaustion | ✅ Per-person hourly limit and per-organization monthly token budget in the database gate |
 | T17 | Careers page abuse | ✅ Two functions only, consent, 5 applications per email per day. ⏳ Edge rate limiting (a Vercel WAF rule on `/careers`) |
 

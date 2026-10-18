@@ -126,6 +126,20 @@ export async function eraseCandidateAction(orgSlug: string, _prev: ActionState, 
   return { ok: true, message: 'Candidate erased, with all their applications.' };
 }
 
+export async function saveCandidateRetentionAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await authorize(orgSlug);
+  if (!ctx) return DENIED;
+  const parsed = z.object({
+    days: z.coerce.number({ error: 'Enter days' }).int('Whole days').min(30, 'At least 30 days').max(3650, 'At most 3,650 days'),
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('save_candidate_retention', { p_org: ctx.org.id, p_days: parsed.data.days });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(`/app/${orgSlug}/recruitment`);
+  return { ok: true, message: 'Saved.' };
+}
+
 // ─── Offers, interviews, publishing ─────────────────────────────────────────
 
 export async function saveOfferAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

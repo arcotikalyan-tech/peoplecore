@@ -95,6 +95,21 @@ test('candidates need consent, are not duplicated, and can be erased', async ({ 
   expect((await admin.from('candidates').select('id').eq('organization_id', orgId).eq('email', eraseEmail)).data).toEqual([]);
 });
 
+test('HR sets how long candidate records are kept and sees who is due for erasure', async ({ page }) => {
+  await signIn(page, 'demo.hr');
+  await open(page, '/app/demo/recruitment');
+  const form = page.getByRole('form', { name: 'Candidate retention' });
+  const days = form.getByLabel('Days after a candidate’s last activity');
+  const current = await days.inputValue();
+  await days.fill('10');
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(form.getByText('At least 30 days')).toBeVisible();
+  await days.fill(current); // leave the demo tenant's setting as it was
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(form.getByText('Saved.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Due for erasure in the next 30 days' })).toBeVisible();
+});
+
 test('HR publishes the requisition; an anonymous visitor applies on the careers page', async ({ page, browser }) => {
   await signIn(page, 'demo.hr');
   await open(page, requisitionUrl);
@@ -205,6 +220,7 @@ test('the hiring manager sees the requisition read-only; employees see no recrui
   await expect(manager.getByRole('list', { name: 'Hired' }).getByText(`Kavya Test${run}`)).toBeVisible();
   await expect(manager.getByRole('form', { name: 'Add candidate' })).toHaveCount(0);
   await expect(manager.getByRole('form', { name: 'New requisition' })).toHaveCount(0);
+  await expect(manager.getByRole('form', { name: 'Candidate retention' })).toHaveCount(0);
 
   const employee = await (await browser.newContext()).newPage();
   await signIn(employee, 'demo.employee');

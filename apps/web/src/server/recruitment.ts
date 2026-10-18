@@ -133,3 +133,14 @@ export async function getMyInterviews(orgId: string) {
   if (error) throw new Error(`Failed to load your interviews (${error.code})`);
   return data;
 }
+
+/** Candidate consent expiry (T15): the organization's period, and who the daily job erases within 30 days. */
+export async function candidateRetention(orgId: string) {
+  const supabase = await createClient();
+  const [setting, due] = await Promise.all([
+    supabase.from('recruitment_settings').select('candidate_retention_days').eq('organization_id', orgId).maybeSingle(),
+    supabase.rpc('candidates_due_for_erasure', { p_org: orgId, p_days: 30 }),
+  ]);
+  if (setting.error || due.error) throw new Error('Failed to load candidate retention');
+  return { days: setting.data?.candidate_retention_days ?? 365, due: due.data };
+}

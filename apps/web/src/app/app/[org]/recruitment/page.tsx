@@ -7,10 +7,10 @@ import { formatDate } from '@/lib/format';
 import { requirePermission } from '@/server/context';
 import { colleagueNames, colleagueOptions } from '@/server/engagement';
 import { employeeNames, managerOptions } from '@/server/employees';
-import { listRequisitions } from '@/server/recruitment';
+import { candidateRetention, listRequisitions } from '@/server/recruitment';
 import { getStructure, structureOptions } from '@/server/structure';
-import { createRequisitionAction } from './actions';
-import { RequisitionForm } from './recruitment-forms';
+import { createRequisitionAction, saveCandidateRetentionAction } from './actions';
+import { CandidateRetentionForm, RequisitionForm } from './recruitment-forms';
 
 export const metadata: Metadata = { title: 'Recruitment' };
 
@@ -18,11 +18,12 @@ export default async function RecruitmentPage({ params }: { params: Promise<{ or
   const { org: slug } = await params;
   const ctx = await requirePermission(slug, 'recruitment.read');
   const canManage = ctx.can('recruitment.manage', 'org');
-  const [requisitions, structure, managers] = await Promise.all([
+  const [requisitions, structure, managers, retention] = await Promise.all([
     listRequisitions(ctx.org.id),
     getStructure(ctx.org.id),
     // Without directory access (recruiters), pick from the minimal colleague directory.
     !canManage ? Promise.resolve([]) : ctx.can('employee.read', 'org') ? managerOptions(ctx.org.id) : colleagueOptions(ctx.org.id),
+    canManage ? candidateRetention(ctx.org.id) : Promise.resolve(null),
   ]);
   const [listed, directory] = await Promise.all([
     employeeNames(ctx.org.id, requisitions.map((r) => r.hiring_manager_employee_id).filter((x): x is string => !!x)),
@@ -68,6 +69,30 @@ export default async function RecruitmentPage({ params }: { params: Promise<{ or
           <Card>
             <CardHeader title="New requisition" />
             <RequisitionForm action={createRequisitionAction.bind(null, slug)} options={{ ...structureOptions(structure), managers }} />
+          </Card>
+        )}
+        {retention && (
+          <Card>
+            <CardHeader
+              title="Keeping candidate records"
+              description="Candidates with no open application are erased this many days after their consent or last application activity. Hired candidates are kept as employees."
+            />
+            <CandidateRetentionForm action={saveCandidateRetentionAction.bind(null, slug)} days={retention.days} />
+            <div className="border-t border-line px-5 py-3">
+              <h3 className="text-sm font-medium">Due for erasure in the next 30 days</h3>
+              {retention.due.length === 0 ? (
+                <p className="mt-1 text-sm text-muted">No candidates are due.</p>
+              ) : (
+                <ul className="mt-2 divide-y divide-line text-sm" aria-label="Candidates due for erasure">
+                  {retention.due.map((c) => (
+                    <li key={c.candidate_id} className="flex justify-between py-2">
+                      <span>{c.name}<span className="block text-xs text-muted">Last activity {formatDate(c.last_activity_at)}</span></span>
+                      <span className="tabular-nums text-muted">Erased {formatDate(c.erase_after)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </Card>
         )}
       </div>

@@ -19,6 +19,7 @@ import {
   type ApplicationStage,
   type RequisitionStatus,
 } from '@peoplecore/shared';
+import { ActionForm } from '@/components/action-form';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { CheckboxGroup, SelectField, TextAreaField, TextField, type Option } from '@/components/ui/fields';
@@ -272,5 +273,17 @@ export function ScorecardForm({ action, interviewId, label }: { action: Action; 
       {e.ratings && <p className="text-xs font-medium text-danger">Rate every criterion.</p>}
       <SubmitButton pendingLabel="Submitting…">Submit scorecard</SubmitButton>
     </form>
+  );
+}
+
+export function CandidateRetentionForm({ action, days }: { action: Action; days: number }) {
+  return (
+    <ActionForm action={action} label="Candidate retention" submit="Save" variant="secondary" size="sm"
+      className="flex flex-wrap items-end justify-between gap-3 px-5 py-3">
+      {(v, e) => (
+        <TextField idPrefix="cand-ret" name="days" label="Days after a candidate’s last activity" inputMode="numeric"
+          defaultValue={v.days ?? String(days)} error={e.days} className="w-64" />
+      )}
+    </ActionForm>
   );
 }

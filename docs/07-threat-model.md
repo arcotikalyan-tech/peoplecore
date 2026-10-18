@@ -20,7 +20,7 @@
 | T12 | Webhook/integration spoofing | S/T | HMAC signatures, timestamp tolerance, idempotency keys, secrets in Vault | Phase 8 |
 | T13 | Bulk export exfiltration | I | `*.export` permission, export audit events, watermarking, rate limits | Phase 2b |
 | T14 | Injection / XSS | T | Parameterised queries via PostgREST/RPC. zod at boundaries. React escaping. Nonce-based CSP (`src/proxy.ts`) | lint, `e2e/security-headers.spec.ts` ✅ |
-| T15 | Data retained beyond purpose | I (privacy) | Retention classes per record type, scheduled anonymisation jobs, candidate consent expiry | Phase 6 |
+| T15 | Data retained beyond purpose | I (privacy) | Retention classes per record type, scheduled anonymisation jobs, candidate consent expiry | Phase 6; `settlements.test.ts`, `candidate-retention.test.ts` ✅ |
 | T16 | DoS / cost exhaustion on AI | D | Per-org rate limits and budgets, queueing | Phase 7 |
 | T17 | Abuse of the public careers page (spam, enumeration, data injection) | S/T/I/D | The only anonymous access: two functions, no table grants (asserted by a test). Published, open requisitions only; public fields only. Applications need consent, are validated, matched on email only, never overwrite existing candidates, and get the same answer whether or not the person is on file; at most 5 per email per day are recorded. Rate limiting at the edge (Phase 8) | DB tests (privileges, careers) |
 

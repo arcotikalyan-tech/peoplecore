@@ -31,6 +31,8 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'separations.daily', key: `separations.daily:${hour}`, payload: { hour } },
     // Daily is enough for retention (periods are months long).
     { kind: 'retention.daily', key: `retention.daily:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
+    // Candidates out of every pipeline past their organization's retention period (consent expiry, T15).
+    { kind: 'recruitment.retention', key: `recruitment.retention:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // AI prompts and outputs are kept 30 days; runs that never finished are closed.
     { kind: 'ai.retention', key: `ai.retention:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // Every 15 minutes: the shortest helpdesk SLA is 4 hours, so a breach is flagged within a quarter of it.
