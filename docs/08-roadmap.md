@@ -37,10 +37,12 @@ Deterministic engine, effective-dated statutory rule sets with golden vectors, m
 Generic approvals engine with delegation and escalation, tasks, notifications centre (in-app + email + push), helpdesk, announcements, assets, grievances (restricted).
 
 ### Phase 6: Separation & offboarding
+**Built and verified on the live project:** separations (resign or start an exit, manager then HR approval, notice and shortfall), clearance (assets and access clear themselves), exit interview (HR only), sign-in revoked the day after the last working day, full and final settlement through the payroll engine with maker ≠ checker, relieving and experience letters, retention per data class, alumni. Settlement rules need professional validation.
 Separation types, notice calculation, waiver/buyout, clearance, F&F via payroll engine, letters, access revocation, retention and alumni.
 **AC:** E2E resignation → F&F approved → access revoked → records archived per retention class.
 
 ### Phase 7: AI orchestration, agents, analytics, workflow automation
+**Built (verified on a local Supabase stack; live migration pending):** `packages/ai` (ADR-009) with the database gate, redaction, validated structured output, tier-capped tools and logged runs; Ask HR, resume and receipt reading, job-description drafts, the reporting copilot on an Insights page, payroll variance with an AI summary, role dashboards, recorded-response eval suites for every agent. Live-model evals need a provider key. Not built: scheduling, coordinators, anomaly detectors, learning gaps, workforce planning.
 Per `06-ai-architecture.md`. Role dashboards. Reporting copilot.
 **AC:** eval suites pass thresholds; no agent can perform a tier-3 action; cross-user leakage tests pass.
 

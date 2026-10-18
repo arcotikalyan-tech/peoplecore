@@ -12,6 +12,8 @@ test.describe.configure({ mode: 'serial' });
 const admin = adminClient();
 const startedAt = new Date().toISOString();
 const MONTH = '2026-04';
+const NEXT = '2026-05';
+let aiBefore: { enabled: boolean; monthly_token_budget: number; hourly_limit_per_user: number } | null = null;
 let orgId = '';
 let devId = '';
 let devCode = '';
@@ -23,14 +25,17 @@ test.beforeAll(async () => {
   devId = dev.id;
   devCode = dev.employee_code;
   // A previous interrupted run may have left April behind.
-  const { data: old } = await admin.from('payroll_runs').select('id').eq('organization_id', orgId).eq('period_month', `${MONTH}-01`);
+  const { data: old } = await admin.from('payroll_runs').select('id').eq('organization_id', orgId).in('period_month', [`${MONTH}-01`, `${NEXT}-01`]);
   for (const r of old ?? []) await admin.rpc('purge_demo_payroll_run', { p_run: r.id });
   await admin.from('compensation_records').delete().eq('employee_id', devId);
 });
 
 test.afterAll(async () => {
-  const { data: runs } = await admin.from('payroll_runs').select('id').eq('organization_id', orgId).eq('period_month', `${MONTH}-01`);
+  const { data: runs } = await admin.from('payroll_runs').select('id').eq('organization_id', orgId).in('period_month', [`${MONTH}-01`, `${NEXT}-01`]);
   for (const r of runs ?? []) await admin.rpc('purge_demo_payroll_run', { p_run: r.id });
+  await admin.from('ai_runs').delete().eq('organization_id', orgId).eq('agent', 'payroll_variance').gte('created_at', startedAt);
+  if (aiBefore) await admin.from('ai_settings').update(aiBefore).eq('organization_id', orgId);
+  else await admin.from('ai_settings').delete().eq('organization_id', orgId);
   await admin.from('payroll_adjustments').delete().eq('employee_id', devId).gte('created_at', startedAt);
   await admin.from('compensation_records').delete().eq('employee_id', devId);
   await admin.from('notifications').delete().eq('organization_id', orgId).eq('kind', 'payroll.payslip').gte('created_at', startedAt);
@@ -101,4 +106,32 @@ test('the employee sees their payslip', async ({ page }) => {
   await expect(page.getByRole('list', { name: 'Earnings' }).getByText('Salary arrears')).toBeVisible();
   await expect(page.getByRole('list', { name: 'Deductions' }).getByText('Provident fund')).toBeVisible();
   await expect(page.getByText('₹54,000').first()).toBeVisible();
+});
+
+test('the next month’s run shows what changed since the last locked run, and AI can summarise it', async ({ page }) => {
+  aiBefore = (await admin.from('ai_settings').select('enabled, monthly_token_budget, hourly_limit_per_user').eq('organization_id', orgId).maybeSingle()).data;
+  await admin.from('ai_settings').upsert({ organization_id: orgId, enabled: true, monthly_token_budget: 2_000_000, hourly_limit_per_user: 30 }, { onConflict: 'organization_id' });
+  await signIn(page, 'demo.payroll');
+  await open(page, '/app/demo/payroll');
+  const create = page.getByRole('form', { name: 'New payroll run' });
+  await create.locator('input[name="month"]').fill(NEXT);
+  await create.getByRole('button', { name: 'Create run' }).click();
+  await page.waitForURL(/\/app\/demo\/payroll\/[0-9a-f-]{36}$/);
+  await page.getByRole('button', { name: 'Compute payslips' }).click();
+  await expect(page.getByText(/^Computed \d+ payslips\./)).toBeVisible();
+
+  // April paid ₹6,000 of arrears once; May doesn't: −₹6,000 (−11.1%), explained by the inputs.
+  const changes = page.getByRole('table', { name: 'Changes since the last run' });
+  await expect(page.getByRole('heading', { name: 'Changes since April 2026' })).toBeVisible();
+  const dev = changes.getByRole('row').filter({ hasText: 'Dev Nair' });
+  await expect(dev).toContainText('₹54,000');
+  await expect(dev).toContainText('₹48,000');
+  await expect(dev).toContainText('-₹6,000 (-11.1%)');
+  await expect(dev).toContainText('No one-off adjustments (was ₹6,000)');
+
+  await page.getByRole('form', { name: 'Summarise the changes' }).getByRole('button', { name: 'Summarise for the approver' }).click();
+  const summary = page.getByRole('region', { name: 'Summary of the changes' });
+  await expect(summary).toContainText('Net pay for May 2026 is');
+  await expect(summary).toContainText('No one-off adjustments (was ₹6,000)');
+  await expect(summary.getByText('Not in the table')).toHaveCount(0);
 });

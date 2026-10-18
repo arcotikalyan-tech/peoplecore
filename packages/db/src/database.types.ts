@@ -4001,6 +4001,71 @@ export type Database = {
         };
         Returns: { agent: string; runs: number; failed: number; tokens: number; helpful: number; not_helpful: number; users: number }[];
       };
+      analytics_attendance: {
+        Args: {
+          p_org: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: { status: string; days: number; people: number; late_days: number }[];
+      };
+      analytics_headcount: {
+        Args: {
+          p_org: string;
+          p_as_of?: string;
+          p_group?: string;
+        };
+        Returns: { label: string; headcount: number }[];
+      };
+      analytics_helpdesk: {
+        Args: {
+          p_org: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: { status: string; tickets: number; breached: number; median_hours_to_resolve: number }[];
+      };
+      analytics_learning: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { course: string; assigned: number; completed: number; overdue: number }[];
+      };
+      analytics_leave: {
+        Args: {
+          p_org: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: { leave_type: string; requests: number; days: number; people: number }[];
+      };
+      analytics_movements: {
+        Args: {
+          p_org: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: { month: string; joiners: number; leavers: number; headcount_end: number }[];
+      };
+      analytics_payroll: {
+        Args: {
+          p_org: string;
+          p_months?: number;
+        };
+        Returns: { month: string; status: string; employees: number; gross: number; deductions: number; net: number; employer_cost: number }[];
+      };
+      analytics_recruitment: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
+      };
+      analytics_scope: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
+      };
       apply_leave: {
         Args: {
           p_employee: string;

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { AnyAgent } from './agent.ts';
 import { searchTerms } from './agents/policy-assistant.ts';
 import { textPdf } from './pdf.ts';
-import type { DataPort, KnowledgeHit } from './port.ts';
+import type { AnalyticsPort, DataPort, KnowledgeHit } from './port.ts';
 import { runAgent, type RunRecord } from './run.ts';
 import type { AiProvider, CompletionResponse } from './types.ts';
 
@@ -18,6 +18,10 @@ export interface EvalCase {
   input: unknown;
   org?: string;
   knowledge?: Array<Omit<KnowledgeHit, 'rank' | 'updatedAt'> & { updatedAt?: string }>;
+  /** What the analytics functions return (whatever the arguments). */
+  analytics?: { [K in keyof AnalyticsPort]?: Awaited<ReturnType<AnalyticsPort[K]>> };
+  /** The actor's permissions (which tools are offered); every permission when absent. */
+  permissions?: string[];
   /** Tests the pipeline's own handling of a bad answer: replayed in CI, skipped in live runs. */
   recordedOnly?: boolean;
   /** The model's answers, in order (tool name and input). */
@@ -67,8 +71,18 @@ function materialize(value: unknown): unknown {
 
 /** A database search stand-in: same stems as app.ai_tsquery, ranked by matches. */
 export function fixturePort(c: EvalCase): DataPort {
+  const a = c.analytics ?? {};
+  const fixture = (k: keyof AnalyticsPort) => (async () => {
+    if (a[k] === undefined) throw new Error(`No ${k} fixture`);
+    return a[k];
+  }) as never;
   return {
     org: { id: 'org', name: c.org ?? 'Example Co' },
+    analytics: {
+      scope: async () => a.scope ?? { scope: 'organization', employeesVisible: 0, today: '2026-10-18' },
+      headcount: fixture('headcount'), movements: fixture('movements'), leave: fixture('leave'), attendance: fixture('attendance'),
+      payroll: fixture('payroll'), recruitment: fixture('recruitment'), helpdesk: fixture('helpdesk'), learning: fixture('learning'),
+    },
     async searchKnowledge(query) {
       const terms = searchTerms(query);
       return (c.knowledge ?? [])
@@ -120,7 +134,7 @@ export async function runEvalCase(agent: AnyAgent, c: EvalCase, provider?: AiPro
     provider: provider ?? recordedProvider(c.recorded),
     gate: { begin: async () => 'run', finish: async (_id, r) => { record = r; } },
     port: fixturePort(c),
-    can: () => true,
+    can: (p) => !c.permissions || c.permissions.includes(p),
   });
   const failures: string[] = [];
   const e = c.expect;

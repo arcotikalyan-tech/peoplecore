@@ -50,7 +50,7 @@ module code paths (same validation, RLS, approvals, audit)
 | Workforce planning | headcount, attrition | scenarios | 0 |
 | Offboarding coordinator | separation, clearance | checklist tasks, letter drafts | 2 |
 
-**Built so far** (`packages/ai/src/agents`): HR policy assistant (Ask HR), resume reading, receipt reading (expenses) and job-description drafts. Each has an eval suite in `packages/ai/evals/<agent>`. A suggestion is settled as accepted or edited only when the person submits the module's normal form; Dismiss records it as rejected.
+**Built so far** (`packages/ai/src/agents`): HR policy assistant (Ask HR), resume reading, receipt reading (expenses), job-description drafts, the HR reporting copilot (eight read-only tools over `analytics_*` functions that run as the asker; any number in an answer that isn't in the data is flagged), and the payroll variance summary (it restates the variance table that `packages/payroll` `compareRuns` computes; it never computes amounts). Not built yet: interview scheduling (needs a calendar integration), the onboarding and offboarding coordinators, the attendance anomaly detector, expense fraud-risk notes beyond the existing duplicate check, learning gap plans (needs skills data) and workforce planning. Each has an eval suite in `packages/ai/evals/<agent>`. A suggestion is settled as accepted or edited only when the person submits the module's normal form; Dismiss records it as rejected.
 
 ## Quality & safety
 - **Evaluations:** `packages/ai/evals/<agent>/*.jsonl` with expected structured outputs. CI runs them against a recorded-response provider for regression, and a nightly job runs them against live models.

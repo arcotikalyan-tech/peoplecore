@@ -5,6 +5,7 @@ import { ButtonLink } from '@/components/ui/button';
 import { Alert, Card, CardHeader, EmptyState, PageHeader } from '@/components/ui/surface';
 import { formatDate } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
+import { myWork, needsAttention } from '@/server/dashboard';
 import { countEmployees, getMyEmployee, probationDue, upcomingJoiners } from '@/server/employees';
 import { getStructure } from '@/server/structure';
 
@@ -35,6 +36,9 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
   ]);
 
   const needsSetup = structure && structure.departments.length === 0;
+  const [work, attention] = await Promise.all([myWork(orgId, me?.id ?? null, today), needsAttention(ctx, today)]);
+  const monthName = (iso: string) => new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+  const RUN_STATUS: Record<string, string> = { draft: 'Draft', computed: 'Computed, to approve', approved: 'Approved, to lock', locked: 'Locked' };
 
   return (
     <>
@@ -52,6 +56,24 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
           </Alert>
         </div>
       )}
+
+      <section aria-label="Needs your attention" className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Stat label="Waiting for your approval" value={work.approvals} href={`${base}/inbox`} />
+        <Stat label="Your open tasks" value={work.tasks} href={`${base}/inbox`} />
+        {attention.openTickets !== undefined && (
+          <Stat label="Open helpdesk tickets" value={attention.openTickets} href={`${base}/helpdesk`}
+            note={attention.breachedTickets ? `${attention.breachedTickets} past their SLA` : undefined} />
+        )}
+        {attention.openSeparations !== undefined && <Stat label="Exits in progress" value={attention.openSeparations} href={`${base}/separations`} />}
+        {attention.overdueTraining !== undefined && <Stat label="Overdue training" value={attention.overdueTraining} href={`${base}/learning`} />}
+        {attention.settlementsToApprove !== undefined && attention.settlementsToApprove !== 0 && (
+          <Stat label="Settlements to approve" value={attention.settlementsToApprove} href={`${base}/separations`} />
+        )}
+        {attention.latestRun !== undefined && (
+          <Stat label={attention.latestRun ? `Payroll, ${monthName(attention.latestRun.period_month)}` : 'Payroll'}
+            value={attention.latestRun ? (RUN_STATUS[attention.latestRun.status] ?? attention.latestRun.status) : 'No runs yet'} href={`${base}/payroll`} />
+        )}
+      </section>
 
       {workforce && (
         <>
@@ -86,6 +108,20 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
         </>
       )}
 
+      {me && work.training.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader title="Your training" actions={<ButtonLink href={`${base}/learning`} variant="secondary" size="sm">Open</ButtonLink>} />
+          <ul className="divide-y divide-line text-sm" aria-label="Your training">
+            {work.training.map((t) => (
+              <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+                <span className="font-medium">{t.title}{t.mandatory && <span className="ml-2 text-xs text-muted">Mandatory</span>}</span>
+                <span className={t.overdue ? 'font-medium text-danger' : 'text-muted'}>{t.dueOn ? `${t.overdue ? 'Overdue since' : 'Due'} ${formatDate(t.dueOn)}` : 'No due date'}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {me && (
         <Card className="mt-6">
           <CardHeader title="My profile" actions={<ButtonLink href={`${base}/employees/${me.id}`} variant="secondary" size="sm">View</ButtonLink>} />
@@ -104,11 +140,14 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
   );
 }
 
-function Stat({ label, value, href }: { label: string; value: number; href?: string }) {
+function Stat({ label, value, href, note }: { label: string; value: number | string | null; href?: string; note?: string }) {
   const body = (
     <>
       <p className="text-sm text-muted">{label}</p>
-      <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">{value.toLocaleString('en-IN')}</p>
+      <p className={`mt-2 font-semibold tabular-nums tracking-tight ${typeof value === 'string' ? 'text-lg' : 'text-3xl'}`}>
+        {value === null ? '—' : typeof value === 'number' ? value.toLocaleString('en-IN') : value}
+      </p>
+      {note && <p className="mt-1 text-xs font-medium text-danger">{note}</p>}
     </>
   );
   return href ? (

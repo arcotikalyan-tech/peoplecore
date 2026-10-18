@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { assertToolAllowed, type AgentDef, type MockStep } from './agent.ts';
+import { assertToolAllowed, type AgentDef, type MockStep, type RunTrace } from './agent.ts';
 import type { DataPort } from './port.ts';
 import { redactValue, type RedactionSummary } from './redact.ts';
 import type { AiProvider, CompletionRequest, CompletionResponse, InputBlock, Message, ToolCall, ToolResult, ToolSpec } from './types.ts';
@@ -38,7 +38,7 @@ export interface RunRecord {
 }
 
 export type AgentResult<R> =
-  | { ok: true; runId: string; output: R; model: string | null; modelCalls: number }
+  | { ok: true; runId: string; output: R; model: string | null; modelCalls: number; toolCalls: Array<{ name: string; input: unknown }> }
   | { ok: false; reason: 'invalid_input' | 'not_configured' | 'refused' | 'failed'; message: string; runId?: string };
 
 export interface RunDeps {
@@ -107,6 +107,8 @@ export async function runAgent<I, C, O, R>(agent: AgentDef<I, C, O, R>, rawInput
   let model: string | null = null;
   let modelCalls = 0;
   const messages: Message[] = [];
+  const trace: RunTrace = { toolCalls: [] };
+  const calledTools = () => trace.toolCalls.map(({ name, input }) => ({ name, input }));
   let lastResponse: unknown = null;
 
   const finish = (status: RunRecord['status'], error: string | null, response: unknown) =>
@@ -122,12 +124,12 @@ export async function runAgent<I, C, O, R>(agent: AgentDef<I, C, O, R>, rawInput
     const direct = agent.answerWithoutModel?.(input, context) ?? null;
     if (direct !== null) {
       await finish('succeeded', null, { direct: true });
-      return { ok: true, runId, output: direct, model: null, modelCalls: 0 };
+      return { ok: true, runId, output: direct, model: null, modelCalls: 0, toolCalls: [] };
     }
 
     const { system, content } = agent.prompt(input, context, deps.port);
     const provider = deps.provider.name === 'mock' ? mockProvider(agent, input, context) : deps.provider;
-    const tools = agent.tools.filter((t) => t.permission === null || deps.can(t.permission));
+    const tools = agent.tools.filter((t) => t.permission === null || (typeof t.permission === 'string' ? [t.permission] : t.permission).some((p) => deps.can(p)));
     const specs: ToolSpec[] = [
       ...tools.map((t) => ({ name: t.name, description: t.description, inputSchema: z.toJSONSchema(t.input, { target: 'draft-7' }) as Record<string, unknown> })),
       respondSpec(agent),
@@ -155,9 +157,9 @@ export async function runAgent<I, C, O, R>(agent: AgentDef<I, C, O, R>, rawInput
         if (call.name === 'respond') {
           const out = agent.output.safeParse(call.input);
           if (out.success) {
-            const result = agent.finalize(out.data, input, context);
+            const result = agent.finalize(out.data, input, context, trace);
             await finish('succeeded', null, call.input);
-            return { ok: true, runId, output: result, model, modelCalls };
+            return { ok: true, runId, output: result, model, modelCalls, toolCalls: calledTools() };
           }
           if (repaired) throw new Error('Invalid output after a repair attempt');
           repaired = true;
@@ -180,6 +182,7 @@ export async function runAgent<I, C, O, R>(agent: AgentDef<I, C, O, R>, rawInput
         }
         try {
           const out = await tool.run(toolInput.data as never, { port: deps.port });
+          trace.toolCalls.push({ name: tool.name, input: toolInput.data, output: out });
           results.push({ type: 'tool_result', toolUseId: call.id, content: JSON.stringify(out) });
         } catch {
           results.push({ type: 'tool_result', toolUseId: call.id, isError: true, content: 'The tool failed.' });

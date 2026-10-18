@@ -8,10 +8,12 @@ import { buttonClass } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
 import { namesFor } from '@/server/leave';
-import { getRun } from '@/server/payroll';
-import { approveRunAction, cancelRunAction, computeRunAction, lockRunAction } from '../actions';
+import { aiAvailable } from '@/server/ai';
+import { getRun, runVariance } from '@/server/payroll';
+import { approveRunAction, cancelRunAction, computeRunAction, lockRunAction, summariseVarianceAction } from '../actions';
 import { inr, monthLabel, STATUS_TONE } from '../format';
 import { RunAction } from '../payroll-forms';
+import { VarianceSummaryButton } from './variance-summary';
 
 export const metadata: Metadata = { title: 'Payroll run' };
 
@@ -25,7 +27,12 @@ export default async function RunPage({ params }: { params: Promise<{ org: strin
   const data = await getRun(ctx.org.id, runId);
   if (!data) notFound();
   const { run, employees, ruleSet } = data;
-  const names = await namesFor(ctx.org.id, employees.map((e) => e.employee_id));
+  const computed = employees.length > 0 && run.status !== 'cancelled';
+  const [names, variance, ai] = await Promise.all([
+    namesFor(ctx.org.id, employees.map((e) => e.employee_id)),
+    computed ? runVariance(ctx.org.id, run) : Promise.resolve(null),
+    computed ? aiAvailable(ctx) : Promise.resolve(false),
+  ]);
   const blocking = employees.filter((e) => e.has_blocking).length;
   const preparedByMe = run.prepared_by === ctx.user.id;
   const tz = ctx.org.timezone;
@@ -104,6 +111,34 @@ export default async function RunPage({ params }: { params: Promise<{ org: strin
           </Card>
         </div>
       </div>
+      {computed && (
+        <Card className="mt-6">
+          <CardHeader title={variance ? `Changes since ${monthLabel(variance.previous.period_month)}` : 'Changes since the last run'}
+            description={variance
+              ? `Net pay ${inr.format(variance.report.totals.currentNet)} against ${inr.format(variance.report.totals.previousNet)}${variance.report.totals.changePct === null ? '' : ` (${variance.report.totals.changePct > 0 ? '+' : ''}${variance.report.totals.changePct}%)`}. ${variance.report.steady} steady; changes of ₹1,000 and 5% or more are listed.`
+              : 'There is no earlier locked run to compare with.'} />
+          {variance && (
+            <>
+              <Table caption="Changes since the last run">
+                <thead><tr><Th>Employee</Th><Th>Last run</Th><Th>This run</Th><Th>Change</Th><Th>Why</Th></tr></thead>
+                <tbody>
+                  {variance.report.variances.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-muted">No material changes.</td></tr>}
+                  {variance.report.variances.map((v) => (
+                    <tr key={v.employeeId}>
+                      <Td className="font-medium">{names.get(v.employeeId) ?? variance.code(v.employeeId)}</Td>
+                      <Td className="tabular-nums">{v.previousNet === null ? '—' : inr.format(v.previousNet)}</Td>
+                      <Td className="tabular-nums">{v.currentNet === null ? '—' : inr.format(v.currentNet)}</Td>
+                      <Td className="tabular-nums">{v.change === null ? (v.kind === 'joined' ? 'Joined' : 'Left') : `${v.change > 0 ? '+' : ''}${inr.format(v.change)} (${v.changePct}%)`}</Td>
+                      <Td className="text-xs text-muted">{v.reasons.join('; ')}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              {ai && variance.report.variances.length > 0 && <VarianceSummaryButton action={summariseVarianceAction.bind(null, slug)} runId={runId} />}
+            </>
+          )}
+        </Card>
+      )}
     </>
   );
 }

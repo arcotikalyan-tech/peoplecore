@@ -1,6 +1,6 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
-import { canonicalJson, computePayslip, ENGINE_VERSION, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
+import { canonicalJson, computePayslip, ENGINE_VERSION, ruleSetSchema, type EmployeeInput, compareRuns, type VarianceRow } from '@peoplecore/payroll';
 import { createClient } from './supabase';
 
 /**
@@ -84,4 +84,34 @@ export async function getCompensation(orgId: string, employeeId: string) {
     ? (await supabase.from('compensation_lines').select('component_id, monthly_amount').eq('record_id', current.id)).data ?? []
     : [];
   return { records: records.data, components: components.data, current, lines, profile: profile.data };
+}
+
+/**
+ * What changed since the last locked run before this one (deterministic: packages/payroll compareRuns), with
+ * employee codes. Null when there is no earlier locked run to compare with.
+ */
+export async function runVariance(orgId: string, run: { id: string; period_month: string }) {
+  const supabase = await createClient();
+  const { data: previous, error } = await supabase.from('payroll_runs').select('id, period_month')
+    .eq('organization_id', orgId).eq('status', 'locked').lt('period_month', run.period_month)
+    .order('period_month', { ascending: false }).limit(1).maybeSingle();
+  if (error) throw new Error(`Failed to load the previous payroll run (${error.code})`);
+  if (!previous) return null;
+  const rows = async (runId: string) => {
+    const r = await supabase.from('payroll_run_employees').select('employee_id, gross, net, lop_days, input').eq('run_id', runId);
+    if (r.error) throw new Error(`Failed to load payroll results (${r.error.code})`);
+    return r.data.map((x): VarianceRow => {
+      const input = (x.input ?? {}) as Partial<VarianceRow['input']>;
+      return {
+        employeeId: x.employee_id, gross: Number(x.gross), net: Number(x.net), lopDays: Number(x.lop_days),
+        input: { components: input.components ?? [], reimbursements: Number(input.reimbursements ?? 0), adjustments: input.adjustments ?? [] },
+      };
+    });
+  };
+  const [current, before] = await Promise.all([rows(run.id), rows(previous.id)]);
+  const report = compareRuns(current, before);
+  const ids = report.variances.map((v) => v.employeeId);
+  const { data: people } = ids.length ? await supabase.from('employees').select('id, employee_code').in('id', ids) : { data: [] };
+  const codes = new Map((people ?? []).map((p) => [p.id, p.employee_code]));
+  return { previous, report, code: (id: string) => codes.get(id) ?? '—' };
 }

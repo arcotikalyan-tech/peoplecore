@@ -18,10 +18,15 @@ export interface ToolDef<I = never, O = unknown> {
   name: string;
   description: string;
   tier: RiskTier;
-  /** Offered to the model only if the actor holds this permission (the data functions check again, as the actor). */
-  permission: string | null;
+  /** Offered to the model only if the actor holds this permission, or one of these (the data functions check again, as the actor). */
+  permission: string | readonly string[] | null;
   input: z.ZodType<I>;
   run(input: I, ctx: ToolContext): Promise<O>;
+}
+
+/** The tools an agent called during a run, in order, with what they returned. */
+export interface RunTrace {
+  toolCalls: Array<{ name: string; input: unknown; output: unknown }>;
 }
 
 /** What the development/test provider does next: call a tool, or answer. */
@@ -49,8 +54,8 @@ export interface AgentDef<I, C, O, R> {
   /** An answer without calling the model (nothing to ground it on, say), or null. */
   answerWithoutModel?(input: I, context: C): R | null;
   prompt(input: I, context: C, port: DataPort): { system: string; content: InputBlock[] };
-  /** Checks the model's answer against what it was given (citations, allowed fields) and shapes the result. */
-  finalize(output: O, input: I, context: C): R;
+  /** Checks the model's answer against what it was given (citations, allowed fields, tool results) and shapes the result. */
+  finalize(output: O, input: I, context: C, trace: RunTrace): R;
   /** Deterministic behaviour for the development/test provider. */
   mock(input: I, context: C, toolResults: Array<{ name: string; output: unknown }>): MockStep<O>;
 }

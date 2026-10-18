@@ -2,13 +2,16 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { payrollVariance, type VarianceSummary } from '@peoplecore/ai';
 import { z } from 'zod';
 import { formValues, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
-import { computeAll, ENGINE_VERSION, fetchInputs } from '@/server/payroll';
+import { runAi } from '@/server/ai';
+import { computeAll, ENGINE_VERSION, fetchInputs, getRun, runVariance } from '@/server/payroll';
 import { createClient } from '@/server/supabase';
+import { monthLabel } from './format';
 
 /** Payroll actions. The database enforces payroll.prepare / payroll.approve, maker ≠ checker and immutability. */
 
@@ -167,4 +170,24 @@ export async function removeAdjustmentAction(orgSlug: string, _prev: ActionState
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${orgSlug}/payroll`);
   return { ok: true, message: 'Removed.' };
+}
+
+export interface VarianceSummaryState extends ActionState {
+  summary?: VarianceSummary;
+}
+
+/** An AI summary of the variance table for the approver; it only restates the computed figures. */
+export async function summariseVarianceAction(orgSlug: string, _prev: VarianceSummaryState, formData: FormData): Promise<VarianceSummaryState> {
+  const ctx = await getOrgContext(orgSlug);
+  if (!ctx.can('payroll.prepare', 'org') && !ctx.can('payroll.approve', 'org')) return { ok: false, message: 'You don’t have permission to do that.' };
+  const data = await getRun(ctx.org.id, runId.parse(formData.get('runId')));
+  if (!data) return { ok: false, message: 'Not found.' };
+  const v = await runVariance(ctx.org.id, data.run);
+  if (!v) return { ok: false, message: 'There is no earlier locked run to compare with.' };
+  const result = await runAi(ctx, payrollVariance, {
+    month: monthLabel(data.run.period_month), previousMonth: monthLabel(v.previous.period_month), totals: v.report.totals, steady: v.report.steady,
+    variances: v.report.variances.slice(0, 60).map(({ employeeId, ...rest }) => ({ code: v.code(employeeId), ...rest })),
+  });
+  if (!result.ok) return { ok: false, message: result.message };
+  return { ok: true, summary: result.output };
 }

@@ -6,6 +6,7 @@ import {
 import type { Json } from '@peoplecore/db/types';
 import { checkDocumentFile, safeFileName, type DocumentType, type PermissionKey } from '@peoplecore/shared';
 import { sqlNull } from '@/lib/action-state';
+import { analyticsPort } from './analytics';
 import type { OrgContext } from './context';
 import { createClient } from './supabase';
 
@@ -90,6 +91,7 @@ export async function runAi<I, C, O, R>(ctx: OrgContext, agent: AgentDef<I, C, O
   };
   const port: DataPort = {
     org: { id: ctx.org.id, name: ctx.org.name },
+    analytics: analyticsPort(supabase, ctx.org.id),
     async searchKnowledge(query) {
       const { data, error } = await supabase.rpc('search_knowledge', { p_org: ctx.org.id, p_query: query, p_limit: 6 });
       if (error) throw new Error('Knowledge search failed');
