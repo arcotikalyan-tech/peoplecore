@@ -18,6 +18,7 @@ import { activityForEmployee, type AuditEvent } from '@/server/audit';
 import { getOrgContext } from '@/server/context';
 import { employeeNames, getEmployee, getEmploymentHistory, managerOptions, namesForUsers } from '@/server/employees';
 import { listDocuments } from '@/server/documents';
+import { getPlans } from '@/server/onboarding';
 import { getBankSummary, getIdentitySummary, getPersonalDetails } from '@/server/sensitive';
 import { getStructure, structureOptions } from '@/server/structure';
 import { changeAssignmentAction } from '../actions';
@@ -85,7 +86,7 @@ export default async function EmployeePage({
   const canEditWork = ctx.can('employee.update', 'org');
   const canAudit = ctx.can('audit.read', 'org');
 
-  const [history, structure, managers, personal, identity, bank, documents] = await Promise.all([
+  const [history, structure, managers, personal, identity, bank, documents, onboarding] = await Promise.all([
     getEmploymentHistory(orgId, id),
     getStructure(orgId),
     canEditWork ? managerOptions(orgId) : Promise.resolve([]),
@@ -93,7 +94,9 @@ export default async function EmployeePage({
     allowed('employee.identity.read') ? getIdentitySummary(id) : Promise.resolve(null),
     allowed('employee.bank.read') ? getBankSummary(id) : Promise.resolve(null),
     allowed('employee.document.read') ? listDocuments(orgId, id) : Promise.resolve(null),
+    getPlans(orgId, { employeeId: id, status: 'in_progress' }),
   ]);
+  const plan = onboarding[0];
   const activity = canAudit ? await activityForEmployee(orgId, id, history.map((h) => h.id)) : [];
   const [names, actors] = await Promise.all([
     employeeNames(orgId, [employee.manager_employee_id, ...history.map((h) => h.manager_employee_id)].filter((x): x is string => !!x)),
@@ -294,6 +297,19 @@ export default async function EmployeePage({
         </div>
 
         <div className="space-y-6">
+          {plan && (
+            <Card>
+              <CardHeader title="Onboarding" description={`${plan.done} of ${plan.tasks.length} tasks done`} />
+              <ul className="space-y-1 px-5 py-4 text-sm" aria-label="Onboarding tasks">
+                {plan.tasks.map((t) => (
+                  <li key={t.id} className="flex justify-between gap-2">
+                    <span className={t.status === 'open' ? '' : 'text-muted line-through'}>{t.title}</span>
+                    {t.due_on && <span className="shrink-0 text-xs text-muted">{formatDate(t.due_on)}</span>}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Card>
             <CardHeader title="Employment history" description="Effective-dated; past entries are never overwritten." />
             <ol className="divide-y divide-line">

@@ -1407,6 +1407,102 @@ export type Database = {
         };
         Relationships: [];
       };
+      onboarding_plans: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          template_id: string | null;
+          status: Database['public']['Enums']['onboarding_status'];
+          started_by: string | null;
+          started_at: string;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          template_id?: string | null;
+          status?: Database['public']['Enums']['onboarding_status'];
+          started_by?: string | null;
+          started_at?: string;
+          completed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          template_id?: string | null;
+          status?: Database['public']['Enums']['onboarding_status'];
+          started_by?: string | null;
+          started_at?: string;
+          completed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      onboarding_template_tasks: {
+        Row: {
+          id: string;
+          organization_id: string;
+          template_id: string;
+          position: number;
+          title: string;
+          details: string | null;
+          assignee: Database['public']['Enums']['onboarding_assignee'];
+          due_offset_days: number;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          template_id: string;
+          position?: number;
+          title: string;
+          details?: string | null;
+          assignee: Database['public']['Enums']['onboarding_assignee'];
+          due_offset_days?: number;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          template_id?: string;
+          position?: number;
+          title?: string;
+          details?: string | null;
+          assignee?: Database['public']['Enums']['onboarding_assignee'];
+          due_offset_days?: number;
+        };
+        Relationships: [];
+      };
+      onboarding_templates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          owner_employee_id: string | null;
+          is_default: boolean;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          owner_employee_id?: string | null;
+          is_default?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          owner_employee_id?: string | null;
+          is_default?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       organization_members: {
         Row: {
           id: string;
@@ -1506,6 +1602,66 @@ export type Database = {
         Update: {
           user_id?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      policy_acknowledgements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          policy_id: string;
+          employee_id: string;
+          acknowledged_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          policy_id: string;
+          employee_id: string;
+          acknowledged_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          policy_id?: string;
+          employee_id?: string;
+          acknowledged_at?: string;
+        };
+        Relationships: [];
+      };
+      policy_documents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          version: number;
+          body: string;
+          requires_acknowledgement: boolean;
+          published_at: string;
+          published_by: string | null;
+          retired_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          version?: number;
+          body: string;
+          requires_acknowledgement?: boolean;
+          published_at?: string;
+          published_by?: string | null;
+          retired_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          version?: number;
+          body?: string;
+          requires_acknowledgement?: boolean;
+          published_at?: string;
+          published_by?: string | null;
+          retired_at?: string | null;
         };
         Relationships: [];
       };
@@ -1804,6 +1960,12 @@ export type Database = {
         Args: never;
         Returns: number;
       };
+      acknowledge_policy: {
+        Args: {
+          p_policy: string;
+        };
+        Returns: undefined;
+      };
       add_application: {
         Args: {
           p_requisition: string;
@@ -1883,6 +2045,12 @@ export type Database = {
       cancel_leave: {
         Args: {
           p_request: string;
+        };
+        Returns: undefined;
+      };
+      cancel_onboarding: {
+        Args: {
+          p_plan: string;
         };
         Returns: undefined;
       };
@@ -2064,6 +2232,12 @@ export type Database = {
         };
         Returns: { member_id: string; user_id: string; email: string; status: Database['public']['Enums']['member_status']; joined_at: string; last_sign_in_at: string; role_ids: string[]; employee_id: string; employee_name: string }[];
       };
+      policy_acknowledgement_status: {
+        Args: {
+          p_policy: string;
+        };
+        Returns: { employee_id: string; employee_code: string; employee_name: string; acknowledged_at: string }[];
+      };
       public_job_postings: {
         Args: {
           p_org_slug: string;
@@ -2185,6 +2359,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      start_onboarding: {
+        Args: {
+          p_employee: string;
+          p_template?: string;
+        };
+        Returns: string;
+      };
       structure_usage: {
         Args: {
           p_org: string;
@@ -2263,6 +2444,12 @@ export type Database = {
         Args: never;
         Returns: Json;
       };
+      worker_start_onboarding: {
+        Args: {
+          p_employee: string;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       accrual_period: 'monthly' | 'yearly' | 'none';
@@ -2283,6 +2470,8 @@ export type Database = {
       leave_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
       member_status: 'invited' | 'active' | 'suspended';
       offer_status: 'draft' | 'pending_approval' | 'approved' | 'sent' | 'accepted' | 'declined' | 'withdrawn';
+      onboarding_assignee: 'joiner' | 'manager' | 'owner';
+      onboarding_status: 'in_progress' | 'completed' | 'cancelled';
       org_status: 'active' | 'suspended' | 'archived';
       permission_scope: 'org' | 'team' | 'self';
       punch_method: 'web' | 'mobile' | 'biometric' | 'import' | 'regularization';

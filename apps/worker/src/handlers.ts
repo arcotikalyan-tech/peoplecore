@@ -20,6 +20,14 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       if (error) throw new Error(error.message);
       log('attendance.daily', data as Record<string, unknown>);
     },
+    // Every hire gets the organization's default onboarding plan (once).
+    'event:employee.hired': async (job, log) => {
+      const employee = job.payload.subject_id;
+      if (typeof employee !== 'string') throw new Error('employee.hired without an employee id');
+      const { data, error } = await db.rpc('worker_start_onboarding', { p_employee: employee });
+      if (error) throw new Error(error.message);
+      log('onboarding.start', { employee, result: data });
+    },
     // Domain events without a dedicated consumer yet: acknowledged, so the queue stays clean.
     'event:*': async (job, log) => {
       log('event.seen', { kind: job.kind, subject_id: job.payload.subject_id });
