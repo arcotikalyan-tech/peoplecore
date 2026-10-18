@@ -123,14 +123,14 @@ declare
   r    record;
   v_n  int := 0;
 begin
-  for r in select d.candidate_id, d.last_activity_at, s.candidate_retention_days
+  for r in select d.organization_id, d.candidate_id, d.last_activity_at, s.candidate_retention_days
              from app.candidate_erasure_schedule(null) d
              join public.recruitment_settings s on s.organization_id = d.organization_id
             where d.erase_after <= now()
             order by d.candidate_id loop
     perform 1 from public.candidates where id = r.candidate_id for update skip locked;
     if not found then continue; end if;
-    if not exists (select 1 from app.candidate_erasure_schedule(null) d
+    if not exists (select 1 from app.candidate_erasure_schedule(r.organization_id) d
                     where d.candidate_id = r.candidate_id and d.erase_after <= now()) then
       continue;
     end if;
