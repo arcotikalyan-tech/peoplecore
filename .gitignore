@@ -14,3 +14,6 @@ playwright-report/
 test-results/
 next-env.d.ts
 .demo-mfa.json
+
+# Vercel CLI (vercel link / pull write ids and production env values here)
+.vercel/
