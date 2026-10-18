@@ -1,13 +1,15 @@
 name: Worker
 
 # The background worker as a scheduled pass (docs/runbooks/operations.md): enqueues the jobs that are due and runs a
-# batch. Hourly, because GitHub Actions minutes on a private repository are limited; jobs are keyed by hour or day,
-# so nothing is lost between passes. Move to an always-on host when hourly is too coarse. Skips itself until its
+# batch. Every 3 hours, because a private repository on the free plan has 2,000 Actions minutes a month (a pass
+# takes 1-2 billed minutes, so hourly would use most of them alongside CI). Jobs are keyed by hour or day, so
+# nothing is lost between passes; reminders and escalations just arrive up to 3 hours later. Move to an always-on
+# host when that is too coarse. Skips itself until its
 # secrets exist on the "production" environment.
 
 on:
   schedule:
-    - cron: '7 * * * *'
+    - cron: '7 */3 * * *'
   workflow_dispatch:
 
 permissions:
