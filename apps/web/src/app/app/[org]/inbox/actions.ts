@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import type { ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { createClient } from '@/server/supabase';
 
@@ -47,5 +48,6 @@ export async function completeTaskAction(orgSlug: string, _prev: ActionState, fo
   const { error } = await supabase.rpc('set_task_status', { p_task: id.data, p_status: 'done' });
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${orgSlug}`, 'layout');
+  await flash('Done.');
   return { ok: true, message: 'Done.' };
 }

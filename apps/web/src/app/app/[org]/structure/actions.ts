@@ -13,6 +13,7 @@ import {
 } from '@peoplecore/shared';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { createClient } from '@/server/supabase';
 
@@ -160,5 +161,6 @@ export async function setStructureArchivedAction(orgSlug: string, _prev: ActionS
   if (error) return { ok: false, message: toUserMessage(error) };
   if (data.length !== 1) return NOT_FOUND;
   revalidatePath(`/app/${orgSlug}`, 'layout');
+  await flash(parsed.data.archive ? 'Archived. You can restore it from the archived list.' : 'Restored.');
   return { ok: true, message: parsed.data.archive ? 'Archived. You can restore it from the archived list.' : 'Restored.' };
 }

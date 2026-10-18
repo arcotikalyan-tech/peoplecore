@@ -15,6 +15,7 @@ import {
 import { z } from 'zod';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { flash } from '@/server/flash';
 import { getOrgContext, type OrgContext } from '@/server/context';
 import { DOCUMENT_BUCKET, removeDocumentFile, storeDocumentFile } from '@/server/document-storage';
 import { getEmployee } from '@/server/employees';
@@ -259,5 +260,6 @@ export async function deleteDocumentAction(orgSlug: string, employeeId: string, 
   // URL is ever issued for a deleted record) until a cleanup job exists; see BUILD_STATUS known issues.
   await removeDocumentFile(path, DOCUMENT_BUCKET);
   revalidatePath(profilePath(orgSlug, employeeId));
+  await flash('Document deleted.');
   return { ok: true, message: 'Document deleted.' };
 }

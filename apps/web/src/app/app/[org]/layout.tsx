@@ -3,12 +3,14 @@ import type { ReactNode } from 'react';
 import { Brand } from '@/components/brand';
 import { NavLink } from '@/components/nav-link';
 import { getOrgContext, isPlatformAdmin } from '@/server/context';
+import { FlashMessage } from '@/components/flash-message';
+import { readFlash } from '@/server/flash';
 import { unreadNotificationCount } from '@/server/inbox';
 
 export default async function OrgLayout({ children, params }: { children: ReactNode; params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await getOrgContext(slug);
-  const [platformAdmin, unread] = await Promise.all([isPlatformAdmin(), unreadNotificationCount(ctx.org.id)]);
+  const [platformAdmin, unread, flashed] = await Promise.all([isPlatformAdmin(), unreadNotificationCount(ctx.org.id), readFlash()]);
   const base = `/app/${slug}`;
 
   // Navigation is filtered for usability only; every page re-checks, and RLS enforces.
@@ -79,6 +81,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
         )}
 
         <main id="main" className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          {flashed && <FlashMessage key={flashed} message={flashed} />}
           {children}
         </main>
       </div>

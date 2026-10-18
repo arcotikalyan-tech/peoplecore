@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { formValues, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { computeAll, ENGINE_VERSION, fetchInputs } from '@/server/payroll';
 import { createClient } from '@/server/supabase';
@@ -53,7 +54,8 @@ export async function approveRunAction(orgSlug: string, _prev: ActionState, form
     const { error } = await supabase.rpc('approve_payroll_run', { p_run: id, p_inputs_hash: hash });
     if (error) return err(error);
     revalidatePath(`/app/${orgSlug}/payroll`, 'layout');
-    return { ok: true, message: 'Approved. Lock the run to release payslips.' };
+    await flash('Approved. Lock the run to release payslips.');
+  return { ok: true, message: 'Approved. Lock the run to release payslips.' };
   } catch (e) {
     return err(e);
   }
@@ -65,6 +67,7 @@ export async function lockRunAction(orgSlug: string, _prev: ActionState, formDat
   const { error } = await supabase.rpc('lock_payroll_run', { p_run: runId.parse(formData.get('runId')) });
   if (error) return err(error);
   revalidatePath(`/app/${orgSlug}`, 'layout');
+  await flash('Locked. Payslips are released and the bank file is available.');
   return { ok: true, message: 'Locked. Payslips are released and the bank file is available.' };
 }
 
@@ -74,6 +77,7 @@ export async function cancelRunAction(orgSlug: string, _prev: ActionState, formD
   const { error } = await supabase.rpc('cancel_payroll_run', { p_run: runId.parse(formData.get('runId')) });
   if (error) return err(error);
   revalidatePath(`/app/${orgSlug}/payroll`, 'layout');
+  await flash('Run cancelled.');
   return { ok: true, message: 'Run cancelled.' };
 }
 

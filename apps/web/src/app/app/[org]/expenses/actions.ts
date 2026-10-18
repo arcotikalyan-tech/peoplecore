@@ -7,6 +7,7 @@ import { checkDocumentFile, safeFileName } from '@peoplecore/shared';
 import { z } from 'zod';
 import { formValues, sqlNull, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { RECEIPT_BUCKET, removeDocumentFile, storeDocumentFile } from '@/server/document-storage';
 import { createClient } from '@/server/supabase';
@@ -83,6 +84,7 @@ export async function removeItemAction(orgSlug: string, _prev: ActionState, form
   if (error) return { ok: false, message: toUserMessage(error) };
   if (path) await removeDocumentFile(path, RECEIPT_BUCKET);
   revalidatePath(`/app/${orgSlug}/expenses/${parsed.data.claimId}`);
+  await flash('Removed.');
   return { ok: true, message: 'Removed.' };
 }
 
@@ -94,5 +96,6 @@ export async function submitClaimAction(orgSlug: string, _prev: ActionState, for
   const { error } = await supabase.rpc('submit_expense_claim', { p_claim: id.data });
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${orgSlug}`, 'layout');
+  await flash('Submitted. Your manager approves first, then finance.');
   return { ok: true, message: 'Submitted. Your manager approves first, then finance.' };
 }

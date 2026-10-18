@@ -9,6 +9,7 @@ import {
 import { z } from 'zod';
 import { formDataAll, formValues, invalid, sqlNull, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { createClient } from '@/server/supabase';
 
@@ -86,6 +87,7 @@ export async function moveApplicationAction(orgSlug: string, _prev: ActionState,
   });
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${orgSlug}/recruitment`, 'layout');
+  await flash('Moved.');
   return { ok: true, message: 'Moved.' };
 }
 
@@ -116,6 +118,7 @@ export async function eraseCandidateAction(orgSlug: string, _prev: ActionState, 
   const { error } = await supabase.rpc('erase_candidate', { p_candidate: candidateId.data });
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${orgSlug}/recruitment`, 'layout');
+  await flash('Candidate erased, with all their applications.');
   return { ok: true, message: 'Candidate erased, with all their applications.' };
 }
 

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { formValues, invalid, sqlNull, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
 import { createClient } from '@/server/supabase';
@@ -36,6 +37,7 @@ export async function cancelOnboardingAction(orgSlug: string, _prev: ActionState
   const { error } = await supabase.rpc('cancel_onboarding', { p_plan: id.data });
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${orgSlug}`, 'layout');
+  await flash('Onboarding cancelled.');
   return { ok: true, message: 'Onboarding cancelled.' };
 }
 

@@ -5,6 +5,7 @@ import { adjustLeaveSchema, applyLeaveSchema, holidaySchema, leavePolicySchema }
 import { z } from 'zod';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
 import { createClient } from '@/server/supabase';
@@ -37,6 +38,7 @@ export async function cancelLeaveAction(orgSlug: string, _prev: ActionState, for
   const { error } = await supabase.rpc('cancel_leave', { p_request: id.data });
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${orgSlug}`, 'layout');
+  await flash('Leave cancelled.');
   return { ok: true, message: 'Leave cancelled.' };
 }
 

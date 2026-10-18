@@ -75,8 +75,10 @@ test('the owner verifies and approves; the run is locked and payslips are releas
   await signIn(page, 'demo.owner');
   await open(page, runUrl);
   await page.getByRole('button', { name: 'Verify and approve' }).click();
-  // The next step replaces the approval form.
+  // The approval form is replaced by the next step; the confirmation survives as a page-level message.
+  await expect(page.getByRole('status').filter({ hasText: 'Approved. Lock the run to release payslips.' })).toBeVisible();
   await page.getByRole('button', { name: 'Lock and release payslips' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Locked. Payslips are released' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Download bank file' })).toBeVisible();
 
   const run = (await admin.from('payroll_runs').select('status, prepared_by, approved_by').eq('organization_id', orgId).eq('period_month', `${MONTH}-01`).single()).data!;
