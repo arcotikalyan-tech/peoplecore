@@ -33,6 +33,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     { href: `${base}/knowledge`, label: 'Knowledge base' },
     { href: `${base}/assets`, label: 'Assets' },
     { href: `${base}/grievances`, label: 'Grievances' },
+    { href: `${base}/separations`, label: 'Separations' },
     ...(ctx.can('org.read') ? [{ href: `${base}/structure`, label: 'Organization' }] : []),
     ...(ctx.can('member.manage', 'org') ? [{ href: `${base}/members`, label: 'Members' }] : []),
     ...(ctx.can('workflow.manage', 'org') ? [{ href: `${base}/workflows`, label: 'Workflows' }] : []),

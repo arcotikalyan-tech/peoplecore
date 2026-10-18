@@ -117,9 +117,13 @@ create trigger clearance_items_audit after insert or update on public.clearance_
 alter table public.separations enable row level security;
 alter table public.clearance_items enable row level security;
 -- The employee, their reporting line and HR see a separation (not why: see separation_details).
+-- IT (asset managers) and finance also see approved and completed ones: they clear assets, access and dues.
 create policy separations_select on public.separations for select to authenticated
   using (app.is_own_employee(employee_id) or app.has_permission(organization_id, 'separation.manage')
-         or app.is_in_reporting_line(organization_id, employee_id));
+         or app.is_in_reporting_line(organization_id, employee_id)
+         or (status in ('approved', 'completed')
+             and (app.has_permission(organization_id, 'asset.manage') or app.has_permission(organization_id, 'payroll.prepare')
+                  or app.has_permission(organization_id, 'expense.manage'))));
 -- Checklist items: everyone who can see the separation, plus IT (asset managers) and finance for their own items.
 create function app.can_view_clearance(p_separation uuid, p_owner text) returns boolean
 language sql stable security definer set search_path = '' as $$

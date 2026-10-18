@@ -81,7 +81,7 @@ export async function getMyEmployee(orgId: string, userId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('employees')
-    .select('id, first_name, middle_name, last_name, employee_code, status')
+    .select('id, first_name, middle_name, last_name, employee_code, status, employment_type')
     .eq('organization_id', orgId)
     .eq('user_id', userId)
     .maybeSingle();
