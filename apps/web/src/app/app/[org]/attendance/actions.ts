@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import {
-  deviceSchema, geofenceSchema, parseCsv, parseDeviceCsvRows, punchSchema, regularizationSchema, rosterSchema, shiftSchema,
+  attendanceRequestSchema, attendanceRuleSchema, attendanceSettingsSchema, deviceSchema, geofenceSchema, parseCsv, parseDeviceCsvRows,
+  punchSchema, regularizationSchema, rosterSchema, shiftSchema, weekPatternFromForm, workWeekSchema,
 } from '@peoplecore/shared';
 import { z } from 'zod';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
@@ -141,4 +142,158 @@ export async function importDevicePunchesAction(orgSlug: string, _prev: ActionSt
   revalidatePath(`/app/${orgSlug}/attendance`, 'layout');
   const problems = r.errors.length ? ` ${r.errors.length} line(s) skipped: ${r.errors.slice(0, 3).map((e) => `line ${e.line}: ${e.message}`).join('; ')}` : '';
   return { ok: r.errors.length === 0, message: `${r.inserted} punch(es) imported, ${r.duplicates} already seen.${problems}` };
+}
+
+// ─── Attendance operations (migration 20261019000100) ───────────────────────
+
+export async function requestAttendanceAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  const parsed = attendanceRequestSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const me = await getMyEmployee(ctx.org.id, ctx.user.id);
+  if (!me) return { ok: false, message: 'Your account isn’t linked to an employee record.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('request_attendance', {
+    p_employee: me.id, p_kind: parsed.data.kind, p_start: parsed.data.startDate, p_end: parsed.data.endDate, p_reason: parsed.data.reason,
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(`/app/${orgSlug}`, 'layout');
+  return { ok: true, message: `${parsed.data.kind === 'wfh' ? 'Work from home' : 'On duty'} requested. Your manager has been asked to approve it.` };
+}
+
+const dayKey = z.object({ employeeId: z.uuid(), workDate: z.iso.date() });
+
+export async function decideOvertimeAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await getOrgContext(orgSlug);
+  const parsed = dayKey.extend({ decision: z.enum(['approve', 'reject']) }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('decide_overtime', { p_employee: parsed.data.employeeId, p_date: parsed.data.workDate, p_approve: parsed.data.decision === 'approve' });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  return done(orgSlug, parsed.data.decision === 'approve' ? 'Overtime approved.' : 'Overtime rejected.');
+}
+
+export async function revertCompOffAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await manage(orgSlug))) return DENIED;
+  const parsed = dayKey.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('revert_comp_off', { p_employee: parsed.data.employeeId, p_date: parsed.data.workDate });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  return done(orgSlug, 'Comp-off reverted.');
+}
+
+export async function runPenaltiesAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await manage(orgSlug);
+  if (!ctx) return DENIED;
+  const month = z.string().regex(/^\d{4}-\d{2}$/).safeParse(formData.get('month'));
+  if (!month.success) return { ok: false, message: 'Choose a month.' };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('run_attendance_penalties', { p_org: ctx.org.id, p_month: `${month.data}-01` });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  return done(orgSlug, data ? `${data} penalt${data === 1 ? 'y' : 'ies'} applied or updated.` : 'No one is over their late-mark allowance this month.');
+}
+
+export async function revertPenaltyAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await manage(orgSlug))) return DENIED;
+  const id = z.uuid().safeParse(formData.get('penaltyId'));
+  if (!id.success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('revert_attendance_penalty', { p_penalty: id.data });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  return done(orgSlug, 'Penalty reverted.');
+}
+
+/** Saves an attendance rule (a shift): an existing one by id, or a new one with a generated code. */
+export async function saveRuleAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await manage(orgSlug);
+  if (!ctx) return DENIED;
+  const parsed = attendanceRuleSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const id = z.uuid().optional().safeParse(formData.get('ruleId') || undefined);
+  if (!id.success) return { ok: false, message: 'Invalid request.' };
+  const v = parsed.data;
+  const row = {
+    name: v.name, description: v.description ?? null, start_time: v.startTime, end_time: v.endTime, break_minutes: v.breakMinutes,
+    grace_minutes: v.graceMinutes, early_grace_minutes: v.earlyGraceMinutes, full_day_minutes: v.fullDayMinutes, half_day_minutes: v.halfDayMinutes,
+    verify_selfie: v.verifySelfie, verify_geofence: v.verifyGeofence, verify_ip: v.verifyIp, overtime_after_minutes: v.overtimeAfterMinutes ?? null,
+    comp_off_min_minutes: v.compOffMinMinutes ?? null, late_marks_allowed: v.lateMarksAllowed ?? null, late_penalty_days: v.latePenaltyDays,
+  };
+  const supabase = await createClient();
+  const { error } = id.data
+    ? await supabase.from('shifts').update(row).eq('id', id.data).eq('organization_id', ctx.org.id)
+    : await supabase.from('shifts').insert({ ...row, organization_id: ctx.org.id, code: v.name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').slice(0, 8) + '_' + Math.random().toString(36).slice(2, 5).toUpperCase() });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  return done(orgSlug, `Rule “${v.name}” saved.`);
+}
+
+export async function setDefaultRuleAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await manage(orgSlug);
+  if (!ctx) return DENIED;
+  const id = z.uuid().safeParse(formData.get('ruleId'));
+  if (!id.success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const cleared = await supabase.from('shifts').update({ is_default: false }).eq('organization_id', ctx.org.id).eq('is_default', true);
+  if (cleared.error) return { ok: false, message: toUserMessage(cleared.error) };
+  const { error } = await supabase.from('shifts').update({ is_default: true }).eq('id', id.data).eq('organization_id', ctx.org.id);
+  if (error) return { ok: false, message: toUserMessage(error) };
+  return done(orgSlug, 'Default rule changed. It applies to everyone without an assigned rule.');
+}
+
+export async function saveWorkWeekAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await manage(orgSlug);
+  if (!ctx) return DENIED;
+  const parsed = workWeekSchema.safeParse({ name: formData.get('name'), description: formData.get('description') ?? undefined, pattern: weekPatternFromForm(formData) });
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const id = z.uuid().optional().safeParse(formData.get('weekId') || undefined);
+  if (!id.success) return { ok: false, message: 'Invalid request.' };
+  const row = { name: parsed.data.name, description: parsed.data.description ?? null, pattern: parsed.data.pattern };
+  const supabase = await createClient();
+  const { error } = id.data
+    ? await supabase.from('work_week_rules').update(row).eq('id', id.data).eq('organization_id', ctx.org.id)
+    : await supabase.from('work_week_rules').insert({ ...row, organization_id: ctx.org.id });
+  if (error) return { ok: false, message: error.code === '23505' ? 'A work week with this name already exists.' : toUserMessage(error), values: formValues(formData) };
+  return done(orgSlug, `Work week “${parsed.data.name}” saved.`);
+}
+
+export async function setDefaultWorkWeekAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await manage(orgSlug);
+  if (!ctx) return DENIED;
+  const id = z.uuid().safeParse(formData.get('weekId'));
+  if (!id.success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const cleared = await supabase.from('work_week_rules').update({ is_default: false }).eq('organization_id', ctx.org.id).eq('is_default', true);
+  if (cleared.error) return { ok: false, message: toUserMessage(cleared.error) };
+  const { error } = await supabase.from('work_week_rules').update({ is_default: true }).eq('id', id.data).eq('organization_id', ctx.org.id);
+  if (error) return { ok: false, message: toUserMessage(error) };
+  return done(orgSlug, 'Default work week set. It applies to everyone without an assigned work week.');
+}
+
+export async function assignWorkWeekAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await manage(orgSlug);
+  if (!ctx) return DENIED;
+  const parsed = z.object({ weekId: z.uuid(), employeeIds: z.array(z.uuid()).min(1, 'Choose at least one person').max(500), effectiveFrom: z.iso.date() })
+    .safeParse({ weekId: formData.get('weekId'), employeeIds: formData.getAll('employeeIds'), effectiveFrom: formData.get('effectiveFrom') });
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const supabase = await createClient();
+  const { error } = await supabase.from('work_week_assignments').upsert(
+    parsed.data.employeeIds.map((e) => ({ organization_id: ctx.org.id, employee_id: e, rule_id: parsed.data.weekId, effective_from: parsed.data.effectiveFrom })),
+    { onConflict: 'employee_id,effective_from' });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  return done(orgSlug, `Work week assigned to ${parsed.data.employeeIds.length} ${parsed.data.employeeIds.length === 1 ? 'person' : 'people'}.`);
+}
+
+export async function saveAttendanceSettingsAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await manage(orgSlug);
+  if (!ctx) return DENIED;
+  const parsed = attendanceSettingsSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase.from('attendance_settings').update({
+    cycle_start_day: v.cycleStartDay, remind_missing_checkout: v.remindMissingCheckout, pending_digest: v.pendingDigest,
+    late_punch_alert: v.latePunchAlert, skip_level_approval: v.skipLevelApproval, allowed_ips: v.allowedIps,
+  }).eq('organization_id', ctx.org.id);
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  return done(orgSlug, 'Attendance settings saved.');
 }

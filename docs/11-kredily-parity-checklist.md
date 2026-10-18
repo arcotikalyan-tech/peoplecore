@@ -93,20 +93,20 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Insurance (hub)
 
 ### Attendance
-- [ ] Attendance (hub)
-- [ ] Attendance › analytics
-- [ ] Attendance › approvals
-- [ ] Attendance › approvals › open
-- [ ] Attendance › approvals › resolved
-- [ ] Attendance › attendance rules
-- [ ] Attendance › devices
-- [ ] Attendance › devices › biometric logs
-- [ ] Attendance › hub
-- [ ] Attendance › logs
-- [ ] Attendance › logs › comp off logs
-- [ ] Attendance › logs › overtime logs
-- [ ] Attendance › logs › penalty logs
-- [ ] Attendance › settings
+- [x] Attendance (hub)
+- [x] Attendance › analytics
+- [x] Attendance › approvals
+- [x] Attendance › approvals › open
+- [x] Attendance › approvals › resolved
+- [~] Attendance › attendance rules — rotational shifts and enforcing selfie / office-IP checks still to come
+- [x] Attendance › devices
+- [x] Attendance › devices › biometric logs
+- [x] Attendance › hub
+- [x] Attendance › logs
+- [x] Attendance › logs › comp off logs
+- [x] Attendance › logs › overtime logs
+- [x] Attendance › logs › penalty logs
+- [~] Attendance › settings — reminder switches are stored; the reminders themselves aren’t sent yet
 
 ### Leave
 - [ ] Leave (hub)
@@ -306,11 +306,11 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] My Profile › work week
 
 ### Attendance
-- [ ] Attendance (hub)
-- [ ] Attendance › approvals
-- [ ] Attendance › approvals › open
-- [ ] Attendance › approvals › resolved
-- [ ] Attendance › hub
+- [x] Attendance (hub)
+- [x] Attendance › approvals
+- [x] Attendance › approvals › open
+- [x] Attendance › approvals › resolved
+- [x] Attendance › hub
 
 ### Leave
 - [ ] Leave (hub)
@@ -471,19 +471,19 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Directory Directory (hub)
 
 ### Attendance Calendar
-- [ ] Attendance Calendar (hub)
+- [x] Attendance Calendar (hub)
 
 ### Attendance Logs
-- [ ] Attendance Logs (hub)
+- [x] Attendance Logs (hub)
 
 ### Attendance My Rule
-- [ ] Attendance My Rule (hub)
+- [x] Attendance My Rule (hub)
 
 ### Attendance My Requests
-- [ ] Attendance My Requests (hub)
+- [x] Attendance My Requests (hub)
 
 ### Attendance My Insights
-- [ ] Attendance My Insights (hub)
+- [x] Attendance My Insights (hub)
 
 ### Leave Calendar
 - [ ] Leave Calendar (hub)

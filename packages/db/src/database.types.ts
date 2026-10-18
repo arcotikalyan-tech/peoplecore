@@ -655,6 +655,8 @@ export type Database = {
           leave_paid: boolean | null;
           is_regularized: boolean;
           computed_at: string;
+          early_out_minutes: number;
+          overtime_minutes: number;
         };
         Insert: {
           organization_id: string;
@@ -671,6 +673,8 @@ export type Database = {
           leave_paid?: boolean | null;
           is_regularized?: boolean;
           computed_at?: string;
+          early_out_minutes?: number;
+          overtime_minutes?: number;
         };
         Update: {
           organization_id?: string;
@@ -687,6 +691,53 @@ export type Database = {
           leave_paid?: boolean | null;
           is_regularized?: boolean;
           computed_at?: string;
+          early_out_minutes?: number;
+          overtime_minutes?: number;
+        };
+        Relationships: [];
+      };
+      attendance_penalties: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          cycle_month: string;
+          kind: string;
+          occurrences: number;
+          days: number;
+          detail: string | null;
+          applied_at: string;
+          applied_by: string | null;
+          reverted_at: string | null;
+          reverted_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          cycle_month: string;
+          kind: string;
+          occurrences: number;
+          days: number;
+          detail?: string | null;
+          applied_at?: string;
+          applied_by?: string | null;
+          reverted_at?: string | null;
+          reverted_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          cycle_month?: string;
+          kind?: string;
+          occurrences?: number;
+          days?: number;
+          detail?: string | null;
+          applied_at?: string;
+          applied_by?: string | null;
+          reverted_at?: string | null;
+          reverted_by?: string | null;
         };
         Relationships: [];
       };
@@ -732,6 +783,87 @@ export type Database = {
           accuracy_m?: number | null;
           received_at?: string;
           created_by?: string | null;
+        };
+        Relationships: [];
+      };
+      attendance_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          kind: Database['public']['Enums']['attendance_request_kind'];
+          start_date: string;
+          end_date: string;
+          reason: string;
+          status: Database['public']['Enums']['leave_status'];
+          approval_request_id: string | null;
+          requested_by: string;
+          created_at: string;
+          decided_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          kind: Database['public']['Enums']['attendance_request_kind'];
+          start_date: string;
+          end_date: string;
+          reason: string;
+          status?: Database['public']['Enums']['leave_status'];
+          approval_request_id?: string | null;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          kind?: Database['public']['Enums']['attendance_request_kind'];
+          start_date?: string;
+          end_date?: string;
+          reason?: string;
+          status?: Database['public']['Enums']['leave_status'];
+          approval_request_id?: string | null;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Relationships: [];
+      };
+      attendance_settings: {
+        Row: {
+          organization_id: string;
+          cycle_start_day: number;
+          remind_missing_checkout: boolean;
+          pending_digest: boolean;
+          late_punch_alert: boolean;
+          skip_level_approval: boolean;
+          allowed_ips: string[];
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          cycle_start_day?: number;
+          remind_missing_checkout?: boolean;
+          pending_digest?: boolean;
+          late_punch_alert?: boolean;
+          skip_level_approval?: boolean;
+          allowed_ips?: string[];
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          cycle_start_day?: number;
+          remind_missing_checkout?: boolean;
+          pending_digest?: boolean;
+          late_punch_alert?: boolean;
+          skip_level_approval?: boolean;
+          allowed_ips?: string[];
+          updated_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -888,6 +1020,42 @@ export type Database = {
           cleared_by?: string | null;
           cleared_at?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      comp_off_credits: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          work_date: string;
+          days: number;
+          leave_type_id: string;
+          status: string;
+          credited_at: string;
+          reverted_by: string | null;
+          reverted_at: string | null;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          work_date: string;
+          days: number;
+          leave_type_id: string;
+          status?: string;
+          credited_at?: string;
+          reverted_by?: string | null;
+          reverted_at?: string | null;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          work_date?: string;
+          days?: number;
+          leave_type_id?: string;
+          status?: string;
+          credited_at?: string;
+          reverted_by?: string | null;
+          reverted_at?: string | null;
         };
         Relationships: [];
       };
@@ -2703,6 +2871,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      overtime_records: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          work_date: string;
+          minutes: number;
+          status: string;
+          decided_by: string | null;
+          decided_at: string | null;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          work_date: string;
+          minutes: number;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          work_date?: string;
+          minutes?: number;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+        };
+        Relationships: [];
+      };
       payroll_adjustments: {
         Row: {
           id: string;
@@ -3486,6 +3684,15 @@ export type Database = {
           is_default: boolean;
           is_active: boolean;
           created_at: string;
+          description: string | null;
+          early_grace_minutes: number;
+          verify_selfie: boolean;
+          verify_geofence: boolean;
+          verify_ip: boolean;
+          late_marks_allowed: number | null;
+          late_penalty_days: number;
+          overtime_after_minutes: number | null;
+          comp_off_min_minutes: number | null;
         };
         Insert: {
           id?: string;
@@ -3501,6 +3708,15 @@ export type Database = {
           is_default?: boolean;
           is_active?: boolean;
           created_at?: string;
+          description?: string | null;
+          early_grace_minutes?: number;
+          verify_selfie?: boolean;
+          verify_geofence?: boolean;
+          verify_ip?: boolean;
+          late_marks_allowed?: number | null;
+          late_penalty_days?: number;
+          overtime_after_minutes?: number | null;
+          comp_off_min_minutes?: number | null;
         };
         Update: {
           id?: string;
@@ -3516,6 +3732,15 @@ export type Database = {
           is_default?: boolean;
           is_active?: boolean;
           created_at?: string;
+          description?: string | null;
+          early_grace_minutes?: number;
+          verify_selfie?: boolean;
+          verify_geofence?: boolean;
+          verify_ip?: boolean;
+          late_marks_allowed?: number | null;
+          late_penalty_days?: number;
+          overtime_after_minutes?: number | null;
+          comp_off_min_minutes?: number | null;
         };
         Relationships: [];
       };
@@ -3717,6 +3942,66 @@ export type Database = {
           resolved_at?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      work_week_assignments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          rule_id: string;
+          effective_from: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          rule_id: string;
+          effective_from: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          rule_id?: string;
+          effective_from?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      work_week_rules: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          description: string | null;
+          pattern: string[];
+          is_default: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          description?: string | null;
+          pattern: string[];
+          is_default?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          description?: string | null;
+          pattern?: string[];
+          is_default?: boolean;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -4122,6 +4407,21 @@ export type Database = {
         };
         Returns: number;
       };
+      attendance_analytics: {
+        Args: {
+          p_org: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: Json;
+      };
+      attendance_day_summary: {
+        Args: {
+          p_org: string;
+          p_date: string;
+        };
+        Returns: Json;
+      };
       attendance_days_for: {
         Args: {
           p_employee: string;
@@ -4284,6 +4584,14 @@ export type Database = {
           p_comment?: string;
         };
         Returns: Database['public']['Enums']['approval_status'];
+      };
+      decide_overtime: {
+        Args: {
+          p_employee: string;
+          p_date: string;
+          p_approve: boolean;
+        };
+        Returns: undefined;
       };
       delegate_approvals: {
         Args: {
@@ -4622,6 +4930,16 @@ export type Database = {
         };
         Returns: string;
       };
+      request_attendance: {
+        Args: {
+          p_employee: string;
+          p_kind: Database['public']['Enums']['attendance_request_kind'];
+          p_start: string;
+          p_end: string;
+          p_reason: string;
+        };
+        Returns: string;
+      };
       request_feedback: {
         Args: {
           p_review: string;
@@ -4660,6 +4978,19 @@ export type Database = {
         };
         Returns: { pan: string; aadhaar_last4: string; uan: string; esic_number: string; passport_number: string; passport_expiry: string }[];
       };
+      revert_attendance_penalty: {
+        Args: {
+          p_penalty: string;
+        };
+        Returns: undefined;
+      };
+      revert_comp_off: {
+        Args: {
+          p_employee: string;
+          p_date: string;
+        };
+        Returns: undefined;
+      };
       review_anomaly: {
         Args: {
           p_flag: string;
@@ -4679,6 +5010,13 @@ export type Database = {
           p_note?: string;
         };
         Returns: undefined;
+      };
+      run_attendance_penalties: {
+        Args: {
+          p_org: string;
+          p_month: string;
+        };
+        Returns: number;
       };
       save_ai_settings: {
         Args: {
@@ -5012,6 +5350,10 @@ export type Database = {
         Args: never;
         Returns: Json;
       };
+      worker_attendance_penalties: {
+        Args: never;
+        Returns: Json;
+      };
       worker_candidate_retention: {
         Args: never;
         Returns: Json;
@@ -5101,7 +5443,8 @@ export type Database = {
       approver_rule: 'reporting_manager' | 'permission';
       asset_status: 'in_stock' | 'assigned' | 'in_repair' | 'retired' | 'lost';
       assignment_change_reason: 'joining' | 'transfer' | 'promotion' | 'manager_change' | 'type_change' | 'correction' | 'other';
-      attendance_status: 'present' | 'half_day' | 'absent' | 'on_leave' | 'weekly_off' | 'holiday' | 'not_marked';
+      attendance_request_kind: 'wfh' | 'on_duty';
+      attendance_status: 'present' | 'half_day' | 'absent' | 'on_leave' | 'weekly_off' | 'holiday' | 'not_marked' | 'wfh' | 'on_duty';
       bank_account_type: 'savings' | 'current' | 'salary';
       candidate_source: 'careers_site' | 'referral' | 'agency' | 'job_board' | 'direct' | 'other';
       component_kind: 'earning' | 'deduction';
