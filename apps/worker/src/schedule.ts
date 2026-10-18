@@ -21,6 +21,8 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'attendance.daily', key: `attendance.daily:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // Overdue loans: each is reminded once, on the first run after its due date passes in the org's time zone.
     { kind: 'assets.returns', key: `assets.returns:${hour}`, payload: { hour } },
+    // Approvals waiting longer than their step allows (hours, 72 by default) escalate once per step.
+    { kind: 'approvals.escalate', key: `approvals.escalate:${hour}`, payload: { hour } },
     // Every 15 minutes: the shortest helpdesk SLA is 4 hours, so a breach is flagged within a quarter of it.
     { kind: 'helpdesk.sla', key: `helpdesk.sla:${hour}:${String(Math.floor(now.getUTCMinutes() / 15) * 15).padStart(2, '0')}`, payload: { hour } },
   ];

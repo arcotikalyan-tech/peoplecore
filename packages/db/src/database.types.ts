@@ -223,6 +223,8 @@ export type Database = {
           decision: string;
           comment: string | null;
           acted_at: string;
+          via: string;
+          on_behalf_of: string | null;
         };
         Insert: {
           id?: never;
@@ -233,6 +235,8 @@ export type Database = {
           decision: string;
           comment?: string | null;
           acted_at?: string;
+          via?: string;
+          on_behalf_of?: string | null;
         };
         Update: {
           id?: never;
@@ -243,6 +247,50 @@ export type Database = {
           decision?: string;
           comment?: string | null;
           acted_at?: string;
+          via?: string;
+          on_behalf_of?: string | null;
+        };
+        Relationships: [];
+      };
+      approval_delegations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          delegator_user_id: string;
+          delegate_user_id: string;
+          starts_on: string;
+          ends_on: string;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          revoked_at: string | null;
+          revoked_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          delegator_user_id: string;
+          delegate_user_id: string;
+          starts_on: string;
+          ends_on: string;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          delegator_user_id?: string;
+          delegate_user_id?: string;
+          starts_on?: string;
+          ends_on?: string;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
         };
         Relationships: [];
       };
@@ -255,6 +303,7 @@ export type Database = {
           approver_rule: Database['public']['Enums']['approver_rule'];
           permission_key: string | null;
           label: string;
+          escalate_after_hours: number | null;
         };
         Insert: {
           id?: string;
@@ -264,6 +313,7 @@ export type Database = {
           approver_rule: Database['public']['Enums']['approver_rule'];
           permission_key?: string | null;
           label: string;
+          escalate_after_hours?: number | null;
         };
         Update: {
           id?: string;
@@ -273,6 +323,7 @@ export type Database = {
           approver_rule?: Database['public']['Enums']['approver_rule'];
           permission_key?: string | null;
           label?: string;
+          escalate_after_hours?: number | null;
         };
         Relationships: [];
       };
@@ -315,6 +366,8 @@ export type Database = {
           requested_by: string;
           created_at: string;
           decided_at: string | null;
+          step_started_at: string | null;
+          escalated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -330,6 +383,8 @@ export type Database = {
           requested_by?: string;
           created_at?: string;
           decided_at?: string | null;
+          step_started_at?: string | null;
+          escalated_at?: string | null;
         };
         Update: {
           id?: string;
@@ -345,6 +400,8 @@ export type Database = {
           requested_by?: string;
           created_at?: string;
           decided_at?: string | null;
+          step_started_at?: string | null;
+          escalated_at?: string | null;
         };
         Relationships: [];
       };
@@ -3413,6 +3470,17 @@ export type Database = {
         };
         Returns: Database['public']['Enums']['approval_status'];
       };
+      delegate_approvals: {
+        Args: {
+          p_org: string;
+          p_delegate: string;
+          p_starts: string;
+          p_ends: string;
+          p_note?: string;
+          p_delegator?: string;
+        };
+        Returns: string;
+      };
       delete_employee_document: {
         Args: {
           p_document: string;
@@ -3442,6 +3510,12 @@ export type Database = {
           p_employee: string;
         };
         Returns: { pan: string; aadhaar_last4: string; uan: string; esic_number: string; passport_number: string; passport_expiry: string; updated_at: string; can_edit: boolean }[];
+      };
+      end_delegation: {
+        Args: {
+          p_delegation: string;
+        };
+        Returns: undefined;
       };
       erase_candidate: {
         Args: {
@@ -3570,6 +3644,12 @@ export type Database = {
         };
         Returns: number;
       };
+      member_directory: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { user_id: string; name: string }[];
+      };
       move_application: {
         Args: {
           p_application: string;
@@ -3602,7 +3682,7 @@ export type Database = {
         Args: {
           p_org: string;
         };
-        Returns: { id: string; subject_type: string; subject_id: string; summary: string; link: string; step_label: string; requested_by_name: string; created_at: string }[];
+        Returns: { id: string; subject_type: string; subject_id: string; summary: string; link: string; step_label: string; requested_by_name: string; created_at: string; via: string; on_behalf_of_name: string; escalated: boolean }[];
       };
       my_permissions: {
         Args: {
@@ -3954,6 +4034,10 @@ export type Database = {
           p_reason?: string;
         };
         Returns: undefined;
+      };
+      worker_approval_escalations: {
+        Args: never;
+        Returns: Json;
       };
       worker_asset_returns: {
         Args: never;

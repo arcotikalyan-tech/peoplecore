@@ -30,6 +30,11 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       if (error) throw new Error(error.message);
       log('assets.returns', data as Record<string, unknown>);
     },
+    'approvals.escalate': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_approval_escalations');
+      if (error) throw new Error(error.message);
+      log('approvals.escalate', data as Record<string, unknown>);
+    },
     // Every hire gets the organization's default onboarding plan (once).
     'event:employee.hired': async (job, log) => {
       const employee = job.payload.subject_id;

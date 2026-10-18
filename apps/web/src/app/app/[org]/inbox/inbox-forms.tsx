@@ -14,6 +14,9 @@ export interface ApprovalItem {
   href: string | null;
   stepLabel: string;
   meta: string;
+  /** "For <manager>" when deciding as their delegate. */
+  onBehalfOf?: string | null;
+  escalated?: boolean;
 }
 
 /**
@@ -37,7 +40,11 @@ export function ApprovalsPanel({ action, items }: { action: Action; items: Appro
             <li key={a.id} className="space-y-2 px-5 py-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-medium">{a.href ? <Link className="hover:underline" href={a.href}>{a.summary}</Link> : a.summary}</p>
-                <Badge>{a.stepLabel}</Badge>
+                <span className="flex flex-wrap gap-1">
+                  {a.onBehalfOf && <Badge tone="primary">For {a.onBehalfOf}</Badge>}
+                  {a.escalated && <Badge tone="warning">Overdue</Badge>}
+                  <Badge>{a.stepLabel}</Badge>
+                </span>
               </div>
               <p className="text-xs text-muted">{a.meta}</p>
               <form action={formAction} className="space-y-2" aria-label={`Decide: ${a.summary}`}>
