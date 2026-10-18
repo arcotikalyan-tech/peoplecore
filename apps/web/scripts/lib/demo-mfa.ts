@@ -1,5 +1,7 @@
 import { existsSync } from 'node:fs';
 import { chmod, readFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import { totp } from './totp.ts';
 
@@ -9,7 +11,8 @@ import { totp } from './totp.ts';
  * can produce codes. Real users enroll their own authenticator app in the product.
  */
 
-export const MFA_FILE = new URL('../../.demo-mfa.json', import.meta.url);
+// DEMO_MFA_FILE points a run at another environment's secrets (a local stack) without touching the live ones.
+export const MFA_FILE = process.env.DEMO_MFA_FILE ? pathToFileURL(resolve(process.env.DEMO_MFA_FILE)) : new URL('../../.demo-mfa.json', import.meta.url);
 
 export type MfaSecrets = Record<string, { factorId: string; secret: string }>;
 

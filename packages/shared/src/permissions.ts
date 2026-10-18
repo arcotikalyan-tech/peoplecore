@@ -67,6 +67,7 @@ export const PERMISSIONS = {
   'learning.manage': { module: 'learning', description: 'Manage the course catalog and assign training to anyone' },
   'separation.manage': { module: 'offboarding', description: 'Handle resignations and exits, clearance and settlements', sensitive: true },
   'ai.use': { module: 'ai', description: 'Use AI assistants' },
+  'ai.manage': { module: 'ai', description: 'Turn AI assistants on or off and see AI usage' },
 } as const satisfies Record<string, PermissionDef>;
 
 export type PermissionKey = keyof typeof PERMISSIONS;
@@ -105,7 +106,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
     grants: {
       'employee.personal.update': 'org', 'employee.identity.update': 'org', 'employee.bank.update': 'org',
       'employee.document.read': 'org', 'employee.document.upload': 'org', 'employee.document.delete': 'org',
-      'org.read': 'org', 'org.manage': 'org', 'member.manage': 'org', 'role.manage': 'org', 'audit.read': 'org',
+      'org.read': 'org', 'org.manage': 'org', 'member.manage': 'org', 'role.manage': 'org', 'audit.read': 'org', 'ai.manage': 'org',
       'employee.read': 'org', 'employee.create': 'org', 'employee.update': 'org', 'employee.export': 'org',
       'employee.personal.read': 'org', 'employee.identity.read': 'org', 'employee.bank.read': 'org',
       'compensation.read': 'org', 'payroll.approve': 'org',

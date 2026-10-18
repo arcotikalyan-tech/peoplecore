@@ -16,6 +16,8 @@ export default [
     },
   },
   { files: ['src/lib/env.ts'], rules: { 'no-restricted-properties': 'off' } },
+  // The AI provider key is read only in the AI module, server side.
+  { files: ['src/server/ai.ts'], rules: { 'no-restricted-properties': 'off' } },
   // Command-line scripts report their results on stdout.
   { files: ['scripts/**/*.ts'], rules: { 'no-console': 'off' } },
 ];

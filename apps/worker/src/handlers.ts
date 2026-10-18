@@ -64,6 +64,11 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       }
       log('retention.daily', { actions: result.actions, files: result.storagePaths.length });
     },
+    'ai.retention': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_ai_retention');
+      if (error) throw new Error(error.message);
+      log('ai.retention', data as Record<string, unknown>);
+    },
     'workflows.resume': async (_job, log) => {
       const { data, error } = await db.rpc('worker_resume_workflows');
       if (error) throw new Error(error.message);

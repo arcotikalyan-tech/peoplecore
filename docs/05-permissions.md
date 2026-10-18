@@ -44,7 +44,8 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | performance.manage † | O | O | | | | | | |
 | grievance.read † | O | O⁴ | | | | | S | |
 | grievance.manage † ⁴ | O | O | | | | | | |
-| ai.use | O | O | O | O | O | O | O | |
+| ai.use ¹⁰ | O | O | O | O | O | O | O | |
+| ai.manage ¹⁰ | O | | | | | | | |
 | task.manage | O | O | | | | | | |
 | onboarding.manage | O | O | | | | | | |
 | policy.manage | O | O | | | | | | |
@@ -65,6 +66,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 ⁷ Managers and department heads assign training to people in their reporting line, see their progress and record completions for them without `learning.manage`. Employees enrol themselves in courses open for self-enrolment and see only their own learning.
 ⁸ Workflows run as the system, but they only do what their steps say (notify, create a task, assign a course, ask for an approval, wait). Approval steps go to the employee's manager (or, without one, to `workflow.manage` holders other than the workflow's author), through the normal approvals engine.
 ⁹ Employees resign themselves; their manager approves first, then HR. Managers see separations in their reporting line and clear the handover item; asset managers see and settle asset and access items; payroll or expense managers the no-dues item. Why someone left and the exit interview are readable only by the employee and HR (`separation_details`; not in the table privileges).
+¹⁰ AI (migration 20261018003000). `ai.use` lets a person use the assistants once the owner has turned them on (`ai.manage`, owner only: on/off, monthly token budget, hourly limit per person, usage). Every run passes a gate in the database (`ai_begin_run`): ai.use, the agent's own module permission (resume reading needs recruitment.manage, for example), AI turned on, the hourly limit and the monthly budget. Assistants read data as the person asking (RLS). Runs are visible to their own user and to ai.manage holders, without the prompt or output (no column privilege; kept 30 days for troubleshooting, service role only). Suggestions are visible only to the person who asked. No agent or tool can be declared above tier 2, so no assistant can approve, reject, change pay or end employment.
 
 Platform super-admins are **not** org members by default (tested). They manage tenants through `/platform`. Time-boxed support access will use an audited `member_roles.valid_until` grant; the mechanism exists and is tested, the support-access workflow is Phase 1b.
 

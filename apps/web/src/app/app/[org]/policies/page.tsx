@@ -28,7 +28,7 @@ export default async function PoliciesPage({ params }: { params: Promise<{ org: 
             const status = statuses[i];
             const acked = status?.filter((s) => s.acknowledged_at).length ?? 0;
             return (
-              <Card key={p.id}>
+              <div key={p.id} id={`policy-${p.id}`} className="scroll-mt-6"><Card>
                 <CardHeader title={p.title} description={`Version ${p.version} · ${formatDate(p.published_at)}`}
                   actions={p.acknowledgedAt ? <Badge tone="success">Acknowledged {formatDate(p.acknowledgedAt)}</Badge> : undefined} />
                 <div className="whitespace-pre-line px-5 py-4 text-sm leading-6">{p.body}</div>
@@ -51,7 +51,7 @@ export default async function PoliciesPage({ params }: { params: Promise<{ org: 
                     </ul>
                   </details>
                 )}
-              </Card>
+              </Card></div>
             );
           })}
         </div>

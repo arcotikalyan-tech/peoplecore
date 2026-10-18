@@ -51,9 +51,14 @@ Table `app.jobs` with an `idempotency_key` unique constraint, `run_at`, `attempt
 
 Versioned workflow definitions (trigger → conditions → steps), persisted executions and step history. Approval steps create `approval_requests` rows, so humans act through the same permission model. Details are in [02-module-map.md](02-module-map.md).
 
-## ADR-009 · AI behind a provider-independent adapter — Proposed (Phase 7)
+## ADR-009 · AI behind a provider-independent adapter — Accepted (built: packages/ai, migration 20261018003000)
 
-`packages/ai` exposes `complete`, `extract<T>(zodSchema)` and `embed`. Provider adapters plug in behind that interface. Every call goes through a policy layer for permission-aware retrieval, redaction, tool allowlists and logging. See [06-ai-architecture.md](06-ai-architecture.md).
+`packages/ai` exposes `runAgent(agent, input, deps)` on top of a provider interface (`complete`), and structured output (`extract<T>` in the original proposal) is every agent's `respond` tool, validated with zod and repaired once. Provider adapters plug in behind that interface: Anthropic (plain fetch, retries, fallback model), `mock` (deterministic answers for development and browser tests, refused in production) and `recorded` (evals). Every call goes through the same pipeline: a database gate, context loaded as the actor, redaction, a prompt versioned in code, the provider, validation, allowlisted tools, and a persisted run. See [06-ai-architecture.md](06-ai-architecture.md).
+
+Decisions made while building it:
+- **Prompts are versioned in code**, not in an `ai_prompts` table. They are reviewed like code and covered by the eval suites, and every run stores `prompt_version`.
+- **Retrieval uses Postgres full-text search for now** (`search_knowledge`, security invoker), not embeddings. It needs no second provider, and it runs as the caller, so RLS is the access control. `embed` and `kb_chunks` wait until search quality calls for them.
+- **Budgets are in tokens**, not money, so no prices are hard-coded.
 
 ## ADR-010 · Payroll calculations are deterministic and rule-versioned — Accepted (built: packages/payroll, migration 20261018001600)
 

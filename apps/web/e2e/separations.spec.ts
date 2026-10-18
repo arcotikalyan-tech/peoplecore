@@ -102,7 +102,9 @@ test('the manager, finance and the employee clear their items; only HR reads the
   await open(hr, separationUrl);
   await expect(hr.getByText(`Clearer promotion criteria ${run}`)).toBeVisible();
   await expect(hr.getByText(`Moving to a product role ${run}`, { exact: false })).toBeVisible();
-  await expect(hr.getByText('3 of 3 done')).toBeVisible();
+  // Handover, no dues and the exit interview are done; any asset or system access Dev holds is still open.
+  const total = (await admin.from('clearance_items').select('id').eq('separation_id', separationUrl.split('/').pop()!)).data!.length;
+  await expect(hr.getByText(`3 of ${total} done`)).toBeVisible();
 });
 
 test('payroll computes the settlement from Dev’s salary; a second person approves it', async ({ browser }) => {

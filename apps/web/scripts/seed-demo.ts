@@ -103,7 +103,8 @@ async function main() {
   if (existing) {
     if (!existing.is_demo) fail('A tenant with slug "demo" exists and is NOT marked as demo. Refusing to touch it.');
     if (!args.has('--reset')) fail('A demo tenant already exists. Re-run with --reset to delete and recreate it.');
-    exec(await db.from('organizations').delete().eq('id', existing.id).eq('is_demo', true), 'delete existing demo tenant');
+    const failed = await deleteDemoTenant(db, existing.id);
+    if (failed) fail(`delete existing demo tenant: ${failed}`);
     console.log('✓ deleted the previous demo tenant');
   }
 
@@ -284,7 +285,7 @@ async function main() {
       purchased_on: isoDaysAgo(60), purchase_cost: 114900, warranty_until: isoDaysAgo(-305) },
     { organization_id: orgId, tag: 'AST-0003', name: 'Dell 27" monitor', category: 'Monitor', serial_number: 'DEMO-MN-0003', location_id: locationId('PUN') },
     { organization_id: orgId, tag: 'AST-0004', name: 'Pixel 8', category: 'Phone', serial_number: 'DEMO-PH-0004', status: 'in_repair', notes: 'Screen replacement under warranty.' },
-  ]).select('id, tag'), 'add assets');
+  ], { defaultToNull: false }).select('id, tag'), 'add assets'); // rows without a status get the column default, not null
   const laptop = assets.find((a) => a.tag === 'AST-0001')!.id;
   exec(await db.from('asset_assignments').insert({
     organization_id: orgId, asset_id: laptop, employee_id: dev, condition_out: 'New, with charger', acknowledged_at: new Date().toISOString(),
@@ -317,6 +318,21 @@ async function main() {
   console.log('  Password: the DEMO_USER_PASSWORD you supplied.');
 }
 
+
+/**
+ * Deletes a demo tenant (and only a demo tenant). Employment history goes first: its keys to locations and
+ * departments are checked during the organization's cascade and would otherwise refuse it.
+ */
+async function deleteDemoTenant(db: ReturnType<typeof createClient<Database>>, id: string): Promise<string | null> {
+  const { data: org, error: lookup } = await db.from('organizations').select('id').eq('id', id).eq('is_demo', true).maybeSingle();
+  if (lookup) return lookup.message;
+  if (!org) return 'not a demo tenant';
+  const history = await db.from('employment_records').delete().eq('organization_id', id);
+  if (history.error) return history.error.message;
+  const { error } = await db.from('organizations').delete().eq('id', id).eq('is_demo', true);
+  return error?.message ?? null;
+}
+
 try {
   await main();
 } catch (err) {
@@ -324,8 +340,8 @@ try {
   if (createdOrgId && url && secretKey) {
     // Roll back the partially created tenant so the next run starts clean.
     const db = createClient<Database>(url, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { error } = await db.from('organizations').delete().eq('id', createdOrgId).eq('is_demo', true);
-    console.error(error ? `✗ cleanup failed (${error.message}); re-run with --reset` : '✓ removed the partially created demo tenant');
+    const failed = await deleteDemoTenant(db, createdOrgId);
+    console.error(failed ? `✗ cleanup failed (${failed}); re-run with --reset` : '✓ removed the partially created demo tenant');
   }
   process.exit(1);
 }

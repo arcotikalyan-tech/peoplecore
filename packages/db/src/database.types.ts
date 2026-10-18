@@ -72,6 +72,141 @@ export type Database = {
         };
         Relationships: [];
       };
+      ai_runs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          agent: string;
+          status: string;
+          model: string | null;
+          prompt_version: string | null;
+          input_tokens: number;
+          output_tokens: number;
+          latency_ms: number | null;
+          redactions: Json;
+          request: Json | null;
+          response: Json | null;
+          error: string | null;
+          helpful: boolean | null;
+          feedback: string | null;
+          created_at: string;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          agent: string;
+          status?: string;
+          model?: string | null;
+          prompt_version?: string | null;
+          input_tokens?: number;
+          output_tokens?: number;
+          latency_ms?: number | null;
+          redactions?: Json;
+          request?: Json | null;
+          response?: Json | null;
+          error?: string | null;
+          helpful?: boolean | null;
+          feedback?: string | null;
+          created_at?: string;
+          finished_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          user_id?: string;
+          agent?: string;
+          status?: string;
+          model?: string | null;
+          prompt_version?: string | null;
+          input_tokens?: number;
+          output_tokens?: number;
+          latency_ms?: number | null;
+          redactions?: Json;
+          request?: Json | null;
+          response?: Json | null;
+          error?: string | null;
+          helpful?: boolean | null;
+          feedback?: string | null;
+          created_at?: string;
+          finished_at?: string | null;
+        };
+        Relationships: [];
+      };
+      ai_settings: {
+        Row: {
+          id: string;
+          organization_id: string;
+          enabled: boolean;
+          monthly_token_budget: number;
+          hourly_limit_per_user: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          enabled?: boolean;
+          monthly_token_budget?: number;
+          hourly_limit_per_user?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          enabled?: boolean;
+          monthly_token_budget?: number;
+          hourly_limit_per_user?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      ai_suggestions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          run_id: string;
+          user_id: string;
+          agent: string;
+          subject_kind: string;
+          subject_id: string | null;
+          payload: Json;
+          status: string;
+          decided_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          run_id: string;
+          user_id: string;
+          agent: string;
+          subject_kind: string;
+          subject_id?: string | null;
+          payload: Json;
+          status?: string;
+          decided_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          run_id?: string;
+          user_id?: string;
+          agent?: string;
+          subject_kind?: string;
+          subject_id?: string | null;
+          payload?: Json;
+          status?: string;
+          decided_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       announcement_acknowledgements: {
         Row: {
           organization_id: string;
@@ -3827,6 +3962,45 @@ export type Database = {
         };
         Returns: undefined;
       };
+      ai_begin_run: {
+        Args: {
+          p_org: string;
+          p_agent: string;
+          p_permission?: string;
+        };
+        Returns: string;
+      };
+      ai_finish_run: {
+        Args: {
+          p_run: string;
+          p_status: string;
+          p_model: string;
+          p_prompt_version: string;
+          p_input_tokens: number;
+          p_output_tokens: number;
+          p_latency_ms: number;
+          p_redactions: Json;
+          p_request: Json;
+          p_response: Json;
+          p_error: string;
+        };
+        Returns: undefined;
+      };
+      ai_save_suggestion: {
+        Args: {
+          p_run: string;
+          p_subject_kind: string;
+          p_subject_id: string;
+          p_payload: Json;
+        };
+        Returns: string;
+      };
+      ai_usage: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { agent: string; runs: number; failed: number; tokens: number; helpful: number; not_helpful: number; users: number }[];
+      };
       apply_leave: {
         Args: {
           p_employee: string;
@@ -4001,6 +4175,14 @@ export type Database = {
           p_description?: string;
         };
         Returns: string;
+      };
+      decide_ai_suggestion: {
+        Args: {
+          p_suggestion: string;
+          p_status: string;
+          p_subject_id?: string;
+        };
+        Returns: undefined;
       };
       decide_approval: {
         Args: {
@@ -4315,6 +4497,14 @@ export type Database = {
         };
         Returns: string;
       };
+      rate_ai_run: {
+        Args: {
+          p_run: string;
+          p_helpful: boolean;
+          p_feedback?: string;
+        };
+        Returns: undefined;
+      };
       record_punch: {
         Args: {
           p_client_id: string;
@@ -4391,6 +4581,15 @@ export type Database = {
         };
         Returns: undefined;
       };
+      save_ai_settings: {
+        Args: {
+          p_org: string;
+          p_enabled: boolean;
+          p_monthly_token_budget: number;
+          p_hourly_limit: number;
+        };
+        Returns: undefined;
+      };
       save_exit_interview: {
         Args: {
           p_separation: string;
@@ -4440,6 +4639,14 @@ export type Database = {
           p_query: string;
         };
         Returns: { id: string; title: string; category: string; snippet: string }[];
+      };
+      search_knowledge: {
+        Args: {
+          p_org: string;
+          p_query: string;
+          p_limit?: number;
+        };
+        Returns: { source_kind: string; source_id: string; title: string; body: string; updated_at: string; rank: number }[];
       };
       separation_details: {
         Args: {
@@ -4682,6 +4889,10 @@ export type Database = {
           p_separation: string;
         };
         Returns: undefined;
+      };
+      worker_ai_retention: {
+        Args: never;
+        Returns: Json;
       };
       worker_approval_escalations: {
         Args: never;

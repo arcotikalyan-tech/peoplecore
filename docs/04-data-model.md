@@ -64,5 +64,5 @@ Legend: ✅ built in the current slice · 🔜 next phase · 📋 planned.
 ## Offboarding (Phase 6)
 `separations` (type: resignation/termination/retirement/contract_expiry/abandonment/death; dates; notice computation inputs/outputs; waiver/buyout), `clearance_items`, `exit_interviews`, `issued_letters`, `alumni_records` (rehire_eligible, reason), `retention_schedules`.
 
-## AI (Phase 7)
-`ai_prompts` (versioned), `ai_runs` (agent, model, prompt_version, tokens, latency, cost, status, redaction summary, actor), `ai_suggestions` (subject, payload, status: proposed/accepted/rejected, decided_by), `ai_feedback`, `kb_chunks` (pgvector embeddings with source document + ACL tag).
+## AI (Phase 7, migration 20261018003000)
+`ai_settings` (per org: enabled, monthly token budget, hourly limit per person), `ai_runs` (agent, model, prompt_version, tokens, latency, status, redaction summary, user; the redacted prompt and output for 30 days, service role only; helpful/feedback), `ai_suggestions` (subject, payload, status: proposed/accepted/edited/rejected; the asker only; deleted after 30 days). Prompts are versioned in code (ADR-009). Retrieval is full-text search over `kb_articles` and current `policy_documents` (`search_knowledge`); `kb_chunks` with embeddings is deferred.

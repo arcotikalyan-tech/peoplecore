@@ -5,12 +5,13 @@ import { NavLink } from '@/components/nav-link';
 import { getOrgContext, isPlatformAdmin } from '@/server/context';
 import { FlashMessage } from '@/components/flash-message';
 import { readFlash } from '@/server/flash';
+import { aiAvailable } from '@/server/ai';
 import { unreadNotificationCount } from '@/server/inbox';
 
 export default async function OrgLayout({ children, params }: { children: ReactNode; params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await getOrgContext(slug);
-  const [platformAdmin, unread, flashed] = await Promise.all([isPlatformAdmin(), unreadNotificationCount(ctx.org.id), readFlash()]);
+  const [platformAdmin, unread, flashed, ai] = await Promise.all([isPlatformAdmin(), unreadNotificationCount(ctx.org.id), readFlash(), aiAvailable(ctx)]);
   const base = `/app/${slug}`;
 
   // Navigation is filtered for usability only; every page re-checks, and RLS enforces.
@@ -31,12 +32,14 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     { href: `${base}/engagement`, label: 'Engagement' },
     { href: `${base}/helpdesk`, label: 'Helpdesk' },
     { href: `${base}/knowledge`, label: 'Knowledge base' },
+    ...(ai ? [{ href: `${base}/assistant`, label: 'Ask HR' }] : []),
     { href: `${base}/assets`, label: 'Assets' },
     { href: `${base}/grievances`, label: 'Grievances' },
     { href: `${base}/separations`, label: 'Separations' },
     ...(ctx.can('org.read') ? [{ href: `${base}/structure`, label: 'Organization' }] : []),
     ...(ctx.can('member.manage', 'org') ? [{ href: `${base}/members`, label: 'Members' }] : []),
     ...(ctx.can('workflow.manage', 'org') ? [{ href: `${base}/workflows`, label: 'Workflows' }] : []),
+    ...(ctx.can('ai.manage', 'org') ? [{ href: `${base}/ai`, label: 'AI assistants' }] : []),
     ...(ctx.can('audit.read') ? [{ href: `${base}/audit`, label: 'Audit log' }] : []),
   ];
 
@@ -89,7 +92,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
         )}
 
         <main id="main" className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          {flashed && <FlashMessage key={flashed} message={flashed} />}
+          <FlashMessage message={flashed} />
           {children}
         </main>
       </div>

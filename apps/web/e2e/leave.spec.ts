@@ -49,6 +49,10 @@ test.beforeAll(async () => {
   const types = (await admin.from('leave_types').select('id, code').eq('organization_id', orgId)).data!;
   clId = types.find((t) => t.code === 'CL')!.id;
   slId = types.find((t) => t.code === 'SL')!.id;
+  // A day of sick leave for the rejection journey, whatever the tenant's accrual history (a fresh CI tenant has none).
+  await admin.from('leave_ledger').insert({
+    organization_id: orgId, employee_id: devId, leave_type_id: slId, entry_date: todayIst, kind: 'adjust', days: 1, note: `E2E sick leave ${run}`,
+  });
 });
 
 test.afterAll(async () => {

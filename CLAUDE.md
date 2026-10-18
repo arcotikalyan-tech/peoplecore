@@ -15,6 +15,7 @@
 
 ## Security rules
 - The Supabase secret key (`SUPABASE_SECRET_KEY`, service-role privileges) is only used in `apps/web/src/server/admin.ts`, the seed script and the worker, after an explicit authorization check. Never in client code or `NEXT_PUBLIC_*`.
+- The AI provider key (`ANTHROPIC_API_KEY`) is read only in `apps/web/src/server/ai.ts` (and `packages/ai/scripts`), server side. AI runs read data as the signed-in user, never with the secret key.
 - Never trust client-supplied organization IDs for authorization; RLS decides.
 - No real personal data in fixtures or seeds; use `example.test` and mark demo tenants `is_demo`.
 - AI output is a suggestion until a human confirms it through the normal module code path.
