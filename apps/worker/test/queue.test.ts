@@ -49,8 +49,17 @@ describe('dueJobs', () => {
     const a = dueJobs(new Date('2026-10-18T05:01:00Z'));
     const b = dueJobs(new Date('2026-10-18T05:59:59Z'));
     const c = dueJobs(new Date('2026-10-18T06:00:00Z'));
-    expect(a.map((j) => j.key)).toEqual(['core_hr.daily:2026-10-18T05', 'leave.accrual:2026-10-18T05', 'attendance.daily:2026-10-18']);
-    expect(b.map((j) => j.key)).toEqual(a.map((j) => j.key));
-    expect(c.map((j) => j.key)).toEqual(['core_hr.daily:2026-10-18T06', 'leave.accrual:2026-10-18T06', 'attendance.daily:2026-10-18']); // same day key
+    const hourly = (jobs: ReturnType<typeof dueJobs>) => jobs.filter((j) => j.kind !== 'helpdesk.sla').map((j) => j.key);
+    expect(hourly(a)).toEqual(['core_hr.daily:2026-10-18T05', 'leave.accrual:2026-10-18T05', 'attendance.daily:2026-10-18']);
+    expect(hourly(b)).toEqual(hourly(a));
+    expect(hourly(c)).toEqual(['core_hr.daily:2026-10-18T06', 'leave.accrual:2026-10-18T06', 'attendance.daily:2026-10-18']); // same day key
+  });
+
+  it('checks helpdesk SLAs every quarter hour', () => {
+    const sla = (iso: string) => dueJobs(new Date(iso)).find((j) => j.kind === 'helpdesk.sla')!.key;
+    expect(sla('2026-10-18T05:01:00Z')).toBe('helpdesk.sla:2026-10-18T05:00');
+    expect(sla('2026-10-18T05:14:59Z')).toBe('helpdesk.sla:2026-10-18T05:00');
+    expect(sla('2026-10-18T05:15:00Z')).toBe('helpdesk.sla:2026-10-18T05:15');
+    expect(sla('2026-10-18T05:59:00Z')).toBe('helpdesk.sla:2026-10-18T05:45');
   });
 });

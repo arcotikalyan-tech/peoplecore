@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, addMonths, ageOn, compareIsoDates, isIsoDate, todayIn } from '../src/dates.ts';
+import { addDays, addMonths, ageOn, compareIsoDates, isIsoDate, startOfDayIn, todayIn } from '../src/dates.ts';
 
 describe('isIsoDate', () => {
   it.each(['2026-01-01', '2024-02-29', '2026-12-31'])('accepts %s', (d) => expect(isIsoDate(d)).toBe(true));
@@ -48,5 +48,17 @@ describe('todayIn', () => {
     const instant = new Date('2026-12-31T20:00:00Z');
     expect(todayIn('Asia/Kolkata', instant)).toBe('2027-01-01');
     expect(todayIn('UTC', instant)).toBe('2026-12-31');
+  });
+});
+
+describe('startOfDayIn', () => {
+  it('is local midnight in the organization time zone', () => {
+    expect(startOfDayIn('2026-12-01', 'Asia/Kolkata').toISOString()).toBe('2026-11-30T18:30:00.000Z');
+    expect(startOfDayIn('2026-12-01', 'UTC').toISOString()).toBe('2026-12-01T00:00:00.000Z');
+  });
+
+  it('handles daylight-saving changes', () => {
+    expect(startOfDayIn('2026-03-08', 'America/New_York').toISOString()).toBe('2026-03-08T05:00:00.000Z'); // EST, DST starts 02:00
+    expect(startOfDayIn('2026-03-09', 'America/New_York').toISOString()).toBe('2026-03-09T04:00:00.000Z'); // EDT
   });
 });

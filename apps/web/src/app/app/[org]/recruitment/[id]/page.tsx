@@ -15,6 +15,7 @@ import {
 import { Badge, Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surface';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
+import { colleagueNames, colleagueOptions } from '@/server/engagement';
 import { employeeNames, managerOptions } from '@/server/employees';
 import { getInterviews, getOffers, getPipeline, getRequisition } from '@/server/recruitment';
 import { getStructure, structureOptions } from '@/server/structure';
@@ -41,12 +42,17 @@ export default async function RequisitionPage({ params }: { params: Promise<{ or
     getStructure(ctx.org.id),
     getOffers(ctx.org.id, appIds),
     getInterviews(ctx.org.id, appIds),
-    canManage && ctx.can('employee.read', 'org') ? managerOptions(ctx.org.id) : Promise.resolve([]),
+    // Without directory access (recruiters), pick from the minimal colleague directory.
+    !canManage ? Promise.resolve([]) : ctx.can('employee.read', 'org') ? managerOptions(ctx.org.id) : colleagueOptions(ctx.org.id),
   ]);
-  const names = await employeeNames(ctx.org.id, [
-    ...(req.hiring_manager_employee_id ? [req.hiring_manager_employee_id] : []),
-    ...interviews.flatMap((i) => i.panel.map((p) => p.employeeId)),
+  const [listed, directory] = await Promise.all([
+    employeeNames(ctx.org.id, [
+      ...(req.hiring_manager_employee_id ? [req.hiring_manager_employee_id] : []),
+      ...interviews.flatMap((i) => i.panel.map((p) => p.employeeId)),
+    ]),
+    colleagueNames(ctx.org.id),
   ]);
+  const names = new Map([...directory, ...listed]);
   const today = todayIn(ctx.org.timezone);
   const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
   const when = (iso: string) => new Intl.DateTimeFormat('en-IN', { timeZone: ctx.org.timezone, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));

@@ -261,6 +261,21 @@ async function main() {
     exec(await db.from('platform_admins').upsert({ user_id: platform.id }), 'grant platform admin');
   }
 
+  // ─── Engagement and self-service content ────────────────────────────────────
+
+  exec(await db.from('announcements').insert({
+    organization_id: orgId, title: 'Welcome to PeopleCore',
+    body: 'Leave, attendance, payslips, expenses and reviews now live in one place. Questions? Raise a ticket in the Helpdesk.',
+  }), 'add the welcome announcement');
+  exec(await db.from('kb_articles').insert([
+    { organization_id: orgId, category: 'Payroll', published: true, title: 'When do payslips appear?',
+      body: 'Payslips appear under Payslips once that month’s payroll run is locked, usually on the last working day. Reimbursements approved before the run are paid with it.' },
+    { organization_id: orgId, category: 'Leave', published: true, title: 'How to apply for leave',
+      body: 'Open Leave, choose the type and dates, and submit. Your manager approves it in their Inbox. Holidays and weekly offs are not counted.' },
+    { organization_id: orgId, category: 'Attendance', published: true, title: 'Fixing a missed punch',
+      body: 'If you forgot to check in or out, open Attendance and request a regularization for that day. Your manager approves it.' },
+  ]), 'add knowledge-base articles');
+
   createdOrgId = null; // success: keep the tenant
 
   // Owner, HR, payroll and platform roles require two-step sign-in; enroll the demo accounts' authenticators.

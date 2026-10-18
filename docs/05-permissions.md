@@ -47,12 +47,15 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | task.manage | O | O | | | | | | |
 | onboarding.manage | O | O | | | | | | |
 | policy.manage | O | O | | | | | | |
+| announcement.manage | O | O | | | | | | |
+| helpdesk.manage ⁵ | O | O | | | | | | |
 
 † Sensitive: every read is audited where the module supports it, and access is excluded from the AI retrieval default.
-¹ Not granted yet. In Phase 2b recruiters get a minimal directory projection (name, department, designation) through a restricted view, never the full row. A test asserts recruiters currently see no employee rows.
+¹ Not granted. Every member, recruiters included, can read the minimal colleague directory (`colleague_directory`, migration 20261018002200): name, department and designation of current employees, never the employee row. A test asserts recruiters still see no employee rows.
 ² Not granted. Phase 4 adds band-level (not individual) compensation visibility for department heads.
 ³ **Separation of duties (Phase 4):** the payroll-run table will reject approval by the user who prepared the run (constraint `approved_by <> prepared_by`).
 ⁴ Grievances also have a per-case access list. `grievance.read` alone is necessary but not sufficient.
+⁵ A helpdesk category can route to one employee (for example the IT lead). They see, answer and change the status of tickets assigned to them without `helpdesk.manage`; they can't reassign or reprioritise. Requesters never see internal notes.
 
 Platform super-admins are **not** org members by default (tested). They manage tenants through `/platform`. Time-boxed support access will use an audited `member_roles.valid_until` grant; the mechanism exists and is tested, the support-access workflow is Phase 1b.
 

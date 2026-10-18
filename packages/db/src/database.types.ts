@@ -6,6 +6,66 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      announcement_acknowledgements: {
+        Row: {
+          organization_id: string;
+          announcement_id: string;
+          employee_id: string;
+          acknowledged_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          announcement_id: string;
+          employee_id: string;
+          acknowledged_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          announcement_id?: string;
+          employee_id?: string;
+          acknowledged_at?: string;
+        };
+        Relationships: [];
+      };
+      announcements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          body: string;
+          department_id: string | null;
+          location_id: string | null;
+          requires_ack: boolean;
+          published_at: string;
+          expires_at: string | null;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          body: string;
+          department_id?: string | null;
+          location_id?: string | null;
+          requires_ack?: boolean;
+          published_at?: string;
+          expires_at?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          body?: string;
+          department_id?: string | null;
+          location_id?: string | null;
+          requires_ack?: boolean;
+          published_at?: string;
+          expires_at?: string | null;
+          created_by?: string | null;
+        };
+        Relationships: [];
+      };
       anomaly_flags: {
         Row: {
           id: string;
@@ -1287,6 +1347,69 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           is_published?: boolean;
+        };
+        Relationships: [];
+      };
+      kb_articles: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          body: string;
+          category: string | null;
+          published: boolean;
+          updated_by: string | null;
+          updated_at: string;
+          search: unknown | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          body: string;
+          category?: string | null;
+          published?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+          search?: never;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          body?: string;
+          category?: string | null;
+          published?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+          search?: never;
+        };
+        Relationships: [];
+      };
+      kudos: {
+        Row: {
+          id: string;
+          organization_id: string;
+          from_employee_id: string;
+          to_employee_id: string;
+          message: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          from_employee_id: string;
+          to_employee_id: string;
+          message: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          from_employee_id?: string;
+          to_employee_id?: string;
+          message?: string;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -2619,12 +2742,126 @@ export type Database = {
         };
         Relationships: [];
       };
+      ticket_categories: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          default_assignee_id: string | null;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          default_assignee_id?: string | null;
+          is_active?: boolean;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          default_assignee_id?: string | null;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
+      ticket_comments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          ticket_id: string;
+          author_user_id: string;
+          body: string;
+          internal: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          ticket_id: string;
+          author_user_id?: string;
+          body: string;
+          internal?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          ticket_id?: string;
+          author_user_id?: string;
+          body?: string;
+          internal?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      tickets: {
+        Row: {
+          id: string;
+          organization_id: string;
+          number: number;
+          requester_id: string;
+          category_id: string;
+          subject: string;
+          description: string;
+          priority: Database['public']['Enums']['ticket_priority'];
+          status: Database['public']['Enums']['ticket_status'];
+          assignee_id: string | null;
+          sla_due_at: string;
+          breached_at: string | null;
+          resolved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          number: number;
+          requester_id: string;
+          category_id: string;
+          subject: string;
+          description: string;
+          priority?: Database['public']['Enums']['ticket_priority'];
+          status?: Database['public']['Enums']['ticket_status'];
+          assignee_id?: string | null;
+          sla_due_at: string;
+          breached_at?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          number?: number;
+          requester_id?: string;
+          category_id?: string;
+          subject?: string;
+          description?: string;
+          priority?: Database['public']['Enums']['ticket_priority'];
+          status?: Database['public']['Enums']['ticket_status'];
+          assignee_id?: string | null;
+          sla_due_at?: string;
+          breached_at?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
       accept_invitations: {
         Args: never;
         Returns: number;
+      };
+      acknowledge_announcement: {
+        Args: {
+          p_announcement: string;
+        };
+        Returns: undefined;
       };
       acknowledge_policy: {
         Args: {
@@ -2774,6 +3011,22 @@ export type Database = {
         };
         Returns: string;
       };
+      colleague_directory: {
+        Args: {
+          p_org: string;
+          p_query?: string;
+          p_limit?: number;
+        };
+        Returns: { id: string; name: string; department: string; designation: string }[];
+      };
+      comment_ticket: {
+        Args: {
+          p_ticket: string;
+          p_body: string;
+          p_internal?: boolean;
+        };
+        Returns: undefined;
+      };
       create_employee: {
         Args: {
           p_organization_id: string;
@@ -2882,6 +3135,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      give_kudos: {
+        Args: {
+          p_org: string;
+          p_to: string;
+          p_message: string;
+        };
+        Returns: string;
+      };
       grantable_roles: {
         Args: {
           p_org: string;
@@ -2912,6 +3173,13 @@ export type Database = {
           p_dry_run?: boolean;
         };
         Returns: Json;
+      };
+      kudos_feed: {
+        Args: {
+          p_org: string;
+          p_limit?: number;
+        };
+        Returns: { id: string; from_name: string; to_name: string; to_employee_id: string; message: string; created_at: string }[];
       };
       leave_balances: {
         Args: {
@@ -3015,6 +3283,16 @@ export type Database = {
         };
         Returns: undefined;
       };
+      raise_ticket: {
+        Args: {
+          p_org: string;
+          p_category: string;
+          p_subject: string;
+          p_description: string;
+          p_priority?: Database['public']['Enums']['ticket_priority'];
+        };
+        Returns: string;
+      };
       record_punch: {
         Args: {
           p_client_id: string;
@@ -3098,6 +3376,13 @@ export type Database = {
           p_panelists: string[];
         };
         Returns: string;
+      };
+      search_kb: {
+        Args: {
+          p_org: string;
+          p_query: string;
+        };
+        Returns: { id: string; title: string; category: string; snippet: string }[];
       };
       set_compensation: {
         Args: {
@@ -3237,6 +3522,21 @@ export type Database = {
         };
         Returns: undefined;
       };
+      ticket_thread: {
+        Args: {
+          p_ticket: string;
+        };
+        Returns: { id: string; author_name: string; mine: boolean; body: string; internal: boolean; created_at: string }[];
+      };
+      update_ticket: {
+        Args: {
+          p_ticket: string;
+          p_status: Database['public']['Enums']['ticket_status'];
+          p_assignee?: string;
+          p_priority?: Database['public']['Enums']['ticket_priority'];
+        };
+        Returns: undefined;
+      };
       worker_attendance_daily: {
         Args: never;
         Returns: Json;
@@ -3277,6 +3577,10 @@ export type Database = {
           p_error: string;
         };
         Returns: string;
+      };
+      worker_helpdesk_sla: {
+        Args: never;
+        Returns: Json;
       };
       worker_leave_accrual: {
         Args: never;
@@ -3323,6 +3627,8 @@ export type Database = {
       requisition_status: 'open' | 'on_hold' | 'closed';
       review_status: 'not_started' | 'self_submitted' | 'manager_submitted' | 'calibrated';
       task_status: 'open' | 'done' | 'cancelled';
+      ticket_priority: 'low' | 'normal' | 'high' | 'urgent';
+      ticket_status: 'open' | 'in_progress' | 'waiting' | 'resolved' | 'closed';
     };
     CompositeTypes: { [_ in never]: never };
   };

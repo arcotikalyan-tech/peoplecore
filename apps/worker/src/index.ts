@@ -31,7 +31,8 @@ log('worker.started', { pollMs });
 while (!stopping) {
   try {
     const now = new Date();
-    const period = now.toISOString().slice(0, 13);
+    // Once per quarter hour; hourly and daily jobs are deduplicated by their idempotency keys.
+    const period = `${now.toISOString().slice(0, 13)}:${Math.floor(now.getUTCMinutes() / 15)}`;
     if (period !== lastScheduled) {
       for (const job of dueJobs(now)) await queue.enqueue(null, job.kind, job.payload, job.key);
       lastScheduled = period;

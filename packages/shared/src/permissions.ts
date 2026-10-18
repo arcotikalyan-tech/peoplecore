@@ -59,6 +59,8 @@ export const PERMISSIONS = {
   'task.manage': { module: 'platform', description: 'Create and manage tasks for others' },
   'onboarding.manage': { module: 'onboarding', description: 'Manage onboarding templates and plans' },
   'policy.manage': { module: 'onboarding', description: 'Publish policies and see acknowledgements' },
+  'announcement.manage': { module: 'engagement', description: 'Publish announcements and see acknowledgements' },
+  'helpdesk.manage': { module: 'services', description: 'Handle helpdesk tickets and the knowledge base' },
   'ai.use': { module: 'ai', description: 'Use AI assistants' },
 } as const satisfies Record<string, PermissionDef>;
 
@@ -107,6 +109,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
       'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org', 'expense.manage': 'org',
+      'announcement.manage': 'org', 'helpdesk.manage': 'org',
     },
   },
   hr_admin: {
@@ -125,6 +128,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
       'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org',
+      'announcement.manage': 'org', 'helpdesk.manage': 'org',
     },
   },
   recruiter: {

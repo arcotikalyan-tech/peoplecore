@@ -5,6 +5,7 @@ import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
 import { Table, Td, Th } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
 import { requirePermission } from '@/server/context';
+import { colleagueNames, colleagueOptions } from '@/server/engagement';
 import { employeeNames, managerOptions } from '@/server/employees';
 import { listRequisitions } from '@/server/recruitment';
 import { getStructure, structureOptions } from '@/server/structure';
@@ -20,9 +21,14 @@ export default async function RecruitmentPage({ params }: { params: Promise<{ or
   const [requisitions, structure, managers] = await Promise.all([
     listRequisitions(ctx.org.id),
     getStructure(ctx.org.id),
-    canManage && ctx.can('employee.read', 'org') ? managerOptions(ctx.org.id) : Promise.resolve([]),
+    // Without directory access (recruiters), pick from the minimal colleague directory.
+    !canManage ? Promise.resolve([]) : ctx.can('employee.read', 'org') ? managerOptions(ctx.org.id) : colleagueOptions(ctx.org.id),
   ]);
-  const names = await employeeNames(ctx.org.id, requisitions.map((r) => r.hiring_manager_employee_id).filter((x): x is string => !!x));
+  const [listed, directory] = await Promise.all([
+    employeeNames(ctx.org.id, requisitions.map((r) => r.hiring_manager_employee_id).filter((x): x is string => !!x)),
+    colleagueNames(ctx.org.id),
+  ]);
+  const names = new Map([...directory, ...listed]);
   const dept = new Map(structure.departments.map((d) => [d.id, d.name]));
   const base = `/app/${slug}/recruitment`;
 

@@ -9,7 +9,7 @@ export interface ScheduledJob {
 }
 
 /**
- * Hourly. Both jobs are cheap and idempotent per employee and period inside the database, and hourly runs
+ * Mostly hourly. The jobs are cheap and idempotent per employee and period inside the database, and hourly runs
  * serve every organization's time zone (each uses its own local date).
  */
 export function dueJobs(now: Date): ScheduledJob[] {
@@ -19,5 +19,7 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'leave.accrual', key: `leave.accrual:${hour}`, payload: { hour } },
     // Daily: recomputes the last 7 days of attendance (absences appear the next morning, leave changes propagate).
     { kind: 'attendance.daily', key: `attendance.daily:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
+    // Every 15 minutes: the shortest helpdesk SLA is 4 hours, so a breach is flagged within a quarter of it.
+    { kind: 'helpdesk.sla', key: `helpdesk.sla:${hour}:${String(Math.floor(now.getUTCMinutes() / 15) * 15).padStart(2, '0')}`, payload: { hour } },
   ];
 }

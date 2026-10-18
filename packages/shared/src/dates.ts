@@ -85,3 +85,19 @@ export function todayIn(timeZone: string, now: Date = new Date()): string {
   const get = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
+
+/** The instant a calendar date begins in an IANA time zone (e.g. "visible until the end of 30 Nov in India"). */
+export function startOfDayIn(date: string, timeZone: string): Date {
+  const { year, month, day } = mustParse(date);
+  const guess = Date.UTC(year, month - 1, day);
+  const offsetAt = (instant: number) => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
+    }).formatToParts(new Date(instant));
+    const n = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+    return Date.UTC(n('year'), n('month') - 1, n('day'), n('hour'), n('minute'), n('second')) - instant;
+  };
+  // Two passes settle the offset across a daylight-saving change.
+  const first = guess - offsetAt(guess);
+  return new Date(guess - offsetAt(first));
+}
