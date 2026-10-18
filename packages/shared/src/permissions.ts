@@ -58,12 +58,14 @@ export const PERMISSIONS = {
   'grievance.read': { module: 'employee_relations', description: 'View grievance cases', sensitive: true },
   'grievance.manage': { module: 'employee_relations', description: 'Triage grievance cases and choose who investigates', sensitive: true },
   'task.manage': { module: 'platform', description: 'Create and manage tasks for others' },
+  'workflow.manage': { module: 'platform', description: 'Build and switch on automated workflows' },
   'onboarding.manage': { module: 'onboarding', description: 'Manage onboarding templates and plans' },
   'policy.manage': { module: 'onboarding', description: 'Publish policies and see acknowledgements' },
   'announcement.manage': { module: 'engagement', description: 'Publish announcements and see acknowledgements' },
   'helpdesk.manage': { module: 'services', description: 'Handle helpdesk tickets and the knowledge base' },
   'asset.manage': { module: 'assets', description: 'Issue and recover assets; record system access' },
   'learning.manage': { module: 'learning', description: 'Manage the course catalog and assign training to anyone' },
+  'separation.manage': { module: 'offboarding', description: 'Handle resignations and exits, clearance and settlements', sensitive: true },
   'ai.use': { module: 'ai', description: 'Use AI assistants' },
 } as const satisfies Record<string, PermissionDef>;
 
@@ -112,7 +114,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
       'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org', 'expense.manage': 'org',
-      'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org',
+      'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org', 'workflow.manage': 'org', 'separation.manage': 'org',
     },
   },
   hr_admin: {
@@ -131,7 +133,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
       'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org',
-      'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org',
+      'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org', 'workflow.manage': 'org', 'separation.manage': 'org',
     },
   },
   recruiter: {

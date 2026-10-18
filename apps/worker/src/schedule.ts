@@ -25,6 +25,10 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'approvals.escalate', key: `approvals.escalate:${hour}`, payload: { hour } },
     // Overdue training reminders and recertification (each once; hourly so every time zone's day is covered).
     { kind: 'learning.daily', key: `learning.daily:${hour}`, payload: { hour } },
+    // Workflows waiting N days resume within the hour after their time.
+    { kind: 'workflows.resume', key: `workflows.resume:${hour}`, payload: { hour } },
+    // Exits: the day after each last working day, in the organization's time zone.
+    { kind: 'separations.daily', key: `separations.daily:${hour}`, payload: { hour } },
     // Every 15 minutes: the shortest helpdesk SLA is 4 hours, so a breach is flagged within a quarter of it.
     { kind: 'helpdesk.sla', key: `helpdesk.sla:${hour}:${String(Math.floor(now.getUTCMinutes() / 15) * 15).padStart(2, '0')}`, payload: { hour } },
   ];

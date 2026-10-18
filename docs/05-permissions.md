@@ -52,6 +52,8 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | helpdesk.manage ⁵ | O | O | | | | | | |
 | asset.manage ⁶ | O | O | | | | | | |
 | learning.manage ⁷ | O | O | | | | | | |
+| workflow.manage ⁸ | O | O | | | | | | |
+| separation.manage † ⁹ | O | O | | | | | | |
 
 † Sensitive: every read is audited where the module supports it, and access is excluded from the AI retrieval default.
 ¹ Not granted. Every member, recruiters included, can read the minimal colleague directory (`colleague_directory`, migration 20261018002200): name, department and designation of current employees, never the employee row. A test asserts recruiters still see no employee rows.
@@ -61,6 +63,8 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 ⁵ A helpdesk category can route to one employee (for example the IT lead). They see, answer and change the status of tickets assigned to them without `helpdesk.manage`; they can't reassign or reprioritise. Requesters never see internal notes.
 ⁶ Not granted to employees; they see the assets they hold or have held and their own system access, and confirm receipt of an issued asset. A system can name an owner (for example the IT lead) who records and revokes access to that system only, without `asset.manage`.
 ⁷ Managers and department heads assign training to people in their reporting line, see their progress and record completions for them without `learning.manage`. Employees enrol themselves in courses open for self-enrolment and see only their own learning.
+⁸ Workflows run as the system, but they only do what their steps say (notify, create a task, assign a course, ask for an approval, wait). Approval steps go to the employee's manager (or, without one, to `workflow.manage` holders other than the workflow's author), through the normal approvals engine.
+⁹ Employees resign themselves; their manager approves first, then HR. Managers see separations in their reporting line and clear the handover item; asset managers see and settle asset and access items; payroll or expense managers the no-dues item. Why someone left and the exit interview are readable only by the employee and HR (`separation_details`; not in the table privileges).
 
 Platform super-admins are **not** org members by default (tested). They manage tenants through `/platform`. Time-boxed support access will use an audited `member_roles.valid_until` grant; the mechanism exists and is tested, the support-access workflow is Phase 1b.
 

@@ -711,6 +711,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      clearance_items: {
+        Row: {
+          id: string;
+          organization_id: string;
+          separation_id: string;
+          kind: string;
+          ref_id: string | null;
+          title: string;
+          owner: string;
+          status: string;
+          note: string | null;
+          cleared_by: string | null;
+          cleared_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          separation_id: string;
+          kind: string;
+          ref_id?: string | null;
+          title: string;
+          owner: string;
+          status?: string;
+          note?: string | null;
+          cleared_by?: string | null;
+          cleared_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          separation_id?: string;
+          kind?: string;
+          ref_id?: string | null;
+          title?: string;
+          owner?: string;
+          status?: string;
+          note?: string | null;
+          cleared_by?: string | null;
+          cleared_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       compensation_lines: {
         Row: {
           organization_id: string;
@@ -2163,6 +2208,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      notice_periods: {
+        Row: {
+          organization_id: string;
+          employment_type: Database['public']['Enums']['employment_type'];
+          notice_days: number;
+        };
+        Insert: {
+          organization_id: string;
+          employment_type: Database['public']['Enums']['employment_type'];
+          notice_days: number;
+        };
+        Update: {
+          organization_id?: string;
+          employment_type?: Database['public']['Enums']['employment_type'];
+          notice_days?: number;
+        };
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
@@ -3063,6 +3126,84 @@ export type Database = {
         };
         Relationships: [];
       };
+      separations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          type: Database['public']['Enums']['separation_type'];
+          reason_category: string | null;
+          reason: string | null;
+          initiated_by: string;
+          submitted_on: string;
+          requested_last_day: string;
+          notice_days: number;
+          notice_end: string;
+          last_working_day: string;
+          shortfall_days: number;
+          shortfall_treatment: string | null;
+          status: Database['public']['Enums']['separation_status'];
+          approval_request_id: string | null;
+          decided_at: string | null;
+          completed_at: string | null;
+          rehire_eligible: boolean | null;
+          alumni_opt_in: boolean;
+          exit_interview: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          type: Database['public']['Enums']['separation_type'];
+          reason_category?: string | null;
+          reason?: string | null;
+          initiated_by?: string;
+          submitted_on: string;
+          requested_last_day: string;
+          notice_days: number;
+          notice_end: string;
+          last_working_day: string;
+          shortfall_days?: number;
+          shortfall_treatment?: string | null;
+          status?: Database['public']['Enums']['separation_status'];
+          approval_request_id?: string | null;
+          decided_at?: string | null;
+          completed_at?: string | null;
+          rehire_eligible?: boolean | null;
+          alumni_opt_in?: boolean;
+          exit_interview?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          type?: Database['public']['Enums']['separation_type'];
+          reason_category?: string | null;
+          reason?: string | null;
+          initiated_by?: string;
+          submitted_on?: string;
+          requested_last_day?: string;
+          notice_days?: number;
+          notice_end?: string;
+          last_working_day?: string;
+          shortfall_days?: number;
+          shortfall_treatment?: string | null;
+          status?: Database['public']['Enums']['separation_status'];
+          approval_request_id?: string | null;
+          decided_at?: string | null;
+          completed_at?: string | null;
+          rehire_eligible?: boolean | null;
+          alumni_opt_in?: boolean;
+          exit_interview?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       shifts: {
         Row: {
           id: string;
@@ -3312,6 +3453,165 @@ export type Database = {
         };
         Relationships: [];
       };
+      workflow_definitions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          trigger_event: string;
+          is_active: boolean;
+          current_version_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          trigger_event: string;
+          is_active?: boolean;
+          current_version_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          trigger_event?: string;
+          is_active?: boolean;
+          current_version_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      workflow_run_steps: {
+        Row: {
+          id: string;
+          organization_id: string;
+          run_id: string;
+          step_no: number;
+          kind: string;
+          status: string;
+          detail: string | null;
+          approval_request_id: string | null;
+          started_at: string;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          run_id: string;
+          step_no: number;
+          kind: string;
+          status: string;
+          detail?: string | null;
+          approval_request_id?: string | null;
+          started_at?: string;
+          finished_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          run_id?: string;
+          step_no?: number;
+          kind?: string;
+          status?: string;
+          detail?: string | null;
+          approval_request_id?: string | null;
+          started_at?: string;
+          finished_at?: string | null;
+        };
+        Relationships: [];
+      };
+      workflow_runs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          definition_id: string;
+          version_id: string;
+          event_id: number;
+          event_type: string;
+          subject_id: string | null;
+          subject_employee_id: string | null;
+          status: Database['public']['Enums']['workflow_run_status'];
+          current_step: number;
+          resume_at: string | null;
+          error: string | null;
+          started_at: string;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          definition_id: string;
+          version_id: string;
+          event_id: number;
+          event_type: string;
+          subject_id?: string | null;
+          subject_employee_id?: string | null;
+          status?: Database['public']['Enums']['workflow_run_status'];
+          current_step?: number;
+          resume_at?: string | null;
+          error?: string | null;
+          started_at?: string;
+          finished_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          definition_id?: string;
+          version_id?: string;
+          event_id?: number;
+          event_type?: string;
+          subject_id?: string | null;
+          subject_employee_id?: string | null;
+          status?: Database['public']['Enums']['workflow_run_status'];
+          current_step?: number;
+          resume_at?: string | null;
+          error?: string | null;
+          started_at?: string;
+          finished_at?: string | null;
+        };
+        Relationships: [];
+      };
+      workflow_versions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          definition_id: string;
+          version: number;
+          conditions: Json;
+          steps: Json;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          definition_id: string;
+          version: number;
+          conditions?: Json;
+          steps: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          definition_id?: string;
+          version?: number;
+          conditions?: Json;
+          steps?: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -3502,6 +3802,14 @@ export type Database = {
           p_notes?: string;
         };
         Returns: string;
+      };
+      clear_item: {
+        Args: {
+          p_item: string;
+          p_status: string;
+          p_note?: string;
+        };
+        Returns: undefined;
       };
       colleague_directory: {
         Args: {
@@ -3727,6 +4035,16 @@ export type Database = {
           p_dry_run?: boolean;
         };
         Returns: Json;
+      };
+      initiate_separation: {
+        Args: {
+          p_employee: string;
+          p_type: Database['public']['Enums']['separation_type'];
+          p_last_day: string;
+          p_reason_category?: string;
+          p_reason?: string;
+        };
+        Returns: string;
       };
       issue_asset: {
         Args: {
@@ -3955,6 +4273,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      save_exit_interview: {
+        Args: {
+          p_separation: string;
+          p_answers: Json;
+          p_alumni?: boolean;
+        };
+        Returns: undefined;
+      };
       save_offer_version: {
         Args: {
           p_application: string;
@@ -3963,6 +4289,18 @@ export type Database = {
           p_expires_on: string;
           p_designation?: string;
           p_terms?: string;
+        };
+        Returns: string;
+      };
+      save_workflow: {
+        Args: {
+          p_org: string;
+          p_definition: string;
+          p_name: string;
+          p_trigger: string;
+          p_conditions: Json;
+          p_steps: Json;
+          p_active: boolean;
         };
         Returns: string;
       };
@@ -3984,6 +4322,12 @@ export type Database = {
           p_query: string;
         };
         Returns: { id: string; title: string; category: string; snippet: string }[];
+      };
+      separation_details: {
+        Args: {
+          p_separation: string;
+        };
+        Returns: { reason: string; exit_interview: Json }[];
       };
       set_compensation: {
         Args: {
@@ -4047,6 +4391,21 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_rehire_eligibility: {
+        Args: {
+          p_separation: string;
+          p_eligible: boolean;
+        };
+        Returns: undefined;
+      };
+      set_separation_terms: {
+        Args: {
+          p_separation: string;
+          p_last_day: string;
+          p_treatment?: string;
+        };
+        Returns: undefined;
+      };
       set_task_status: {
         Args: {
           p_task: string;
@@ -4066,6 +4425,12 @@ export type Database = {
           p_template?: string;
         };
         Returns: string;
+      };
+      stop_workflow_run: {
+        Args: {
+          p_run: string;
+        };
+        Returns: undefined;
       };
       store_payroll_results: {
         Args: {
@@ -4111,6 +4476,15 @@ export type Database = {
           p_email: string;
           p_phone: string;
           p_consent: boolean;
+        };
+        Returns: string;
+      };
+      submit_resignation: {
+        Args: {
+          p_org: string;
+          p_last_day: string;
+          p_reason_category?: string;
+          p_reason?: string;
         };
         Returns: string;
       };
@@ -4166,6 +4540,12 @@ export type Database = {
         Args: {
           p_case: string;
           p_reason?: string;
+        };
+        Returns: undefined;
+      };
+      withdraw_separation: {
+        Args: {
+          p_separation: string;
         };
         Returns: undefined;
       };
@@ -4230,11 +4610,29 @@ export type Database = {
         Args: never;
         Returns: Json;
       };
+      worker_resume_workflows: {
+        Args: never;
+        Returns: Json;
+      };
+      worker_separations: {
+        Args: never;
+        Returns: Json;
+      };
       worker_start_onboarding: {
         Args: {
           p_employee: string;
         };
         Returns: string;
+      };
+      worker_start_workflows: {
+        Args: {
+          p_event: number;
+        };
+        Returns: Json;
+      };
+      workflow_trigger_catalog: {
+        Args: never;
+        Returns: { event_type: string; label: string; about_employee: boolean }[];
       };
     };
     Enums: {
@@ -4275,9 +4673,12 @@ export type Database = {
       recommendation: 'strong_yes' | 'yes' | 'no' | 'strong_no';
       requisition_status: 'open' | 'on_hold' | 'closed';
       review_status: 'not_started' | 'self_submitted' | 'manager_submitted' | 'calibrated';
+      separation_status: 'submitted' | 'approved' | 'completed' | 'rejected' | 'withdrawn' | 'cancelled';
+      separation_type: 'resignation' | 'termination' | 'retirement' | 'contract_end' | 'other';
       task_status: 'open' | 'done' | 'cancelled';
       ticket_priority: 'low' | 'normal' | 'high' | 'urgent';
       ticket_status: 'open' | 'in_progress' | 'waiting' | 'resolved' | 'closed';
+      workflow_run_status: 'running' | 'waiting' | 'completed' | 'failed' | 'stopped';
     };
     CompositeTypes: { [_ in never]: never };
   };

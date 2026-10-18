@@ -22,9 +22,11 @@ describe('table privileges (least privilege, independent of Supabase defaults)',
     expect(await tablesWhere('authenticated', 'TRUNCATE,REFERENCES,TRIGGER')).toEqual([]);
   });
 
-  // Grievance texts are read only through functions that record each read (migration 20261018002400): the case
-  // table grants its non-text columns, and the notes table nothing. Adding a table here needs the same review.
-  const READ_THROUGH_AUDITED_FUNCTIONS = ['grievance_notes', 'grievances'];
+  // Tables whose sensitive text is read only through functions, not the table: grievance texts (each handler's read
+  // is audited, migration 20261018002400: the case table grants its non-text columns, the notes table nothing) and
+  // why someone left (migration 20261018002800: reason and exit interview, for the employee and HR only).
+  // Adding a table here needs the same review.
+  const READ_THROUGH_AUDITED_FUNCTIONS = ['grievance_notes', 'grievances', 'separations'];
 
   it('signed-in users can read every table (RLS then filters rows), except the audited-read ones', async () => {
     const all = await ctx.t.db.query<{ relname: string }>(
