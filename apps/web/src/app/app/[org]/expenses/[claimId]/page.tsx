@@ -5,12 +5,13 @@ import { todayIn } from '@peoplecore/shared';
 import { z } from 'zod';
 import { Alert, Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
 import { formatDate } from '@/lib/format';
+import { aiAvailable } from '@/server/ai';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
 import { getCategories, getClaim } from '@/server/expenses';
 import { namesFor } from '@/server/leave';
 import { inr } from '../../payroll/format';
-import { addItemAction, removeItemAction, submitClaimAction } from '../actions';
+import { addItemAction, readReceiptAction, removeItemAction, submitClaimAction } from '../actions';
 import { AddItemForm, SmallForm } from '../expense-forms';
 import { CLAIM_TONE } from '../tone';
 
@@ -20,7 +21,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ org: str
   const { org: slug, claimId } = await params;
   if (!z.uuid().safeParse(claimId).success) notFound();
   const ctx = await getOrgContext(slug);
-  const [claim, categories, me] = await Promise.all([getClaim(ctx.org.id, claimId), getCategories(ctx.org.id), getMyEmployee(ctx.org.id, ctx.user.id)]);
+  const [claim, categories, me, ai] = await Promise.all([getClaim(ctx.org.id, claimId), getCategories(ctx.org.id), getMyEmployee(ctx.org.id, ctx.user.id), aiAvailable(ctx)]);
   if (!claim) notFound();
   const mine = me?.id === claim.employee_id;
   const editable = mine && claim.status === 'draft';
@@ -56,7 +57,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ org: str
         )}
         {editable && (
           <>
-            <AddItemForm action={addItemAction.bind(null, slug)} claimId={claimId} today={todayIn(ctx.org.timezone)}
+            <AddItemForm action={addItemAction.bind(null, slug)} read={ai ? readReceiptAction.bind(null, slug) : undefined} claimId={claimId} today={todayIn(ctx.org.timezone)}
               categories={categories.map((c) => ({ value: c.id, label: `${c.name}${c.requires_receipt ? '' : ' (no receipt needed)'}${c.max_per_item ? ` · up to ₹${Number(c.max_per_item)}` : ''}` }))} />
             {claim.items.length > 0 && (
               <div className="border-t border-line px-5 py-4">

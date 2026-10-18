@@ -3,14 +3,18 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { checkDocumentFile, safeFileName } from '@peoplecore/shared';
+import { receiptExtraction } from '@peoplecore/ai';
+import { checkDocumentFile, safeFileName, todayIn } from '@peoplecore/shared';
 import { z } from 'zod';
 import { formValues, sqlNull, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { fileForAi, runAi, saveSuggestion, settleSuggestion } from '@/server/ai';
+import { getCategories } from '@/server/expenses';
 import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { RECEIPT_BUCKET, removeDocumentFile, storeDocumentFile } from '@/server/document-storage';
 import { createClient } from '@/server/supabase';
+import type { ReceiptState } from './expense-forms';
 
 /** Expense actions. The database checks ownership, drafts, category rules and approvals. */
 
@@ -71,6 +75,9 @@ export async function addItemAction(orgSlug: string, _prev: ActionState, formDat
     if (path) await removeDocumentFile(path, RECEIPT_BUCKET);
     return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   }
+  await settleSuggestion(formData.get('suggestionId'), {
+    categoryId: v.categoryId, expenseDate: v.expenseDate, amount: String(v.amount), merchant: v.merchant || null,
+  }, id);
   revalidatePath(`/app/${orgSlug}/expenses/${v.claimId}`);
   return { ok: true, message: 'Expense added.' };
 }
@@ -98,4 +105,25 @@ export async function submitClaimAction(orgSlug: string, _prev: ActionState, for
   revalidatePath(`/app/${orgSlug}`, 'layout');
   await flash('Submitted. Your manager approves first, then finance.');
   return { ok: true, message: 'Submitted. Your manager approves first, then finance.' };
+}
+
+/** Reads a receipt with AI for the add-expense form. A suggestion only: the employee fills in, checks and adds. */
+export async function readReceiptAction(orgSlug: string, _prev: ReceiptState, formData: FormData): Promise<ReceiptState> {
+  const ctx = await getOrgContext(orgSlug);
+  const file = await fileForAi(formData.get('receipt'));
+  if (!file.ok) return { ok: false, message: file.message };
+  const categories = await getCategories(ctx.org.id);
+  const result = await runAi(ctx, receiptExtraction, {
+    file: file.file, categories: categories.map((c) => ({ id: c.id, name: c.name })), today: todayIn(ctx.org.timezone),
+  });
+  if (!result.ok) return { ok: false, message: result.message };
+  const r = result.output;
+  if (!r.isReceipt) return { ok: true, result: r };
+  const fields: Record<string, string> = {};
+  if (r.categoryId) fields.categoryId = r.categoryId;
+  if (r.date) fields.expenseDate = r.date;
+  if (r.total != null && (r.currency === 'INR' || r.currency === null)) fields.amount = String(r.total);
+  if (r.merchant) fields.merchant = r.merchant;
+  const suggestionId = await saveSuggestion(result.runId, 'expense_item', null, { fields, currency: r.currency, warnings: r.warnings });
+  return { ok: true, result: r, ...(suggestionId ? { suggestionId } : {}) };
 }

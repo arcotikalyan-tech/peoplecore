@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, type Ref } from 'react';
 import {
   INTERVIEW_MODE_LABELS,
   INTERVIEW_MODES,
@@ -71,13 +71,15 @@ export function RequisitionStatusForm({ action, status }: { action: Action; stat
   );
 }
 
-export function AddCandidateForm({ action }: { action: Action }) {
+/** `formRef` lets the resume reader fill the fields; `suggestionId` then records whether they were kept. */
+export function AddCandidateForm({ action, formRef, suggestionId }: { action: Action; formRef?: Ref<HTMLFormElement>; suggestionId?: string }) {
   const [state, formAction] = useActionState(action, initialActionState);
   const v = state.ok ? {} : (state.values ?? {});
   const e = state.fieldErrors ?? {};
   return (
-    <form action={formAction} noValidate aria-label="Add candidate" className="space-y-4 px-5 py-5">
+    <form ref={formRef} action={formAction} noValidate aria-label="Add candidate" className="space-y-4 px-5 py-5">
       <FormMessage state={state} />
+      <input type="hidden" name="suggestionId" value={suggestionId ?? ''} />
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField idPrefix="cand" name="firstName" label="First name" required defaultValue={v.firstName} error={e.firstName} />
         <TextField idPrefix="cand" name="lastName" label="Last name" defaultValue={v.lastName} error={e.lastName} />

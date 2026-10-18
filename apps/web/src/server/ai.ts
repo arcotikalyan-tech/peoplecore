@@ -4,7 +4,7 @@ import {
   GateRefusal, providerFromEnv, runAgent, type AgentDef, type AgentResult, type AiProvider, type DataPort, type Gate,
 } from '@peoplecore/ai';
 import type { Json } from '@peoplecore/db/types';
-import type { PermissionKey } from '@peoplecore/shared';
+import { checkDocumentFile, safeFileName, type DocumentType, type PermissionKey } from '@peoplecore/shared';
 import { sqlNull } from '@/lib/action-state';
 import type { OrgContext } from './context';
 import { createClient } from './supabase';
@@ -104,4 +104,47 @@ export async function runAi<I, C, O, R>(ctx: OrgContext, agent: AgentDef<I, C, O
 export async function rateAiRun(runId: string, helpful: boolean, feedback: string | null) {
   const supabase = await createClient();
   return supabase.rpc('rate_ai_run', { p_run: runId, p_helpful: helpful, p_feedback: sqlNull(feedback) });
+}
+
+/** A file from a form, checked by its bytes (PDF, JPEG or PNG, at most 5 MB), as a file block for an assistant. */
+export async function fileForAi(entry: FormDataEntryValue | null):
+  Promise<{ ok: true; file: { mediaType: DocumentType; data: string; name: string } } | { ok: false; message: string }> {
+  if (!(entry instanceof File) || entry.size === 0) return { ok: false, message: 'Choose a file first.' };
+  const bytes = new Uint8Array(await entry.arrayBuffer());
+  const check = checkDocumentFile(bytes.byteLength, bytes.subarray(0, 16));
+  if (!check.ok) return { ok: false, message: check.message };
+  return { ok: true, file: { mediaType: check.type, data: Buffer.from(bytes).toString('base64'), name: safeFileName(entry.name) } };
+}
+
+/**
+ * Keeps what an assistant proposed, for the person who asked. `fields` are the form values it would fill in;
+ * settleSuggestion later compares them with what was actually submitted.
+ */
+export async function saveSuggestion(runId: string, subjectKind: string, subjectId: string | null, payload: { fields: Record<string, string>; [k: string]: unknown }) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('ai_save_suggestion', {
+    p_run: runId, p_subject_kind: subjectKind, p_subject_id: sqlNull(subjectId), p_payload: payload as unknown as Json,
+  });
+  return error ? null : data;
+}
+
+const same = (a: string | null | undefined, b: string | null | undefined) => (a ?? '').trim().toLowerCase() === (b ?? '').trim().toLowerCase();
+
+/**
+ * After the module's own form saved the record: marks the suggestion accepted (submitted as proposed) or edited.
+ * Bookkeeping only, so failures are ignored; the record itself is already saved by then.
+ */
+export async function settleSuggestion(suggestionId: unknown, submitted: Record<string, string | null | undefined>, subjectId?: string) {
+  if (typeof suggestionId !== 'string' || !/^[0-9a-f-]{36}$/.test(suggestionId)) return;
+  const supabase = await createClient();
+  const { data } = await supabase.from('ai_suggestions').select('payload, status').eq('id', suggestionId).maybeSingle();
+  if (!data || data.status !== 'proposed') return;
+  const fields = ((data.payload as { fields?: Record<string, string> } | null)?.fields) ?? {};
+  const unchanged = Object.entries(fields).every(([k, v]) => same(v, submitted[k]));
+  await supabase.rpc('decide_ai_suggestion', { p_suggestion: suggestionId, p_status: unchanged ? 'accepted' : 'edited', p_subject_id: sqlNull(subjectId) });
+}
+
+export async function dismissSuggestion(suggestionId: string) {
+  const supabase = await createClient();
+  return supabase.rpc('decide_ai_suggestion', { p_suggestion: suggestionId, p_status: 'rejected', p_subject_id: sqlNull<string>(null) });
 }

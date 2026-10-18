@@ -14,6 +14,7 @@ import {
 } from '@peoplecore/shared';
 import { Badge, Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surface';
 import { formatDate, formatDateTime } from '@/lib/format';
+import { aiAvailable } from '@/server/ai';
 import { getOrgContext } from '@/server/context';
 import { colleagueNames, colleagueOptions } from '@/server/engagement';
 import { employeeNames, managerOptions } from '@/server/employees';
@@ -23,7 +24,10 @@ import {
   addCandidateAction, eraseCandidateAction, hireAction, moveApplicationAction, offerStepAction, publishRequisitionAction, saveOfferAction,
   scheduleInterviewAction, setRequisitionStatusAction,
 } from '../actions';
-import { AddCandidateForm, PipelineCard, PublishToggle, RequisitionStatusForm } from '../recruitment-forms';
+import { dismissSuggestionAction } from '../../ai/actions';
+import { draftDescriptionAction, readResumeAction, saveDescriptionAction } from '../ai-actions';
+import { CandidateIntake, DescriptionEditor } from '../ai-recruiting';
+import { PipelineCard, PublishToggle, RequisitionStatusForm } from '../recruitment-forms';
 
 export const metadata: Metadata = { title: 'Requisition' };
 
@@ -36,6 +40,7 @@ export default async function RequisitionPage({ params }: { params: Promise<{ or
   if (!req) notFound();
 
   const canManage = ctx.can('recruitment.manage', 'org');
+  const ai = canManage && (await aiAvailable(ctx));
   const pipeline = await getPipeline(ctx.org.id, id);
   const appIds = pipeline.map((p) => p.id);
   const [structure, offers, interviews, employees] = await Promise.all([
@@ -139,7 +144,7 @@ export default async function RequisitionPage({ params }: { params: Promise<{ or
               { label: 'Location', value: lookup(loc, req.location_id) },
               { label: 'Hiring manager', value: req.hiring_manager_employee_id ? (names.get(req.hiring_manager_employee_id) ?? null) : null },
               { label: 'Opened', value: formatDate(req.created_at) },
-              { label: 'Description', value: req.description },
+              ...(canManage ? [] : [{ label: 'Description', value: req.description }]),
             ]} />
             {canManage && (
               <div className="space-y-4 border-t border-line px-5 py-4">
@@ -151,7 +156,15 @@ export default async function RequisitionPage({ params }: { params: Promise<{ or
           {canManage && req.status === 'open' && (
             <Card>
               <CardHeader title="Add candidate" description="Candidates already on file (same email or phone) are reused, not duplicated." />
-              <AddCandidateForm action={addCandidateAction.bind(null, slug, id)} />
+              <CandidateIntake add={addCandidateAction.bind(null, slug, id)} read={ai ? readResumeAction.bind(null, slug) : null}
+                dismiss={dismissSuggestionAction.bind(null, slug)} />
+            </Card>
+          )}
+          {canManage && (
+            <Card>
+              <CardHeader title="Job description" />
+              <DescriptionEditor save={saveDescriptionAction.bind(null, slug, id)} draft={ai ? draftDescriptionAction.bind(null, slug, id) : null}
+                initial={req.description ?? ''} />
             </Card>
           )}
           {canManage && !canHire && (

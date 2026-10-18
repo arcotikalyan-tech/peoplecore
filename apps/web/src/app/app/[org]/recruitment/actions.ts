@@ -9,6 +9,7 @@ import {
 import { z } from 'zod';
 import { formDataAll, formValues, invalid, sqlNull, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { settleSuggestion } from '@/server/ai';
 import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { createClient } from '@/server/supabase';
@@ -67,7 +68,10 @@ export async function addCandidateAction(orgSlug: string, requisitionId: string,
   });
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   revalidatePath(`/app/${orgSlug}/recruitment`, 'layout');
-  const existing = (data as { existing_candidate?: boolean }).existing_candidate;
+  const { existing_candidate: existing, candidate_id: candidateId } = data as { existing_candidate?: boolean; candidate_id?: string };
+  await settleSuggestion(formData.get('suggestionId'), {
+    firstName: v.firstName, lastName: v.lastName, email: v.email, phone: v.phone, currentCompany: v.currentCompany,
+  }, candidateId);
   return {
     ok: true,
     message: existing

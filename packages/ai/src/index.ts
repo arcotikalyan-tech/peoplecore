@@ -6,3 +6,4 @@ export * from './run.ts';
 export * from './providers/anthropic.ts';
 export * from './providers/from-env.ts';
 export * from './agents/index.ts';
+export * from './pdf.ts';

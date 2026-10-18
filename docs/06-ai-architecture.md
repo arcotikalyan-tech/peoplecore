@@ -50,6 +50,8 @@ module code paths (same validation, RLS, approvals, audit)
 | Workforce planning | headcount, attrition | scenarios | 0 |
 | Offboarding coordinator | separation, clearance | checklist tasks, letter drafts | 2 |
 
+**Built so far** (`packages/ai/src/agents`): HR policy assistant (Ask HR), resume reading, receipt reading (expenses) and job-description drafts. Each has an eval suite in `packages/ai/evals/<agent>`. A suggestion is settled as accepted or edited only when the person submits the module's normal form; Dismiss records it as rejected.
+
 ## Quality & safety
 - **Evaluations:** `packages/ai/evals/<agent>/*.jsonl` with expected structured outputs. CI runs them against a recorded-response provider for regression, and a nightly job runs them against live models.
 - **Bias controls (recruitment):** the feature allowlist excludes name, gender, age, photo, address and marital status. Scores always show per-criterion evidence. Adverse-impact reporting is in analytics.
