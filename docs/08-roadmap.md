@@ -8,7 +8,7 @@ Every phase gate requires `corepack pnpm check` to pass (typecheck, lint, unit +
 Inspect the environment, write the ADRs and plans, set up the monorepo, standards and env templates.
 **AC:** workspace installs; `check` passes on an empty-but-wired repo; docs 01–08 exist.
 
-### Phase 1: Auth, tenancy, RBAC, audit, design system (slice 1 in progress)
+### Phase 1: Auth, tenancy, RBAC, audit, design system ✅
 **Scope:** Supabase Auth (email/password + magic link), org membership, org switcher, roles/permissions with scopes, audit framework, design tokens and primitives, `/platform` org list.
 **AC:**
 1. A user with no membership sees no tenant data (RLS test).
@@ -29,7 +29,7 @@ Job queue + worker (ADR-007). Private storage with signed URLs. Expo app (employ
 **AC:** punches are idempotent; offline punches sync once; leave balance = ledger sum, verified by property-based tests; regularization approval updates `attendance_days`; payroll-ready monthly summary is reproducible.
 
 ### Phase 4: Payroll, expenses, statutory
-**Built:** deterministic engine with golden vectors (packages/payroll), statutory rules as versioned data (unvalidated), runs with maker ≠ checker at DB level, immutable locked runs, arrears through the next run, payslips, bank file, expenses with receipts and duplicate checks paid through payroll. 🔜 professional validation, payslip PDF, accounting export, OCR (Phase 7).
+**Built:** deterministic engine with golden vectors (packages/payroll), statutory rules as versioned data (unvalidated), runs with maker ≠ checker at DB level, immutable locked runs, arrears through the next run, payslips, bank file, expenses with receipts and duplicate checks paid through payroll. ✅ Receipt reading (Phase 7). 🔜 professional validation, payslip PDF, accounting export.
 Deterministic engine, effective-dated statutory rule sets with golden vectors, maker-checker, locking, payslips, bank file export, accounting export. Expenses with OCR and duplicate detection.
 **AC:** regression suite of payroll scenarios; the same inputs always give the same outputs; approval by the preparer is rejected at DB level; a locked run is immutable; corrections via arrears in the next run. **Professional validation sign-off is required before any production payroll.**
 
@@ -47,5 +47,5 @@ Per `06-ai-architecture.md`. Role dashboards. Reporting copilot.
 **AC:** eval suites pass thresholds; no agent can perform a tier-3 action; cross-user leakage tests pass.
 
 ### Phase 8: Hardening & production
-**Built:** CI on a real Supabase stack (the job runs every journey against `supabase start`; run locally 91/91), dependency audit and Dependabot, a 50,000-employee load test (every directory query under 300 ms P95 after set-based RLS, ADR-013), a security review with a nonce CSP ([09-security-review.md](09-security-review.md)), a passed backup and restore drill, a gated deploy workflow, and runbooks for operations, deploys, incidents, backups, AI and email. ⏳ Needs credentials or accounts: the first GitHub run, production secrets, a penetration test, and integration sandboxes (WhatsApp, e-sign, BGV, SSO).
+**Built:** CI on a real Supabase stack (the job runs every journey against `supabase start`; run locally 91/91), dependency audit and Dependabot, a 50,000-employee load test (every directory query under 300 ms P95 after set-based RLS, ADR-013), a security review with a nonce CSP ([09-security-review.md](09-security-review.md)), a passed backup and restore drill, a gated deploy workflow, and runbooks for operations, deploys, incidents, backups, AI and email. ✅ First GitHub CI run passed (91/91 journeys). ⏳ Needs credentials or accounts: production secrets, a penetration test, and integration sandboxes (WhatsApp, e-sign, BGV, SSO).
 Real-Supabase CI, security review, dependency scanning, load tests (target: 50k employees/org, P95 list query < 300 ms), backup/restore drill, runbooks, deployment pipelines, WhatsApp/e-sign/BGV/SSO integrations verified with real sandbox credentials.

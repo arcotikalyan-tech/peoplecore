@@ -25,6 +25,7 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: '1'
       # Runtime dependencies must be clean; the full tree is reported but dev tooling may lag on patches.
+      # Two reviewed tooling advisories without a fix are ignored in pnpm-workspace.yaml (auditConfig).
       - run: pnpm audit --prod --audit-level high
       - run: pnpm audit --audit-level high
         continue-on-error: true

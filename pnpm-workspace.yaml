@@ -25,3 +25,9 @@ minimumReleaseAgeExclude:
 allowBuilds:
   pnpm: false
   unrs-resolver: false
+# Reviewed 2026-10-18, no patched release yet: node-forge (Expo's CLI) and braces (Metro, eslint-config-next).
+# Build, lint and dev tooling only; not in the web runtime or the app bundle. Remove each when a fix ships.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-86w9-cpqp-85rv
+    - GHSA-vfj7-8cjw-p6xm

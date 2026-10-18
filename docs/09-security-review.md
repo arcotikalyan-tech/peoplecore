@@ -67,4 +67,4 @@ These run in `corepack pnpm check` on every change; a regression fails the build
 - An edge rate limit on `/login` and `/careers` (Vercel firewall).
 - An audit-log export to write-once storage (T6).
 - A no-training, zero-retention agreement with the AI provider ([ai.md](runbooks/ai.md)).
-- Dev-tooling advisory: `braces` (through `eslint-config-next` → `micromatch`) has a high-severity denial-of-service advisory with no patched release yet. It runs only in lint, on our own files, and is not in the runtime bundle; update it when a fix ships.
+- Tooling advisories with no patched release yet, both high severity: `braces` (GHSA-vfj7-8cjw-p6xm, via `eslint-config-next` and the mobile app's Metro bundler) and `node-forge` (GHSA-86w9-cpqp-85rv, via Expo's CLI). They run only at lint, build and dev time on our own files, and are not in the web runtime or the app bundle. The audit ignores exactly these two IDs (`auditConfig` in `pnpm-workspace.yaml`); remove each when a fix ships.
