@@ -110,7 +110,7 @@ test('the storage API itself refuses signed-in users, even for their own files',
   expect((await user.storage.from(BUCKET).createSignedUrl(own.storage_path, 60)).error).not.toBeNull();
   expect((await user.storage.from(BUCKET).list(`${orgId}/${devId}`)).data ?? []).toEqual([]);
   expect((await user.storage.from(BUCKET).upload(`${orgId}/${devId}/planted.pdf`, pdf, { contentType: 'application/pdf' })).error).not.toBeNull();
-  await user.auth.signOut();
+  await user.auth.signOut({ scope: 'local' }); // only this client: don't end the demo account's other sessions
 });
 
 test('a manager sees no documents section for a report', async ({ page }) => {

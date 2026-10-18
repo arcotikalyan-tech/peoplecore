@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
 import { totp } from '../scripts/lib/totp';
 import { adminClient, domain, liveEnv, open, test } from './helpers';
 
@@ -58,4 +59,23 @@ test('a new HR admin sets up two-step verification before seeing any HR data', a
 
   const { data } = await admin.auth.admin.mfa.listFactors({ userId });
   expect(data!.factors.filter((f) => f.status === 'verified')).toHaveLength(1);
+});
+
+test('a sign-in ended elsewhere gets a clean "sign in again" instead of an error', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Work email').fill(email);
+  await page.getByLabel('Password').fill(liveEnv().password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.waitForURL(/\/mfa(\?|$)/);
+
+  // End every session for this account from another client, as "sign out everywhere" would. The browser's
+  // token stays valid until it expires, but the server no longer knows the session.
+  const other = createClient(liveEnv().url, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false } });
+  expect((await other.auth.signInWithPassword({ email, password: liveEnv().password })).error).toBeNull();
+  await other.auth.signOut({ scope: 'global' });
+
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1, name: 'Your sign-in has ended' })).toBeVisible();
+  await page.getByRole('button', { name: 'Sign in again' }).click();
+  await expect(page.getByLabel('Work email')).toBeVisible();
 });
