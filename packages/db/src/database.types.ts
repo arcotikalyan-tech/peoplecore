@@ -4517,6 +4517,12 @@ export type Database = {
         };
         Returns: { employee_code: string; employee_name: string; account_holder: string; account_number: string; ifsc: string; amount: number }[];
       };
+      payroll_journal_items: {
+        Args: {
+          p_run: string;
+        };
+        Returns: { code: string; name: string; kind: Database['public']['Enums']['line_kind']; amount: number; employees: number }[];
+      };
       payroll_run_inputs: {
         Args: {
           p_run: string;

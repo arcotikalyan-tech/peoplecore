@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { expect } from '@playwright/test';
+import { parseCsv } from '@peoplecore/shared';
 import { adminClient, open, signIn, test } from './helpers';
 
 /**
  * Payroll on the live demo tenant for April 2026: the payroll admin sets Dev Nair's salary, records arrears and prepares the run;
  * they can't approve their own run; the owner verifies and approves it; the run is locked; Dev sees the payslip;
- * the owner downloads the bank file. Everything is removed afterwards (purge_demo_payroll_run: demo tenants only).
+ * the owner downloads the bank file and the accounting journal. Everything is removed afterwards (purge_demo_payroll_run: demo tenants only).
  */
 test.describe.configure({ mode: 'serial' });
 
@@ -95,6 +96,19 @@ test('the owner verifies and approves; the run is locked and payslips are releas
   const csv = (await readFile(await download.path())).toString('utf8');
   expect(csv).toContain(`${devCode},Dev Nair,`);
   expect(csv).toContain(',54000.00');
+
+  // The accounting journal: one line per component and side, debits equal to credits.
+  const [journalDownload] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Download journal (CSV)' }).click()]);
+  const [header, ...rows] = parseCsv((await readFile(await journalDownload.path())).toString('utf8'));
+  expect(header).toEqual(['Account', 'Component code', 'Description', 'Debit', 'Credit']);
+  const total = rows.at(-1)!;
+  const paise = (cell: string | undefined) => Math.round(Number(cell || 0) * 100);
+  expect(total[0]).toBe('Total');
+  expect(paise(total[3])).toBe(paise(total[4]));
+  expect(rows.slice(0, -1).reduce((s, r) => s + paise(r[3]), 0)).toBe(paise(total[3]));
+  expect(rows.slice(0, -1).reduce((s, r) => s + paise(r[4]), 0)).toBe(paise(total[4]));
+  expect(rows.find((r) => r[1] === 'ARREAR')?.slice(0, 1)).toEqual(['Salaries – arrears']);
+  expect(rows.some((r) => r[0] === 'Salaries payable' && paise(r[4]) > 0)).toBe(true);
 });
 
 test('the employee sees their payslip', async ({ page }) => {

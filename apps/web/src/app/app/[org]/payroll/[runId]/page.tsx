@@ -104,6 +104,9 @@ export default async function RunPage({ params }: { params: Promise<{ org: strin
               {run.status === 'locked' && approves && ctx.can('employee.bank.read', 'org') && (
                 <a className={buttonClass('secondary')} href={`/app/${slug}/payroll/${runId}/bank-file`} download>Download bank file</a>
               )}
+              {run.status === 'locked' && (
+                <a className={buttonClass('secondary')} href={`/app/${slug}/payroll/${runId}/journal`} download>Download journal (CSV)</a>
+              )}
               {run.status !== 'locked' && run.status !== 'cancelled' && (
                 <RunAction action={cancelRunAction.bind(null, slug)} runId={runId} submit="Cancel run" variant="ghost" />
               )}

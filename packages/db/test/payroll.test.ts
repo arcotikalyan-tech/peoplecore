@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import type { Transaction } from '@electric-sql/pglite';
-import { canonicalJson, computePayslip, ENGINE_VERSION, IN_FY2025_26, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
+import { canonicalJson, computePayslip, ENGINE_VERSION, IN_FY2025_26, payrollJournal, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
 import { pgError, useDatabase } from './setup.ts';
 
 const ctx = useDatabase();
@@ -110,6 +110,8 @@ describe('payroll runs', () => {
       expect((await failure(tx, `update payroll_line_items set amount = 1 where run_id = $1`, [run])).message).toBe('This payroll run is approved and its results can’t change.');
       expect((await failure(tx, `update payroll_runs set approved_by = prepared_by where id = $1`, [run])).code).toBe('23514'); // maker = checker, on the row
 
+      await as(tx, f.users.payrollA);
+      expect((await failure(tx, 'select * from payroll_journal_items($1)', [run])).message).toBe('Lock the run before exporting the journal.');
       await as(tx, f.users.icA);
       expect((await tx.query('select 1 from payroll_run_employees where run_id = $1', [run])).rows).toHaveLength(0); // not until locked
       await as(tx, f.users.payrollA);
@@ -136,6 +138,20 @@ describe('payroll runs', () => {
       expect((await tx.query(`select 1 from audit_events where action = 'bank_file_export' and entity_id = $1`, [run])).rows).toHaveLength(1);
       await as(tx, f.users.hrA);
       expect((await failure(tx, 'select * from payroll_bank_file($1)', [run])).code).toBe('42501');
+
+      // The accounting export: line items summed per component (the preparer may export it too), balanced, audited.
+      expect((await failure(tx, 'select * from payroll_journal_items($1)', [run])).code).toBe('42501');
+      await as(tx, f.users.icA);
+      expect((await failure(tx, 'select * from payroll_journal_items($1)', [run])).code).toBe('42501');
+      await as(tx, f.users.payrollA);
+      const items = (await tx.query<{ code: string; name: string; kind: 'earning' | 'deduction' | 'employer'; amount: string; employees: number }>(
+        'select * from payroll_journal_items($1)', [run])).rows;
+      expect(items.find((i) => i.code === 'BASIC')).toMatchObject({ kind: 'earning', amount: String(results.reduce((s, r) => s + (r.lines.find((l) => l.code === 'BASIC')?.amount ?? 0), 0).toFixed(2)) });
+      const journal = payrollJournal(items.map((i) => ({ ...i, amount: Number(i.amount) })));
+      expect(journal.totals.credit).toBe(journal.totals.debit);
+      expect(journal.lines.find((l) => l.account === 'Salaries payable')!.credit).toBe(results.reduce((s, r) => s + r.net, 0));
+      await tx.exec('reset role');
+      expect((await tx.query(`select 1 from audit_events where action = 'journal_export' and entity_id = $1`, [run])).rows).toHaveLength(1);
     });
   });
 

@@ -29,7 +29,7 @@ Job queue + worker (ADR-007). Private storage with signed URLs. Expo app (employ
 **AC:** punches are idempotent; offline punches sync once; leave balance = ledger sum, verified by property-based tests; regularization approval updates `attendance_days`; payroll-ready monthly summary is reproducible.
 
 ### Phase 4: Payroll, expenses, statutory
-**Built:** deterministic engine with golden vectors (packages/payroll), statutory rules as versioned data (unvalidated), runs with maker ≠ checker at DB level, immutable locked runs, arrears through the next run, payslips, bank file, expenses with receipts and duplicate checks paid through payroll. ✅ Receipt reading (Phase 7). ✅ Payslip PDF (dependency-free, deterministic). 🔜 professional validation, accounting export.
+**Built:** deterministic engine with golden vectors (packages/payroll), statutory rules as versioned data (unvalidated), runs with maker ≠ checker at DB level, immutable locked runs, arrears through the next run, payslips, bank file, expenses with receipts and duplicate checks paid through payroll. ✅ Receipt reading (Phase 7). ✅ Payslip PDF (dependency-free, deterministic). ✅ Accounting export (balanced journal CSV per locked run, audited). 🔜 professional validation.
 Deterministic engine, effective-dated statutory rule sets with golden vectors, maker-checker, locking, payslips, bank file export, accounting export. Expenses with OCR and duplicate detection.
 **AC:** regression suite of payroll scenarios; the same inputs always give the same outputs; approval by the preparer is rejected at DB level; a locked run is immutable; corrections via arrears in the next run. **Professional validation sign-off is required before any production payroll.**
 
