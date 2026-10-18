@@ -170,6 +170,49 @@ describe('payroll runs', () => {
     });
   });
 
+  it('arrears and recoveries go through the next run once, then become history', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.payrollA, async (tx) => {
+      const month = (await tx.query<{ m: string }>(`select to_char(date_trunc('month', app.org_today($1)), 'YYYY-MM-DD') as m`, [f.orgA])).rows[0]!.m;
+      await salary(tx, f.employees.icA, '2025-01-01', 25000, 12500, 12500);
+      const adj = (await tx.query<{ id: string }>(
+        `insert into payroll_adjustments (organization_id, employee_id, code, name, kind, amount, taxable, reason)
+         values ($1, $2, 'ARREAR', 'Salary arrears', 'earning', 6000, true, 'Revision effective last month') returning id`, [f.orgA, f.employees.icA])).rows[0]!.id;
+      const run = (await tx.query<{ id: string }>('select create_payroll_run($1, $2) as id', [f.orgA, month])).rows[0]!.id;
+      const { results, hash } = await compute(tx, run);
+      const ic = results.find((r) => r.employeeId === f.employees.icA)!;
+      expect(ic.lines.find((l) => l.code === 'ARREAR')?.amount).toBe(6000);
+      expect(ic.gross).toBe(56000);
+
+      await as(tx, f.users.hrA);
+      expect((await tx.query('select 1 from payroll_adjustments')).rows).toHaveLength(0); // payroll staff only
+      await as(tx, f.users.ownerA);
+      await tx.query('select approve_payroll_run($1, $2)', [run, hash]);
+      await tx.query('select lock_payroll_run($1)', [run]);
+      expect((await tx.query<{ r: string }>('select applied_run_id as r from payroll_adjustments where id = $1', [adj])).rows[0]!.r).toBe(run);
+
+      await as(tx, f.users.payrollA);
+      expect((await failure(tx, 'delete from payroll_adjustments where id = $1', [adj])).message)
+        .toBe('This adjustment was paid in a locked run and can’t change. Record a new adjustment instead.');
+      const next = (await tx.query<{ id: string }>(`select create_payroll_run($1, ($2::date + interval '1 month')::date) as id`, [f.orgA, month])).rows[0]!.id;
+      const nextInputs = (await tx.query<{ i: Inputs }>('select payroll_run_inputs($1) as i', [next])).rows[0]!.i;
+      expect(nextInputs.employees.find((e) => e.employeeId === f.employees.icA)!.adjustments).toEqual([]);
+    });
+  });
+
+  it('a run computed late (for an earlier month) still picks up corrections recorded since', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.payrollA, async (tx) => {
+      await tx.query(`insert into payroll_adjustments (organization_id, employee_id, code, name, kind, amount, taxable, reason)
+                      values ($1, $2, 'BONUS', 'Bonus', 'earning', 1000, true, 'Recorded today')`, [f.orgA, f.employees.icA]);
+      const old = (await tx.query<{ id: string }>(`select create_payroll_run($1, (date_trunc('month', app.org_today($1)) - interval '3 months')::date) as id`, [f.orgA])).rows[0]!.id;
+      const inputs = (await tx.query<{ i: Inputs }>('select payroll_run_inputs($1) as i', [old])).rows[0]!.i;
+      expect(inputs.employees.find((e) => e.employeeId === f.employees.icA)!.adjustments).toEqual([
+        { code: 'BONUS', name: 'Bonus', kind: 'earning', amount: 1000, taxable: true },
+      ]);
+    });
+  });
+
   it('locked runs can be purged by the service role in demo organizations only', async () => {
     const { f, t } = ctx;
     await t.db.exec('begin');

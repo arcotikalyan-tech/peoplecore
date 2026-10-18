@@ -5,7 +5,7 @@ import type { RuleSet } from './rules.ts';
  * rule set always produce the same payslip. Every amount is rounded to whole rupees, line by line, so totals
  * are exact sums of the lines.
  */
-export const ENGINE_VERSION = 'payroll-engine/1.0.0';
+export const ENGINE_VERSION = 'payroll-engine/1.1.0'; // 1.1: one-off adjustments (arrears, recoveries)
 
 export interface ComponentInput {
   code: string;
@@ -26,6 +26,11 @@ export interface EmployeeInput {
   statutory: { pf: boolean; esi: boolean | null; ptState: string | null }; // esi null: decide by wage
   ytd: { taxableIncome: number; tds: number };  // earlier months of this financial year (locked runs)
   reimbursements: number;  // approved expense claims to pay, not taxable
+  /**
+   * One-off corrections for earlier months (arrears) or recoveries, paid in full this month: never prorated
+   * for loss of pay. Taxable arrears count towards this month's taxable pay but aren't projected forward.
+   */
+  adjustments?: Array<{ code: string; name: string; kind: 'earning' | 'deduction'; amount: number; taxable: boolean }>;
 }
 
 export interface Period {
@@ -117,6 +122,16 @@ export function computePayslip(input: EmployeeInput, rules: RuleSet, period: Per
     lines.push({ code: 'REIMB', name: 'Expense reimbursements', kind: 'earning', amount: r });
     gross += r; // paid, not taxable
   }
+  let oneOffTaxable = 0;
+  let nonWageEarnings = input.reimbursements > 0 ? rupees(input.reimbursements) : 0;
+  for (const a of input.adjustments ?? []) {
+    if (a.kind !== 'earning') continue;
+    const amount = rupees(a.amount);
+    lines.push({ code: a.code, name: a.name, kind: 'earning', amount });
+    gross += amount;
+    nonWageEarnings += amount; // arrears belong to earlier months' wages: no ESI or PT on them here
+    if (a.taxable) oneOffTaxable += amount;
+  }
 
   // Provident fund (employee and employer), on PF wages up to the ceiling.
   const deductions: Line[] = [];
@@ -138,13 +153,13 @@ export function computePayslip(input: EmployeeInput, rules: RuleSet, period: Per
   // ESI: eligibility by contracted monthly gross; contributions on what was earned.
   const esiApplies = input.statutory.esi ?? contractedGross <= rules.esi.grossCeiling;
   if (esiApplies && gross > 0) {
-    const wages = gross - (input.reimbursements > 0 ? rupees(input.reimbursements) : 0);
+    const wages = gross - nonWageEarnings;
     deductions.push({ code: 'ESI', name: 'Employees’ state insurance', kind: 'deduction', amount: Math.ceil(wages * rules.esi.employeeRate) });
     employer.push({ code: 'ESI_ER', name: 'Employer ESI', kind: 'employer', amount: Math.ceil(wages * rules.esi.employerRate) });
   }
 
   // Professional tax on the month's gross wages (state slabs).
-  const ptWages = gross - (input.reimbursements > 0 ? rupees(input.reimbursements) : 0);
+  const ptWages = gross - nonWageEarnings;
   const pt = professionalTax(ptWages, input.statutory.ptState, period.month, rules.pt);
   if (pt === null) {
     exceptions.push({ code: 'pt_state', message: `No professional tax rules for state ${input.statutory.ptState}.`, blocking: true });
@@ -154,7 +169,8 @@ export function computePayslip(input: EmployeeInput, rules: RuleSet, period: Per
 
   // Income tax (TDS): project the year at this month's taxable pay, then spread what's still due.
   const monthsRemaining = monthsRemainingInFy(period.month);
-  const projected = input.ytd.taxableIncome + taxable * monthsRemaining - rules.incomeTax.standardDeduction;
+  // Regular pay is projected for the rest of the year; one-off taxable arrears count once.
+  const projected = input.ytd.taxableIncome + taxable * monthsRemaining + oneOffTaxable - rules.incomeTax.standardDeduction;
   let taxInfo: Payslip['tax'] = null;
   if (projected > rules.incomeTax.surchargeThreshold) {
     exceptions.push({ code: 'surcharge', message: 'Projected income is above the surcharge threshold, which this engine does not compute. Work out TDS manually.', blocking: true });
@@ -168,6 +184,9 @@ export function computePayslip(input: EmployeeInput, rules: RuleSet, period: Per
   for (const c of input.components) {
     if (c.kind === 'deduction') deductions.push({ code: c.code, name: c.name, kind: 'deduction', amount: rupees(c.monthly) });
   }
+  for (const a of input.adjustments ?? []) {
+    if (a.kind === 'deduction') deductions.push({ code: a.code, name: a.name, kind: 'deduction', amount: rupees(a.amount) });
+  }
 
   const totalDeductions = deductions.reduce((s, l) => s + l.amount, 0);
   const net = gross - totalDeductions;
@@ -180,7 +199,7 @@ export function computePayslip(input: EmployeeInput, rules: RuleSet, period: Per
     gross,
     deductions: totalDeductions,
     net,
-    taxableThisMonth: taxable,
+    taxableThisMonth: taxable + oneOffTaxable,
     employerCost: gross + employer.reduce((s, l) => s + l.amount, 0),
     exceptions,
     tax: taxInfo,

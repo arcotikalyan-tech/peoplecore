@@ -111,6 +111,25 @@ describe('payslips', () => {
     expect(none.exceptions).toEqual([{ code: 'no_compensation', message: 'No salary components on record.', blocking: false }]);
   });
 
+  it('G: arrears are paid in full despite loss of pay, taxed once, and kept out of ESI and PT wages', () => {
+    // 18,000 a month, 15 of 30 days: earned 9,000 (basic 5,000 → PF 600). Arrear 6,000 (taxable) and a 500 recovery.
+    const slip = computePayslip(employee({
+      components: salary(10000, 4000, 4000), daysInPeriod: 30, payableDays: 15,
+      adjustments: [{ code: 'ARREAR', name: 'Salary arrears', kind: 'earning', amount: 6000, taxable: true },
+                    { code: 'RECOVERY', name: 'Advance recovery', kind: 'deduction', amount: 500, taxable: false }],
+    }), rules, { month: '2026-11' });
+    expect([amount(slip, 'BASIC'), amount(slip, 'ARREAR')]).toEqual([5000, 6000]);
+    expect(slip.gross).toBe(15000);
+    expect(amount(slip, 'PF')).toBe(600);
+    expect(amount(slip, 'ESI')).toBe(68);     // 0.75% of the 9,000 earned wages (67.5, rounded up), not of the arrear
+    expect(amount(slip, 'PT')).toBe(0);       // Karnataka slab on 9,000
+    expect(amount(slip, 'RECOVERY')).toBe(500);
+    expect(slip.taxableThisMonth).toBe(15000);
+    // Projection: 9,000 × 5 months + 6,000 once − 75,000 → negative → no tax.
+    expect(slip.tax?.projectedAnnualTaxable).toBe(0);
+    expect(slip.net).toBe(15000 - 600 - 68 - 500);
+  });
+
   it('is deterministic: the same input gives the same payslip, and the input fingerprint ignores key order', () => {
     const input = employee({ ytd: { taxableIncome: 300000, tds: 1000 } });
     expect(computePayslip(input, rules, { month: '2026-10' })).toEqual(computePayslip(structuredClone(input), rules, { month: '2026-10' }));

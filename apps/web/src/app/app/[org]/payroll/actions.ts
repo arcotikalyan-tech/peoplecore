@@ -122,3 +122,45 @@ export async function setStatutoryAction(orgSlug: string, _prev: ActionState, fo
   revalidatePath(`/app/${orgSlug}/employees/${parsed.data.employeeId}`);
   return { ok: true, message: 'Statutory settings saved.' };
 }
+
+const adjustmentSchema = z.object({
+  employeeId: z.uuid({ error: 'Choose an employee' }),
+  type: z.enum(['ARREAR', 'BONUS', 'RECOVERY', 'OTHER_DEDUCTION']),
+  amount: z.coerce.number({ error: 'Enter the amount' }).positive('Enter the amount').max(99_999_999),
+  reason: z.string().trim().min(3, 'Say what it is for').max(500),
+});
+const ADJUSTMENT_TYPES = {
+  ARREAR: { name: 'Salary arrears', kind: 'earning', taxable: true },
+  BONUS: { name: 'Bonus', kind: 'earning', taxable: true },
+  RECOVERY: { name: 'Recovery', kind: 'deduction', taxable: false },
+  OTHER_DEDUCTION: { name: 'Other deduction', kind: 'deduction', taxable: false },
+} as const;
+
+export async function addAdjustmentAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  if (!ctx.can('payroll.prepare', 'org')) return { ok: false, message: 'You don’t have permission to do that.' };
+  const parsed = adjustmentSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { ok: false, message: 'Please fix the highlighted fields.', fieldErrors: Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0]), i.message])), values: formValues(formData) };
+  }
+  const t = ADJUSTMENT_TYPES[parsed.data.type];
+  const supabase = await createClient();
+  const { error } = await supabase.from('payroll_adjustments').insert({
+    organization_id: ctx.org.id, employee_id: parsed.data.employeeId, code: parsed.data.type, name: t.name, kind: t.kind,
+    amount: parsed.data.amount, taxable: t.taxable, reason: parsed.data.reason,
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(`/app/${orgSlug}/payroll`);
+  return { ok: true, message: 'Adjustment recorded. It will be paid (or recovered) in the next run.' };
+}
+
+export async function removeAdjustmentAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  const id = z.uuid().safeParse(formData.get('adjustmentId'));
+  if (!id.success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const { error } = await supabase.from('payroll_adjustments').delete().eq('organization_id', ctx.org.id).eq('id', id.data);
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath(`/app/${orgSlug}/payroll`);
+  return { ok: true, message: 'Removed.' };
+}

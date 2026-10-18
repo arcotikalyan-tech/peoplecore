@@ -1776,6 +1776,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      payroll_adjustments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          code: string;
+          name: string;
+          kind: Database['public']['Enums']['component_kind'];
+          amount: number;
+          taxable: boolean;
+          reason: string;
+          applied_run_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          code: string;
+          name: string;
+          kind: Database['public']['Enums']['component_kind'];
+          amount: number;
+          taxable?: boolean;
+          reason: string;
+          applied_run_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          code?: string;
+          name?: string;
+          kind?: Database['public']['Enums']['component_kind'];
+          amount?: number;
+          taxable?: boolean;
+          reason?: string;
+          applied_run_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       payroll_line_items: {
         Row: {
           id: number;

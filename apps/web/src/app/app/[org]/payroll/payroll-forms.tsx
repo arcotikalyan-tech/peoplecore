@@ -66,3 +66,23 @@ export function StatutoryForm({ action, employeeId, profile }: { action: Action;
     </ActionForm>
   );
 }
+
+export function AdjustmentForm({ action, employees }: { action: Action; employees: Array<{ value: string; label: string }> }) {
+  return (
+    <ActionForm action={action} label="Record an adjustment" submit="Record adjustment" className="space-y-4 border-t border-line px-5 py-5">
+      {(v, e) => (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <SelectField idPrefix="adj" name="employeeId" label="Employee" required options={employees} placeholder="Choose…" defaultValue={v.employeeId ?? ''} error={e.employeeId} />
+            <SelectField idPrefix="adj" name="type" label="Type" options={[
+              { value: 'ARREAR', label: 'Arrears (taxable)' }, { value: 'BONUS', label: 'Bonus (taxable)' },
+              { value: 'RECOVERY', label: 'Recovery' }, { value: 'OTHER_DEDUCTION', label: 'Other deduction' },
+            ]} defaultValue={v.type ?? 'ARREAR'} />
+            <TextField idPrefix="adj" name="amount" label="Amount (₹)" required inputMode="decimal" defaultValue={v.amount} error={e.amount} />
+          </div>
+          <TextField idPrefix="adj" name="reason" label="Reason" required placeholder="Revision effective September, paid late" defaultValue={v.reason} error={e.reason} />
+        </>
+      )}
+    </ActionForm>
+  );
+}
