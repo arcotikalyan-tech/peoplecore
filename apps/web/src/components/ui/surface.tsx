@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { cn } from './cn';
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn('rounded-lg border border-line bg-surface shadow-xs', className)}>{children}</section>;
+  return <section className={cn('rounded-xl border border-line bg-surface', className)}>{children}</section>;
 }
 
 export function CardHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
@@ -63,7 +63,7 @@ export function Alert({ tone = 'info', title, children }: { tone?: Tone; title?:
 type BadgeTone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'ai';
 const badgeTones: Record<BadgeTone, string> = {
   neutral: 'bg-subtle text-muted ring-line',
-  primary: 'bg-primary-soft text-primary ring-primary/20',
+  primary: 'bg-info-soft text-info ring-info/20',
   success: 'bg-success-soft text-success ring-success/20',
   warning: 'bg-warning-soft text-warning ring-warning/20',
   danger: 'bg-danger-soft text-danger ring-danger/20',

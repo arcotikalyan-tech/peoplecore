@@ -64,7 +64,7 @@ test('HR invites, re-roles, suspends and removes a member, and cannot touch the 
   const member = await (await browser.newContext()).newPage();
   await signIn(member, local);
   await member.waitForURL(/\/app\/demo$/);
-  await expect(member.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(member.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening)/ })).toBeVisible();
   await hr.reload();
   await expect(row.getByText('Active', { exact: true })).toBeVisible();
 

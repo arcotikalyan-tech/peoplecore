@@ -208,7 +208,7 @@ test('suspending an organization locks its members out until it is reactivated',
   await hr.goto('/app/demo');
   await expect(hr).toHaveURL(/\/mfa\?next=%2Fapp%2Fdemo$/);
   await completeMfa(hr, 'demo.hr');
-  await expect(hr.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(hr.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening)/ })).toBeVisible();
 });
 
 test('signing out ends the session', async ({ page }) => {

@@ -1,59 +1,74 @@
 @import 'tailwindcss';
 
-/* Design tokens. Components use the semantic utilities below (bg-surface, text-muted, …), never raw colors. */
-:root {
-  --canvas: #f6f7f9;
-  --surface: #ffffff;
-  --subtle: #f1f3f6;
-  --line: #e3e6eb;
-  --line-strong: #cfd4dc;
-  --fg: #111827;
-  --muted: #5b6474;
-  --primary: #1f4fd1;
+/*
+ * Design tokens. Components use the semantic utilities below (bg-surface, text-muted, …), never raw colors.
+ * Dark is the default; <html data-theme="light"> switches (the theme cookie sets it on the server, so there is
+ * no flash). Accent: coral. AI content keeps its own violet so it is never mistaken for a record.
+ */
+:root,
+[data-theme='dark'] {
+  --canvas: #09090b;
+  --surface: #131317;
+  --subtle: #1b1b21;
+  --raised: #1f1f26;
+  --line: #26262e;
+  --line-strong: #383842;
+  --fg: #f4f4f6;
+  --muted: #9b9ba8;
+  --primary: #f26b55;
   --primary-fg: #ffffff;
-  --primary-soft: #e8eefc;
+  --primary-soft: #3a1a15;
+  --accent: #7c6cff;
+  --accent-soft: #221e45;
+  --danger: #ff6b6b;
+  --danger-soft: #3b1618;
+  --success: #3fd68b;
+  --success-soft: #11301f;
+  --warning: #f6b445;
+  --warning-soft: #352710;
+  --info: #5aa9ff;
+  --info-soft: #132a45;
+  --ai: #a594ff;
+  --ai-soft: #251f45;
+  --ring: #f26b55;
+  --sidebar: #0c0c0f;
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --canvas: #f6f6f8;
+  --surface: #ffffff;
+  --subtle: #f1f1f4;
+  --raised: #ffffff;
+  --line: #e5e5ea;
+  --line-strong: #cfcfd8;
+  --fg: #16161b;
+  --muted: #5f5f6c;
+  --primary: #d9472f;
+  --primary-fg: #ffffff;
+  --primary-soft: #fdebe7;
+  --accent: #5b4ae6;
+  --accent-soft: #eeebfe;
   --danger: #c4282d;
   --danger-soft: #fdecec;
   --success: #17803d;
   --success-soft: #e7f6ec;
   --warning: #a65c00;
   --warning-soft: #fdf3e2;
-  /* AI suggestions are always rendered in this distinct hue so they are never mistaken for records. */
+  --info: #1f63c7;
+  --info-soft: #e8f0fc;
   --ai: #6d3fd1;
   --ai-soft: #f1ebfd;
-  --ring: #1f4fd1;
+  --ring: #d9472f;
+  --sidebar: #ffffff;
   color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --canvas: #0d1117;
-    --surface: #151b23;
-    --subtle: #1c232d;
-    --line: #2a323d;
-    --line-strong: #3a4350;
-    --fg: #e8ebf0;
-    --muted: #9aa3b2;
-    --primary: #6b93ff;
-    --primary-fg: #0b1020;
-    --primary-soft: #1a2647;
-    --danger: #ff7b7f;
-    --danger-soft: #3a1618;
-    --success: #5fd38a;
-    --success-soft: #12301e;
-    --warning: #f0b45a;
-    --warning-soft: #33250f;
-    --ai: #b79bff;
-    --ai-soft: #271d41;
-    --ring: #6b93ff;
-    color-scheme: dark;
-  }
 }
 
 @theme inline {
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
   --color-subtle: var(--subtle);
+  --color-raised: var(--raised);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-fg: var(--fg);
@@ -61,15 +76,20 @@
   --color-primary: var(--primary);
   --color-primary-fg: var(--primary-fg);
   --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
   --color-ai: var(--ai);
   --color-ai-soft: var(--ai-soft);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -86,4 +106,10 @@ body {
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Thin, quiet scrollbars in the sidebar and wide tables. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
 }
