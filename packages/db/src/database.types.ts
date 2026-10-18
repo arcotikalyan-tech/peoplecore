@@ -1344,6 +1344,141 @@ export type Database = {
         };
         Relationships: [];
       };
+      grievance_access: {
+        Row: {
+          id: string;
+          organization_id: string;
+          grievance_id: string;
+          user_id: string;
+          added_by: string | null;
+          added_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          grievance_id: string;
+          user_id: string;
+          added_by?: string | null;
+          added_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          grievance_id?: string;
+          user_id?: string;
+          added_by?: string | null;
+          added_at?: string;
+        };
+        Relationships: [];
+      };
+      grievance_notes: {
+        Row: {
+          id: string;
+          organization_id: string;
+          grievance_id: string;
+          author_user_id: string;
+          body: string;
+          internal: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          grievance_id: string;
+          author_user_id?: string;
+          body: string;
+          internal?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          grievance_id?: string;
+          author_user_id?: string;
+          body?: string;
+          internal?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      grievance_respondents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          grievance_id: string;
+          employee_id: string;
+          added_by: string | null;
+          added_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          grievance_id: string;
+          employee_id: string;
+          added_by?: string | null;
+          added_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          grievance_id?: string;
+          employee_id?: string;
+          added_by?: string | null;
+          added_at?: string;
+        };
+        Relationships: [];
+      };
+      grievances: {
+        Row: {
+          id: string;
+          organization_id: string;
+          number: number;
+          reporter_id: string;
+          category: Database['public']['Enums']['grievance_category'];
+          subject: string;
+          description: string;
+          incident_on: string | null;
+          status: Database['public']['Enums']['grievance_status'];
+          outcome: string | null;
+          created_at: string;
+          updated_at: string;
+          resolved_at: string | null;
+          closed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          number: number;
+          reporter_id: string;
+          category: Database['public']['Enums']['grievance_category'];
+          subject: string;
+          description: string;
+          incident_on?: string | null;
+          status?: Database['public']['Enums']['grievance_status'];
+          outcome?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          resolved_at?: string | null;
+          closed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          number?: number;
+          reporter_id?: string;
+          category?: Database['public']['Enums']['grievance_category'];
+          subject?: string;
+          description?: string;
+          incident_on?: string | null;
+          status?: Database['public']['Enums']['grievance_status'];
+          outcome?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          resolved_at?: string | null;
+          closed_at?: string | null;
+        };
+        Relationships: [];
+      };
       holiday_calendars: {
         Row: {
           id: string;
@@ -3085,6 +3220,21 @@ export type Database = {
         };
         Returns: string;
       };
+      add_grievance_note: {
+        Args: {
+          p_case: string;
+          p_body: string;
+          p_internal?: boolean;
+        };
+        Returns: undefined;
+      };
+      add_grievance_respondent: {
+        Args: {
+          p_case: string;
+          p_employee: string;
+        };
+        Returns: undefined;
+      };
       add_member: {
         Args: {
           p_org: string;
@@ -3335,6 +3485,30 @@ export type Database = {
         };
         Returns: { id: string; key: string; name: string; description: string }[];
       };
+      grievance_case: {
+        Args: {
+          p_case: string;
+        };
+        Returns: { id: string; number: number; category: Database['public']['Enums']['grievance_category']; subject: string; description: string; incident_on: string; status: Database['public']['Enums']['grievance_status']; outcome: string; created_at: string; resolved_at: string; closed_at: string; reporter_id: string; reporter_name: string; my_role: string }[];
+      };
+      grievance_investigator_options: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { user_id: string; name: string }[];
+      };
+      grievance_people: {
+        Args: {
+          p_case: string;
+        };
+        Returns: { kind: string; user_id: string; employee_id: string; name: string }[];
+      };
+      grievance_thread: {
+        Args: {
+          p_case: string;
+        };
+        Returns: { id: string; author_name: string; mine: boolean; body: string; internal: boolean; created_at: string }[];
+      };
       hire_application: {
         Args: {
           p_application: string;
@@ -3477,6 +3651,17 @@ export type Database = {
           p_run: string;
         };
         Returns: undefined;
+      };
+      raise_grievance: {
+        Args: {
+          p_org: string;
+          p_category: Database['public']['Enums']['grievance_category'];
+          p_subject: string;
+          p_description: string;
+          p_incident_on?: string;
+          p_respondents?: string[];
+        };
+        Returns: string;
       };
       raise_ticket: {
         Args: {
@@ -3627,6 +3812,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_grievance_access: {
+        Args: {
+          p_case: string;
+          p_user: string;
+          p_allow: boolean;
+        };
+        Returns: undefined;
+      };
       set_member_roles: {
         Args: {
           p_member: string;
@@ -3738,12 +3931,27 @@ export type Database = {
         };
         Returns: { id: string; author_name: string; mine: boolean; body: string; internal: boolean; created_at: string }[];
       };
+      update_grievance: {
+        Args: {
+          p_case: string;
+          p_status: Database['public']['Enums']['grievance_status'];
+          p_outcome?: string;
+        };
+        Returns: undefined;
+      };
       update_ticket: {
         Args: {
           p_ticket: string;
           p_status: Database['public']['Enums']['ticket_status'];
           p_assignee?: string;
           p_priority?: Database['public']['Enums']['ticket_priority'];
+        };
+        Returns: undefined;
+      };
+      withdraw_grievance: {
+        Args: {
+          p_case: string;
+          p_reason?: string;
         };
         Returns: undefined;
       };
@@ -3825,6 +4033,8 @@ export type Database = {
       expense_status: 'draft' | 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled';
       gender: 'female' | 'male' | 'non_binary' | 'undisclosed';
       goal_status: 'active' | 'completed' | 'dropped';
+      grievance_category: 'posh' | 'discrimination' | 'bullying' | 'conduct' | 'pay' | 'safety' | 'ethics' | 'other';
+      grievance_status: 'submitted' | 'in_review' | 'investigating' | 'resolved' | 'closed' | 'withdrawn';
       interview_mode: 'in_person' | 'video' | 'phone';
       interview_status: 'scheduled' | 'completed' | 'cancelled';
       leave_entry_kind: 'opening' | 'accrual' | 'debit' | 'reversal' | 'lapse' | 'adjust';

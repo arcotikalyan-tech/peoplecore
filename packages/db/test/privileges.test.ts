@@ -22,12 +22,26 @@ describe('table privileges (least privilege, independent of Supabase defaults)',
     expect(await tablesWhere('authenticated', 'TRUNCATE,REFERENCES,TRIGGER')).toEqual([]);
   });
 
-  it('signed-in users can read every table (RLS then filters rows)', async () => {
+  // Grievance texts are read only through functions that record each read (migration 20261018002400): the case
+  // table grants its non-text columns, and the notes table nothing. Adding a table here needs the same review.
+  const READ_THROUGH_AUDITED_FUNCTIONS = ['grievance_notes', 'grievances'];
+
+  it('signed-in users can read every table (RLS then filters rows), except the audited-read ones', async () => {
     const all = await ctx.t.db.query<{ relname: string }>(
       `select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public' and c.relkind = 'r' order by 1`,
     );
-    expect(await tablesWhere('authenticated', 'SELECT')).toEqual(all.rows.map((r) => r.relname));
+    expect(await tablesWhere('authenticated', 'SELECT'))
+      .toEqual(all.rows.map((r) => r.relname).filter((t) => !READ_THROUGH_AUDITED_FUNCTIONS.includes(t)));
+  });
+
+  it('grievance descriptions, outcomes and messages are not readable through the tables', async () => {
+    const { rows } = await ctx.t.db.query<{ col: string; ok: boolean }>(
+      `select c.col, has_column_privilege('authenticated', 'public.grievances', c.col, 'SELECT') as ok
+         from unnest(array['description', 'outcome', 'subject']) c(col)`,
+    );
+    expect(rows).toEqual([{ col: 'description', ok: false }, { col: 'outcome', ok: false }, { col: 'subject', ok: true }]);
+    expect(await tablesWhere('authenticated', 'SELECT,INSERT,UPDATE,DELETE').then((t) => t.includes('grievance_notes'))).toBe(false);
   });
 
   it('anonymous users can execute only the reviewed careers-page functions', async () => {
