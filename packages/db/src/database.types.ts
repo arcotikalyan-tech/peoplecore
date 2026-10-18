@@ -6,6 +6,48 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      anomaly_flags: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          subject_type: string;
+          subject_id: string;
+          rule: string;
+          explanation: string;
+          status: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          subject_type: string;
+          subject_id: string;
+          rule: string;
+          explanation: string;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          subject_type?: string;
+          subject_id?: string;
+          rule?: string;
+          explanation?: string;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       applications: {
         Row: {
           id: string;
@@ -180,6 +222,102 @@ export type Database = {
         };
         Relationships: [];
       };
+      attendance_days: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          work_date: string;
+          shift_id: string | null;
+          status: Database['public']['Enums']['attendance_status'];
+          first_in: string | null;
+          last_out: string | null;
+          worked_minutes: number;
+          late_minutes: number;
+          punch_count: number;
+          leave_days: number;
+          leave_paid: boolean | null;
+          is_regularized: boolean;
+          computed_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          work_date: string;
+          shift_id?: string | null;
+          status: Database['public']['Enums']['attendance_status'];
+          first_in?: string | null;
+          last_out?: string | null;
+          worked_minutes?: number;
+          late_minutes?: number;
+          punch_count?: number;
+          leave_days?: number;
+          leave_paid?: boolean | null;
+          is_regularized?: boolean;
+          computed_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          work_date?: string;
+          shift_id?: string | null;
+          status?: Database['public']['Enums']['attendance_status'];
+          first_in?: string | null;
+          last_out?: string | null;
+          worked_minutes?: number;
+          late_minutes?: number;
+          punch_count?: number;
+          leave_days?: number;
+          leave_paid?: boolean | null;
+          is_regularized?: boolean;
+          computed_at?: string;
+        };
+        Relationships: [];
+      };
+      attendance_punches: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          punched_at: string;
+          method: Database['public']['Enums']['punch_method'];
+          source_key: string;
+          device_id: string | null;
+          latitude: number | null;
+          longitude: number | null;
+          accuracy_m: number | null;
+          received_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          punched_at: string;
+          method: Database['public']['Enums']['punch_method'];
+          source_key: string;
+          device_id?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
+          accuracy_m?: number | null;
+          received_at?: string;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          punched_at?: string;
+          method?: Database['public']['Enums']['punch_method'];
+          source_key?: string;
+          device_id?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
+          accuracy_m?: number | null;
+          received_at?: string;
+          created_by?: string | null;
+        };
+        Relationships: [];
+      };
       audit_events: {
         Row: {
           id: number;
@@ -213,6 +351,36 @@ export type Database = {
           entity_id?: string | null;
           changes?: Json | null;
           metadata?: Json;
+        };
+        Relationships: [];
+      };
+      biometric_devices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          serial_number: string;
+          name: string;
+          location_id: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          serial_number: string;
+          name: string;
+          location_id?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          serial_number?: string;
+          name?: string;
+          location_id?: string | null;
+          is_active?: boolean;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -620,6 +788,42 @@ export type Database = {
           change_reason?: Database['public']['Enums']['assignment_change_reason'];
           notes?: string | null;
           created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      geofences: {
+        Row: {
+          id: string;
+          organization_id: string;
+          location_id: string;
+          name: string;
+          latitude: number;
+          longitude: number;
+          radius_m: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          location_id: string;
+          name: string;
+          latitude: number;
+          longitude: number;
+          radius_m: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          location_id?: string;
+          name?: string;
+          latitude?: number;
+          longitude?: number;
+          radius_m?: number;
+          is_active?: boolean;
           created_at?: string;
         };
         Relationships: [];
@@ -1158,6 +1362,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      regularization_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          work_date: string;
+          check_in: string | null;
+          check_out: string | null;
+          reason: string;
+          status: Database['public']['Enums']['leave_status'];
+          approval_request_id: string | null;
+          requested_by: string;
+          created_at: string;
+          decided_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          work_date: string;
+          check_in?: string | null;
+          check_out?: string | null;
+          reason: string;
+          status?: Database['public']['Enums']['leave_status'];
+          approval_request_id?: string | null;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          work_date?: string;
+          check_in?: string | null;
+          check_out?: string | null;
+          reason?: string;
+          status?: Database['public']['Enums']['leave_status'];
+          approval_request_id?: string | null;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Relationships: [];
+      };
       role_permissions: {
         Row: {
           organization_id: string;
@@ -1215,6 +1464,87 @@ export type Database = {
           updated_at?: string;
           assignment_permission?: string;
           requires_mfa?: boolean;
+        };
+        Relationships: [];
+      };
+      roster_assignments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          shift_id: string;
+          effective_from: string;
+          effective_to: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          shift_id: string;
+          effective_from: string;
+          effective_to?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          shift_id?: string;
+          effective_from?: string;
+          effective_to?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      shifts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          code: string;
+          name: string;
+          start_time: string;
+          end_time: string;
+          break_minutes: number;
+          grace_minutes: number;
+          full_day_minutes: number;
+          half_day_minutes: number;
+          is_default: boolean;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          code: string;
+          name: string;
+          start_time: string;
+          end_time: string;
+          break_minutes?: number;
+          grace_minutes?: number;
+          full_day_minutes?: number;
+          half_day_minutes?: number;
+          is_default?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          code?: string;
+          name?: string;
+          start_time?: string;
+          end_time?: string;
+          break_minutes?: number;
+          grace_minutes?: number;
+          full_day_minutes?: number;
+          half_day_minutes?: number;
+          is_default?: boolean;
+          is_active?: boolean;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -1331,6 +1661,20 @@ export type Database = {
           p_reason?: string;
         };
         Returns: string;
+      };
+      attendance_days_for: {
+        Args: {
+          p_employee: string;
+          p_month: string;
+        };
+        Returns: Database['public']['Tables']['attendance_days']['Row'][];
+      };
+      attendance_month_summary: {
+        Args: {
+          p_org: string;
+          p_month: string;
+        };
+        Returns: { employee_id: string; employee_code: string; employee_name: string; days_in_period: number; present: number; half_days: number; absent: number; paid_leave: number; unpaid_leave: number; weekly_offs: number; holidays: number; not_marked: number; late_days: number; payable_days: number; lop_days: number }[];
       };
       cancel_approval: {
         Args: {
@@ -1453,6 +1797,13 @@ export type Database = {
         };
         Returns: string;
       };
+      import_device_punches: {
+        Args: {
+          p_device: string;
+          p_rows: Json;
+        };
+        Returns: Json;
+      };
       import_employees: {
         Args: {
           p_org: string;
@@ -1509,6 +1860,28 @@ export type Database = {
         };
         Returns: { member_id: string; user_id: string; email: string; status: Database['public']['Enums']['member_status']; joined_at: string; last_sign_in_at: string; role_ids: string[]; employee_id: string; employee_name: string }[];
       };
+      record_punch: {
+        Args: {
+          p_client_id: string;
+          p_punched_at?: string;
+          p_method?: Database['public']['Enums']['punch_method'];
+          p_latitude?: number;
+          p_longitude?: number;
+          p_accuracy_m?: number;
+          p_org?: string;
+        };
+        Returns: string;
+      };
+      request_regularization: {
+        Args: {
+          p_employee: string;
+          p_date: string;
+          p_in?: string;
+          p_out?: string;
+          p_reason?: string;
+        };
+        Returns: string;
+      };
       reveal_employee_bank_account: {
         Args: {
           p_employee: string;
@@ -1520,6 +1893,13 @@ export type Database = {
           p_employee: string;
         };
         Returns: { pan: string; aadhaar_last4: string; uan: string; esic_number: string; passport_number: string; passport_expiry: string }[];
+      };
+      review_anomaly: {
+        Args: {
+          p_flag: string;
+          p_status: string;
+        };
+        Returns: undefined;
       };
       set_employee_bank_account: {
         Args: {
@@ -1571,6 +1951,10 @@ export type Database = {
         };
         Returns: { kind: string; item_id: string; current_employees: number }[];
       };
+      worker_attendance_daily: {
+        Args: never;
+        Returns: Json;
+      };
       worker_claim_jobs: {
         Args: {
           p_worker: string;
@@ -1619,6 +2003,7 @@ export type Database = {
       approval_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
       approver_rule: 'reporting_manager' | 'permission';
       assignment_change_reason: 'joining' | 'transfer' | 'promotion' | 'manager_change' | 'type_change' | 'correction' | 'other';
+      attendance_status: 'present' | 'half_day' | 'absent' | 'on_leave' | 'weekly_off' | 'holiday' | 'not_marked';
       bank_account_type: 'savings' | 'current' | 'salary';
       candidate_source: 'careers_site' | 'referral' | 'agency' | 'job_board' | 'direct' | 'other';
       document_category: 'identity' | 'address' | 'education' | 'employment' | 'contract' | 'medical' | 'other';
@@ -1630,6 +2015,7 @@ export type Database = {
       member_status: 'invited' | 'active' | 'suspended';
       org_status: 'active' | 'suspended' | 'archived';
       permission_scope: 'org' | 'team' | 'self';
+      punch_method: 'web' | 'mobile' | 'biometric' | 'import' | 'regularization';
       requisition_status: 'open' | 'on_hold' | 'closed';
       task_status: 'open' | 'done' | 'cancelled';
     };

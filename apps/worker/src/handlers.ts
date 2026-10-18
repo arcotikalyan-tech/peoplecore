@@ -15,6 +15,11 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       if (error) throw new Error(error.message);
       log('leave.accrual', data as Record<string, unknown>);
     },
+    'attendance.daily': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_attendance_daily');
+      if (error) throw new Error(error.message);
+      log('attendance.daily', data as Record<string, unknown>);
+    },
     // Domain events without a dedicated consumer yet: acknowledged, so the queue stays clean.
     'event:*': async (job, log) => {
       log('event.seen', { kind: job.kind, subject_id: job.payload.subject_id });

@@ -33,6 +33,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | recruitment.read | O | O | O | | T | T | | O |
 | attendance.read | O | O | | O | T | T | S | O |
 | attendance.approve | O | O | | | T | T | | |
+| attendance.manage | O | O | | | | | | |
 | leave.approve | O | O | | | T | T | | |
 | leave.read | O | O | | O | T | T | S | O |
 | leave.manage | O | O | | | | | | |

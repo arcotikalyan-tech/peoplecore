@@ -24,6 +24,7 @@ Inspect the environment, write the ADRs and plans, set up the monorepo, standard
 **AC:** hire journey E2E (requisition → offer accepted → employee in `pre_joining`) and one employee record per hire. Candidate consent and deletion work.
 
 ### Phase 3: Onboarding, documents, attendance, shifts, leave, mobile app, job queue
+**Built:** job queue + worker, private storage with signed URLs (documents), leave (ledger, approvals, accrual), attendance (idempotent punches, offline sync, regularization approvals, reproducible monthly summary), biometric CSV import. 🔜 onboarding, Expo mobile app, selfie/liveness.
 Job queue + worker (ADR-007). Private storage with signed URLs. Expo app (employee check-in, leave, payslips later). Geofence and selfie punch with device checks and offline queue. Biometric adapter interface + CSV/ADMS-style import. Leave ledger with accrual jobs.
 **AC:** punches are idempotent; offline punches sync once; leave balance = ledger sum, verified by property-based tests; regularization approval updates `attendance_days`; payroll-ready monthly summary is reproducible.
 

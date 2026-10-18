@@ -45,6 +45,7 @@ export const PERMISSIONS = {
 
   'attendance.read': { module: 'attendance', description: 'View attendance' },
   'attendance.approve': { module: 'attendance', description: 'Approve regularizations' },
+  'attendance.manage': { module: 'attendance', description: 'Configure shifts, rosters, geofences and devices; import punches' },
   'leave.approve': { module: 'leave', description: 'Approve leave' },
   'leave.read': { module: 'leave', description: 'View leave balances and requests' },
   'leave.manage': { module: 'leave', description: 'Configure leave, holidays and adjust balances' },
@@ -98,7 +99,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'recruitment.read': 'org', 'recruitment.manage': 'org',
       'attendance.read': 'org', 'attendance.approve': 'org', 'leave.approve': 'org', 'expense.approve': 'org',
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
-      'leave.read': 'org', 'leave.manage': 'org',
+      'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org',
     },
   },
   hr_admin: {
@@ -115,7 +116,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'recruitment.read': 'org', 'recruitment.manage': 'org',
       'attendance.read': 'org', 'attendance.approve': 'org', 'leave.approve': 'org',
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
-      'leave.read': 'org', 'leave.manage': 'org',
+      'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org',
     },
   },
   recruiter: {

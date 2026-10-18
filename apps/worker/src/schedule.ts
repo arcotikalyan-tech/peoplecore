@@ -17,5 +17,7 @@ export function dueJobs(now: Date): ScheduledJob[] {
   return [
     { kind: 'core_hr.daily', key: `core_hr.daily:${hour}`, payload: { hour } },
     { kind: 'leave.accrual', key: `leave.accrual:${hour}`, payload: { hour } },
+    // Daily: recomputes the last 7 days of attendance (absences appear the next morning, leave changes propagate).
+    { kind: 'attendance.daily', key: `attendance.daily:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
   ];
 }

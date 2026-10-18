@@ -160,9 +160,11 @@ export async function generateDatabaseTypes(db: PGlite): Promise<string> {
     });
     out.push(`      ${f.proname}: {`);
     out.push(inputs.length ? `        Args: {\n${inputs.join('\n')}\n        };` : '        Args: never;');
+    // A function returning a table's row type (e.g. `returns setof public.attendance_days`) gets that table's Row.
+    const rowType = f.ret_typtype === 'c' && tables.includes(f.ret_typname) ? `Database['public']['Tables']['${f.ret_typname}']['Row']` : null;
     const returns = outputs.length
       ? `{ ${outputs.join('; ')} }${f.retset ? '[]' : ''}`
-      : `${tsType(f.ret_typname, f.ret_typtype)}${f.retset ? '[]' : ''}`;
+      : `${rowType ?? tsType(f.ret_typname, f.ret_typtype)}${f.retset ? '[]' : ''}`;
     out.push(`        Returns: ${returns};`);
     out.push('      };');
   }
