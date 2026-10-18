@@ -29,8 +29,8 @@ export function AssignmentForm({ action, employeeId, current, options, today }: 
       <input type="hidden" name="employeeId" value={employeeId} />
       <FormMessage state={state} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <TextField name="effectiveFrom" label="Effective from" type="date" required max={today} defaultValue={v?.effectiveFrom ?? today} error={e.effectiveFrom}
-          hint="Today or earlier. Future-dated changes aren’t supported yet." />
+        <TextField name="effectiveFrom" label="Effective from" type="date" required defaultValue={v?.effectiveFrom ?? today} error={e.effectiveFrom}
+          hint="A future date schedules the change; it takes effect on that day." />
         <SelectField name="changeReason" label="Reason" required options={reasons} placeholder="Select…" defaultValue={v?.changeReason} error={e.changeReason} />
         <SelectField name="departmentId" label="Department" options={options.departments} placeholder="None" defaultValue={pick('departmentId', current.departmentId)} error={e.departmentId} />
         <SelectField name="designationId" label="Designation" options={options.designations} placeholder="None" defaultValue={pick('designationId', current.designationId)} error={e.designationId} />

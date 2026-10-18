@@ -3,16 +3,18 @@ import type { ReactNode } from 'react';
 import { Brand } from '@/components/brand';
 import { NavLink } from '@/components/nav-link';
 import { getOrgContext, isPlatformAdmin } from '@/server/context';
+import { unreadNotificationCount } from '@/server/inbox';
 
 export default async function OrgLayout({ children, params }: { children: ReactNode; params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await getOrgContext(slug);
-  const platformAdmin = await isPlatformAdmin();
+  const [platformAdmin, unread] = await Promise.all([isPlatformAdmin(), unreadNotificationCount(ctx.org.id)]);
   const base = `/app/${slug}`;
 
   // Navigation is filtered for usability only; every page re-checks, and RLS enforces.
   const nav = [
     { href: base, label: 'Dashboard', exact: true },
+    { href: `${base}/inbox`, label: 'Inbox', count: unread },
     ...(ctx.can('employee.read') ? [{ href: `${base}/employees`, label: 'Employees' }] : []),
     ...(ctx.can('recruitment.read') ? [{ href: `${base}/recruitment`, label: 'Recruitment' }] : []),
     ...(ctx.can('org.read') ? [{ href: `${base}/structure`, label: 'Organization' }] : []),

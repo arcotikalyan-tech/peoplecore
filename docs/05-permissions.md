@@ -37,6 +37,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | expense.approve | O | | | O | T | T | | |
 | grievance.read † | O | O⁴ | | | | | S | |
 | ai.use | O | O | O | O | O | O | O | |
+| task.manage | O | O | | | | | | |
 
 † Sensitive: every read is audited where the module supports it, and access is excluded from the AI retrieval default.
 ¹ Not granted yet. In Phase 2b recruiters get a minimal directory projection (name, department, designation) through a restricted view, never the full row. A test asserts recruiters currently see no employee rows.

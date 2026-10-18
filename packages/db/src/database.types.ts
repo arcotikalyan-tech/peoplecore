@@ -45,6 +45,141 @@ export type Database = {
         };
         Relationships: [];
       };
+      approval_actions: {
+        Row: {
+          id: number;
+          organization_id: string;
+          request_id: string;
+          step_no: number;
+          actor_user_id: string;
+          decision: string;
+          comment: string | null;
+          acted_at: string;
+        };
+        Insert: {
+          id?: never;
+          organization_id: string;
+          request_id: string;
+          step_no: number;
+          actor_user_id: string;
+          decision: string;
+          comment?: string | null;
+          acted_at?: string;
+        };
+        Update: {
+          id?: never;
+          organization_id?: string;
+          request_id?: string;
+          step_no?: number;
+          actor_user_id?: string;
+          decision?: string;
+          comment?: string | null;
+          acted_at?: string;
+        };
+        Relationships: [];
+      };
+      approval_flow_steps: {
+        Row: {
+          id: string;
+          organization_id: string;
+          flow_id: string;
+          step_no: number;
+          approver_rule: Database['public']['Enums']['approver_rule'];
+          permission_key: string | null;
+          label: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          flow_id: string;
+          step_no: number;
+          approver_rule: Database['public']['Enums']['approver_rule'];
+          permission_key?: string | null;
+          label: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          flow_id?: string;
+          step_no?: number;
+          approver_rule?: Database['public']['Enums']['approver_rule'];
+          permission_key?: string | null;
+          label?: string;
+        };
+        Relationships: [];
+      };
+      approval_flows: {
+        Row: {
+          id: string;
+          organization_id: string;
+          subject_type: string;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          subject_type: string;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          subject_type?: string;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      approval_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          subject_type: string;
+          subject_id: string;
+          flow_id: string;
+          subject_employee_id: string | null;
+          summary: string;
+          link: string | null;
+          status: Database['public']['Enums']['approval_status'];
+          current_step: number;
+          requested_by: string;
+          created_at: string;
+          decided_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          subject_type: string;
+          subject_id: string;
+          flow_id: string;
+          subject_employee_id?: string | null;
+          summary: string;
+          link?: string | null;
+          status?: Database['public']['Enums']['approval_status'];
+          current_step?: number;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          subject_type?: string;
+          subject_id?: string;
+          flow_id?: string;
+          subject_employee_id?: string | null;
+          summary?: string;
+          link?: string | null;
+          status?: Database['public']['Enums']['approval_status'];
+          current_step?: number;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Relationships: [];
+      };
       audit_events: {
         Row: {
           id: number;
@@ -651,6 +786,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          kind: string;
+          title: string;
+          body: string | null;
+          link: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          kind: string;
+          title: string;
+          body?: string | null;
+          link?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          user_id?: string;
+          kind?: string;
+          title?: string;
+          body?: string | null;
+          link?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       organization_members: {
         Row: {
           id: string;
@@ -813,6 +984,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      tasks: {
+        Row: {
+          id: string;
+          organization_id: string;
+          assignee_employee_id: string;
+          title: string;
+          details: string | null;
+          due_on: string | null;
+          status: Database['public']['Enums']['task_status'];
+          subject_type: string | null;
+          subject_id: string | null;
+          completed_at: string | null;
+          completed_by: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          assignee_employee_id: string;
+          title: string;
+          details?: string | null;
+          due_on?: string | null;
+          status?: Database['public']['Enums']['task_status'];
+          subject_type?: string | null;
+          subject_id?: string | null;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          assignee_employee_id?: string;
+          title?: string;
+          details?: string | null;
+          due_on?: string | null;
+          status?: Database['public']['Enums']['task_status'];
+          subject_type?: string | null;
+          subject_id?: string | null;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -853,6 +1075,12 @@ export type Database = {
           p_employee_id?: string;
         };
         Returns: string;
+      };
+      cancel_approval: {
+        Args: {
+          p_request: string;
+        };
+        Returns: undefined;
       };
       change_employee_assignment: {
         Args: {
@@ -908,6 +1136,14 @@ export type Database = {
           p_description?: string;
         };
         Returns: string;
+      };
+      decide_approval: {
+        Args: {
+          p_request: string;
+          p_decision: string;
+          p_comment?: string;
+        };
+        Returns: Database['public']['Enums']['approval_status'];
       };
       delete_employee_document: {
         Args: {
@@ -987,6 +1223,12 @@ export type Database = {
         Args: never;
         Returns: { id: string; name: string; slug: string; is_demo: boolean; status: Database['public']['Enums']['org_status'] }[];
       };
+      my_pending_approvals: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { id: string; subject_type: string; subject_id: string; summary: string; link: string; step_label: string; requested_by_name: string; created_at: string }[];
+      };
       my_permissions: {
         Args: {
           p_org: string;
@@ -1048,15 +1290,61 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_task_status: {
+        Args: {
+          p_task: string;
+          p_status: Database['public']['Enums']['task_status'];
+        };
+        Returns: undefined;
+      };
       structure_usage: {
         Args: {
           p_org: string;
         };
         Returns: { kind: string; item_id: string; current_employees: number }[];
       };
+      worker_claim_jobs: {
+        Args: {
+          p_worker: string;
+          p_limit?: number;
+          p_lease_seconds?: number;
+        };
+        Returns: { id: number; organization_id: string; kind: string; payload: Json; attempts: number }[];
+      };
+      worker_complete_job: {
+        Args: {
+          p_id: number;
+          p_worker: string;
+        };
+        Returns: boolean;
+      };
+      worker_daily_core_hr: {
+        Args: never;
+        Returns: Json;
+      };
+      worker_enqueue_job: {
+        Args: {
+          p_org: string;
+          p_kind: string;
+          p_payload: Json;
+          p_key: string;
+          p_run_at?: string;
+        };
+        Returns: number;
+      };
+      worker_fail_job: {
+        Args: {
+          p_id: number;
+          p_worker: string;
+          p_error: string;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       application_stage: 'applied' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected' | 'withdrawn';
+      approval_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+      approver_rule: 'reporting_manager' | 'permission';
       assignment_change_reason: 'joining' | 'transfer' | 'promotion' | 'manager_change' | 'type_change' | 'correction' | 'other';
       bank_account_type: 'savings' | 'current' | 'salary';
       candidate_source: 'careers_site' | 'referral' | 'agency' | 'job_board' | 'direct' | 'other';
@@ -1068,6 +1356,7 @@ export type Database = {
       org_status: 'active' | 'suspended' | 'archived';
       permission_scope: 'org' | 'team' | 'self';
       requisition_status: 'open' | 'on_hold' | 'closed';
+      task_status: 'open' | 'done' | 'cancelled';
     };
     CompositeTypes: { [_ in never]: never };
   };

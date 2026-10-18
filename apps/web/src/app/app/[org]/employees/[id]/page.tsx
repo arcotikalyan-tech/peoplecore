@@ -108,6 +108,7 @@ export default async function EmployeePage({
   // Structure rows are visible to every member, so a miss means the item was archived.
   const lookup = (m: Map<string, string>, k: string | null) => (k ? (m.get(k) ?? 'Archived') : null);
   const base = `/app/${slug}`;
+  const today = todayIn(ctx.org.timezone);
   const { created } = await searchParams;
 
   const managerId = employee.manager_employee_id;
@@ -279,7 +280,7 @@ export default async function EmployeePage({
               <AssignmentForm
                 action={changeAssignmentAction.bind(null, slug)}
                 employeeId={employee.id}
-                today={todayIn(ctx.org.timezone)}
+                today={today}
                 current={{
                   departmentId: employee.department_id,
                   designationId: employee.designation_id,
@@ -299,9 +300,14 @@ export default async function EmployeePage({
               {history.map((h) => (
                 <li key={h.id} className="px-5 py-4 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Badge tone={h.effective_to ? 'neutral' : 'primary'}>{ASSIGNMENT_CHANGE_REASON_LABELS[h.change_reason]}</Badge>
+                    <span className="flex items-center gap-2">
+                      <Badge tone={h.effective_to ? 'neutral' : 'primary'}>{ASSIGNMENT_CHANGE_REASON_LABELS[h.change_reason]}</Badge>
+                      {h.effective_from > today && <Badge tone="warning">Scheduled</Badge>}
+                    </span>
                     <span className="text-xs text-muted">
-                      {formatDate(h.effective_from)} – {h.effective_to ? formatDate(h.effective_to) : 'present'}
+                      {h.effective_from > today
+                        ? `From ${formatDate(h.effective_from)}`
+                        : `${formatDate(h.effective_from)} – ${h.effective_to ? formatDate(h.effective_to) : 'present'}`}
                     </span>
                   </div>
                   <p className="mt-2">

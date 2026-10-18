@@ -34,16 +34,12 @@ export async function changeAssignmentAction(orgSlug: string, _prev: ActionState
 
   const parsed = changeAssignmentSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(parsed.error, formData);
-  // The DB records future-dated changes, but the job that applies them to the current snapshot
-  // doesn't exist yet (Phase 3). Until it does, only accept changes effective today or earlier.
-  if (parsed.data.effectiveFrom > todayIn(ctx.org.timezone)) {
-    return { ok: false, fieldErrors: { effectiveFrom: 'Future-dated changes aren’t supported yet.' }, values: formValues(formData) };
-  }
-
   const supabase = await createClient();
   const { error } = await supabase.rpc('change_employee_assignment', toChangeAssignmentArgs(parsed.data));
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
 
   revalidatePath(`/app/${orgSlug}/employees/${parsed.data.employeeId}`);
-  return { ok: true, message: 'Assignment recorded.' };
+  // Future-dated changes are recorded now and applied by the worker on the day (worker_daily_core_hr).
+  const future = parsed.data.effectiveFrom > todayIn(ctx.org.timezone);
+  return { ok: true, message: future ? 'Change scheduled. It takes effect on the date you chose.' : 'Assignment recorded.' };
 }

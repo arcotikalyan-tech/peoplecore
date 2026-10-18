@@ -43,7 +43,7 @@ There's no Docker, so `supabase start` isn't available. Migrations are applied t
 
 `employment_records` and (Phase 4) `compensation_records` use `effective_from`/`effective_to` with an exclusion constraint preventing overlaps. The current state is derived, never overwritten. Payroll for a historical period must reproduce exactly.
 
-## ADR-007 · Background jobs: Postgres-backed queue — Proposed (Phase 3)
+## ADR-007 · Background jobs: Postgres-backed queue — Accepted (built: migration 20261018001000, apps/worker)
 
 Table `app.jobs` with an `idempotency_key` unique constraint, `run_at`, `attempts` and `locked_until`. Workers claim jobs with `FOR UPDATE SKIP LOCKED`, use exponential backoff, and move dead jobs to a failure queue. Chosen over an external broker so that a job is enqueued **in the same transaction** as the business change (transactional outbox). Supabase `pgmq` remains an option if throughput requires it.
 
