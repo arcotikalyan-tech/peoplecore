@@ -11,3 +11,4 @@ export * from './schemas/documents.ts';
 export * from './csv.ts';
 export * from './schemas/import.ts';
 export * from './schemas/recruitment.ts';
+export * from './schemas/leave.ts';

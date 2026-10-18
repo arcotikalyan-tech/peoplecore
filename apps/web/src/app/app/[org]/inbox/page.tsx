@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
+import { Card, CardHeader, PageHeader } from '@/components/ui/surface';
 import { formatDate, formatDateTime, humanize } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
 import { getInbox } from '@/server/inbox';
 import { completeTaskAction, decideApprovalAction, markNotificationsReadAction } from './actions';
-import { ApprovalDecision, CompleteTask } from './inbox-forms';
+import { ApprovalsPanel, CompleteTask } from './inbox-forms';
 
 export const metadata: Metadata = { title: 'Inbox' };
 
@@ -25,24 +25,16 @@ export default async function InboxPage({ params }: { params: Promise<{ org: str
         <div className="space-y-6">
           <Card>
             <CardHeader title="Waiting for your approval" description={`${approvals.length}`} />
-            {approvals.length === 0 ? (
-              <p className="px-5 py-4 text-sm text-muted">Nothing to approve.</p>
-            ) : (
-              <ul className="divide-y divide-line" aria-label="Approvals">
-                {approvals.map((a) => (
-                  <li key={a.id} className="space-y-2 px-5 py-4">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <p className="font-medium">
-                        {a.link ? <Link className="hover:underline" href={`${base}${a.link}`}>{a.summary}</Link> : a.summary}
-                      </p>
-                      <Badge>{a.step_label}</Badge>
-                    </div>
-                    <p className="text-xs text-muted">{humanize(a.subject_type)} · from {a.requested_by_name} · {formatDateTime(a.created_at, ctx.org.timezone)}</p>
-                    <ApprovalDecision action={decideApprovalAction.bind(null, slug)} requestId={a.id} summary={a.summary} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ApprovalsPanel
+              action={decideApprovalAction.bind(null, slug)}
+              items={approvals.map((a) => ({
+                id: a.id,
+                summary: a.summary,
+                href: a.link ? `${base}${a.link}` : null,
+                stepLabel: a.step_label,
+                meta: `${humanize(a.subject_type)} · from ${a.requested_by_name} · ${formatDateTime(a.created_at, ctx.org.timezone)}`,
+              }))}
+            />
           </Card>
           <Card>
             <CardHeader title="Your tasks" description={`${tasks.length} open`} />

@@ -8,8 +8,14 @@ export interface ScheduledJob {
   payload: Record<string, unknown>;
 }
 
-/** Hourly: the daily Core HR upkeep is cheap and idempotent, and hourly runs serve every time zone. */
+/**
+ * Hourly. Both jobs are cheap and idempotent per employee and period inside the database, and hourly runs
+ * serve every organization's time zone (each uses its own local date).
+ */
 export function dueJobs(now: Date): ScheduledJob[] {
   const hour = now.toISOString().slice(0, 13); // e.g. 2026-10-18T05
-  return [{ kind: 'core_hr.daily', key: `core_hr.daily:${hour}`, payload: { hour } }];
+  return [
+    { kind: 'core_hr.daily', key: `core_hr.daily:${hour}`, payload: { hour } },
+    { kind: 'leave.accrual', key: `leave.accrual:${hour}`, payload: { hour } },
+  ];
 }

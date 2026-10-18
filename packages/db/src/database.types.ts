@@ -624,6 +624,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      holiday_calendars: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          location_id: string | null;
+          weekly_offs: number[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          location_id?: string | null;
+          weekly_offs?: number[];
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          location_id?: string | null;
+          weekly_offs?: number[];
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      holidays: {
+        Row: {
+          id: string;
+          organization_id: string;
+          calendar_id: string;
+          holiday_date: string;
+          name: string;
+          is_optional: boolean;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          calendar_id: string;
+          holiday_date: string;
+          name: string;
+          is_optional?: boolean;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          calendar_id?: string;
+          holiday_date?: string;
+          name?: string;
+          is_optional?: boolean;
+        };
+        Relationships: [];
+      };
       job_requisitions: {
         Row: {
           id: string;
@@ -675,6 +729,186 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      leave_ledger: {
+        Row: {
+          id: number;
+          organization_id: string;
+          employee_id: string;
+          leave_type_id: string;
+          entry_date: string;
+          kind: Database['public']['Enums']['leave_entry_kind'];
+          days: number;
+          request_id: string | null;
+          note: string | null;
+          idempotency_key: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: never;
+          organization_id: string;
+          employee_id: string;
+          leave_type_id: string;
+          entry_date: string;
+          kind: Database['public']['Enums']['leave_entry_kind'];
+          days: number;
+          request_id?: string | null;
+          note?: string | null;
+          idempotency_key?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: never;
+          organization_id?: string;
+          employee_id?: string;
+          leave_type_id?: string;
+          entry_date?: string;
+          kind?: Database['public']['Enums']['leave_entry_kind'];
+          days?: number;
+          request_id?: string | null;
+          note?: string | null;
+          idempotency_key?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      leave_policies: {
+        Row: {
+          id: string;
+          organization_id: string;
+          leave_type_id: string;
+          effective_from: string;
+          accrual_period: Database['public']['Enums']['accrual_period'];
+          accrual_days: number;
+          carry_forward_max: number | null;
+          eligible_employment_types: Database['public']['Enums']['employment_type'][] | null;
+          accrue_during_probation: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          leave_type_id: string;
+          effective_from: string;
+          accrual_period: Database['public']['Enums']['accrual_period'];
+          accrual_days?: number;
+          carry_forward_max?: number | null;
+          eligible_employment_types?: Database['public']['Enums']['employment_type'][] | null;
+          accrue_during_probation?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          leave_type_id?: string;
+          effective_from?: string;
+          accrual_period?: Database['public']['Enums']['accrual_period'];
+          accrual_days?: number;
+          carry_forward_max?: number | null;
+          eligible_employment_types?: Database['public']['Enums']['employment_type'][] | null;
+          accrue_during_probation?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      leave_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          leave_type_id: string;
+          start_date: string;
+          end_date: string;
+          half_day_start: boolean;
+          half_day_end: boolean;
+          days: number;
+          reason: string | null;
+          status: Database['public']['Enums']['leave_status'];
+          approval_request_id: string | null;
+          requested_by: string;
+          created_at: string;
+          decided_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          leave_type_id: string;
+          start_date: string;
+          end_date: string;
+          half_day_start?: boolean;
+          half_day_end?: boolean;
+          days: number;
+          reason?: string | null;
+          status?: Database['public']['Enums']['leave_status'];
+          approval_request_id?: string | null;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          leave_type_id?: string;
+          start_date?: string;
+          end_date?: string;
+          half_day_start?: boolean;
+          half_day_end?: boolean;
+          days?: number;
+          reason?: string | null;
+          status?: Database['public']['Enums']['leave_status'];
+          approval_request_id?: string | null;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Relationships: [];
+      };
+      leave_types: {
+        Row: {
+          id: string;
+          organization_id: string;
+          code: string;
+          name: string;
+          is_paid: boolean;
+          allow_half_day: boolean;
+          allow_negative: boolean;
+          count_all_days: boolean;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          code: string;
+          name: string;
+          is_paid?: boolean;
+          allow_half_day?: boolean;
+          allow_negative?: boolean;
+          count_all_days?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          code?: string;
+          name?: string;
+          is_paid?: boolean;
+          allow_half_day?: boolean;
+          allow_negative?: boolean;
+          count_all_days?: boolean;
+          is_active?: boolean;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -1076,7 +1310,35 @@ export type Database = {
         };
         Returns: string;
       };
+      adjust_leave_balance: {
+        Args: {
+          p_employee: string;
+          p_type: string;
+          p_days: number;
+          p_note: string;
+          p_kind?: Database['public']['Enums']['leave_entry_kind'];
+        };
+        Returns: undefined;
+      };
+      apply_leave: {
+        Args: {
+          p_employee: string;
+          p_type: string;
+          p_start: string;
+          p_end: string;
+          p_half_start?: boolean;
+          p_half_end?: boolean;
+          p_reason?: string;
+        };
+        Returns: string;
+      };
       cancel_approval: {
+        Args: {
+          p_request: string;
+        };
+        Returns: undefined;
+      };
+      cancel_leave: {
         Args: {
           p_request: string;
         };
@@ -1198,6 +1460,12 @@ export type Database = {
           p_dry_run?: boolean;
         };
         Returns: Json;
+      };
+      leave_balances: {
+        Args: {
+          p_employee: string;
+        };
+        Returns: { leave_type_id: string; code: string; name: string; is_paid: boolean; allow_negative: boolean; allow_half_day: boolean; balance: number; pending: number; available: number }[];
       };
       log_employee_export: {
         Args: {
@@ -1340,8 +1608,13 @@ export type Database = {
         };
         Returns: string;
       };
+      worker_leave_accrual: {
+        Args: never;
+        Returns: Json;
+      };
     };
     Enums: {
+      accrual_period: 'monthly' | 'yearly' | 'none';
       application_stage: 'applied' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected' | 'withdrawn';
       approval_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
       approver_rule: 'reporting_manager' | 'permission';
@@ -1352,6 +1625,8 @@ export type Database = {
       employee_status: 'pre_joining' | 'active' | 'on_notice' | 'exited';
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
       gender: 'female' | 'male' | 'non_binary' | 'undisclosed';
+      leave_entry_kind: 'opening' | 'accrual' | 'debit' | 'reversal' | 'lapse' | 'adjust';
+      leave_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
       member_status: 'invited' | 'active' | 'suspended';
       org_status: 'active' | 'suspended' | 'archived';
       permission_scope: 'org' | 'team' | 'self';

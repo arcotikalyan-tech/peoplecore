@@ -49,8 +49,8 @@ describe('dueJobs', () => {
     const a = dueJobs(new Date('2026-10-18T05:01:00Z'));
     const b = dueJobs(new Date('2026-10-18T05:59:59Z'));
     const c = dueJobs(new Date('2026-10-18T06:00:00Z'));
-    expect(a.map((j) => j.key)).toEqual(['core_hr.daily:2026-10-18T05']);
+    expect(a.map((j) => j.key)).toEqual(['core_hr.daily:2026-10-18T05', 'leave.accrual:2026-10-18T05']);
     expect(b.map((j) => j.key)).toEqual(a.map((j) => j.key));
-    expect(c.map((j) => j.key)).toEqual(['core_hr.daily:2026-10-18T06']);
+    expect(c.map((j) => j.key)).toEqual(['core_hr.daily:2026-10-18T06', 'leave.accrual:2026-10-18T06']);
   });
 });
