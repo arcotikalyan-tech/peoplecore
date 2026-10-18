@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "PeopleCore",
+    "slug": "peoplecore",
+    "scheme": "peoplecore",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "in.peoplecore.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "PeopleCore records where you check in, so your office can confirm you were on site."
+      }
+    },
+    "android": {
+      "package": "in.peoplecore.app",
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "web": { "bundler": "metro", "output": "single" },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      ["expo-location", { "locationWhenInUsePermission": "PeopleCore records where you check in, so your office can confirm you were on site." }]
+    ],
+    "experiments": { "typedRoutes": false }
+  }
+}

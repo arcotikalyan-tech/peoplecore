@@ -1,0 +1,95 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSession } from '@/lib/session';
+import { supabase } from '@/lib/supabase';
+import { Button, Card, colors, Field, Message, s, Screen } from '@/ui';
+
+interface Balance { leave_type_id: string; name: string; available: number; is_paid: boolean }
+interface Request { id: string; leave_type_id: string; start_date: string; end_date: string; days: number; status: string }
+
+const STATUS: Record<string, string> = { pending: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected', cancelled: 'Cancelled' };
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+export default function Leave() {
+  const { workplace } = useSession();
+  const [balances, setBalances] = useState<Balance[]>([]);
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [type, setType] = useState<string | null>(null);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ tone: 'danger' | 'success'; text: string } | null>(null);
+  const emp = workplace?.employeeId;
+
+  const load = useCallback(async () => {
+    if (!emp) return;
+    const [b, r] = await Promise.all([
+      supabase.rpc('leave_balances', { p_employee: emp }),
+      supabase.from('leave_requests').select('id, leave_type_id, start_date, end_date, days, status').eq('employee_id', emp).order('start_date', { ascending: false }).limit(20),
+    ]);
+    setBalances(((b.data ?? []) as Balance[]).map((x) => ({ ...x, available: Number(x.available) })));
+    setRequests(((r.data ?? []) as Request[]).map((x) => ({ ...x, days: Number(x.days) })));
+  }, [emp]);
+  useEffect(() => { void load(); }, [load]);
+
+  const submit = async () => {
+    if (!emp || !type) return setMessage({ tone: 'danger', text: 'Choose a leave type.' });
+    if (!ISO.test(from) || !ISO.test(to || from)) return setMessage({ tone: 'danger', text: 'Enter dates as YYYY-MM-DD.' });
+    setBusy(true);
+    const { error } = await supabase.rpc('apply_leave', { p_employee: emp, p_type: type, p_start: from, p_end: to || from, p_reason: reason || undefined } as never);
+    setBusy(false);
+    if (error) return setMessage({ tone: 'danger', text: error.code === '22023' ? error.message : 'That didn’t work. Try again.' });
+    setMessage({ tone: 'success', text: 'Leave requested. Your manager has been asked to approve it.' });
+    setFrom(''); setTo(''); setReason('');
+    await load();
+  };
+
+  const cancel = async (id: string) => {
+    const { error } = await supabase.rpc('cancel_leave', { p_request: id });
+    setMessage(error ? { tone: 'danger', text: error.code === '22023' ? error.message : 'Couldn’t cancel.' } : { tone: 'success', text: 'Cancelled.' });
+    await load();
+  };
+  const name = (id: string) => balances.find((b) => b.leave_type_id === id)?.name ?? 'Leave';
+
+  if (!emp) return <Screen><Text style={s.muted}>No employee profile is linked to your account.</Text></Screen>;
+  return (
+    <ScrollView>
+      <Screen>
+        <Card title="Balances">
+          {balances.map((b) => (
+            <View key={b.leave_type_id} style={s.row}><Text>{b.name}</Text><Text style={{ fontWeight: '600' }}>{b.is_paid ? `${b.available} available` : 'Unpaid'}</Text></View>
+          ))}
+        </Card>
+        <Card title="Request leave">
+          <Text style={s.label}>Leave type</Text>
+          <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {balances.map((b) => (
+              <Pressable key={b.leave_type_id} accessibilityRole="radio" accessibilityState={{ checked: type === b.leave_type_id }} onPress={() => setType(b.leave_type_id)}
+                style={{ borderWidth: 1, borderColor: type === b.leave_type_id ? colors.primary : colors.line, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
+                <Text style={{ color: type === b.leave_type_id ? colors.primary : colors.fg }}>{b.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Field label="From (YYYY-MM-DD)" value={from} onChangeText={setFrom} placeholder="2026-11-03" autoCapitalize="none" />
+          <Field label="To (YYYY-MM-DD, blank for one day)" value={to} onChangeText={setTo} placeholder="2026-11-04" autoCapitalize="none" />
+          <Field label="Reason" value={reason} onChangeText={setReason} />
+          <Button label="Request leave" busy={busy} onPress={() => void submit()} />
+          {message && <Message tone={message.tone} text={message.text} />}
+        </Card>
+        <Card title="Your requests">
+          {requests.length === 0 && <Text style={s.muted}>No requests yet.</Text>}
+          {requests.map((r) => (
+            <View key={r.id} style={s.row}>
+              <View style={{ flex: 1 }}>
+                <Text>{name(r.leave_type_id)} · {r.start_date === r.end_date ? r.start_date : `${r.start_date} – ${r.end_date}`}</Text>
+                <Text style={s.muted}>{r.days} day{r.days === 1 ? '' : 's'} · {STATUS[r.status] ?? r.status}</Text>
+              </View>
+              {(r.status === 'pending' || r.status === 'approved') && <Pressable accessibilityRole="button" accessibilityLabel={`Cancel ${name(r.leave_type_id)} from ${r.start_date}`} onPress={() => void cancel(r.id)}><Text style={{ color: colors.primary }}>Cancel</Text></Pressable>}
+            </View>
+          ))}
+        </Card>
+      </Screen>
+    </ScrollView>
+  );
+}
