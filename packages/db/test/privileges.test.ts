@@ -30,12 +30,20 @@ describe('table privileges (least privilege, independent of Supabase defaults)',
     expect(await tablesWhere('authenticated', 'SELECT')).toEqual(all.rows.map((r) => r.relname));
   });
 
-  it('anonymous users cannot execute any API function', async () => {
+  it('anonymous users can execute only the reviewed careers-page functions', async () => {
+    // The one public use case (migration 20261018001400, docs/07-threat-model.md T17): list published
+    // openings and apply with consent. Adding anything here needs the same review.
     const { rows } = await ctx.t.db.query<{ proname: string }>(
       `select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1`,
     );
-    expect(rows.map((r) => r.proname)).toEqual([]);
+    expect(rows.map((r) => r.proname)).toEqual(['public_job_postings', 'submit_public_application']);
+  });
+
+  it('anonymous users can read or write no table', async () => {
+    for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) {
+      expect(await tablesWhere('anon', privilege), privilege).toEqual([]);
+    }
   });
 
   it('append-only and never-deleted tables cannot be deleted from by signed-in users', async () => {

@@ -882,6 +882,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      interview_panelists: {
+        Row: {
+          organization_id: string;
+          interview_id: string;
+          employee_id: string;
+        };
+        Insert: {
+          organization_id: string;
+          interview_id: string;
+          employee_id: string;
+        };
+        Update: {
+          organization_id?: string;
+          interview_id?: string;
+          employee_id?: string;
+        };
+        Relationships: [];
+      };
+      interviews: {
+        Row: {
+          id: string;
+          organization_id: string;
+          application_id: string;
+          round_name: string;
+          scheduled_at: string;
+          duration_minutes: number;
+          mode: Database['public']['Enums']['interview_mode'];
+          location: string | null;
+          status: Database['public']['Enums']['interview_status'];
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          application_id: string;
+          round_name: string;
+          scheduled_at: string;
+          duration_minutes?: number;
+          mode?: Database['public']['Enums']['interview_mode'];
+          location?: string | null;
+          status?: Database['public']['Enums']['interview_status'];
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          application_id?: string;
+          round_name?: string;
+          scheduled_at?: string;
+          duration_minutes?: number;
+          mode?: Database['public']['Enums']['interview_mode'];
+          location?: string | null;
+          status?: Database['public']['Enums']['interview_status'];
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       job_requisitions: {
         Row: {
           id: string;
@@ -899,6 +959,7 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          is_published: boolean;
         };
         Insert: {
           id?: string;
@@ -916,6 +977,7 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          is_published?: boolean;
         };
         Update: {
           id?: string;
@@ -933,6 +995,7 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          is_published?: boolean;
         };
         Relationships: [];
       };
@@ -1260,6 +1323,90 @@ export type Database = {
         };
         Relationships: [];
       };
+      offer_versions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          offer_id: string;
+          version: number;
+          annual_ctc: number;
+          currency: string;
+          joining_date: string;
+          expires_on: string;
+          designation_id: string | null;
+          terms: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          offer_id: string;
+          version: number;
+          annual_ctc: number;
+          currency?: string;
+          joining_date: string;
+          expires_on: string;
+          designation_id?: string | null;
+          terms?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          offer_id?: string;
+          version?: number;
+          annual_ctc?: number;
+          currency?: string;
+          joining_date?: string;
+          expires_on?: string;
+          designation_id?: string | null;
+          terms?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      offers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          application_id: string;
+          status: Database['public']['Enums']['offer_status'];
+          current_version: number;
+          approval_request_id: string | null;
+          responded_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          application_id: string;
+          status?: Database['public']['Enums']['offer_status'];
+          current_version?: number;
+          approval_request_id?: string | null;
+          responded_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          application_id?: string;
+          status?: Database['public']['Enums']['offer_status'];
+          current_version?: number;
+          approval_request_id?: string | null;
+          responded_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       organization_members: {
         Row: {
           id: string;
@@ -1497,6 +1644,57 @@ export type Database = {
           effective_to?: string | null;
           created_by?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      scorecard_ratings: {
+        Row: {
+          organization_id: string;
+          scorecard_id: string;
+          criterion: string;
+          rating: number;
+        };
+        Insert: {
+          organization_id: string;
+          scorecard_id: string;
+          criterion: string;
+          rating: number;
+        };
+        Update: {
+          organization_id?: string;
+          scorecard_id?: string;
+          criterion?: string;
+          rating?: number;
+        };
+        Relationships: [];
+      };
+      scorecards: {
+        Row: {
+          id: string;
+          organization_id: string;
+          interview_id: string;
+          panelist_employee_id: string;
+          recommendation: Database['public']['Enums']['recommendation'];
+          summary: string;
+          submitted_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          interview_id: string;
+          panelist_employee_id: string;
+          recommendation: Database['public']['Enums']['recommendation'];
+          summary: string;
+          submitted_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          interview_id?: string;
+          panelist_employee_id?: string;
+          recommendation?: Database['public']['Enums']['recommendation'];
+          summary?: string;
+          submitted_at?: string;
         };
         Relationships: [];
       };
@@ -1834,6 +2032,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      my_interviews: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { interview_id: string; scheduled_at: string; duration_minutes: number; mode: Database['public']['Enums']['interview_mode']; location: string; round_name: string; status: Database['public']['Enums']['interview_status']; candidate_name: string; current_company: string; requisition_title: string; scorecard_submitted: boolean }[];
+      };
       my_mfa_requirement: {
         Args: never;
         Returns: boolean;
@@ -1859,6 +2063,12 @@ export type Database = {
           p_org: string;
         };
         Returns: { member_id: string; user_id: string; email: string; status: Database['public']['Enums']['member_status']; joined_at: string; last_sign_in_at: string; role_ids: string[]; employee_id: string; employee_name: string }[];
+      };
+      public_job_postings: {
+        Args: {
+          p_org_slug: string;
+        };
+        Returns: { requisition_id: string; title: string; department: string; location: string; employment_type: Database['public']['Enums']['employment_type']; description: string; posted_at: string; organization_name: string }[];
       };
       record_punch: {
         Args: {
@@ -1901,6 +2111,29 @@ export type Database = {
         };
         Returns: undefined;
       };
+      save_offer_version: {
+        Args: {
+          p_application: string;
+          p_annual_ctc: number;
+          p_joining_date: string;
+          p_expires_on: string;
+          p_designation?: string;
+          p_terms?: string;
+        };
+        Returns: string;
+      };
+      schedule_interview: {
+        Args: {
+          p_application: string;
+          p_round: string;
+          p_at: string;
+          p_duration: number;
+          p_mode: Database['public']['Enums']['interview_mode'];
+          p_location: string;
+          p_panelists: string[];
+        };
+        Returns: string;
+      };
       set_employee_bank_account: {
         Args: {
           p_employee: string;
@@ -1931,6 +2164,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_offer_status: {
+        Args: {
+          p_offer: string;
+          p_status: Database['public']['Enums']['offer_status'];
+        };
+        Returns: undefined;
+      };
       set_organization_status: {
         Args: {
           p_org: string;
@@ -1950,6 +2190,33 @@ export type Database = {
           p_org: string;
         };
         Returns: { kind: string; item_id: string; current_employees: number }[];
+      };
+      submit_offer: {
+        Args: {
+          p_offer: string;
+        };
+        Returns: undefined;
+      };
+      submit_public_application: {
+        Args: {
+          p_org_slug: string;
+          p_requisition: string;
+          p_first_name: string;
+          p_last_name: string;
+          p_email: string;
+          p_phone: string;
+          p_consent: boolean;
+        };
+        Returns: string;
+      };
+      submit_scorecard: {
+        Args: {
+          p_interview: string;
+          p_recommendation: Database['public']['Enums']['recommendation'];
+          p_summary: string;
+          p_ratings: Json;
+        };
+        Returns: string;
       };
       worker_attendance_daily: {
         Args: never;
@@ -2010,12 +2277,16 @@ export type Database = {
       employee_status: 'pre_joining' | 'active' | 'on_notice' | 'exited';
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
       gender: 'female' | 'male' | 'non_binary' | 'undisclosed';
+      interview_mode: 'in_person' | 'video' | 'phone';
+      interview_status: 'scheduled' | 'completed' | 'cancelled';
       leave_entry_kind: 'opening' | 'accrual' | 'debit' | 'reversal' | 'lapse' | 'adjust';
       leave_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
       member_status: 'invited' | 'active' | 'suspended';
+      offer_status: 'draft' | 'pending_approval' | 'approved' | 'sent' | 'accepted' | 'declined' | 'withdrawn';
       org_status: 'active' | 'suspended' | 'archived';
       permission_scope: 'org' | 'team' | 'self';
       punch_method: 'web' | 'mobile' | 'biometric' | 'import' | 'regularization';
+      recommendation: 'strong_yes' | 'yes' | 'no' | 'strong_no';
       requisition_status: 'open' | 'on_hold' | 'closed';
       task_status: 'open' | 'done' | 'cancelled';
     };

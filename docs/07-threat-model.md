@@ -22,6 +22,7 @@
 | T14 | Injection / XSS | T | Parameterised queries via PostgREST/RPC. zod at boundaries. React escaping. CSP headers | lint, headers test |
 | T15 | Data retained beyond purpose | I (privacy) | Retention classes per record type, scheduled anonymisation jobs, candidate consent expiry | Phase 6 |
 | T16 | DoS / cost exhaustion on AI | D | Per-org rate limits and budgets, queueing | Phase 7 |
+| T17 | Abuse of the public careers page (spam, enumeration, data injection) | S/T/I/D | The only anonymous access: two functions, no table grants (asserted by a test). Published, open requisitions only; public fields only. Applications need consent, are validated, matched on email only, never overwrite existing candidates, and get the same answer whether or not the person is on file; at most 5 per email per day are recorded. Rate limiting at the edge (Phase 8) | DB tests (privileges, careers) |
 
 ## Privacy (India: DPDP Act 2023 and Rules)
 Design supports notice and purpose-specific consent records, data-principal requests (access/correction/erasure where no legal retention applies), breach logging and notification workflow, and retention schedules. **Not a compliance claim:** requirements must be reviewed with counsel against current rules and each customer's circumstances.

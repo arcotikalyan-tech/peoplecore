@@ -17,7 +17,7 @@ export async function getInbox(orgId: string, myEmployeeId: string | null) {
     supabase.from('notifications').select('id, kind, title, body, link, read_at, created_at')
       .eq('organization_id', orgId).order('created_at', { ascending: false }).limit(50),
     myEmployeeId
-      ? supabase.from('tasks').select('id, title, details, due_on, status, created_at')
+      ? supabase.from('tasks').select('id, title, details, due_on, status, created_at, subject_type')
         .eq('organization_id', orgId).eq('assignee_employee_id', myEmployeeId).eq('status', 'open')
         .order('due_on', { ascending: true, nullsFirst: false }).limit(100)
       : Promise.resolve({ data: [], error: null }),

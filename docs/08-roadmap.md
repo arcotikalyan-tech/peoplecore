@@ -20,7 +20,7 @@ Inspect the environment, write the ADRs and plans, set up the monorepo, standard
 
 ### Phase 2: Core HR + Recruitment
 **2a Core HR ✅ (scope built):** employees, effective-dated employment records, org structure CRUD, search, filters, pagination, audit timeline, personal/identity/bank tables, documents, bulk import with dry-run validation report, export with audit.
-**2b ATS (slice 1 built: requisitions, candidates with dedupe and consent, pipeline, hire → employee, erasure):** requisitions → postings → candidates (dedupe) → applications pipeline → interviews/scorecards → offers (versioned, approval) → convert to employee without duplicates. Careers page. Resume parsing via AI adapter with human confirmation. 🔜 slice 2: offers, interviews/scorecards, careers page, consent expiry, resume parsing.
+**2b ATS ✅ hire journey built (requisitions, candidates with dedupe and consent, pipeline, interviews/scorecards, versioned offers with approval, hire from an accepted offer, careers page, erasure; resume parsing waits for Phase 7):** requisitions → postings → candidates (dedupe) → applications pipeline → interviews/scorecards → offers (versioned, approval) → convert to employee without duplicates. Careers page. Resume parsing via AI adapter with human confirmation.
 **AC:** hire journey E2E (requisition → offer accepted → employee in `pre_joining`) and one employee record per hire. Candidate consent and deletion work.
 
 ### Phase 3: Onboarding, documents, attendance, shifts, leave, mobile app, job queue

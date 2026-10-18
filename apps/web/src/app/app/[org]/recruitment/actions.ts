@@ -2,9 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { addCandidateSchema, createRequisitionSchema, hireSchema, moveApplicationSchema, REQUISITION_STATUSES } from '@peoplecore/shared';
+import {
+  addCandidateSchema, createRequisitionSchema, hireSchema, interviewSchema, moveApplicationSchema, offerSchema, REQUISITION_STATUSES,
+  SCORECARD_CRITERIA, scorecardSchema, zonedLocalToIso,
+} from '@peoplecore/shared';
 import { z } from 'zod';
-import { formValues, invalid, type ActionState } from '@/lib/action-state';
+import { formDataAll, formValues, invalid, sqlNull, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { getOrgContext } from '@/server/context';
 import { createClient } from '@/server/supabase';
@@ -95,7 +98,7 @@ export async function hireAction(orgSlug: string, _prev: ActionState, formData: 
   if (!parsed.success) return invalid(parsed.error, formData);
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('hire_application', {
-    p_application: parsed.data.applicationId, p_date_of_joining: parsed.data.dateOfJoining, p_work_email: parsed.data.workEmail,
+    p_application: parsed.data.applicationId, p_date_of_joining: sqlNull(parsed.data.dateOfJoining), p_work_email: parsed.data.workEmail,
   });
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   revalidatePath(`/app/${orgSlug}`, 'layout');
@@ -114,4 +117,82 @@ export async function eraseCandidateAction(orgSlug: string, _prev: ActionState, 
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${orgSlug}/recruitment`, 'layout');
   return { ok: true, message: 'Candidate erased, with all their applications.' };
+}
+
+// ─── Offers, interviews, publishing ─────────────────────────────────────────
+
+export async function saveOfferAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await authorize(orgSlug);
+  if (!ctx) return DENIED;
+  const parsed = offerSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('save_offer_version', {
+    p_application: v.applicationId, p_annual_ctc: v.annualCtc, p_joining_date: v.joiningDate, p_expires_on: v.expiresOn,
+    p_designation: v.designationId, p_terms: v.terms,
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(`/app/${orgSlug}/recruitment`, 'layout');
+  return { ok: true, message: 'Offer saved as a draft. Submit it for approval when ready.' };
+}
+
+const offerStep = z.object({ offerId: z.uuid(), step: z.enum(['submit', 'sent', 'accepted', 'declined', 'withdrawn']) });
+
+export async function offerStepAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await authorize(orgSlug);
+  if (!ctx) return DENIED;
+  const parsed = offerStep.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const { error } = parsed.data.step === 'submit'
+    ? await supabase.rpc('submit_offer', { p_offer: parsed.data.offerId })
+    : await supabase.rpc('set_offer_status', { p_offer: parsed.data.offerId, p_status: parsed.data.step });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath(`/app/${orgSlug}`, 'layout');
+  const messages = { submit: 'Sent for approval.', sent: 'Marked as sent.', accepted: 'Acceptance recorded. You can hire now.', declined: 'Marked as declined.', withdrawn: 'Offer withdrawn.' };
+  return { ok: true, message: messages[parsed.data.step] };
+}
+
+export async function scheduleInterviewAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await authorize(orgSlug);
+  if (!ctx) return DENIED;
+  const parsed = interviewSchema.safeParse({ ...Object.fromEntries(formData), panelistIds: formDataAll(formData, 'panelistIds') });
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('schedule_interview', {
+    p_application: v.applicationId, p_round: v.roundName, p_at: zonedLocalToIso(v.scheduledAt, ctx.org.timezone),
+    p_duration: v.durationMinutes, p_mode: v.mode, p_location: sqlNull(v.location), p_panelists: v.panelistIds,
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(`/app/${orgSlug}`, 'layout');
+  return { ok: true, message: 'Interview scheduled. The interviewers have a task and a notification.' };
+}
+
+export async function submitScorecardAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await getOrgContext(orgSlug);
+  const ratings = SCORECARD_CRITERIA.map((criterion, i) => ({ criterion, rating: formData.get(`rating${i}`) }));
+  const parsed = scorecardSchema.safeParse({ ...Object.fromEntries(formData), ratings });
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('submit_scorecard', {
+    p_interview: parsed.data.interviewId, p_recommendation: parsed.data.recommendation, p_summary: parsed.data.summary, p_ratings: parsed.data.ratings,
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(`/app/${orgSlug}`, 'layout');
+  return { ok: true, message: 'Scorecard submitted. You can now see the other interviewers’ scorecards.' };
+}
+
+export async function publishRequisitionAction(orgSlug: string, requisitionId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await authorize(orgSlug);
+  if (!ctx) return DENIED;
+  const publish = formData.get('publish') === 'true';
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('job_requisitions').update({ is_published: publish })
+    .eq('organization_id', ctx.org.id).eq('id', id.parse(requisitionId)).select('id');
+  if (error) return { ok: false, message: toUserMessage(error) };
+  if (data.length !== 1) return DENIED;
+  revalidatePath(`/app/${orgSlug}/recruitment`, 'layout');
+  return { ok: true, message: publish ? 'Published on the careers page.' : 'Removed from the careers page.' };
 }

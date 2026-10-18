@@ -26,3 +26,11 @@ export function invalid(error: z.ZodError, formData: FormData): ActionState {
 export function formDataAll(formData: FormData, name: string): string[] {
   return formData.getAll(name).filter((v): v is string => typeof v === 'string' && v !== '');
 }
+
+/**
+ * For RPC parameters without a SQL default: an absent optional value must be sent as null. (supabase-js drops
+ * undefined keys, and PostgREST then can't find a function with that set of named arguments.)
+ */
+export function sqlNull<T>(value: T | undefined | null): T {
+  return (value ?? null) as T;
+}

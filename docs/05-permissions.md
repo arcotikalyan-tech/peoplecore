@@ -31,6 +31,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | payroll.approve (checker) † | O | | | O³ | | | | |
 | recruitment.manage | O | O | O | | | | | |
 | recruitment.read | O | O | O | | T | T | | O |
+| recruitment.offer.approve † | O | O | | | | | | |
 | attendance.read | O | O | | O | T | T | S | O |
 | attendance.approve | O | O | | | T | T | | |
 | attendance.manage | O | O | | | | | | |

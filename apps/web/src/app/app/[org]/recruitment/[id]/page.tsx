@@ -7,17 +7,22 @@ import {
   APPLICATION_STAGES,
   CANDIDATE_SOURCE_LABELS,
   EMPLOYMENT_TYPE_LABELS,
+  RECOMMENDATION_LABELS,
   REQUISITION_STATUS_LABELS,
+  todayIn,
   type CandidateSource,
 } from '@peoplecore/shared';
 import { Badge, Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surface';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
-import { employeeNames } from '@/server/employees';
-import { getPipeline, getRequisition } from '@/server/recruitment';
-import { getStructure } from '@/server/structure';
-import { addCandidateAction, eraseCandidateAction, hireAction, moveApplicationAction, setRequisitionStatusAction } from '../actions';
-import { AddCandidateForm, PipelineCard, RequisitionStatusForm } from '../recruitment-forms';
+import { employeeNames, managerOptions } from '@/server/employees';
+import { getInterviews, getOffers, getPipeline, getRequisition } from '@/server/recruitment';
+import { getStructure, structureOptions } from '@/server/structure';
+import {
+  addCandidateAction, eraseCandidateAction, hireAction, moveApplicationAction, offerStepAction, publishRequisitionAction, saveOfferAction,
+  scheduleInterviewAction, setRequisitionStatusAction,
+} from '../actions';
+import { AddCandidateForm, PipelineCard, PublishToggle, RequisitionStatusForm } from '../recruitment-forms';
 
 export const metadata: Metadata = { title: 'Requisition' };
 
@@ -29,12 +34,22 @@ export default async function RequisitionPage({ params }: { params: Promise<{ or
   const req = await getRequisition(ctx.org.id, id); // RLS: null when not visible
   if (!req) notFound();
 
-  const [pipeline, structure, names] = await Promise.all([
-    getPipeline(ctx.org.id, id),
-    getStructure(ctx.org.id),
-    employeeNames(ctx.org.id, req.hiring_manager_employee_id ? [req.hiring_manager_employee_id] : []),
-  ]);
   const canManage = ctx.can('recruitment.manage', 'org');
+  const pipeline = await getPipeline(ctx.org.id, id);
+  const appIds = pipeline.map((p) => p.id);
+  const [structure, offers, interviews, employees] = await Promise.all([
+    getStructure(ctx.org.id),
+    getOffers(ctx.org.id, appIds),
+    getInterviews(ctx.org.id, appIds),
+    canManage && ctx.can('employee.read', 'org') ? managerOptions(ctx.org.id) : Promise.resolve([]),
+  ]);
+  const names = await employeeNames(ctx.org.id, [
+    ...(req.hiring_manager_employee_id ? [req.hiring_manager_employee_id] : []),
+    ...interviews.flatMap((i) => i.panel.map((p) => p.employeeId)),
+  ]);
+  const today = todayIn(ctx.org.timezone);
+  const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+  const when = (iso: string) => new Intl.DateTimeFormat('en-IN', { timeZone: ctx.org.timezone, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
   const canHire = canManage && ctx.can('employee.create', 'org');
   // Structure lists hold active items only, so a miss means the item was archived.
   const dept = new Map(structure.departments.map((d) => [d.id, d.name]));
@@ -76,15 +91,31 @@ export default async function RequisitionPage({ params }: { params: Promise<{ or
                         {p.employeeId && (
                           <Link className="text-sm text-primary hover:underline" href={`${base}/employees/${p.employeeId}`}>View employee record</Link>
                         )}
-                        {canManage && (
-                          <PipelineCard
-                            entry={{ id: p.id, stage: p.stage, candidateId: p.candidate.id, name: p.candidate.name }}
-                            move={moveApplicationAction.bind(null, slug)}
-                            hire={canHire ? hireAction.bind(null, slug) : undefined}
-                            erase={eraseCandidateAction.bind(null, slug)}
-                            canHire={canHire}
-                          />
-                        )}
+                        {interviews.filter((i) => i.applicationId === p.id).map((i) => (
+                          <p key={i.id} className="text-sm">
+                            <span className="font-medium">{i.round}</span> · {when(i.scheduledAt)} ·{' '}
+                            {i.panel.map((m) => `${names.get(m.employeeId) ?? 'Interviewer'}${m.recommendation ? ` (${RECOMMENDATION_LABELS[m.recommendation as keyof typeof RECOMMENDATION_LABELS]})` : ''}`).join(', ')}
+                          </p>
+                        ))}
+                        {canManage && (() => {
+                          const o = offers.get(p.id);
+                          return (
+                            <PipelineCard
+                              entry={{ id: p.id, stage: p.stage, candidateId: p.candidate.id, name: p.candidate.name }}
+                              offer={o ? { id: o.id, status: o.status, version: o.version, ctc: inr.format(o.annualCtc), joiningDate: o.joiningDate,
+                                expiresOn: o.expiresOn, joiningLabel: formatDate(o.joiningDate), expiresLabel: formatDate(o.expiresOn) } : null}
+                              actions={{
+                                move: moveApplicationAction.bind(null, slug), hire: canHire ? hireAction.bind(null, slug) : undefined,
+                                erase: eraseCandidateAction.bind(null, slug), saveOffer: saveOfferAction.bind(null, slug),
+                                offerStep: offerStepAction.bind(null, slug), schedule: scheduleInterviewAction.bind(null, slug),
+                              }}
+                              canHire={canHire}
+                              designations={structureOptions(structure).designations}
+                              employees={employees}
+                              today={today}
+                            />
+                          );
+                        })()}
                       </li>
                     ))}
                   </ul>
@@ -105,8 +136,9 @@ export default async function RequisitionPage({ params }: { params: Promise<{ or
               { label: 'Description', value: req.description },
             ]} />
             {canManage && (
-              <div className="border-t border-line px-5 py-4">
+              <div className="space-y-4 border-t border-line px-5 py-4">
                 <RequisitionStatusForm action={setRequisitionStatusAction.bind(null, slug, id)} status={req.status} />
+                {req.status === 'open' && <PublishToggle action={publishRequisitionAction.bind(null, slug, id)} published={req.is_published} />}
               </div>
             )}
           </Card>

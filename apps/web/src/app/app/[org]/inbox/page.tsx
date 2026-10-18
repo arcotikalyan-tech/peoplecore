@@ -45,7 +45,9 @@ export default async function InboxPage({ params }: { params: Promise<{ org: str
                 {tasks.map((t) => (
                   <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
                     <div>
-                      <p className="text-sm font-medium">{t.title}</p>
+                      <p className="text-sm font-medium">
+                        {t.subject_type === 'interview' ? <Link className="hover:underline" href={`${base}/recruitment/interviews`}>{t.title}</Link> : t.title}
+                      </p>
                       {t.details && <p className="text-xs text-muted">{t.details}</p>}
                       {t.due_on && <p className="text-xs text-muted">Due {formatDate(t.due_on)}</p>}
                     </div>

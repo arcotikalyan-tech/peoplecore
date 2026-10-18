@@ -42,6 +42,7 @@ export const PERMISSIONS = {
 
   'recruitment.read': { module: 'recruitment', description: 'View requisitions and candidates' },
   'recruitment.manage': { module: 'recruitment', description: 'Manage requisitions, candidates and offers' },
+  'recruitment.offer.approve': { module: 'recruitment', description: 'Approve job offers', sensitive: true },
 
   'attendance.read': { module: 'attendance', description: 'View attendance' },
   'attendance.approve': { module: 'attendance', description: 'Approve regularizations' },
@@ -99,7 +100,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'recruitment.read': 'org', 'recruitment.manage': 'org',
       'attendance.read': 'org', 'attendance.approve': 'org', 'leave.approve': 'org', 'expense.approve': 'org',
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
-      'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org',
+      'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
     },
   },
   hr_admin: {
@@ -116,7 +117,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'recruitment.read': 'org', 'recruitment.manage': 'org',
       'attendance.read': 'org', 'attendance.approve': 'org', 'leave.approve': 'org',
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
-      'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org',
+      'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
     },
   },
   recruiter: {

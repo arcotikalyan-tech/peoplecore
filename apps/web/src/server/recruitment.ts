@@ -60,3 +60,76 @@ export async function getPipeline(orgId: string, requisitionId: string): Promise
     }];
   });
 }
+
+export interface OfferView {
+  id: string;
+  status: 'draft' | 'pending_approval' | 'approved' | 'sent' | 'accepted' | 'declined' | 'withdrawn';
+  version: number;
+  annualCtc: number;
+  currency: string;
+  joiningDate: string;
+  expiresOn: string;
+  designationId: string | null;
+  terms: string | null;
+}
+
+/** Offers (current version) for the given applications, keyed by application id. RLS applies. */
+export async function getOffers(orgId: string, applicationIds: string[]): Promise<Map<string, OfferView>> {
+  if (applicationIds.length === 0) return new Map();
+  const supabase = await createClient();
+  const { data: offers, error } = await supabase.from('offers').select('id, application_id, status, current_version')
+    .eq('organization_id', orgId).in('application_id', applicationIds);
+  if (error) throw new Error(`Failed to load offers (${error.code})`);
+  if (offers.length === 0) return new Map();
+  const { data: versions, error: vError } = await supabase.from('offer_versions')
+    .select('offer_id, version, annual_ctc, currency, joining_date, expires_on, designation_id, terms')
+    .eq('organization_id', orgId).in('offer_id', offers.map((o) => o.id));
+  if (vError) throw new Error(`Failed to load offers (${vError.code})`);
+  return new Map(offers.flatMap((o) => {
+    const v = versions.find((x) => x.offer_id === o.id && x.version === o.current_version);
+    return v ? [[o.application_id, {
+      id: o.id, status: o.status, version: o.current_version, annualCtc: Number(v.annual_ctc), currency: v.currency,
+      joiningDate: v.joining_date, expiresOn: v.expires_on, designationId: v.designation_id, terms: v.terms,
+    }]] : [];
+  }));
+}
+
+export interface InterviewView {
+  id: string;
+  applicationId: string;
+  round: string;
+  scheduledAt: string;
+  mode: string;
+  status: string;
+  panel: Array<{ employeeId: string; recommendation: string | null }>;
+}
+
+/** Interviews with their panel and (where the viewer may see them) each panelist's recommendation. */
+export async function getInterviews(orgId: string, applicationIds: string[]): Promise<InterviewView[]> {
+  if (applicationIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data: interviews, error } = await supabase.from('interviews').select('id, application_id, round_name, scheduled_at, mode, status')
+    .eq('organization_id', orgId).in('application_id', applicationIds).order('scheduled_at');
+  if (error) throw new Error(`Failed to load interviews (${error.code})`);
+  if (interviews.length === 0) return [];
+  const ids = interviews.map((i) => i.id);
+  const [panel, cards] = await Promise.all([
+    supabase.from('interview_panelists').select('interview_id, employee_id').in('interview_id', ids),
+    supabase.from('scorecards').select('interview_id, panelist_employee_id, recommendation').in('interview_id', ids),
+  ]);
+  if (panel.error || cards.error) throw new Error('Failed to load interview panels');
+  return interviews.map((i) => ({
+    id: i.id, applicationId: i.application_id, round: i.round_name, scheduledAt: i.scheduled_at, mode: i.mode, status: i.status,
+    panel: panel.data.filter((p) => p.interview_id === i.id).map((p) => ({
+      employeeId: p.employee_id,
+      recommendation: cards.data.find((c) => c.interview_id === i.id && c.panelist_employee_id === p.employee_id)?.recommendation ?? null,
+    })),
+  }));
+}
+
+export async function getMyInterviews(orgId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('my_interviews', { p_org: orgId });
+  if (error) throw new Error(`Failed to load your interviews (${error.code})`);
+  return data;
+}

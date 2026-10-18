@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isoDate, optionalEmail, optionalPhone, optionalText, optionalUuid, requiredText, uuid } from './common.ts';
+import { optionalEmail, optionalIsoDate, optionalPhone, optionalText, optionalUuid, requiredText, uuid } from './common.ts';
 import { EMPLOYMENT_TYPES } from './employee.ts';
 
 /** Mirrors the recruitment enums and checks (migration 20261018000800). */
@@ -55,6 +55,6 @@ export const moveApplicationSchema = z.object({
 
 export const hireSchema = z.object({
   applicationId: uuid,
-  dateOfJoining: isoDate,
+  dateOfJoining: optionalIsoDate, // defaults to the accepted offer's joining date
   workEmail: optionalEmail,
 });
