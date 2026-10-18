@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test } from '@playwright/test';
-import { adminClient, open, signIn } from './helpers';
+import { expect } from '@playwright/test';
+import { adminClient, open, signIn, test } from './helpers';
 
 /**
  * Attendance on the live demo tenant: the employee (Dev Nair) checks in from the browser and regularizes a

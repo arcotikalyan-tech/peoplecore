@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
-import { adminClient, expectNotFound, open, signIn } from './helpers';
+import { expect } from '@playwright/test';
+import { adminClient, expectNotFound, open, signIn, test } from './helpers';
 
 /**
  * Grievances on the live demo tenant: Dev Nair raises a concern naming Rohan Iyer; HR opens it (recorded in the

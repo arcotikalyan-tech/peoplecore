@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test, type Page } from '@playwright/test';
-import { adminClient, domain, expectNotFound, open, signIn } from './helpers';
+import { expect, type Page } from '@playwright/test';
+import { adminClient, domain, expectNotFound, open, signIn, test } from './helpers';
 
 /**
  * Bulk import with a dry run, on the live demo tenant. Every employee created here has the run id in their

@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
-import { adminClient, completeMfa, domain, expectNotFound, open, signIn } from './helpers';
+import { expect } from '@playwright/test';
+import { adminClient, completeMfa, domain, expectNotFound, open, signIn, test } from './helpers';
 
 /**
  * Core journeys on the live demo tenant, in order. Every step goes through the real UI; the database is

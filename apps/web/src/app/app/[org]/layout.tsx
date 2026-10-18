@@ -25,6 +25,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     { href: `${base}/payslips`, label: 'Payslips' },
     { href: `${base}/expenses`, label: 'Expenses' },
     ...(ctx.can('performance.read') ? [{ href: `${base}/performance`, label: 'Performance' }] : []),
+    { href: `${base}/learning`, label: 'Learning' },
     ...(ctx.can('onboarding.manage', 'org') ? [{ href: `${base}/onboarding`, label: 'Onboarding' }] : []),
     { href: `${base}/policies`, label: 'Policies' },
     { href: `${base}/engagement`, label: 'Engagement' },

@@ -1,8 +1,20 @@
-import { expect, type Page } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@peoplecore/db/types';
 import { readMfaSecrets } from '../scripts/lib/demo-mfa';
 import { totp } from '../scripts/lib/totp';
+
+/**
+ * The journeys' `test`: before each test, closes the browser contexts earlier tests opened for other people
+ * (`browser.newContext()`), so one long serial run doesn't pile up dozens of open pages until the browser gives
+ * out. (Failure screenshots are taken when a test ends, so nothing is lost.)
+ */
+export const test = base.extend<{ closeStaleContexts: void }>({
+  closeStaleContexts: [async ({ browser }, use) => {
+    await Promise.all(browser.contexts().map((c) => c.close().catch(() => undefined)));
+    await use();
+  }, { auto: true }],
+});
 
 export const domain = process.env.DEMO_EMAIL_DOMAIN ?? 'example.test';
 

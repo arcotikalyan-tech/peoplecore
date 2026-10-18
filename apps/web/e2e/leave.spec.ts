@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { adminClient, open, signIn } from './helpers';
+import { expect, type Page } from '@playwright/test';
+import { adminClient, open, signIn, test } from './helpers';
 
 /**
  * Leave on the live demo tenant: HR sets a holiday and an opening balance; the employee (Dev Nair) requests

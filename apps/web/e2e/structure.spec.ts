@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { adminClient, domain, open, signIn } from './helpers';
+import { expect, type Page } from '@playwright/test';
+import { adminClient, domain, open, signIn, test } from './helpers';
 
 /**
  * Editing, archiving and restoring structure on the live demo tenant. Uses throwaway departments and one

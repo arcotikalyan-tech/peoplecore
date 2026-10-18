@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 import { totp } from '../scripts/lib/totp';
-import { adminClient, domain, liveEnv, open } from './helpers';
+import { adminClient, domain, liveEnv, open, test } from './helpers';
 
 /**
  * A brand-new HR administrator must set up two-step verification before any HR data is reachable.

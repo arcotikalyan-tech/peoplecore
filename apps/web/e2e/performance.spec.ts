@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
-import { adminClient, open, signIn } from './helpers';
+import { expect } from '@playwright/test';
+import { adminClient, open, signIn, test } from './helpers';
 
 /**
  * A review cycle on the live demo tenant: HR opens it; the employee (Dev Nair) sets a goal and submits a self

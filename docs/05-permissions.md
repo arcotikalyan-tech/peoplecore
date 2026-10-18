@@ -51,6 +51,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | announcement.manage | O | O | | | | | | |
 | helpdesk.manage ⁵ | O | O | | | | | | |
 | asset.manage ⁶ | O | O | | | | | | |
+| learning.manage ⁷ | O | O | | | | | | |
 
 † Sensitive: every read is audited where the module supports it, and access is excluded from the AI retrieval default.
 ¹ Not granted. Every member, recruiters included, can read the minimal colleague directory (`colleague_directory`, migration 20261018002200): name, department and designation of current employees, never the employee row. A test asserts recruiters still see no employee rows.
@@ -59,6 +60,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 ⁴ Grievances (migration 20261018002400) also have a per-case access list. `grievance.read` alone is necessary but not sufficient: an investigator also has to be added to the case by a case manager (`grievance.manage`). Case managers see every case except those that name them; anyone named in a case can never see it or be added to it. The reporter sees their own case (never internal notes). Descriptions, outcomes and messages are readable only through functions that record each handler's read in the audit log, and audit rows redact who raised a case, who is named and what was written.
 ⁵ A helpdesk category can route to one employee (for example the IT lead). They see, answer and change the status of tickets assigned to them without `helpdesk.manage`; they can't reassign or reprioritise. Requesters never see internal notes.
 ⁶ Not granted to employees; they see the assets they hold or have held and their own system access, and confirm receipt of an issued asset. A system can name an owner (for example the IT lead) who records and revokes access to that system only, without `asset.manage`.
+⁷ Managers and department heads assign training to people in their reporting line, see their progress and record completions for them without `learning.manage`. Employees enrol themselves in courses open for self-enrolment and see only their own learning.
 
 Platform super-admins are **not** org members by default (tested). They manage tenants through `/platform`. Time-boxed support access will use an audited `member_roles.valid_until` grant; the mechanism exists and is tested, the support-access workflow is Phase 1b.
 

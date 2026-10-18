@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { adminClient, domain, expectNotFound, open, signIn } from './helpers';
+import { expect, type Page } from '@playwright/test';
+import { adminClient, domain, expectNotFound, open, signIn, test } from './helpers';
 
 /**
  * The hire journey on the live demo tenant: requisition → published on the careers page (an anonymous visitor

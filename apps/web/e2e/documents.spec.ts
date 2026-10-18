@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
-import { adminClient, domain, expectNotFound, liveEnv, open, signIn } from './helpers';
+import { adminClient, domain, expectNotFound, liveEnv, open, signIn, test } from './helpers';
 
 /**
  * Employee documents on the live demo tenant: upload, type checking, audited download through a signed

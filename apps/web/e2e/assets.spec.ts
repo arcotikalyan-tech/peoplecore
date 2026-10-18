@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
-import { adminClient, expectNotFound, open, signIn } from './helpers';
+import { expect } from '@playwright/test';
+import { adminClient, expectNotFound, open, signIn, test } from './helpers';
 
 /**
  * Assets and system access on the live demo tenant: HR adds a laptop and issues it to Dev Nair, who confirms

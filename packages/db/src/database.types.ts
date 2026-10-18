@@ -798,6 +798,111 @@ export type Database = {
         };
         Relationships: [];
       };
+      course_enrollments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          course_id: string;
+          employee_id: string;
+          source: string;
+          assigned_by: string | null;
+          mandatory: boolean;
+          due_on: string | null;
+          status: Database['public']['Enums']['enrollment_status'];
+          started_at: string | null;
+          completed_at: string | null;
+          completion_note: string | null;
+          recorded_by: string | null;
+          valid_until: string | null;
+          reminded_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          course_id: string;
+          employee_id: string;
+          source: string;
+          assigned_by?: string | null;
+          mandatory?: boolean;
+          due_on?: string | null;
+          status?: Database['public']['Enums']['enrollment_status'];
+          started_at?: string | null;
+          completed_at?: string | null;
+          completion_note?: string | null;
+          recorded_by?: string | null;
+          valid_until?: string | null;
+          reminded_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          course_id?: string;
+          employee_id?: string;
+          source?: string;
+          assigned_by?: string | null;
+          mandatory?: boolean;
+          due_on?: string | null;
+          status?: Database['public']['Enums']['enrollment_status'];
+          started_at?: string | null;
+          completed_at?: string | null;
+          completion_note?: string | null;
+          recorded_by?: string | null;
+          valid_until?: string | null;
+          reminded_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      courses: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          description: string | null;
+          category: string | null;
+          format: Database['public']['Enums']['course_format'];
+          url: string | null;
+          duration_minutes: number | null;
+          valid_for_months: number | null;
+          self_enroll: boolean;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          description?: string | null;
+          category?: string | null;
+          format?: Database['public']['Enums']['course_format'];
+          url?: string | null;
+          duration_minutes?: number | null;
+          valid_for_months?: number | null;
+          self_enroll?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          description?: string | null;
+          category?: string | null;
+          format?: Database['public']['Enums']['course_format'];
+          url?: string | null;
+          duration_minutes?: number | null;
+          valid_for_months?: number | null;
+          self_enroll?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       departments: {
         Row: {
           id: string;
@@ -3330,6 +3435,15 @@ export type Database = {
         };
         Returns: undefined;
       };
+      assign_course: {
+        Args: {
+          p_course: string;
+          p_employees: string[];
+          p_due_on?: string;
+          p_mandatory?: boolean;
+        };
+        Returns: number;
+      };
       attendance_days_for: {
         Args: {
           p_employee: string;
@@ -3517,6 +3631,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      enroll_in_course: {
+        Args: {
+          p_course: string;
+        };
+        Returns: string;
+      };
       erase_candidate: {
         Args: {
           p_candidate: string;
@@ -3623,6 +3743,12 @@ export type Database = {
           p_limit?: number;
         };
         Returns: { id: string; from_name: string; to_name: string; to_employee_id: string; message: string; created_at: string }[];
+      };
+      learning_summary: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { course_id: string; enrolled: number; completed: number; overdue: number; lapsing: number }[];
       };
       leave_balances: {
         Args: {
@@ -4011,6 +4137,14 @@ export type Database = {
         };
         Returns: { id: string; author_name: string; mine: boolean; body: string; internal: boolean; created_at: string }[];
       };
+      update_enrollment: {
+        Args: {
+          p_enrollment: string;
+          p_status: Database['public']['Enums']['enrollment_status'];
+          p_note?: string;
+        };
+        Returns: undefined;
+      };
       update_grievance: {
         Args: {
           p_case: string;
@@ -4088,6 +4222,10 @@ export type Database = {
         Args: never;
         Returns: Json;
       };
+      worker_learning: {
+        Args: never;
+        Returns: Json;
+      };
       worker_leave_accrual: {
         Args: never;
         Returns: Json;
@@ -4110,10 +4248,12 @@ export type Database = {
       bank_account_type: 'savings' | 'current' | 'salary';
       candidate_source: 'careers_site' | 'referral' | 'agency' | 'job_board' | 'direct' | 'other';
       component_kind: 'earning' | 'deduction';
+      course_format: 'online' | 'classroom' | 'video' | 'reading' | 'external';
       cycle_status: 'draft' | 'active' | 'calibration' | 'shared';
       document_category: 'identity' | 'address' | 'education' | 'employment' | 'contract' | 'medical' | 'other';
       employee_status: 'pre_joining' | 'active' | 'on_notice' | 'exited';
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
+      enrollment_status: 'assigned' | 'in_progress' | 'completed' | 'cancelled';
       expense_status: 'draft' | 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled';
       gender: 'female' | 'male' | 'non_binary' | 'undisclosed';
       goal_status: 'active' | 'completed' | 'dropped';

@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
-import { adminClient, domain, open, signIn } from './helpers';
+import { expect } from '@playwright/test';
+import { adminClient, domain, open, signIn, test } from './helpers';
 
 /**
  * Onboarding and policies on the live demo tenant: HR starts onboarding for a throwaway joiner who reports to

@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
-import { adminClient, domain, expectNotFound, liveEnv, open, signIn } from './helpers';
+import { expect } from '@playwright/test';
+import { adminClient, domain, expectNotFound, liveEnv, open, signIn, test } from './helpers';
 
 /**
  * Member administration on the live demo tenant. Uses a throwaway sign-in account created for this run

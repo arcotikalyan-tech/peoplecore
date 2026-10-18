@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test } from '@playwright/test';
-import { adminClient, open, signIn } from './helpers';
+import { expect } from '@playwright/test';
+import { adminClient, open, signIn, test } from './helpers';
 
 /**
  * Payroll on the live demo tenant for April 2026: the payroll admin sets Dev Nair's salary, records arrears and prepares the run;
