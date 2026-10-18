@@ -17,3 +17,6 @@ next-env.d.ts
 
 # Vercel CLI (vercel link / pull write ids and production env values here)
 .vercel/
+
+# Agent worktrees
+.claude/worktrees/
