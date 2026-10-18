@@ -80,11 +80,11 @@ test('a ticket: raised, answered with an internal note, resolved, closed', async
   await hr.getByRole('table', { name: 'Open tickets' }).getByRole('link', { name: `September payslip missing ${run}` }).click();
   await hr.waitForURL(`**${ticketUrl}`);
   const reply = hr.getByRole('form', { name: 'Reply' });
-  await reply.getByLabel('Reply', { exact: true }).fill('Payroll for September is not locked yet; check with finance.');
+  await reply.getByLabel('Reply').fill('Payroll for September is not locked yet; check with finance.');
   await reply.getByLabel('Internal note (the requester won’t see it)').check();
   await reply.getByRole('button', { name: 'Send' }).click();
   await expect(reply.getByText('Internal note added.')).toBeVisible();
-  await reply.getByLabel('Reply', { exact: true }).fill('It will be there after this month’s run is locked, on the 30th.');
+  await reply.getByLabel('Reply').fill('It will be there after this month’s run is locked, on the 30th.');
   await reply.getByRole('button', { name: 'Send' }).click();
   await expect(reply.getByText('Reply sent.')).toBeVisible();
   const update = hr.getByRole('form', { name: 'Update ticket' });
