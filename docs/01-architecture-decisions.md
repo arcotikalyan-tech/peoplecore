@@ -71,3 +71,11 @@ Design tokens are CSS variables. Accessible primitives are written in-repo (`app
 ## ADR-012 · Isolation from Vibe Upp — Accepted
 
 PeopleCore lives only in `~/Projects/peoplecore`. The Vibe Upp project (`~/Projects/gossip-app`) is never read, modified or reused. It uses separate Supabase projects, keys, EAS project and bundle identifiers (`in.peoplecore.*`).
+
+## ADR-013 · Row-level security is evaluated once per query, not once per row — Accepted (migration 20261018003200)
+
+Policies first called `app.can_access_employee()` and `app.has_permission()` on every row. At 50,000 employees, HR's first directory page took 9.5 s: one permission lookup per row. Policies now test membership in two sets that Postgres computes once per query and hashes. `app.orgs_with_scope(permission, scope)` returns the organizations where the caller holds a permission at a scope. `app.employees_in_scope(permission)` returns the employees the caller reaches through `self` or `team`, walking the reporting line down. The same page now takes about 5 ms. Two rules for new policies:
+- Write `organization_id in (select app.orgs_with_scope('x.read', 'org')) or employee_id in (select app.employees_in_scope('x.read'))`. Never call a per-row function on a table that grows with headcount or time.
+- `packages/db/test/rls-at-scale.test.ts` proves the sets match the per-row functions for every fixture user, employee and permission. Extend it when a helper changes.
+
+The per-row functions remain for RPCs, which check one record at a time.

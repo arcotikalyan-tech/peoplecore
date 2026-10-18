@@ -56,6 +56,8 @@ jobs:
             # Synthetic accounts in a throwaway database: a fresh random password per run.
             echo "DEMO_USER_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=')"
             echo "MAILPIT_URL=${MAILPIT_URL:-${INBUCKET_URL:-http://127.0.0.1:54324}}"
+            # The AI journeys use the deterministic test provider (no model, no key).
+            echo "AI_PROVIDER=mock"
           } > apps/web/.env.local
       - run: pnpm --filter @peoplecore/web seed:demo --yes --platform-admin
       - run: pnpm --filter @peoplecore/web demo:mfa

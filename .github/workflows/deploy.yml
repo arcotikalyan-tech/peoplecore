@@ -1,0 +1,82 @@
+name: Deploy
+
+# Production release, after CI passes on main (or by hand). Migrations first, behind the "production" environment
+# (add required reviewers to it in the repository settings), then the web app. Each job skips itself until its
+# secrets exist, so this workflow is inert until the project is set up (docs/runbooks/deploy.md).
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - id: ready
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
+          else echo "::notice::Supabase secrets not set; skipping migrations."; fi
+      - if: steps.ready.outputs.ok == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - if: steps.ready.outputs.ok == 'true'
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - if: steps.ready.outputs.ok == 'true'
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+      # The list goes into the job log before anything is applied.
+      - if: steps.ready.outputs.ok == 'true'
+        run: supabase db push --dry-run --password "$SUPABASE_DB_PASSWORD"
+      - if: steps.ready.outputs.ok == 'true'
+        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
+
+  web:
+    needs: migrate
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - id: ready
+        run: |
+          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
+          else echo "::notice::Vercel secrets not set; skipping the web deploy."; fi
+      - if: steps.ready.outputs.ok == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - if: steps.ready.outputs.ok == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - if: steps.ready.outputs.ok == 'true'
+        run: corepack enable && pnpm install --frozen-lockfile
+      # Environment variables (Supabase keys, AI key) live in the Vercel project, not in this repository.
+      - if: steps.ready.outputs.ok == 'true'
+        run: pnpm dlx vercel@61.1.0 pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - if: steps.ready.outputs.ok == 'true'
+        run: pnpm dlx vercel@61.1.0 build --prod --token="$VERCEL_TOKEN"
+      - if: steps.ready.outputs.ok == 'true'
+        run: pnpm dlx vercel@61.1.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN"

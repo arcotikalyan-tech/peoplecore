@@ -12,6 +12,25 @@ describe('tenant isolation', () => {
     expect(rows.map((r) => r.relname)).toEqual([]);
   });
 
+  it('every policy applies to signed-in users only (never anon or public)', async () => {
+    const { rows } = await ctx.t.db.query<{ relname: string; polname: string }>(
+      `select c.relname, p.polname from pg_policy p join pg_class c on c.oid = p.polrelid join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname in ('public', 'storage') and c.relname not like 'buckets%'
+          and p.polroles <> array[(select oid from pg_roles where rolname = 'authenticated')]::oid[]`,
+    );
+    expect(rows).toEqual([]);
+  });
+
+  it('every security-definer function pins an empty search_path', async () => {
+    const { rows } = await ctx.t.db.query<{ fn: string }>(
+      `select n.nspname || '.' || p.proname as fn from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname in ('public', 'app') and p.prosecdef
+          and not coalesce(p.proconfig, '{}'::text[]) && array['search_path=""', 'search_path=']
+        order by 1`,
+    );
+    expect(rows.map((r) => r.fn)).toEqual([]);
+  });
+
   it('a signed-in user with no membership sees no tenant data', async () => {
     const { f } = ctx;
     await ctx.t.asUser(f.users.outsider, async (tx) => {

@@ -24,7 +24,7 @@ Inspect the environment, write the ADRs and plans, set up the monorepo, standard
 **AC:** hire journey E2E (requisition → offer accepted → employee in `pre_joining`) and one employee record per hire. Candidate consent and deletion work.
 
 ### Phase 3: Onboarding, documents, attendance, shifts, leave, mobile app, job queue
-**Built:** job queue + worker, private storage with signed URLs (documents), leave (ledger, approvals, accrual), attendance (idempotent punches, offline sync, regularization approvals, reproducible monthly summary), biometric CSV import, onboarding (templates, plans started by hires, policies with acknowledgements). 🔜 Expo mobile app, selfie/liveness.
+**Built:** job queue + worker, private storage with signed URLs (documents), leave (ledger, approvals, accrual), attendance (idempotent punches, offline sync, regularization approvals, reproducible monthly summary), biometric CSV import, onboarding (templates, plans started by hires, policies with acknowledgements). ✅ Expo mobile app (check-in with location and an offline queue, leave, payslips; device builds need an Expo account). 🔜 Selfie/liveness.
 Job queue + worker (ADR-007). Private storage with signed URLs. Expo app (employee check-in, leave, payslips later). Geofence and selfie punch with device checks and offline queue. Biometric adapter interface + CSV/ADMS-style import. Leave ledger with accrual jobs.
 **AC:** punches are idempotent; offline punches sync once; leave balance = ledger sum, verified by property-based tests; regularization approval updates `attendance_days`; payroll-ready monthly summary is reproducible.
 
@@ -47,4 +47,5 @@ Per `06-ai-architecture.md`. Role dashboards. Reporting copilot.
 **AC:** eval suites pass thresholds; no agent can perform a tier-3 action; cross-user leakage tests pass.
 
 ### Phase 8: Hardening & production
+**Built:** CI on a real Supabase stack (the job runs every journey against `supabase start`; run locally 91/91), dependency audit and Dependabot, a 50,000-employee load test (every directory query under 300 ms P95 after set-based RLS, ADR-013), a security review with a nonce CSP ([09-security-review.md](09-security-review.md)), a passed backup and restore drill, a gated deploy workflow, and runbooks for operations, deploys, incidents, backups, AI and email. ⏳ Needs credentials or accounts: the first GitHub run, production secrets, a penetration test, and integration sandboxes (WhatsApp, e-sign, BGV, SSO).
 Real-Supabase CI, security review, dependency scanning, load tests (target: 50k employees/org, P95 list query < 300 ms), backup/restore drill, runbooks, deployment pipelines, WhatsApp/e-sign/BGV/SSO integrations verified with real sandbox credentials.
