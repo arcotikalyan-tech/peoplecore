@@ -31,7 +31,31 @@ To run the web app you need a **PeopleCore** Supabase project (never the Vibe Up
    - `corepack pnpm --filter @peoplecore/web verify:demo --app http://localhost:3000`: read-only access checks for every role.
    - `corepack pnpm --filter @peoplecore/web test:e2e`: browser journeys in headless Chrome (creates test records, then deletes them).
 
+### The CI path on your machine (a throwaway local Supabase)
+
+This runs every journey, the email ones included, against all migrations on real Postgres, without touching the live project. Keep the local settings in their own file and never edit `.env.local` for this:
+
+```sh
+npx supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,supavisor
+eval "$(npx supabase status -o env)"
+cat > /tmp/local.env <<ENV
+NEXT_PUBLIC_SUPABASE_URL=$API_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY
+SUPABASE_SECRET_KEY=$SECRET_KEY
+DEMO_USER_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=')
+MAILPIT_URL=http://127.0.0.1:54324
+DEMO_MFA_FILE=/tmp/local-mfa.json
+AI_PROVIDER=mock
+ENV
+cd apps/web
+node --env-file=/tmp/local.env scripts/seed-demo.ts --yes --platform-admin
+set -a; . /tmp/local.env; set +a        # values already in the environment win over .env.local
+corepack pnpm exec next dev --port 3000 & corepack pnpm exec playwright test
+```
+
+`DEMO_MFA_FILE` keeps the local stack's authenticator secrets apart from the live ones. To reset the local database, run `npx supabase db reset --local`. **Never pass `--linked`**: that resets the live project. Load test: `node scripts/load-test.ts` (local container only).
+
 Changing the schema: add a migration, then run `corepack pnpm --filter @peoplecore/db gen:types` to refresh `database.types.ts` (a test fails if you forget).
 
 ## Layout
-`apps/web` (Next.js), `packages/shared` (schemas, permissions), `packages/db` (DB test harness), `supabase/migrations`, `docs/`.
+`apps/web` (Next.js), `apps/worker` (jobs), `apps/mobile` (Expo), `packages/shared` (schemas, permissions), `packages/db` (DB test harness), `packages/payroll` (deterministic engine), `packages/ai` (assistants, evals), `supabase/migrations`, `docs/` (decisions, threat model, security review, runbooks).
