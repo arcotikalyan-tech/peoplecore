@@ -2,13 +2,13 @@
 
 Releases go through GitHub Actions. **CI** (`.github/workflows/ci.yml`) checks every push. It runs typecheck,
 lint, unit, database and RLS tests, the production build, a dependency audit, and every browser journey against
-a throwaway local Supabase. When CI passes on `main`, **Deploy** (`.github/workflows/deploy.yml`) applies the
-migrations and then deploys the web app.
+a throwaway local Supabase. **Deploy** (`.github/workflows/deploy.yml`) is started by hand for a commit on `main`
+that passed CI; it refuses anything else. It applies the migrations and then deploys the web app.
 
 ## One-time setup
 
 1. **GitHub CLI scope.** Pushing workflow files needs the `workflow` scope: `gh auth refresh -h github.com -s workflow`.
-2. **Environment.** In the repository settings, go to Environments and create `production`. Add required reviewers, so every production release waits for a person.
+2. **Environment.** In the repository settings, go to Environments and create `production`. Required reviewers need a paid GitHub plan for a private repository; without them, starting the Deploy run by hand is the approval.
 3. **Secrets** on the `production` environment:
 
    | Secret | From |
@@ -29,8 +29,8 @@ Each Deploy job skips itself until its secrets exist, so the workflow is safe to
 
 ## A release
 
-1. Merge to `main`. CI runs.
-2. Deploy waits for a reviewer to approve the `production` environment. The `migrate` job prints `supabase db push --dry-run` first: read the list before approving the push.
+1. Merge to `main` and wait for CI to pass.
+2. Start Deploy: Actions → Deploy → Run workflow on `main`, or `gh workflow run Deploy --ref main`. To see which migrations it will apply first, run `npx supabase db push --dry-run` locally (the `migrate` job also prints the list before applying).
 3. Migrations apply, then the web app is built and deployed (`vercel build`, then `deploy --prebuilt`).
 4. After a release that changed migrations, run the browser journeys against production's demo tenant, or at least the smoke check: `verify:demo`.
 

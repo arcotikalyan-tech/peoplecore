@@ -1,18 +1,16 @@
 name: Deploy
 
-# Production release, after CI passes on main (or by hand). Migrations first, behind the "production" environment
-# (add required reviewers to it in the repository settings), then the web app. Each job skips itself until its
-# secrets exist, so this workflow is inert until the project is set up (docs/runbooks/deploy.md).
+# Production release, started by hand (Actions → Deploy → Run workflow, or `gh workflow run Deploy`) for a commit on
+# main that passed CI. Manual on purpose: the repository's plan has no required reviewers for environments, so a
+# person starting the run is the approval. Migrations first, then the web app. Each job skips itself until its
+# secrets exist (docs/runbooks/deploy.md).
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: deploy-production
@@ -20,7 +18,6 @@ concurrency:
 
 jobs:
   migrate:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 15
@@ -29,6 +26,13 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
+      - name: Only main, and only a commit that passed CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "::error::Deploy runs from main only."; exit 1; }
+          ci=$(gh run list -R "$GITHUB_REPOSITORY" --workflow CI --commit "$GITHUB_SHA" --status success --json databaseId --jq length)
+          [ "$ci" -gt 0 ] || { echo "::error::CI has not passed for $GITHUB_SHA yet."; exit 1; }
       - id: ready
         run: |
           if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
@@ -36,7 +40,7 @@ jobs:
       - if: steps.ready.outputs.ok == 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
       - if: steps.ready.outputs.ok == 'true'
         uses: supabase/setup-cli@v1
         with:
@@ -66,7 +70,7 @@ jobs:
       - if: steps.ready.outputs.ok == 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
       - if: steps.ready.outputs.ok == 'true'
         uses: actions/setup-node@v4
         with:
