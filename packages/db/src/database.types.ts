@@ -999,6 +999,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      feedback_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          review_id: string;
+          from_employee_id: string;
+          question: string;
+          response: string | null;
+          responded_at: string | null;
+          requested_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          review_id: string;
+          from_employee_id: string;
+          question: string;
+          response?: string | null;
+          responded_at?: string | null;
+          requested_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          review_id?: string;
+          from_employee_id?: string;
+          question?: string;
+          response?: string | null;
+          responded_at?: string | null;
+          requested_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       geofences: {
         Row: {
           id: string;
@@ -1032,6 +1068,54 @@ export type Database = {
           radius_m?: number;
           is_active?: boolean;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      goals: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          cycle_id: string | null;
+          parent_goal_id: string | null;
+          title: string;
+          description: string | null;
+          weight: number;
+          progress: number;
+          status: Database['public']['Enums']['goal_status'];
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          cycle_id?: string | null;
+          parent_goal_id?: string | null;
+          title: string;
+          description?: string | null;
+          weight?: number;
+          progress?: number;
+          status?: Database['public']['Enums']['goal_status'];
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          cycle_id?: string | null;
+          parent_goal_id?: string | null;
+          title?: string;
+          description?: string | null;
+          weight?: number;
+          progress?: number;
+          status?: Database['public']['Enums']['goal_status'];
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -2115,6 +2199,105 @@ export type Database = {
         };
         Relationships: [];
       };
+      review_cycles: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          period_start: string;
+          period_end: string;
+          self_review_due: string | null;
+          manager_review_due: string | null;
+          status: Database['public']['Enums']['cycle_status'];
+          created_by: string | null;
+          created_at: string;
+          activated_at: string | null;
+          shared_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          period_start: string;
+          period_end: string;
+          self_review_due?: string | null;
+          manager_review_due?: string | null;
+          status?: Database['public']['Enums']['cycle_status'];
+          created_by?: string | null;
+          created_at?: string;
+          activated_at?: string | null;
+          shared_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          period_start?: string;
+          period_end?: string;
+          self_review_due?: string | null;
+          manager_review_due?: string | null;
+          status?: Database['public']['Enums']['cycle_status'];
+          created_by?: string | null;
+          created_at?: string;
+          activated_at?: string | null;
+          shared_at?: string | null;
+        };
+        Relationships: [];
+      };
+      reviews: {
+        Row: {
+          id: string;
+          organization_id: string;
+          cycle_id: string;
+          employee_id: string;
+          manager_employee_id: string | null;
+          status: Database['public']['Enums']['review_status'];
+          self_rating: number | null;
+          self_comments: string | null;
+          self_submitted_at: string | null;
+          manager_rating: number | null;
+          manager_comments: string | null;
+          manager_submitted_at: string | null;
+          final_rating: number | null;
+          calibration_note: string | null;
+          calibrated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          cycle_id: string;
+          employee_id: string;
+          manager_employee_id?: string | null;
+          status?: Database['public']['Enums']['review_status'];
+          self_rating?: number | null;
+          self_comments?: string | null;
+          self_submitted_at?: string | null;
+          manager_rating?: number | null;
+          manager_comments?: string | null;
+          manager_submitted_at?: string | null;
+          final_rating?: number | null;
+          calibration_note?: string | null;
+          calibrated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          cycle_id?: string;
+          employee_id?: string;
+          manager_employee_id?: string | null;
+          status?: Database['public']['Enums']['review_status'];
+          self_rating?: number | null;
+          self_comments?: string | null;
+          self_submitted_at?: string | null;
+          manager_rating?: number | null;
+          manager_comments?: string | null;
+          manager_submitted_at?: string | null;
+          final_rating?: number | null;
+          calibration_note?: string | null;
+          calibrated_by?: string | null;
+        };
+        Relationships: [];
+      };
       role_permissions: {
         Row: {
           organization_id: string;
@@ -2449,6 +2632,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      activate_review_cycle: {
+        Args: {
+          p_cycle: string;
+        };
+        Returns: number;
+      };
       add_application: {
         Args: {
           p_requisition: string;
@@ -2539,6 +2728,14 @@ export type Database = {
           p_month: string;
         };
         Returns: { employee_id: string; employee_code: string; employee_name: string; days_in_period: number; present: number; half_days: number; absent: number; paid_leave: number; unpaid_leave: number; weekly_offs: number; holidays: number; not_marked: number; late_days: number; payable_days: number; lop_days: number }[];
+      };
+      calibrate_review: {
+        Args: {
+          p_review: string;
+          p_final_rating: number;
+          p_note: string;
+        };
+        Returns: undefined;
       };
       cancel_approval: {
         Args: {
@@ -2678,6 +2875,13 @@ export type Database = {
         };
         Returns: { receipt_path: string; receipt_name: string }[];
       };
+      give_feedback: {
+        Args: {
+          p_request: string;
+          p_response: string;
+        };
+        Returns: undefined;
+      };
       grantable_roles: {
         Args: {
           p_org: string;
@@ -2737,6 +2941,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      my_feedback: {
+        Args: {
+          p_review: string;
+        };
+        Returns: { question: string; response: string }[];
+      };
       my_interviews: {
         Args: {
           p_org: string;
@@ -2762,6 +2972,12 @@ export type Database = {
           p_org: string;
         };
         Returns: { permission_key: string; scope: Database['public']['Enums']['permission_scope'] }[];
+      };
+      my_reviews: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { review_id: string; cycle_id: string; cycle_name: string; cycle_status: Database['public']['Enums']['cycle_status']; status: Database['public']['Enums']['review_status']; self_review_due: string }[];
       };
       org_members: {
         Args: {
@@ -2817,6 +3033,14 @@ export type Database = {
         };
         Returns: string;
       };
+      request_feedback: {
+        Args: {
+          p_review: string;
+          p_from: string;
+          p_question: string;
+        };
+        Returns: string;
+      };
       request_regularization: {
         Args: {
           p_employee: string;
@@ -2845,6 +3069,12 @@ export type Database = {
           p_status: string;
         };
         Returns: undefined;
+      };
+      review_view: {
+        Args: {
+          p_review: string;
+        };
+        Returns: { review_id: string; cycle_name: string; cycle_status: Database['public']['Enums']['cycle_status']; employee_id: string; status: Database['public']['Enums']['review_status']; self_rating: number; self_comments: string; manager_rating: number; manager_comments: string; final_rating: number; calibration_note: string; is_self: boolean; can_manager_review: boolean; can_calibrate: boolean }[];
       };
       save_offer_version: {
         Args: {
@@ -2930,6 +3160,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      share_review_cycle: {
+        Args: {
+          p_cycle: string;
+        };
+        Returns: number;
+      };
       start_onboarding: {
         Args: {
           p_employee: string;
@@ -2955,6 +3191,14 @@ export type Database = {
       submit_expense_claim: {
         Args: {
           p_claim: string;
+        };
+        Returns: undefined;
+      };
+      submit_manager_review: {
+        Args: {
+          p_review: string;
+          p_rating: number;
+          p_comments: string;
         };
         Returns: undefined;
       };
@@ -2984,6 +3228,14 @@ export type Database = {
           p_ratings: Json;
         };
         Returns: string;
+      };
+      submit_self_review: {
+        Args: {
+          p_review: string;
+          p_rating: number;
+          p_comments: string;
+        };
+        Returns: undefined;
       };
       worker_attendance_daily: {
         Args: never;
@@ -3047,11 +3299,13 @@ export type Database = {
       bank_account_type: 'savings' | 'current' | 'salary';
       candidate_source: 'careers_site' | 'referral' | 'agency' | 'job_board' | 'direct' | 'other';
       component_kind: 'earning' | 'deduction';
+      cycle_status: 'draft' | 'active' | 'calibration' | 'shared';
       document_category: 'identity' | 'address' | 'education' | 'employment' | 'contract' | 'medical' | 'other';
       employee_status: 'pre_joining' | 'active' | 'on_notice' | 'exited';
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
       expense_status: 'draft' | 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled';
       gender: 'female' | 'male' | 'non_binary' | 'undisclosed';
+      goal_status: 'active' | 'completed' | 'dropped';
       interview_mode: 'in_person' | 'video' | 'phone';
       interview_status: 'scheduled' | 'completed' | 'cancelled';
       leave_entry_kind: 'opening' | 'accrual' | 'debit' | 'reversal' | 'lapse' | 'adjust';
@@ -3067,6 +3321,7 @@ export type Database = {
       punch_method: 'web' | 'mobile' | 'biometric' | 'import' | 'regularization';
       recommendation: 'strong_yes' | 'yes' | 'no' | 'strong_no';
       requisition_status: 'open' | 'on_hold' | 'closed';
+      review_status: 'not_started' | 'self_submitted' | 'manager_submitted' | 'calibrated';
       task_status: 'open' | 'done' | 'cancelled';
     };
     CompositeTypes: { [_ in never]: never };

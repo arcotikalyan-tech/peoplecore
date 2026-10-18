@@ -53,6 +53,8 @@ export const PERMISSIONS = {
   'expense.approve': { module: 'expenses', description: 'Approve expense claims' },
   'expense.manage': { module: 'expenses', description: 'Configure expense categories and see all claims' },
 
+  'performance.read': { module: 'performance', description: 'View goals and reviews', sensitive: true },
+  'performance.manage': { module: 'performance', description: 'Run review cycles and calibrate ratings', sensitive: true },
   'grievance.read': { module: 'employee_relations', description: 'View grievance cases', sensitive: true },
   'task.manage': { module: 'platform', description: 'Create and manage tasks for others' },
   'onboarding.manage': { module: 'onboarding', description: 'Manage onboarding templates and plans' },
@@ -104,7 +106,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'attendance.read': 'org', 'attendance.approve': 'org', 'leave.approve': 'org', 'expense.approve': 'org',
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
-      'onboarding.manage': 'org', 'policy.manage': 'org', 'expense.manage': 'org',
+      'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org', 'expense.manage': 'org',
     },
   },
   hr_admin: {
@@ -122,7 +124,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'attendance.read': 'org', 'attendance.approve': 'org', 'leave.approve': 'org',
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
-      'onboarding.manage': 'org', 'policy.manage': 'org',
+      'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org',
     },
   },
   recruiter: {
@@ -155,7 +157,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
     grants: {
       'org.read': 'org', 'employee.read': 'team', 'recruitment.read': 'team',
       'attendance.read': 'team', 'attendance.approve': 'team', 'leave.approve': 'team', 'expense.approve': 'team',
-      'ai.use': 'org', 'leave.read': 'team',
+      'ai.use': 'org', 'leave.read': 'team', 'performance.read': 'team',
     },
   },
   manager: {
@@ -166,7 +168,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
     grants: {
       'org.read': 'org', 'employee.read': 'team', 'recruitment.read': 'team',
       'attendance.read': 'team', 'attendance.approve': 'team', 'leave.approve': 'team', 'expense.approve': 'team',
-      'ai.use': 'org', 'leave.read': 'team',
+      'ai.use': 'org', 'leave.read': 'team', 'performance.read': 'team',
     },
   },
   employee: {
@@ -179,7 +181,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'employee.document.read': 'self', 'employee.document.upload': 'self',
       'org.read': 'org', 'employee.read': 'self', 'employee.personal.read': 'self',
       'employee.identity.read': 'self', 'employee.bank.read': 'self', 'compensation.read': 'self',
-      'attendance.read': 'self', 'grievance.read': 'self', 'ai.use': 'org', 'leave.read': 'self',
+      'attendance.read': 'self', 'grievance.read': 'self', 'ai.use': 'org', 'leave.read': 'self', 'performance.read': 'self',
     },
   },
   auditor: {
