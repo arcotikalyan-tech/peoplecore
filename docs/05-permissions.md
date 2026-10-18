@@ -39,6 +39,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | leave.read | O | O | | O | T | T | S | O |
 | leave.manage | O | O | | | | | | |
 | expense.approve | O | | | O | T | T | | |
+| expense.manage | O | | | O | | | | |
 | grievance.read † | O | O⁴ | | | | | S | |
 | ai.use | O | O | O | O | O | O | O | |
 | task.manage | O | O | | | | | | |

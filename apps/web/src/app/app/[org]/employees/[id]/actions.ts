@@ -16,7 +16,7 @@ import { z } from 'zod';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { getOrgContext, type OrgContext } from '@/server/context';
-import { removeDocumentFile, storeDocumentFile } from '@/server/document-storage';
+import { DOCUMENT_BUCKET, removeDocumentFile, storeDocumentFile } from '@/server/document-storage';
 import { getEmployee } from '@/server/employees';
 import { createClient } from '@/server/supabase';
 
@@ -221,7 +221,7 @@ export async function uploadDocumentAction(orgSlug: string, employeeId: string, 
 
   const documentId = randomUUID();
   const path = `${ctx.org.id}/${id}/${documentId}`;
-  if (!(await storeDocumentFile(path, bytes, check.type))) {
+  if (!(await storeDocumentFile(path, bytes, check.type, DOCUMENT_BUCKET))) {
     return { ok: false, message: 'The file could not be stored. Please try again.', values: formValues(formData) };
   }
   // The database re-checks the permission as the caller and has the final say.
@@ -236,7 +236,7 @@ export async function uploadDocumentAction(orgSlug: string, employeeId: string, 
     p_size_bytes: bytes.byteLength,
   });
   if (error) {
-    await removeDocumentFile(path);
+    await removeDocumentFile(path, DOCUMENT_BUCKET);
     return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   }
   revalidatePath(profilePath(orgSlug, employeeId));
@@ -257,7 +257,7 @@ export async function deleteDocumentAction(orgSlug: string, employeeId: string, 
   if (error) return { ok: false, message: toUserMessage(error) };
   // The record is already hidden and audited. If removing the file fails it stays unreachable (no signed
   // URL is ever issued for a deleted record) until a cleanup job exists; see BUILD_STATUS known issues.
-  await removeDocumentFile(path);
+  await removeDocumentFile(path, DOCUMENT_BUCKET);
   revalidatePath(profilePath(orgSlug, employeeId));
   return { ok: true, message: 'Document deleted.' };
 }

@@ -2,7 +2,7 @@ import 'server-only';
 import { createAdminClient } from './admin';
 
 /**
- * Files in the private `employee-documents` bucket. Uses the service-role client: storage.objects has no
+ * Files in the private `employee-documents` and `expense-receipts` buckets. Uses the service-role client: storage.objects has no
  * policies for signed-in users, so only the server can reach these files.
  *
  * AUTHORIZATION: callers must already have checked the actor's permission for this employee's documents,
@@ -22,20 +22,24 @@ function checkedPath(path: string) {
   return path;
 }
 
-export async function storeDocumentFile(path: string, bytes: Uint8Array, contentType: string): Promise<boolean> {
-  const { error } = await createAdminClient().storage.from(DOCUMENT_BUCKET)
+export const RECEIPT_BUCKET = 'expense-receipts';
+/** Always named explicitly: a default bucket would silently put files in the wrong place. */
+type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET;
+
+export async function storeDocumentFile(path: string, bytes: Uint8Array, contentType: string, bucket: Bucket): Promise<boolean> {
+  const { error } = await createAdminClient().storage.from(bucket)
     .upload(checkedPath(path), bytes, { contentType, upsert: false, cacheControl: 'private, max-age=0' });
   return !error;
 }
 
-export async function removeDocumentFile(path: string): Promise<boolean> {
-  const { error } = await createAdminClient().storage.from(DOCUMENT_BUCKET).remove([checkedPath(path)]);
+export async function removeDocumentFile(path: string, bucket: Bucket): Promise<boolean> {
+  const { error } = await createAdminClient().storage.from(bucket).remove([checkedPath(path)]);
   return !error;
 }
 
 /** A short-lived link that downloads the file under its original name. */
-export async function signDocumentUrl(path: string, fileName: string): Promise<string | null> {
-  const { data, error } = await createAdminClient().storage.from(DOCUMENT_BUCKET)
+export async function signDocumentUrl(path: string, fileName: string, bucket: Bucket): Promise<string | null> {
+  const { data, error } = await createAdminClient().storage.from(bucket)
     .createSignedUrl(checkedPath(path), SIGNED_URL_SECONDS, { download: fileName });
   return error ? null : data.signedUrl;
 }

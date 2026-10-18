@@ -876,6 +876,129 @@ export type Database = {
         };
         Relationships: [];
       };
+      expense_categories: {
+        Row: {
+          id: string;
+          organization_id: string;
+          code: string;
+          name: string;
+          requires_receipt: boolean;
+          max_per_item: number | null;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          code: string;
+          name: string;
+          requires_receipt?: boolean;
+          max_per_item?: number | null;
+          is_active?: boolean;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          code?: string;
+          name?: string;
+          requires_receipt?: boolean;
+          max_per_item?: number | null;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
+      expense_claims: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          title: string;
+          status: Database['public']['Enums']['expense_status'];
+          total: number;
+          approval_request_id: string | null;
+          submitted_at: string | null;
+          decided_at: string | null;
+          paid_run_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          title: string;
+          status?: Database['public']['Enums']['expense_status'];
+          total?: number;
+          approval_request_id?: string | null;
+          submitted_at?: string | null;
+          decided_at?: string | null;
+          paid_run_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          title?: string;
+          status?: Database['public']['Enums']['expense_status'];
+          total?: number;
+          approval_request_id?: string | null;
+          submitted_at?: string | null;
+          decided_at?: string | null;
+          paid_run_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      expense_items: {
+        Row: {
+          id: string;
+          organization_id: string;
+          claim_id: string;
+          category_id: string;
+          expense_date: string;
+          merchant: string | null;
+          description: string | null;
+          amount: number;
+          receipt_path: string | null;
+          receipt_name: string | null;
+          receipt_hash: string | null;
+          duplicate_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          claim_id: string;
+          category_id: string;
+          expense_date: string;
+          merchant?: string | null;
+          description?: string | null;
+          amount: number;
+          receipt_path?: string | null;
+          receipt_name?: string | null;
+          receipt_hash?: string | null;
+          duplicate_note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          claim_id?: string;
+          category_id?: string;
+          expense_date?: string;
+          merchant?: string | null;
+          description?: string | null;
+          amount?: number;
+          receipt_path?: string | null;
+          receipt_name?: string | null;
+          receipt_hash?: string | null;
+          duplicate_note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       geofences: {
         Row: {
           id: string;
@@ -2306,6 +2429,20 @@ export type Database = {
         };
         Returns: string;
       };
+      add_expense_item: {
+        Args: {
+          p_claim: string;
+          p_id: string;
+          p_category: string;
+          p_date: string;
+          p_amount: number;
+          p_merchant?: string;
+          p_description?: string;
+          p_receipt_name?: string;
+          p_receipt_hash?: string;
+        };
+        Returns: string;
+      };
       add_member: {
         Args: {
           p_org: string;
@@ -2415,6 +2552,13 @@ export type Database = {
         };
         Returns: string;
       };
+      create_expense_claim: {
+        Args: {
+          p_org: string;
+          p_title: string;
+        };
+        Returns: string;
+      };
       create_organization: {
         Args: {
           p_name: string;
@@ -2482,6 +2626,12 @@ export type Database = {
           p_candidate: string;
         };
         Returns: undefined;
+      };
+      expense_receipt: {
+        Args: {
+          p_item: string;
+        };
+        Returns: { receipt_path: string; receipt_name: string }[];
       };
       grantable_roles: {
         Args: {
@@ -2613,6 +2763,12 @@ export type Database = {
           p_longitude?: number;
           p_accuracy_m?: number;
           p_org?: string;
+        };
+        Returns: string;
+      };
+      remove_expense_item: {
+        Args: {
+          p_item: string;
         };
         Returns: string;
       };
@@ -2751,6 +2907,12 @@ export type Database = {
         };
         Returns: { kind: string; item_id: string; current_employees: number }[];
       };
+      submit_expense_claim: {
+        Args: {
+          p_claim: string;
+        };
+        Returns: undefined;
+      };
       submit_offer: {
         Args: {
           p_offer: string;
@@ -2843,6 +3005,7 @@ export type Database = {
       document_category: 'identity' | 'address' | 'education' | 'employment' | 'contract' | 'medical' | 'other';
       employee_status: 'pre_joining' | 'active' | 'on_notice' | 'exited';
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
+      expense_status: 'draft' | 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled';
       gender: 'female' | 'male' | 'non_binary' | 'undisclosed';
       interview_mode: 'in_person' | 'video' | 'phone';
       interview_status: 'scheduled' | 'completed' | 'cancelled';

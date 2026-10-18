@@ -51,6 +51,7 @@ export const PERMISSIONS = {
   'leave.read': { module: 'leave', description: 'View leave balances and requests' },
   'leave.manage': { module: 'leave', description: 'Configure leave, holidays and adjust balances' },
   'expense.approve': { module: 'expenses', description: 'Approve expense claims' },
+  'expense.manage': { module: 'expenses', description: 'Configure expense categories and see all claims' },
 
   'grievance.read': { module: 'employee_relations', description: 'View grievance cases', sensitive: true },
   'task.manage': { module: 'platform', description: 'Create and manage tasks for others' },
@@ -103,7 +104,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'attendance.read': 'org', 'attendance.approve': 'org', 'leave.approve': 'org', 'expense.approve': 'org',
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
-      'onboarding.manage': 'org', 'policy.manage': 'org',
+      'onboarding.manage': 'org', 'policy.manage': 'org', 'expense.manage': 'org',
     },
   },
   hr_admin: {
@@ -143,7 +144,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'employee.identity.read': 'org', 'employee.bank.read': 'org',
       'compensation.read': 'org', 'compensation.update': 'org',
       'payroll.prepare': 'org', 'payroll.approve': 'org',
-      'attendance.read': 'org', 'expense.approve': 'org', 'ai.use': 'org', 'leave.read': 'org',
+      'attendance.read': 'org', 'expense.approve': 'org', 'ai.use': 'org', 'leave.read': 'org', 'expense.manage': 'org',
     },
   },
   department_head: {
