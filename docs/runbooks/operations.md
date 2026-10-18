@@ -26,7 +26,7 @@ The worker does everything that happens without a person clicking:
 **If the worker isn't running, none of this happens.** Nothing is lost while it's down: each job is keyed by hour or day, so the next pass catches up.
 
 - **Always on:** `corepack pnpm --filter @peoplecore/worker start` (polls every `WORKER_POLL_MS`, default 5 s). Run one instance, or several: jobs are claimed with a lock (`locked_until`), and each runs once per idempotency key.
-- **Scheduled:** `WORKER_ONCE=1 corepack pnpm --filter @peoplecore/worker start` every 5 minutes (a cron job, a GitHub Actions schedule, or a platform scheduler). Each pass enqueues the jobs that are due and runs a batch.
+- **Scheduled:** `WORKER_ONCE=1 corepack pnpm --filter @peoplecore/worker start` on a schedule (a cron job, a GitHub Actions schedule, or a platform scheduler; production uses `.github/workflows/worker.yml`, every 3 hours). Each pass enqueues the jobs that are due, then works until the queue is empty or `WORKER_MAX_MS` (default 10 minutes) has passed.
 
 ### Checking it
 
