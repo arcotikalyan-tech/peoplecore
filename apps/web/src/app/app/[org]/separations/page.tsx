@@ -7,10 +7,14 @@ import { formatDate } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
 import { colleagueNames } from '@/server/engagement';
 import { employeeNames, getMyEmployee, managerOptions } from '@/server/employees';
-import { clearanceItems, listSeparations, noticePeriods } from '@/server/separations';
-import { resignAction, startExitAction } from './actions';
+import { clearanceItems, listSeparations, noticePeriods, retentionPolicies } from '@/server/separations';
+import { resignAction, saveRetentionAction, startExitAction } from './actions';
 import { STATUS_LABEL, STATUS_TONE, TYPE_LABEL } from './labels';
-import { ResignForm, StartExitForm } from './separation-forms';
+import { ResignForm, RetentionForm, StartExitForm } from './separation-forms';
+
+const CLASS_LABEL: Record<string, string> = {
+  identity: 'Identity numbers', bank: 'Bank accounts', personal: 'Personal details and emergency contacts', documents: 'Documents',
+};
 
 export const metadata: Metadata = { title: 'Separations' };
 
@@ -19,10 +23,11 @@ export default async function SeparationsPage({ params }: { params: Promise<{ or
   const ctx = await getOrgContext(slug);
   const me = await getMyEmployee(ctx.org.id, ctx.user.id);
   const hr = ctx.can('separation.manage', 'org');
-  const [all, notice, people] = await Promise.all([
+  const [all, notice, people, retention] = await Promise.all([
     listSeparations(ctx.org.id),
     noticePeriods(ctx.org.id),
     hr ? managerOptions(ctx.org.id) : Promise.resolve([]),
+    hr ? retentionPolicies(ctx.org.id) : Promise.resolve([]),
   ]);
   const mine = all.filter((s) => me && s.employee_id === me.id);
   const others = all.filter((s) => !me || s.employee_id !== me.id);
@@ -35,6 +40,7 @@ export default async function SeparationsPage({ params }: { params: Promise<{ or
   const myNotice = notice.find((n) => n.employment_type === me?.employment_type)?.notice_days ?? 30;
   const noticeEnd = (() => { const d = new Date(`${today}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + myNotice); return d.toISOString().slice(0, 10); })();
   const canResign = !!me && (me.status === 'active') && !mine.some(open);
+  const alumni = hr ? others.filter((s) => s.status === 'completed' && s.alumni_opt_in) : [];
 
   return (
     <>
@@ -90,6 +96,31 @@ export default async function SeparationsPage({ params }: { params: Promise<{ or
             <Card>
               <CardHeader title="Resign" description="Your manager approves first, then HR. You can withdraw until it’s approved." />
               <ResignForm action={resignAction.bind(null, slug)} today={today} noticeDays={myNotice} noticeEnd={noticeEnd} />
+            </Card>
+          )}
+          {alumni.length > 0 && (
+            <Card>
+              <CardHeader title="Alumni" description="People who left and asked to stay in touch." />
+              <ul className="divide-y divide-line text-sm" aria-label="Alumni">
+                {alumni.map((s) => (
+                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-2">
+                    <span><Link className="font-medium text-primary hover:underline" href={`${base}/${s.id}`}>{name(s.employee_id)}</Link>
+                      <span className="block text-xs text-muted">Left {formatDate(s.last_working_day)}</span></span>
+                    {s.rehire_eligible != null && <Badge tone={s.rehire_eligible ? 'success' : 'neutral'}>{s.rehire_eligible ? 'Rehire' : 'No rehire'}</Badge>}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+          {hr && retention.length > 0 && (
+            <Card>
+              <CardHeader title="Keeping records after someone leaves" description="Each kind of personal data is deleted this many months after the last working day. The employee record and payroll records stay." />
+              <div className="divide-y divide-line">
+                {retention.map((r) => (
+                  <RetentionForm key={r.record_class} action={saveRetentionAction.bind(null, slug)} recordClass={r.record_class}
+                    label={CLASS_LABEL[r.record_class] ?? r.record_class} months={r.retain_months} />
+                ))}
+              </div>
             </Card>
           )}
           {hr && (

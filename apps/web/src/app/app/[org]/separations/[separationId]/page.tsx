@@ -5,14 +5,17 @@ import { todayIn } from '@peoplecore/shared';
 import { ActionForm } from '@/components/action-form';
 import { ButtonLink } from '@/components/ui/button';
 import { Badge, Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surface';
+import { Table, Td, Th } from '@/components/ui/table';
+import type { SettlementLine } from '@peoplecore/payroll';
 import { formatDate } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
 import { colleagueNames } from '@/server/engagement';
 import { employeeNames, getMyEmployee } from '@/server/employees';
-import { clearanceItems, getSeparation, separationDetails } from '@/server/separations';
-import { clearItemAction, exitInterviewAction, rehireAction, setTermsAction, withdrawAction } from '../actions';
+import { clearanceItems, getSeparation, getSettlement, separationDetails } from '@/server/separations';
+import { inr } from '../../payroll/format';
+import { approveSettlementAction, clearItemAction, exitInterviewAction, prepareSettlementAction, rehireAction, setTermsAction, withdrawAction } from '../actions';
 import { OWNER_LABEL, REASONS, STATUS_LABEL, STATUS_TONE, TYPE_LABEL } from '../labels';
-import { ExitInterviewForm, RehireForm, TermsForm, WaiveForm } from '../separation-forms';
+import { ExitInterviewForm, PrepareSettlementForm, RehireForm, TermsForm, WaiveForm } from '../separation-forms';
 
 export const metadata: Metadata = { title: 'Separation' };
 
@@ -24,12 +27,20 @@ export default async function SeparationPage({ params }: { params: Promise<{ org
   const me = await getMyEmployee(ctx.org.id, ctx.user.id);
   const self = me?.id === s.employee_id;
   const hr = ctx.can('separation.manage', 'org');
-  const [items, details, names, colleagues] = await Promise.all([
+  const payroll = ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org');
+  const [items, details, names, colleagues, settlement] = await Promise.all([
     clearanceItems(ctx.org.id, [s.id]),
     self || hr ? separationDetails(s.id) : Promise.resolve(null),
     employeeNames(ctx.org.id, [s.employee_id]),
     colleagueNames(ctx.org.id),
+    // RLS: payroll staff and HR; the employee once it is approved.
+    s.status === 'approved' || s.status === 'completed' ? getSettlement(ctx.org.id, s.id) : Promise.resolve(null),
   ]);
+  const lines = (settlement?.lines ?? []) as unknown as SettlementLine[];
+  const settled = s.status === 'approved' || s.status === 'completed';
+  const showSettlement = settled && (payroll || hr || !!settlement);
+  const canApprove = !!settlement && settlement.status === 'computed' && ctx.can('payroll.approve', 'org') && settlement.prepared_by !== ctx.user.id;
+  const letters = (hr && settled) || (self && s.status === 'completed');
   const name = self ? 'You' : (names.get(s.employee_id) ?? colleagues.get(s.employee_id) ?? 'Employee');
   const today = todayIn(ctx.org.timezone);
   const inProgress = s.status === 'approved';
@@ -97,6 +108,41 @@ export default async function SeparationPage({ params }: { params: Promise<{ org
             </Card>
           )}
 
+          {showSettlement && (
+            <Card>
+              <CardHeader title="Full and final settlement"
+                description={settlement?.status === 'approved' ? 'Approved. Paid or recovered with the final payroll run.' : settlement ? 'Computed; waiting for approval by a second person.' : 'Not prepared yet.'} />
+              {settlement && (
+                <>
+                  <Table caption="Settlement">
+                    <thead><tr><Th>Item</Th><Th>How it’s worked out</Th><Th className="text-right">Amount</Th></tr></thead>
+                    <tbody>
+                      {lines.length === 0 && <tr><td colSpan={3} className="px-4 py-4 text-sm text-muted">Nothing due beyond the final salary.</td></tr>}
+                      {lines.map((l) => (
+                        <tr key={l.code}>
+                          <Td>{l.name}{!l.taxable && l.kind === 'earning' && <span className="ml-1 text-xs text-muted">(not taxable)</span>}</Td>
+                          <Td className="text-xs text-muted">{l.basis}</Td>
+                          <Td className="text-right tabular-nums">{l.kind === 'deduction' ? '− ' : ''}{inr.format(l.amount)}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                  <p className="px-5 py-3 text-sm">
+                    Net <span className="font-semibold tabular-nums">{inr.format(Number(settlement.net))}</span>
+                    {Number(settlement.net) < 0 && <span className="text-muted"> (recovered from the final salary)</span>}
+                  </p>
+                  {canApprove && (
+                    <ActionForm action={approveSettlementAction.bind(null, slug)} label="Approve settlement" submit="Approve settlement"
+                      hidden={{ settlementId: settlement.id, inputsHash: settlement.inputs_hash }} className="flex items-center gap-3 border-t border-line px-5 py-3" />
+                  )}
+                </>
+              )}
+              {ctx.can('payroll.prepare', 'org') && settlement?.status !== 'approved' && (
+                <div className="border-t border-line"><PrepareSettlementForm action={prepareSettlementAction.bind(null, slug)} separationId={s.id} again={!!settlement} /></div>
+              )}
+            </Card>
+          )}
+
           {interview && hr && (
             <Card>
               <CardHeader title="Exit interview" description="Only HR sees this." />
@@ -127,6 +173,15 @@ export default async function SeparationPage({ params }: { params: Promise<{ org
             <Card>
               <CardHeader title="Exit interview" description="A few questions before you go. Your manager won’t see your answers." />
               <ExitInterviewForm action={exitInterviewAction.bind(null, slug)} separationId={s.id} />
+            </Card>
+          )}
+          {letters && (
+            <Card>
+              <CardHeader title="Letters" description="Open, then print or save as PDF." />
+              <ul className="space-y-2 px-5 py-4 text-sm">
+                <li><Link className="text-primary hover:underline" href={`/app/${slug}/separations/${s.id}/letter/relieving`}>Relieving letter</Link></li>
+                <li><Link className="text-primary hover:underline" href={`/app/${slug}/separations/${s.id}/letter/experience`}>Experience letter</Link></li>
+              </ul>
             </Card>
           )}
           {hr && s.status === 'completed' && (

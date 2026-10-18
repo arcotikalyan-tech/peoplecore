@@ -41,12 +41,12 @@ export default async function OrgLayout({ children, params }: { children: ReactN
   ];
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <div className="min-h-dvh lg:grid lg:grid-cols-[248px_minmax(0,1fr)] print:block">
       <a href="#main" className="sr-only z-50 rounded-md bg-surface px-3 py-2 focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
         Skip to content
       </a>
 
-      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface lg:flex">
+      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-surface lg:flex print:hidden">
         <div className="border-b border-line px-5 py-4">
           <Brand />
           <div className="mt-3 flex items-center justify-between gap-2">
@@ -69,7 +69,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       </aside>
 
       <div className="flex min-w-0 flex-col">
-        <header className="border-b border-line bg-surface lg:hidden">
+        <header className="border-b border-line bg-surface lg:hidden print:hidden">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <Brand />
             <form action="/auth/signout" method="post">
@@ -83,7 +83,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
         </header>
 
         {ctx.org.is_demo && (
-          <div role="note" className="border-b border-warning/30 bg-warning-soft px-4 py-2 text-center text-xs font-medium text-warning">
+          <div role="note" className="border-b border-warning/30 bg-warning-soft px-4 py-2 text-center text-xs font-medium text-warning print:hidden">
             Demo organization — every person and record here is synthetic.
           </div>
         )}

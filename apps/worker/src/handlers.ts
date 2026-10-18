@@ -52,6 +52,18 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       if (error) throw new Error(error.message);
       log('separations.daily', data as Record<string, unknown>);
     },
+    // Personal data past its retention period after someone leaves: rows are removed in the database, then the
+    // document files here. (A failed file removal fails the job; the paths stay in retention_actions for follow-up.)
+    'retention.daily': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_retention');
+      if (error) throw new Error(error.message);
+      const result = data as { actions: number; storagePaths: string[] };
+      if (result.storagePaths.length > 0) {
+        const removed = await db.storage.from('employee-documents').remove(result.storagePaths);
+        if (removed.error) throw new Error(`retention: removing ${result.storagePaths.length} file(s) failed: ${removed.error.message}`);
+      }
+      log('retention.daily', { actions: result.actions, files: result.storagePaths.length });
+    },
     'workflows.resume': async (_job, log) => {
       const { data, error } = await db.rpc('worker_resume_workflows');
       if (error) throw new Error(error.message);

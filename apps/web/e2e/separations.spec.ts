@@ -4,8 +4,9 @@ import { adminClient, open, signIn, test } from './helpers';
 /**
  * Separation on the live demo tenant: Dev Nair resigns; his manager (Rohan Iyer) and then HR approve it in the
  * Inbox; the clearance checklist appears; Rohan clears the handover, finance clears no-dues, Dev completes the exit
- * interview (which only HR can read); HR then cancels the separation so Dev stays employed. Everything is removed
- * and Dev's record restored afterwards.
+ * interview (which only HR can read); payroll computes the full and final settlement (refused while Dev has no
+ * salary) and the owner approves it; HR then cancels the separation so Dev stays employed, which takes back the
+ * settlement's unpaid adjustments. Everything is removed and Dev's record restored afterwards.
  */
 test.describe.configure({ mode: 'serial' });
 
@@ -24,6 +25,8 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  await admin.from('payroll_adjustments').delete().eq('employee_id', devId).eq('reason', 'Full and final settlement').gte('created_at', startedAt);
+  await admin.from('compensation_records').delete().eq('employee_id', devId);
   const seps = (await admin.from('separations').select('id, approval_request_id').eq('employee_id', devId).gte('created_at', startedAt)).data ?? [];
   if (seps.length) {
     await admin.from('separations').update({ approval_request_id: null }).in('id', seps.map((s) => s.id));
@@ -31,7 +34,7 @@ test.afterAll(async () => {
     await admin.from('separations').delete().in('id', seps.map((s) => s.id));
   }
   await admin.from('employees').update({ status: 'active', date_of_exit: null }).eq('id', devId);
-  for (const kind of ['separation.%', 'approval.%']) {
+  for (const kind of ['separation.%', 'approval.%', 'settlement.%']) {
     await admin.from('notifications').delete().eq('organization_id', orgId).like('kind', kind).gte('created_at', startedAt);
   }
 });
@@ -102,6 +105,45 @@ test('the manager, finance and the employee clear their items; only HR reads the
   await expect(hr.getByText('3 of 3 done')).toBeVisible();
 });
 
+test('payroll computes the settlement from Dev’s salary; a second person approves it', async ({ browser }) => {
+  const farah = await (await browser.newContext()).newPage();
+  await signIn(farah, 'demo.payroll');
+  await open(farah, separationUrl);
+  const prepare = farah.getByRole('form', { name: 'Prepare settlement' });
+  await prepare.getByRole('button', { name: 'Compute settlement' }).click();
+  await expect(prepare.getByText('No salary is recorded for this employee.')).toBeVisible();
+
+  await open(farah, `/app/demo/employees/${devId}`);
+  const salary = farah.getByRole('form', { name: 'Change compensation' });
+  await salary.getByLabel('Basic salary (monthly ₹)').fill('30000');
+  await salary.getByLabel('House rent allowance (monthly ₹)').fill('15000');
+  await salary.getByLabel('Special allowance (monthly ₹)').fill('15000');
+  await salary.getByLabel('Effective from').fill('2025-01-01');
+  await salary.getByRole('button', { name: 'Save compensation' }).click();
+  await expect(farah.getByText(/^₹7,20,000 a year since/)).toBeVisible();
+
+  await open(farah, separationUrl);
+  await prepare.getByLabel('Extra line 1').fill(`Laptop bag not returned ${run}`);
+  await farah.locator('#f-fnf1-extraAmount1').fill('2000');
+  await prepare.getByRole('button', { name: 'Compute settlement' }).click();
+  await expect(prepare.getByText('Settlement computed. Someone else with payroll approval rights approves it.')).toBeVisible();
+  await expect(farah.getByRole('table', { name: 'Settlement' }).getByText(`Laptop bag not returned ${run}`)).toBeVisible();
+  await expect(farah.getByRole('form', { name: 'Approve settlement' })).toHaveCount(0); // not the preparer
+
+  const owner = await (await browser.newContext()).newPage();
+  await signIn(owner, 'demo.owner');
+  await open(owner, separationUrl);
+  await owner.getByRole('form', { name: 'Approve settlement' }).getByRole('button', { name: 'Approve settlement' }).click();
+  await expect(owner.getByRole('status').filter({ hasText: 'Settlement approved.' })).toBeVisible();
+  const adj = (await admin.from('payroll_adjustments').select('code, amount').eq('employee_id', devId).eq('reason', 'Full and final settlement').gte('created_at', startedAt)).data ?? [];
+  expect(adj.find((a) => a.code === 'FNF_OTHER_1')?.amount).toBe(2000);
+
+  const dev = await (await browser.newContext()).newPage(); // the employee sees the approved statement
+  await signIn(dev, 'demo.employee');
+  await open(dev, separationUrl);
+  await expect(dev.getByRole('table', { name: 'Settlement' }).getByText(`Laptop bag not returned ${run}`)).toBeVisible();
+});
+
 test('HR cancels the separation and the employee stays', async ({ page }) => {
   await signIn(page, 'demo.hr');
   await open(page, separationUrl);
@@ -110,4 +152,6 @@ test('HR cancels the separation and the employee stays', async ({ page }) => {
   await expect(page.getByText('Cancelled', { exact: true })).toBeVisible();
   const emp = (await admin.from('employees').select('status, date_of_exit').eq('id', devId).single()).data!;
   expect(emp).toEqual({ status: 'active', date_of_exit: null });
+  const left = (await admin.from('payroll_adjustments').select('id').eq('employee_id', devId).eq('reason', 'Full and final settlement').gte('created_at', startedAt)).data ?? [];
+  expect(left).toEqual([]); // the settlement's unpaid adjustments were taken back
 });

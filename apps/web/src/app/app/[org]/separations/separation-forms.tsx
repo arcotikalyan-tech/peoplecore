@@ -104,3 +104,37 @@ export function RehireForm({ action, separationId, eligible }: { action: Action;
     </ActionForm>
   );
 }
+
+/** Payroll computes the settlement; extra lines cover what the engine can't know (an unreturned asset, a bonus due). */
+export function PrepareSettlementForm({ action, separationId, again }: { action: Action; separationId: string; again: boolean }) {
+  return (
+    <ActionForm action={action} label="Prepare settlement" submit={again ? 'Compute again' : 'Compute settlement'} hidden={{ separationId }}
+      variant={again ? 'secondary' : 'primary'} className="space-y-3 px-5 py-4">
+      {(v, e) => (
+        <>
+          <p className="text-xs text-muted">Salary for the final month is paid by the payroll run. Add anything else due or to recover:</p>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="grid gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <TextField idPrefix={`fnf${i}`} name={`extraName${i}`} label={`Extra line ${i}`} placeholder={i === 1 ? 'Laptop not returned' : ''} defaultValue={v[`extraName${i}`] ?? ''} />
+              <SelectField idPrefix={`fnf${i}`} name={`extraKind${i}`} label="Type" defaultValue={v[`extraKind${i}`] ?? 'deduction'}
+                options={[{ value: 'deduction', label: 'Recover' }, { value: 'earning', label: 'Pay' }]} />
+              <TextField idPrefix={`fnf${i}`} name={`extraAmount${i}`} label="Amount (₹)" inputMode="decimal" defaultValue={v[`extraAmount${i}`] ?? ''} error={e[`extraAmount${i}`]} />
+            </div>
+          ))}
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+export function RetentionForm({ action, recordClass, label, months }: { action: Action; recordClass: string; label: string; months: number }) {
+  return (
+    <ActionForm action={action} label={`Retention for ${label}`} submit="Save" hidden={{ recordClass }} variant="secondary" size="sm"
+      className="flex flex-wrap items-end justify-between gap-3 px-5 py-3">
+      {(v, e) => (
+        <TextField idPrefix={`ret-${recordClass}`} name="months" label={`${label}: months after leaving`} inputMode="numeric"
+          defaultValue={v.months ?? String(months)} error={e.months} className="w-64" />
+      )}
+    </ActionForm>
+  );
+}

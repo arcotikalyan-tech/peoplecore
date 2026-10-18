@@ -1467,6 +1467,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      fnf_settlements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          separation_id: string;
+          employee_id: string;
+          status: string;
+          inputs: Json;
+          inputs_hash: string;
+          lines: Json;
+          earnings: number;
+          deductions: number;
+          net: number;
+          engine_version: string;
+          prepared_by: string;
+          prepared_at: string;
+          approved_by: string | null;
+          approved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          separation_id: string;
+          employee_id: string;
+          status?: string;
+          inputs: Json;
+          inputs_hash: string;
+          lines: Json;
+          earnings: number;
+          deductions: number;
+          net: number;
+          engine_version: string;
+          prepared_by?: string;
+          prepared_at?: string;
+          approved_by?: string | null;
+          approved_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          separation_id?: string;
+          employee_id?: string;
+          status?: string;
+          inputs?: Json;
+          inputs_hash?: string;
+          lines?: Json;
+          earnings?: number;
+          deductions?: number;
+          net?: number;
+          engine_version?: string;
+          prepared_by?: string;
+          prepared_at?: string;
+          approved_by?: string | null;
+          approved_at?: string | null;
+        };
+        Relationships: [];
+      };
       geofences: {
         Row: {
           id: string;
@@ -2073,6 +2130,7 @@ export type Database = {
           count_all_days: boolean;
           is_active: boolean;
           created_at: string;
+          encashable: boolean;
         };
         Insert: {
           id?: string;
@@ -2085,6 +2143,7 @@ export type Database = {
           count_all_days?: boolean;
           is_active?: boolean;
           created_at?: string;
+          encashable?: boolean;
         };
         Update: {
           id?: string;
@@ -2097,6 +2156,7 @@ export type Database = {
           count_all_days?: boolean;
           is_active?: boolean;
           created_at?: string;
+          encashable?: boolean;
         };
         Relationships: [];
       };
@@ -2522,6 +2582,7 @@ export type Database = {
           applied_run_id: string | null;
           created_by: string | null;
           created_at: string;
+          settlement_id: string | null;
         };
         Insert: {
           id?: string;
@@ -2536,6 +2597,7 @@ export type Database = {
           applied_run_id?: string | null;
           created_by?: string | null;
           created_at?: string;
+          settlement_id?: string | null;
         };
         Update: {
           id?: string;
@@ -2550,6 +2612,7 @@ export type Database = {
           applied_run_id?: string | null;
           created_by?: string | null;
           created_at?: string;
+          settlement_id?: string | null;
         };
         Relationships: [];
       };
@@ -2844,6 +2907,54 @@ export type Database = {
           requested_by?: string;
           created_at?: string;
           decided_at?: string | null;
+        };
+        Relationships: [];
+      };
+      retention_actions: {
+        Row: {
+          id: number;
+          organization_id: string;
+          employee_id: string;
+          record_class: string;
+          rows_removed: number;
+          storage_paths: string[];
+          acted_at: string;
+        };
+        Insert: {
+          id?: never;
+          organization_id: string;
+          employee_id: string;
+          record_class: string;
+          rows_removed: number;
+          storage_paths?: string[];
+          acted_at?: string;
+        };
+        Update: {
+          id?: never;
+          organization_id?: string;
+          employee_id?: string;
+          record_class?: string;
+          rows_removed?: number;
+          storage_paths?: string[];
+          acted_at?: string;
+        };
+        Relationships: [];
+      };
+      retention_policies: {
+        Row: {
+          organization_id: string;
+          record_class: string;
+          retain_months: number;
+        };
+        Insert: {
+          organization_id: string;
+          record_class: string;
+          retain_months: number;
+        };
+        Update: {
+          organization_id?: string;
+          record_class?: string;
+          retain_months?: number;
         };
         Relationships: [];
       };
@@ -3735,6 +3846,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      approve_settlement: {
+        Args: {
+          p_settlement: string;
+          p_inputs_hash: string;
+        };
+        Returns: undefined;
+      };
       assign_course: {
         Args: {
           p_course: string;
@@ -4413,6 +4531,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      settlement_inputs: {
+        Args: {
+          p_separation: string;
+        };
+        Returns: Json;
+      };
       share_review_cycle: {
         Args: {
           p_cycle: string;
@@ -4440,6 +4564,16 @@ export type Database = {
           p_results: Json;
         };
         Returns: undefined;
+      };
+      store_settlement: {
+        Args: {
+          p_separation: string;
+          p_engine_version: string;
+          p_inputs: Json;
+          p_inputs_hash: string;
+          p_lines: Json;
+        };
+        Returns: string;
       };
       structure_usage: {
         Args: {
@@ -4611,6 +4745,10 @@ export type Database = {
         Returns: Json;
       };
       worker_resume_workflows: {
+        Args: never;
+        Returns: Json;
+      };
+      worker_retention: {
         Args: never;
         Returns: Json;
       };

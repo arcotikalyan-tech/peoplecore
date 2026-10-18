@@ -48,3 +48,19 @@ export async function noticePeriods(orgId: string) {
   if (error) throw new Error(`Failed to load notice periods (${error.code})`);
   return data;
 }
+
+export async function getSettlement(orgId: string, separationId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('fnf_settlements')
+    .select('id, status, inputs_hash, lines, earnings, deductions, net, engine_version, prepared_by, prepared_at, approved_by, approved_at')
+    .eq('organization_id', orgId).eq('separation_id', separationId).maybeSingle();
+  if (error) throw new Error(`Failed to load the settlement (${error.code})`);
+  return data;
+}
+
+export async function retentionPolicies(orgId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('retention_policies').select('record_class, retain_months').eq('organization_id', orgId).order('record_class');
+  if (error) throw new Error(`Failed to load retention (${error.code})`);
+  return data;
+}

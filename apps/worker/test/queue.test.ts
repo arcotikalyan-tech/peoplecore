@@ -52,11 +52,13 @@ describe('dueJobs', () => {
     const hourly = (jobs: ReturnType<typeof dueJobs>) => jobs.filter((j) => j.kind !== 'helpdesk.sla').map((j) => j.key);
     expect(hourly(a)).toEqual(['core_hr.daily:2026-10-18T05', 'leave.accrual:2026-10-18T05', 'attendance.daily:2026-10-18', 'assets.returns:2026-10-18T05',
       'approvals.escalate:2026-10-18T05', 'learning.daily:2026-10-18T05',
-      'workflows.resume:2026-10-18T05', 'separations.daily:2026-10-18T05']);
+      'workflows.resume:2026-10-18T05', 'separations.daily:2026-10-18T05',
+      'retention.daily:2026-10-18']);
     expect(hourly(b)).toEqual(hourly(a));
     expect(hourly(c)).toEqual(['core_hr.daily:2026-10-18T06', 'leave.accrual:2026-10-18T06', 'attendance.daily:2026-10-18', 'assets.returns:2026-10-18T06',
       'approvals.escalate:2026-10-18T06', 'learning.daily:2026-10-18T06',
-      'workflows.resume:2026-10-18T06', 'separations.daily:2026-10-18T06']); // same day key
+      'workflows.resume:2026-10-18T06', 'separations.daily:2026-10-18T06',
+      'retention.daily:2026-10-18']); // same day key
   });
 
   it('checks helpdesk SLAs every quarter hour', () => {

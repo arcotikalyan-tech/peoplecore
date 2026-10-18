@@ -29,6 +29,8 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'workflows.resume', key: `workflows.resume:${hour}`, payload: { hour } },
     // Exits: the day after each last working day, in the organization's time zone.
     { kind: 'separations.daily', key: `separations.daily:${hour}`, payload: { hour } },
+    // Daily is enough for retention (periods are months long).
+    { kind: 'retention.daily', key: `retention.daily:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // Every 15 minutes: the shortest helpdesk SLA is 4 hours, so a breach is flagged within a quarter of it.
     { kind: 'helpdesk.sla', key: `helpdesk.sla:${hour}:${String(Math.floor(now.getUTCMinutes() / 15) * 15).padStart(2, '0')}`, payload: { hour } },
   ];
