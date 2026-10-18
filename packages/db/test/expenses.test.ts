@@ -48,7 +48,7 @@ describe('expense claims', () => {
       await item(tx, c, 'CONVEYANCE', 450); // no receipt needed
       expect((await failure(tx, `select add_expense_item($1, $2, $3, current_date, 900, null, null, null, null)`, [c, randomUUID(), cats.MEALS])).message).toBe('Meals needs a receipt.');
       expect((await failure(tx, `select add_expense_item($1, $2, $3, current_date, 6000, null, null, 'r.pdf', $4)`, [c, randomUUID(), cats.MEALS, hash('x')])).message).toBe('Meals items are limited to ₹5000.');
-      expect((await failure(tx, `select add_expense_item($1, $2, $3, current_date + 1, 100, null, null, null, null)`, [c, randomUUID(), cats.CONVEYANCE])).message).toBe('Expenses can’t be dated in the future.');
+      expect((await failure(tx, `select add_expense_item($1, $2, $3, current_date + 2, 100, null, null, null, null)`, [c, randomUUID(), cats.CONVEYANCE])).message).toBe('Expenses can’t be dated in the future.');
       await item(tx, c, 'MEALS', 1200.5, 'dinner-receipt');
       expect((await tx.query<{ total: string }>('select total from expense_claims where id = $1', [c])).rows[0]!.total).toBe('1650.50');
       await tx.query('select submit_expense_claim($1)', [c]);

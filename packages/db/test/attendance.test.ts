@@ -86,7 +86,9 @@ describe('record_punch', () => {
       const outside = (await t.db.query<{ id: string }>(`select record_punch('geo-out-001', now(), 'mobile', 13.0827, 80.2707, 10) as id`)).rows[0]!.id;
       const none = (await t.db.query<{ id: string }>(`select record_punch('geo-none-01', now(), 'web') as id`)).rows[0]!.id;
       await t.db.exec('reset role');
-      const rules = async (id: string) => (await t.db.query<{ rule: string }>('select rule from anomaly_flags where subject_id = $1', [id])).rows.map((r) => r.rule);
+      // Location rules only: between midnight and the end of yesterday's shift window a lone punch also reads as a
+      // missing check-out for yesterday, which is about pairing, not location.
+      const rules = async (id: string) => (await t.db.query<{ rule: string }>(`select rule from anomaly_flags where subject_id = $1 and rule <> 'missing_punch'`, [id])).rows.map((r) => r.rule);
       expect(await rules(inside)).toEqual([]);
       expect(await rules(outside)).toEqual(['outside_geofence']);
       expect(await rules(none)).toEqual(['no_location']);
