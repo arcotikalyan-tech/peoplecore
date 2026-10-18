@@ -14,6 +14,7 @@ import { EditableSection } from '@/components/editable-section';
 import { EmployeeStatusBadge } from '@/components/status-badge';
 import { Alert, Badge, Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surface';
 import { formatDate, formatDateTime, humanize } from '@/lib/format';
+import { employeeHoldings } from '@/server/assets';
 import { activityForEmployee, type AuditEvent } from '@/server/audit';
 import { getOrgContext } from '@/server/context';
 import { employeeNames, getEmployee, getEmploymentHistory, managerOptions, namesForUsers } from '@/server/employees';
@@ -90,7 +91,7 @@ export default async function EmployeePage({
   const canEditWork = ctx.can('employee.update', 'org');
   const canAudit = ctx.can('audit.read', 'org');
 
-  const [history, structure, managers, personal, identity, bank, documents, onboarding, compensation] = await Promise.all([
+  const [history, structure, managers, personal, identity, bank, documents, onboarding, compensation, holdings] = await Promise.all([
     getEmploymentHistory(orgId, id),
     getStructure(orgId),
     canEditWork ? managerOptions(orgId) : Promise.resolve([]),
@@ -100,6 +101,7 @@ export default async function EmployeePage({
     allowed('employee.document.read') ? listDocuments(orgId, id) : Promise.resolve(null),
     getPlans(orgId, { employeeId: id, status: 'in_progress' }),
     allowed('compensation.read') || ctx.can('compensation.update', 'org') ? getCompensation(orgId, id) : Promise.resolve(null),
+    ctx.can('asset.manage', 'org') ? employeeHoldings(id) : Promise.resolve(null),
   ]);
   const plan = onboarding[0];
   const activity = canAudit ? await activityForEmployee(orgId, id, history.map((h) => h.id)) : [];
@@ -340,6 +342,29 @@ export default async function EmployeePage({
                   </li>
                 ))}
               </ul>
+            </Card>
+          )}
+          {holdings && (
+            <Card>
+              <CardHeader title="Assets and access" description="What they hold now. Everything here is recovered or revoked when they leave." />
+              {holdings.length === 0 ? <p className="px-5 py-4 text-sm text-muted">Nothing issued and no access recorded.</p> : (
+                <ul className="divide-y divide-line" aria-label="Assets and access">
+                  {holdings.map((h) => (
+                    <li key={h.id} className="flex items-start justify-between gap-2 px-5 py-3 text-sm">
+                      <span>
+                        <span className="font-medium">{h.item}</span>
+                        <span className="block text-xs text-muted">{h.detail} · since {formatDate(h.since)}</span>
+                      </span>
+                      <Badge tone={h.kind === 'asset' ? 'primary' : 'neutral'}>{h.kind === 'asset' ? 'Asset' : 'Access'}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="border-t border-line px-5 py-3 text-sm">
+                <Link className="text-primary hover:underline" href={`${base}/assets`}>Assets</Link>
+                <span className="text-muted"> · </span>
+                <Link className="text-primary hover:underline" href={`${base}/assets/access`}>System access</Link>
+              </p>
             </Card>
           )}
           <Card>

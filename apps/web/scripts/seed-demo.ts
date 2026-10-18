@@ -215,7 +215,7 @@ async function main() {
   const finHead = await addEmployee({ first: 'Farah', last: 'Qureshi', dept: 'FIN', title: 'Finance Manager', loc: 'PUN', managerId: ceo, joinedDaysAgo: 1000, userId: accounts.payroll.id });
   const engHead = await addEmployee({ first: 'Rohan', last: 'Iyer', dept: 'ENG', title: 'Engineering Manager', loc: 'BLR', managerId: ceo, joinedDaysAgo: 900, userId: accounts.manager.id });
   const salesHead = await addEmployee({ first: 'Meera', last: 'Kulkarni', dept: 'SALES', title: 'Sales Manager', loc: 'PUN', managerId: ceo, joinedDaysAgo: 800 });
-  await addEmployee({ first: 'Dev', last: 'Nair', dept: 'ENG', title: 'Software Engineer', loc: 'BLR', managerId: engHead, joinedDaysAgo: 400, userId: accounts.employee.id });
+  const dev = await addEmployee({ first: 'Dev', last: 'Nair', dept: 'ENG', title: 'Software Engineer', loc: 'BLR', managerId: engHead, joinedDaysAgo: 400, userId: accounts.employee.id });
 
   const firsts = ['Aarav', 'Diya', 'Kabir', 'Ananya', 'Vihaan', 'Isha', 'Arjun', 'Saanvi', 'Kavya', 'Aditya', 'Nisha', 'Kunal', 'Riya', 'Siddharth', 'Tara', 'Yash', 'Zoya', 'Neel', 'Pooja', 'Varun'];
   const lasts = ['Sharma', 'Reddy', 'Das', 'Patel', 'Gupta', 'Singh', 'Joshi', 'Fernandes', 'Bose', 'Rao'];
@@ -275,6 +275,31 @@ async function main() {
     { organization_id: orgId, category: 'Attendance', published: true, title: 'Fixing a missed punch',
       body: 'If you forgot to check in or out, open Attendance and request a regularization for that day. Your manager approves it.' },
   ]), 'add knowledge-base articles');
+
+  // Assets and system access: Dev holds a laptop (receipt confirmed) and has email and GitHub accounts; Rohan owns GitHub.
+  const assets = must(await db.from('assets').insert([
+    { organization_id: orgId, tag: 'AST-0001', name: 'ThinkPad T14 Gen 4', category: 'Laptop', serial_number: 'DEMO-LT-0001', location_id: locationId('BLR'),
+      purchased_on: isoDaysAgo(400), purchase_cost: 98000, warranty_until: isoDaysAgo(-330) },
+    { organization_id: orgId, tag: 'AST-0002', name: 'MacBook Air M3', category: 'Laptop', serial_number: 'DEMO-LT-0002', location_id: locationId('BLR'),
+      purchased_on: isoDaysAgo(60), purchase_cost: 114900, warranty_until: isoDaysAgo(-305) },
+    { organization_id: orgId, tag: 'AST-0003', name: 'Dell 27" monitor', category: 'Monitor', serial_number: 'DEMO-MN-0003', location_id: locationId('PUN') },
+    { organization_id: orgId, tag: 'AST-0004', name: 'Pixel 8', category: 'Phone', serial_number: 'DEMO-PH-0004', status: 'in_repair', notes: 'Screen replacement under warranty.' },
+  ]).select('id, tag'), 'add assets');
+  const laptop = assets.find((a) => a.tag === 'AST-0001')!.id;
+  exec(await db.from('asset_assignments').insert({
+    organization_id: orgId, asset_id: laptop, employee_id: dev, condition_out: 'New, with charger', acknowledged_at: new Date().toISOString(),
+  }), 'issue the demo laptop');
+  exec(await db.from('assets').update({ status: 'assigned' }).eq('id', laptop), 'mark the demo laptop issued');
+  const systems = must(await db.from('access_systems').insert([
+    { organization_id: orgId, name: 'Google Workspace' },
+    { organization_id: orgId, name: 'GitHub', owner_employee_id: engHead },
+    { organization_id: orgId, name: 'VPN' },
+  ]).select('id, name'), 'add access systems');
+  const system = (name: string) => systems.find((x) => x.name === name)!.id;
+  exec(await db.from('access_grants').insert([
+    { organization_id: orgId, employee_id: dev, system_id: system('Google Workspace'), account: accounts.employee.email },
+    { organization_id: orgId, employee_id: dev, system_id: system('GitHub'), account: 'dev-nair-demo', access_level: 'Member' },
+  ]), 'record demo system access');
 
   createdOrgId = null; // success: keep the tenant
 

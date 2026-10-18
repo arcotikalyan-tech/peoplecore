@@ -25,6 +25,11 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       if (error) throw new Error(error.message);
       log('helpdesk.sla', data as Record<string, unknown>);
     },
+    'assets.returns': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_asset_returns');
+      if (error) throw new Error(error.message);
+      log('assets.returns', data as Record<string, unknown>);
+    },
     // Every hire gets the organization's default onboarding plan (once).
     'event:employee.hired': async (job, log) => {
       const employee = job.payload.subject_id;

@@ -14,6 +14,9 @@ const UNIQUE_MESSAGES: Record<string, string> = {
   locations_organization_id_code_key: 'A location with this code already exists.',
   organizations_slug_key: 'That organization URL is already taken.',
   organization_members_organization_id_user_id_key: 'This person is already a member of this organization.',
+  assets_organization_id_tag_key: 'Another asset already has this tag.',
+  assets_serial_idx: 'Another asset already has this serial number.',
+  access_systems_organization_id_name_key: 'A system with this name already exists.',
 };
 
 export function toUserMessage(error: DbError): string {

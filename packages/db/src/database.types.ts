@@ -6,6 +6,72 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      access_grants: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          system_id: string;
+          account: string;
+          access_level: string | null;
+          granted_at: string;
+          granted_by: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          revoke_note: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          system_id: string;
+          account: string;
+          access_level?: string | null;
+          granted_at?: string;
+          granted_by?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revoke_note?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          system_id?: string;
+          account?: string;
+          access_level?: string | null;
+          granted_at?: string;
+          granted_by?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          revoke_note?: string | null;
+        };
+        Relationships: [];
+      };
+      access_systems: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          owner_employee_id: string | null;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          owner_employee_id?: string | null;
+          is_active?: boolean;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          owner_employee_id?: string | null;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
       announcement_acknowledgements: {
         Row: {
           organization_id: string;
@@ -279,6 +345,105 @@ export type Database = {
           requested_by?: string;
           created_at?: string;
           decided_at?: string | null;
+        };
+        Relationships: [];
+      };
+      asset_assignments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          asset_id: string;
+          employee_id: string;
+          assigned_at: string;
+          assigned_by: string | null;
+          due_back_on: string | null;
+          condition_out: string | null;
+          acknowledged_at: string | null;
+          reminded_at: string | null;
+          returned_at: string | null;
+          returned_by: string | null;
+          condition_in: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          asset_id: string;
+          employee_id: string;
+          assigned_at?: string;
+          assigned_by?: string | null;
+          due_back_on?: string | null;
+          condition_out?: string | null;
+          acknowledged_at?: string | null;
+          reminded_at?: string | null;
+          returned_at?: string | null;
+          returned_by?: string | null;
+          condition_in?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          asset_id?: string;
+          employee_id?: string;
+          assigned_at?: string;
+          assigned_by?: string | null;
+          due_back_on?: string | null;
+          condition_out?: string | null;
+          acknowledged_at?: string | null;
+          reminded_at?: string | null;
+          returned_at?: string | null;
+          returned_by?: string | null;
+          condition_in?: string | null;
+        };
+        Relationships: [];
+      };
+      assets: {
+        Row: {
+          id: string;
+          organization_id: string;
+          tag: string;
+          name: string;
+          category: string;
+          serial_number: string | null;
+          location_id: string | null;
+          purchased_on: string | null;
+          purchase_cost: number | null;
+          warranty_until: string | null;
+          status: Database['public']['Enums']['asset_status'];
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          tag: string;
+          name: string;
+          category: string;
+          serial_number?: string | null;
+          location_id?: string | null;
+          purchased_on?: string | null;
+          purchase_cost?: number | null;
+          warranty_until?: string | null;
+          status?: Database['public']['Enums']['asset_status'];
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          tag?: string;
+          name?: string;
+          category?: string;
+          serial_number?: string | null;
+          location_id?: string | null;
+          purchased_on?: string | null;
+          purchase_cost?: number | null;
+          warranty_until?: string | null;
+          status?: Database['public']['Enums']['asset_status'];
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -2863,6 +3028,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      acknowledge_asset: {
+        Args: {
+          p_assignment: string;
+        };
+        Returns: undefined;
+      };
       acknowledge_policy: {
         Args: {
           p_policy: string;
@@ -3110,6 +3281,12 @@ export type Database = {
         };
         Returns: { account_holder_name: string; bank_name: string; account_number: string; ifsc: string; account_type: Database['public']['Enums']['bank_account_type']; since: string; previous_accounts: number; can_edit: boolean }[];
       };
+      employee_holdings: {
+        Args: {
+          p_employee: string;
+        };
+        Returns: { kind: string; id: string; item: string; detail: string; since: string }[];
+      };
       employee_identity_summary: {
         Args: {
           p_employee: string;
@@ -3143,6 +3320,15 @@ export type Database = {
         };
         Returns: string;
       };
+      grant_access: {
+        Args: {
+          p_system: string;
+          p_employee: string;
+          p_account: string;
+          p_level?: string;
+        };
+        Returns: string;
+      };
       grantable_roles: {
         Args: {
           p_org: string;
@@ -3173,6 +3359,15 @@ export type Database = {
           p_dry_run?: boolean;
         };
         Returns: Json;
+      };
+      issue_asset: {
+        Args: {
+          p_asset: string;
+          p_employee: string;
+          p_due_back?: string;
+          p_condition?: string;
+        };
+        Returns: string;
       };
       kudos_feed: {
         Args: {
@@ -3329,6 +3524,14 @@ export type Database = {
         };
         Returns: string;
       };
+      return_asset: {
+        Args: {
+          p_asset: string;
+          p_status?: Database['public']['Enums']['asset_status'];
+          p_condition?: string;
+        };
+        Returns: undefined;
+      };
       reveal_employee_bank_account: {
         Args: {
           p_employee: string;
@@ -3353,6 +3556,13 @@ export type Database = {
           p_review: string;
         };
         Returns: { review_id: string; cycle_name: string; cycle_status: Database['public']['Enums']['cycle_status']; employee_id: string; status: Database['public']['Enums']['review_status']; self_rating: number; self_comments: string; manager_rating: number; manager_comments: string; final_rating: number; calibration_note: string; is_self: boolean; can_manager_review: boolean; can_calibrate: boolean }[];
+      };
+      revoke_access: {
+        Args: {
+          p_grant: string;
+          p_note?: string;
+        };
+        Returns: undefined;
       };
       save_offer_version: {
         Args: {
@@ -3537,6 +3747,10 @@ export type Database = {
         };
         Returns: undefined;
       };
+      worker_asset_returns: {
+        Args: never;
+        Returns: Json;
+      };
       worker_attendance_daily: {
         Args: never;
         Returns: Json;
@@ -3598,6 +3812,7 @@ export type Database = {
       application_stage: 'applied' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected' | 'withdrawn';
       approval_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
       approver_rule: 'reporting_manager' | 'permission';
+      asset_status: 'in_stock' | 'assigned' | 'in_repair' | 'retired' | 'lost';
       assignment_change_reason: 'joining' | 'transfer' | 'promotion' | 'manager_change' | 'type_change' | 'correction' | 'other';
       attendance_status: 'present' | 'half_day' | 'absent' | 'on_leave' | 'weekly_off' | 'holiday' | 'not_marked';
       bank_account_type: 'savings' | 'current' | 'salary';
