@@ -2,7 +2,7 @@ import { expect, type Page } from '@playwright/test';
 import { adminClient, open, signIn, test } from './helpers';
 
 /**
- * Leave on the live demo tenant: HR sets a holiday and an opening balance; the employee (Dev Nair) requests
+ * Leave on the live demo tenant: HR sets a holiday and an opening balance and edits a rule; the employee (Dev Nair) requests
  * leave around it; their manager (Rohan Iyer) approves one request in the Inbox and rejects another; the
  * employee cancels the approved one before it starts. Everything created here is removed afterwards.
  */
@@ -66,14 +66,14 @@ test.afterAll(async () => {
   }
   await admin.from('leave_ledger').delete().eq('employee_id', devId).ilike('note', `%${run}%`);
   await admin.from('holidays').delete().eq('organization_id', orgId).eq('name', holiday);
+  await admin.from('leave_types').update({ description: null }).eq('id', clId).ilike('description', `%${run}%`);
   await admin.from('notifications').delete().eq('organization_id', orgId).like('kind', 'approval.%').gte('created_at', startedAt);
 });
 
 test('HR adds a holiday and an opening balance', async ({ page }) => {
   await signIn(page, 'demo.hr');
-  await open(page, '/app/demo/leave');
-  await page.getByRole('link', { name: 'Leave settings' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Leave settings' })).toBeVisible();
+  await open(page, '/app/demo/leave?tab=settings');
+  await expect(page.getByRole('heading', { level: 1, name: 'Leave operations' })).toBeVisible();
 
   const hol = page.getByRole('form', { name: 'Add a holiday' });
   await hol.getByLabel('Date').fill(day(2)); // the Wednesday
@@ -82,14 +82,27 @@ test('HR adds a holiday and an opening balance', async ({ page }) => {
   await expect(page.getByRole('list', { name: 'Holidays' }).getByText(holiday)).toBeVisible();
 
   const before = await available('CL');
-  const adj = page.getByRole('form', { name: 'Adjust a balance' });
-  await adj.getByLabel('Employee').selectOption({ label: (await page.locator('#f-adj-employeeId option', { hasText: 'Dev Nair' }).textContent())! });
-  await adj.getByLabel('Leave type').selectOption(clId);
-  await adj.getByLabel('Days (±)').fill('3');
-  await adj.getByLabel('Reason').fill(`Opening balance ${run}`);
-  await adj.getByRole('button', { name: 'Adjust balance' }).click();
-  await expect(page.getByText('Balance adjusted by 3 day(s).')).toBeVisible();
+  await open(page, '/app/demo/leave?tab=balances');
+  await page.getByRole('link', { name: 'Edit balance of Dev Nair' }).click();
+  const form = page.getByRole('form', { name: 'Balance: Casual leave' });
+  const carried = form.getByLabel('Carry-forward');
+  await carried.fill(String(Number(await carried.inputValue()) + 3));
+  await form.getByLabel('Reason').fill(`Opening balance ${run}`);
+  await form.getByRole('button', { name: 'Save balance' }).click();
+  await expect(page.getByText('Balance saved.')).toBeVisible();
   expect(await available('CL')).toBe(before + 3);
+});
+
+test('HR edits a leave rule in the rule editor', async ({ page }) => {
+  await signIn(page, 'demo.hr');
+  await open(page, '/app/demo/leave?tab=rules');
+  await page.getByRole('link', { name: 'Edit Casual leave' }).click();
+  const form = page.getByRole('form', { name: 'Edit rule Casual leave' });
+  await expect(form.getByLabel('Allowed in a year')).toHaveValue('12');
+  await form.getByLabel('Description').fill(`Casual leave for short personal needs ${run}`);
+  await form.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('“Casual leave” saved. The new rules apply from today.')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Leave rules' }).getByText(`Casual leave for short personal needs ${run}`)).toBeVisible();
 });
 
 test('the employee requests leave around the holiday; the manager approves it in the Inbox', async ({ browser }) => {
@@ -99,6 +112,7 @@ test('the employee requests leave around the holiday; the manager approves it in
   const before = await available('CL');
   await requestLeave(employee, clId, day(0), day(3), `Family visit ${run}`); // Mon–Thu, Wednesday is a holiday
   await expect(employee.getByText('Leave requested. Your manager has been asked to approve it.')).toBeVisible();
+  await open(employee, '/app/demo/leave?tab=requests');
   const row = employee.getByRole('row').filter({ hasText: 'Casual leave' }).filter({ hasText: 'Pending' });
   await expect(row.getByRole('cell', { name: '3', exact: true })).toBeVisible();
   expect(await available('CL')).toBe(before - 3);
@@ -111,7 +125,7 @@ test('the employee requests leave around the holiday; the manager approves it in
   await expect(manager.getByRole('status').filter({ hasText: 'Approved.' })).toBeVisible();
   await expect(decision).toHaveCount(0); // left the queue
 
-  await open(employee, '/app/demo/leave');
+  await open(employee, '/app/demo/leave?tab=requests');
   await expect(employee.getByRole('row').filter({ hasText: 'Casual leave' }).getByText('Approved')).toBeVisible();
   const { data } = await admin.from('leave_requests').select('status, days').eq('employee_id', devId).ilike('reason', `%Family visit ${run}%`).single();
   expect(data).toEqual({ status: 'approved', days: 3 });
@@ -123,7 +137,7 @@ test('the employee requests leave around the holiday; the manager approves it in
 
 test('the employee cancels the approved leave before it starts; the days come back', async ({ page }) => {
   await signIn(page, 'demo.employee');
-  await open(page, '/app/demo/leave');
+  await open(page, '/app/demo/leave?tab=requests');
   const before = await available('CL');
   await page.getByRole('row').filter({ hasText: 'Casual leave' }).filter({ hasText: 'Approved' }).getByRole('button', { name: /^Cancel / }).click();
   await expect(page.getByRole('row').filter({ hasText: 'Casual leave' }).getByText('Cancelled')).toBeVisible();
@@ -148,7 +162,7 @@ test('a rejection needs a reason and leaves the balance untouched', async ({ bro
   await decision.getByRole('button', { name: 'Reject' }).click();
   await expect(manager.getByRole('status').filter({ hasText: 'Rejected.' })).toBeVisible();
 
-  await open(employee, '/app/demo/leave');
+  await open(employee, '/app/demo/leave?tab=requests');
   await expect(employee.getByRole('row').filter({ hasText: 'Sick leave' }).getByText('Rejected')).toBeVisible();
   expect(await available('SL')).toBe(before);
 });

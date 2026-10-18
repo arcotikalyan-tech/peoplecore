@@ -1,142 +1,96 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { LEAVE_STATUS_LABELS, todayIn, type LeaveStatus } from '@peoplecore/shared';
+import { todayIn } from '@peoplecore/shared';
 import { buttonClass } from '@/components/ui/button';
-import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
-import { Table, Td, Th } from '@/components/ui/table';
-import { formatDate } from '@/lib/format';
+import { HubHeader, HubTabs } from '@/components/ui/hub';
+import { EmptyState } from '@/components/ui/surface';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
-import { getBalances, getLeaveSetup, getRequests, namesFor } from '@/server/leave';
-import { applyLeaveAction, cancelLeaveAction } from './actions';
-import { ApplyLeaveForm, CancelLeave } from './leave-forms';
+import { getInbox } from '@/server/inbox';
+import { getLeaveSettings, leaveCycle } from '@/server/leave-ops';
+import { viewModeFor } from '@/server/view';
+import { AccrualsTab, AdminHub, ApprovalsTab, BalancesTab, RulesTab, SettingsTab } from './_tabs/admin';
+import { MyAccruals, MyBalances, MyCalendar, MyHub, MyInsights, MyRequests, MyRules } from './_tabs/self';
 
 export const metadata: Metadata = { title: 'Leave' };
 
-const tone: Record<LeaveStatus, 'warning' | 'success' | 'danger' | 'neutral'> = { pending: 'warning', approved: 'success', rejected: 'danger', cancelled: 'neutral' };
-const plusDays = (iso: string, n: number) => {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-};
-const range = (r: { start_date: string; end_date: string; half_day_start: boolean; half_day_end: boolean }) =>
-  `${formatDate(r.start_date)}${r.half_day_start ? ' (pm)' : ''}${r.end_date !== r.start_date ? ` – ${formatDate(r.end_date)}` : ''}${r.half_day_end ? ' (am)' : ''}`;
+type Search = Record<string, string | undefined>;
 
-export default async function LeavePage({ params }: { params: Promise<{ org: string }> }) {
+/**
+ * Leave hub. HR and managers (admin view) get leave operations: hub, approvals, rules and assignments, balances,
+ * the accrual ledger and settings. Everyone else (and anyone in the "Me" view) gets their own leave: hub,
+ * calendar, requests, rules, balances, accrual history and insights. Tabs only shape the page; RLS decides what loads.
+ */
+export default async function LeavePage({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<Search> }) {
   const { org: slug } = await params;
+  const sp = await searchParams;
   const ctx = await getOrgContext(slug);
   if (!ctx.can('leave.read')) notFound();
   const today = todayIn(ctx.org.timezone);
-  const me = await getMyEmployee(ctx.org.id, ctx.user.id);
+  const [me, view, settings] = await Promise.all([getMyEmployee(ctx.org.id, ctx.user.id), viewModeFor(ctx), getLeaveSettings(ctx.org.id)]);
+  const base = `/app/${slug}/leave`;
   const seesOthers = ctx.can('leave.read', 'org') || ctx.can('leave.read', 'team');
+  const manage = ctx.can('leave.manage', 'org');
+  const admin = view === 'admin' && seesOthers;
+  const cycle = leaveCycle(today, settings.year_start_month);
+  const pending = admin ? (await getInbox(ctx.org.id, me?.id ?? null)).approvals.filter((a) => a.subject_type === 'leave_request').length : 0;
 
-  const [balances, mine, others, setup] = await Promise.all([
-    me ? getBalances(me.id) : Promise.resolve([]),
-    me ? getRequests(ctx.org.id, { employeeId: me.id }) : Promise.resolve([]),
-    seesOthers ? getRequests(ctx.org.id, { from: today, to: plusDays(today, 30), excludeEmployeeId: me?.id }) : Promise.resolve([]),
-    getLeaveSetup(ctx.org.id),
-  ]);
-  const typeName = new Map(setup.types.map((t) => [t.id, t.name]));
-  const names = await namesFor(ctx.org.id, others.map((r) => r.employee_id));
-  const upcomingHolidays = setup.holidays.filter((h) => h.holiday_date >= today).slice(0, 6);
-  const activeOthers = others.filter((r) => r.status === 'pending' || r.status === 'approved').sort((a, b) => a.start_date.localeCompare(b.start_date));
+  const adminTabs = [
+    { key: 'hub', label: '✦ Hub' }, { key: 'approvals', label: 'Approvals', count: pending },
+    ...(manage ? [{ key: 'rules', label: 'Leave rules' }] : []),
+    { key: 'balances', label: 'Balances' }, { key: 'accruals', label: 'Accruals' },
+    ...(manage ? [{ key: 'settings', label: 'Settings' }] : []),
+  ];
+  const selfTabs = [
+    { key: 'hub', label: '✦ Hub' }, { key: 'calendar', label: 'Calendar' }, { key: 'requests', label: 'Requests' },
+    { key: 'rules', label: 'My leave rules' }, { key: 'balances', label: 'Balances' }, { key: 'accruals', label: 'Accrual history' },
+    { key: 'insights', label: 'Insights' },
+  ];
+  const tabs = admin ? adminTabs : selfTabs;
+  const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : 'hub';
+  const month = /^\d{4}-\d{2}/.test(sp.month ?? '') ? `${sp.month!.slice(0, 7)}-01` : `${today.slice(0, 7)}-01`;
+  const p = { ctx, slug, base, today };
 
   return (
     <>
-      <PageHeader
-        title="Leave"
-        description="Balances, requests and who’s away."
-        actions={ctx.can('leave.manage', 'org') && <Link className={buttonClass('secondary')} href={`/app/${slug}/leave/settings`}>Leave settings</Link>}
-      />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-        <div className="space-y-6">
-          {me && (
-            <Card>
-              <CardHeader title="Your balances" description="Available = balance minus pending requests." />
-              <ul className="grid gap-px bg-line sm:grid-cols-2" aria-label="Balances">
-                {balances.map((b) => (
-                  <li key={b.leave_type_id} className="bg-surface px-5 py-4">
-                    <p className="text-sm text-muted">{b.name}{!b.is_paid && ' (unpaid)'}</p>
-                    <p className="text-2xl font-semibold tabular-nums">{b.allow_negative ? '—' : b.available}</p>
-                    <p className="text-xs text-muted">
-                      {b.allow_negative ? `${-b.balance} taken` : `balance ${b.balance}${b.pending ? `, ${b.pending} pending` : ''}`}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-          {me && (
-            <Card>
-              <CardHeader title="Your requests" />
-              {mine.length === 0 ? (
-                <p className="px-5 py-4 text-sm text-muted">No leave requested yet.</p>
-              ) : (
-                <Table caption="Your leave requests">
-                  <thead><tr><Th>Type</Th><Th>Dates</Th><Th>Days</Th><Th>Status</Th><Th><span className="sr-only">Actions</span></Th></tr></thead>
-                  <tbody>
-                    {mine.map((r) => (
-                      <tr key={r.id}>
-                        <Td>{typeName.get(r.leave_type_id)}</Td>
-                        <Td className="whitespace-nowrap">{range(r)}</Td>
-                        <Td className="tabular-nums">{r.days}</Td>
-                        <Td><Badge tone={tone[r.status]}>{LEAVE_STATUS_LABELS[r.status]}</Badge></Td>
-                        <Td className="text-right">
-                          {(r.status === 'pending' || (r.status === 'approved' && r.start_date > today)) && (
-                            <CancelLeave action={cancelLeaveAction.bind(null, slug)} requestId={r.id} label={`${typeName.get(r.leave_type_id)} ${range(r)}`} />
-                          )}
-                        </Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              )}
-            </Card>
-          )}
-          {seesOthers && (
-            <Card>
-              <CardHeader title="Who’s away (next 30 days)" description={ctx.can('leave.read', 'org') ? 'Everyone' : 'Your reporting line'} />
-              {activeOthers.length === 0 ? (
-                <p className="px-5 py-4 text-sm text-muted">Nobody has leave booked.</p>
-              ) : (
-                <ul className="divide-y divide-line" aria-label="Who’s away">
-                  {activeOthers.map((r) => (
-                    <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
-                      <span><span className="font-medium">{names.get(r.employee_id) ?? 'Someone'}</span> · {typeName.get(r.leave_type_id)}</span>
-                      <span className="flex items-center gap-2 text-muted">{range(r)} <Badge tone={tone[r.status]}>{LEAVE_STATUS_LABELS[r.status]}</Badge></span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          )}
-        </div>
-        <div className="space-y-6">
-          {me && (
-            <Card>
-              <CardHeader title="Request leave" />
-              <ApplyLeaveForm action={applyLeaveAction.bind(null, slug)} today={today}
-                types={balances.map((b) => ({ value: b.leave_type_id, label: b.allow_negative ? b.name : `${b.name} (${b.available} available)` }))} />
-            </Card>
-          )}
-          <Card>
-            <CardHeader title="Upcoming holidays" />
-            {upcomingHolidays.length === 0 ? (
-              <p className="px-5 py-4 text-sm text-muted">No holidays scheduled.</p>
-            ) : (
-              <ul className="divide-y divide-line text-sm">
-                {upcomingHolidays.map((h) => (
-                  <li key={h.id} className="flex justify-between px-5 py-2.5">
-                    <span>{h.name}{h.is_optional && <span className="text-muted"> (optional)</span>}</span>
-                    <span className="text-muted">{formatDate(h.holiday_date)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
-      </div>
+      <HubHeader title={admin ? 'Leave operations' : 'My leave'} badge={admin ? undefined : `${cycle.label} cycle`}
+        subtitle={admin ? (ctx.can('leave.read', 'org') ? 'Org-wide leave: approvals, rules, balances and accruals.' : 'Your reporting line’s leave.') : 'Plan smart breaks: balances, requests and your calendar.'}
+        actions={admin ? (
+          <>
+            {manage && <Link className={buttonClass('secondary')} href={`${base}?tab=rules`}>✎ Edit leave rules</Link>}
+            <a className={buttonClass('secondary')} href={`${base}/export?kind=requests&from=${cycle.start}`}>⬇ Export</a>
+          </>
+        ) : me && (
+          <>
+            <a className={buttonClass('secondary')} href={`${base}/export?kind=mine`}>⬇ Export</a>
+            <a className={buttonClass('primary')} href={`${base}?tab=hub#apply`}>+ Apply leave</a>
+          </>
+        )} />
+      <HubTabs base={base} label="Leave sections" tabs={tabs} current={tab} />
+
+      {admin ? (
+        <>
+          {tab === 'hub' && <AdminHub {...p} />}
+          {tab === 'approvals' && <ApprovalsTab {...p} sp={sp} />}
+          {tab === 'rules' && <RulesTab {...p} view={sp.view ?? 'rules'} selected={sp.rule ?? ''} />}
+          {tab === 'balances' && <BalancesTab {...p} q={sp.q ?? ''} employee={sp.employee ?? ''} />}
+          {tab === 'accruals' && <AccrualsTab {...p} employee={sp.employee ?? ''} />}
+          {tab === 'settings' && <SettingsTab {...p} />}
+        </>
+      ) : !me ? (
+        <EmptyState title="No employee record" description="Your account isn’t linked to an employee record, so there’s no leave to show." />
+      ) : (
+        <>
+          {tab === 'hub' && <MyHub {...p} me={me} action={sp.do ?? ''} />}
+          {tab === 'calendar' && <MyCalendar {...p} me={me} month={month} who={sp.who ?? 'both'} />}
+          {tab === 'requests' && <MyRequests {...p} me={me} status={sp.status ?? ''} type={sp.type ?? ''} />}
+          {tab === 'rules' && <MyRules {...p} me={me} />}
+          {tab === 'balances' && <MyBalances {...p} me={me} />}
+          {tab === 'accruals' && <MyAccruals {...p} me={me} />}
+          {tab === 'insights' && <MyInsights {...p} me={me} />}
+        </>
+      )}
     </>
   );
 }

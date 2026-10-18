@@ -64,9 +64,9 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] My Profile › expense
 - [ ] My Profile › family
 - [ ] My Profile › file manager
-- [ ] My Profile › leave
-- [ ] My Profile › leave › accrual history
-- [ ] My Profile › leave › balances
+- [~] My Profile › leave — same screens live under Leave (Me view); the profile tab comes with People and profile
+- [~] My Profile › leave › accrual history — same screens live under Leave (Me view); the profile tab comes with People and profile
+- [~] My Profile › leave › balances — same screens live under Leave (Me view); the profile tab comes with People and profile
 - [ ] My Profile › payroll
 - [ ] My Profile › payroll › bank account
 - [ ] My Profile › payroll › payslips
@@ -109,14 +109,14 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [~] Attendance › settings — reminder switches are stored; the reminders themselves aren’t sent yet
 
 ### Leave
-- [ ] Leave (hub)
-- [ ] Leave › accruals
-- [ ] Leave › approvals
-- [ ] Leave › balances
-- [ ] Leave › balances › recalculate
-- [ ] Leave › hub
-- [ ] Leave › leave rules
-- [ ] Leave › settings
+- [x] Leave (hub)
+- [x] Leave › accruals
+- [x] Leave › approvals
+- [x] Leave › balances
+- [x] Leave › balances › recalculate
+- [x] Leave › hub
+- [x] Leave › leave rules
+- [x] Leave › settings
 
 ### Timesheet
 - [ ] Timesheet (hub)
@@ -288,10 +288,10 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] My Profile › expense
 - [ ] My Profile › family
 - [ ] My Profile › file manager
-- [ ] My Profile › leave
-- [ ] My Profile › leave › accrual history
-- [ ] My Profile › leave › balances
-- [ ] My Profile › leave › my leave rules
+- [~] My Profile › leave — same screens live under Leave (Me view); the profile tab comes with People and profile
+- [~] My Profile › leave › accrual history — same screens live under Leave (Me view); the profile tab comes with People and profile
+- [~] My Profile › leave › balances — same screens live under Leave (Me view); the profile tab comes with People and profile
+- [~] My Profile › leave › my leave rules — same screens live under Leave (Me view); the profile tab comes with People and profile
 - [ ] My Profile › payroll
 - [ ] My Profile › payroll › bank account
 - [ ] My Profile › payroll › payslips
@@ -313,13 +313,13 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Attendance › hub
 
 ### Leave
-- [ ] Leave (hub)
-- [ ] Leave › accruals
-- [ ] Leave › approvals
-- [ ] Leave › balances
-- [ ] Leave › hub
-- [ ] Leave › leave rules
-- [ ] Leave › settings
+- [x] Leave (hub)
+- [x] Leave › accruals
+- [x] Leave › approvals
+- [x] Leave › balances
+- [x] Leave › hub
+- [x] Leave › leave rules
+- [x] Leave › settings
 
 ### Payroll
 - [ ] Payroll (hub)
@@ -486,22 +486,22 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Attendance My Insights (hub)
 
 ### Leave Calendar
-- [ ] Leave Calendar (hub)
+- [x] Leave Calendar (hub)
 
 ### Leave Requests
-- [ ] Leave Requests (hub)
+- [x] Leave Requests (hub)
 
 ### Leave My Leave Rules
-- [ ] Leave My Leave Rules (hub)
+- [x] Leave My Leave Rules (hub)
 
 ### Leave Balances
-- [ ] Leave Balances (hub)
+- [x] Leave Balances (hub)
 
 ### Leave Accrual History
-- [ ] Leave Accrual History (hub)
+- [x] Leave Accrual History (hub)
 
 ### Leave Insights
-- [ ] Leave Insights (hub)
+- [x] Leave Insights (hub)
 
 ### Timesheet Approvals
 - [ ] Timesheet Approvals (hub)

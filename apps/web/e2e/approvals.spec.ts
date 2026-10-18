@@ -63,14 +63,14 @@ test('a manager delegates; the delegate approves on their behalf; the manager en
   // Dev needs a day to request: HR tops up the balance, then Dev asks for one day.
   const hr = await (await browser.newContext()).newPage();
   await signIn(hr, 'demo.hr');
-  await open(hr, '/app/demo/leave/settings');
-  const adj = hr.getByRole('form', { name: 'Adjust a balance' });
-  await adj.getByLabel('Employee').selectOption({ label: (await hr.locator('#f-adj-employeeId option', { hasText: 'Dev Nair' }).textContent())! });
-  await adj.getByLabel('Leave type').selectOption(clId);
-  await adj.getByLabel('Days (±)').fill('1');
-  await adj.getByLabel('Reason').fill(`Delegation check ${run}`);
-  await adj.getByRole('button', { name: 'Adjust balance' }).click();
-  await expect(hr.getByText('Balance adjusted by 1 day(s).')).toBeVisible();
+  await open(hr, '/app/demo/leave?tab=balances');
+  await hr.getByRole('link', { name: 'Edit balance of Dev Nair' }).click();
+  const bal = hr.getByRole('form', { name: 'Balance: Casual leave' });
+  const carried = bal.getByLabel('Carry-forward');
+  await carried.fill(String(Number(await carried.inputValue()) + 1));
+  await bal.getByLabel('Reason').fill(`Delegation check ${run}`);
+  await bal.getByRole('button', { name: 'Save balance' }).click();
+  await expect(hr.getByText('Balance saved.')).toBeVisible();
 
   const dev = await (await browser.newContext()).newPage();
   await signIn(dev, 'demo.employee');

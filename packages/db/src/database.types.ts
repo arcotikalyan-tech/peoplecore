@@ -2280,6 +2280,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      leave_carry_forwards: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          leave_type_id: string;
+          cycle_start: string;
+          days: number;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          leave_type_id: string;
+          cycle_start: string;
+          days: number;
+          created_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          leave_type_id?: string;
+          cycle_start?: string;
+          days?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      leave_encashments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          leave_type_id: string;
+          days: number;
+          reason: string | null;
+          status: Database['public']['Enums']['leave_status'];
+          approval_request_id: string | null;
+          payroll_run_id: string | null;
+          requested_by: string;
+          created_at: string;
+          decided_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          leave_type_id: string;
+          days: number;
+          reason?: string | null;
+          status?: Database['public']['Enums']['leave_status'];
+          approval_request_id?: string | null;
+          payroll_run_id?: string | null;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          leave_type_id?: string;
+          days?: number;
+          reason?: string | null;
+          status?: Database['public']['Enums']['leave_status'];
+          approval_request_id?: string | null;
+          payroll_run_id?: string | null;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Relationships: [];
+      };
       leave_ledger: {
         Row: {
           id: number;
@@ -2338,6 +2410,17 @@ export type Database = {
           accrue_during_probation: boolean;
           created_by: string | null;
           created_at: string;
+          annual_days: number | null;
+          accrual_timing: string;
+          credit_on_present_days: boolean;
+          allowed_on_notice: boolean;
+          max_per_month: number | null;
+          max_continuous: number | null;
+          allow_future: boolean;
+          future_notice_days: number;
+          allow_backdated: boolean;
+          backdated_max_days: number | null;
+          next_year_until: number | null;
         };
         Insert: {
           id?: string;
@@ -2351,6 +2434,17 @@ export type Database = {
           accrue_during_probation?: boolean;
           created_by?: string | null;
           created_at?: string;
+          annual_days?: number | null;
+          accrual_timing?: string;
+          credit_on_present_days?: boolean;
+          allowed_on_notice?: boolean;
+          max_per_month?: number | null;
+          max_continuous?: number | null;
+          allow_future?: boolean;
+          future_notice_days?: number;
+          allow_backdated?: boolean;
+          backdated_max_days?: number | null;
+          next_year_until?: number | null;
         };
         Update: {
           id?: string;
@@ -2364,6 +2458,17 @@ export type Database = {
           accrue_during_probation?: boolean;
           created_by?: string | null;
           created_at?: string;
+          annual_days?: number | null;
+          accrual_timing?: string;
+          credit_on_present_days?: boolean;
+          allowed_on_notice?: boolean;
+          max_per_month?: number | null;
+          max_continuous?: number | null;
+          allow_future?: boolean;
+          future_notice_days?: number;
+          allow_backdated?: boolean;
+          backdated_max_days?: number | null;
+          next_year_until?: number | null;
         };
         Relationships: [];
       };
@@ -2421,6 +2526,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      leave_settings: {
+        Row: {
+          organization_id: string;
+          year_start_month: number;
+          carry_forward_expiry: string;
+          skip_level_approval: boolean;
+          donation_enabled: boolean;
+          accrual_start: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          year_start_month?: number;
+          carry_forward_expiry?: string;
+          skip_level_approval?: boolean;
+          donation_enabled?: boolean;
+          accrual_start?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          year_start_month?: number;
+          carry_forward_expiry?: string;
+          skip_level_approval?: boolean;
+          donation_enabled?: boolean;
+          accrual_start?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      leave_type_assignments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          leave_type_id: string;
+          effective_from: string;
+          assigned_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          leave_type_id: string;
+          effective_from: string;
+          assigned_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          leave_type_id?: string;
+          effective_from?: string;
+          assigned_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       leave_types: {
         Row: {
           id: string;
@@ -2434,6 +2602,12 @@ export type Database = {
           is_active: boolean;
           created_at: string;
           encashable: boolean;
+          category: string;
+          short_name: string | null;
+          description: string | null;
+          count_weekends: boolean;
+          count_holidays: boolean;
+          applies_to: string;
         };
         Insert: {
           id?: string;
@@ -2447,6 +2621,12 @@ export type Database = {
           is_active?: boolean;
           created_at?: string;
           encashable?: boolean;
+          category?: string;
+          short_name?: string | null;
+          description?: string | null;
+          count_weekends?: boolean;
+          count_holidays?: boolean;
+          applies_to?: string;
         };
         Update: {
           id?: string;
@@ -2460,6 +2640,12 @@ export type Database = {
           is_active?: boolean;
           created_at?: string;
           encashable?: boolean;
+          category?: string;
+          short_name?: string | null;
+          description?: string | null;
+          count_weekends?: boolean;
+          count_holidays?: boolean;
+          applies_to?: string;
         };
         Relationships: [];
       };
@@ -4616,6 +4802,15 @@ export type Database = {
         };
         Returns: { storage_path: string; file_name: string; content_type: string }[];
       };
+      donate_leave: {
+        Args: {
+          p_to: string;
+          p_type: string;
+          p_days: number;
+          p_note?: string;
+        };
+        Returns: undefined;
+      };
       employee_bank_summary: {
         Args: {
           p_employee: string;
@@ -4769,6 +4964,14 @@ export type Database = {
         };
         Returns: { course_id: string; enrolled: number; completed: number; overdue: number; lapsing: number }[];
       };
+      leave_balance_sheet: {
+        Args: {
+          p_org: string;
+          p_cycle?: string;
+          p_employee?: string;
+        };
+        Returns: { employee_id: string; leave_type_id: string; applies: boolean; carried: number; credited: number; applied: number; penalty: number; other: number; balance: number; pending: number }[];
+      };
       leave_balances: {
         Args: {
           p_employee: string;
@@ -4912,6 +5115,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      recalculate_leave: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
+      };
       record_punch: {
         Args: {
           p_client_id: string;
@@ -4945,6 +5154,15 @@ export type Database = {
           p_review: string;
           p_from: string;
           p_question: string;
+        };
+        Returns: string;
+      };
+      request_leave_encashment: {
+        Args: {
+          p_employee: string;
+          p_type: string;
+          p_days: number;
+          p_reason?: string;
         };
         Returns: string;
       };
@@ -5042,6 +5260,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      save_leave_rule: {
+        Args: {
+          p_org: string;
+          p_type: string;
+          p: Json;
+        };
+        Returns: string;
+      };
       save_offer_version: {
         Args: {
           p_application: string;
@@ -5136,6 +5362,17 @@ export type Database = {
           p_case: string;
           p_user: string;
           p_allow: boolean;
+        };
+        Returns: undefined;
+      };
+      set_leave_balance: {
+        Args: {
+          p_employee: string;
+          p_type: string;
+          p_carried: number;
+          p_credited: number;
+          p_penalty: number;
+          p_note: string;
         };
         Returns: undefined;
       };
@@ -5290,6 +5527,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      team_leave_calendar: {
+        Args: {
+          p_org: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: { employee_id: string; name: string; start_date: string; end_date: string; half_day_start: boolean; half_day_end: boolean; status: Database['public']['Enums']['leave_status'] }[];
+      };
       ticket_thread: {
         Args: {
           p_ticket: string;
@@ -5437,10 +5682,10 @@ export type Database = {
       };
     };
     Enums: {
-      accrual_period: 'monthly' | 'yearly' | 'none';
+      accrual_period: 'monthly' | 'quarterly' | 'half_yearly' | 'yearly' | 'none';
       application_stage: 'applied' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected' | 'withdrawn';
       approval_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
-      approver_rule: 'reporting_manager' | 'permission';
+      approver_rule: 'reporting_manager' | 'permission' | 'skip_level_manager';
       asset_status: 'in_stock' | 'assigned' | 'in_repair' | 'retired' | 'lost';
       assignment_change_reason: 'joining' | 'transfer' | 'promotion' | 'manager_change' | 'type_change' | 'correction' | 'other';
       attendance_request_kind: 'wfh' | 'on_duty';
@@ -5461,7 +5706,7 @@ export type Database = {
       grievance_status: 'submitted' | 'in_review' | 'investigating' | 'resolved' | 'closed' | 'withdrawn';
       interview_mode: 'in_person' | 'video' | 'phone';
       interview_status: 'scheduled' | 'completed' | 'cancelled';
-      leave_entry_kind: 'opening' | 'accrual' | 'debit' | 'reversal' | 'lapse' | 'adjust';
+      leave_entry_kind: 'opening' | 'accrual' | 'debit' | 'reversal' | 'lapse' | 'adjust' | 'penalty' | 'donation' | 'encashment';
       leave_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
       line_kind: 'earning' | 'deduction' | 'employer';
       member_status: 'invited' | 'active' | 'suspended';
