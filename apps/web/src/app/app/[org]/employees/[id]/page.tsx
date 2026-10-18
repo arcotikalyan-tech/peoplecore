@@ -19,6 +19,10 @@ import { getOrgContext } from '@/server/context';
 import { employeeNames, getEmployee, getEmploymentHistory, managerOptions, namesForUsers } from '@/server/employees';
 import { listDocuments } from '@/server/documents';
 import { getPlans } from '@/server/onboarding';
+import { getCompensation } from '@/server/payroll';
+import { setCompensationAction, setStatutoryAction } from '../../payroll/actions';
+import { inr } from '../../payroll/format';
+import { CompensationForm, StatutoryForm } from '../../payroll/payroll-forms';
 import { getBankSummary, getIdentitySummary, getPersonalDetails } from '@/server/sensitive';
 import { getStructure, structureOptions } from '@/server/structure';
 import { changeAssignmentAction } from '../actions';
@@ -86,7 +90,7 @@ export default async function EmployeePage({
   const canEditWork = ctx.can('employee.update', 'org');
   const canAudit = ctx.can('audit.read', 'org');
 
-  const [history, structure, managers, personal, identity, bank, documents, onboarding] = await Promise.all([
+  const [history, structure, managers, personal, identity, bank, documents, onboarding, compensation] = await Promise.all([
     getEmploymentHistory(orgId, id),
     getStructure(orgId),
     canEditWork ? managerOptions(orgId) : Promise.resolve([]),
@@ -95,6 +99,7 @@ export default async function EmployeePage({
     allowed('employee.bank.read') ? getBankSummary(id) : Promise.resolve(null),
     allowed('employee.document.read') ? listDocuments(orgId, id) : Promise.resolve(null),
     getPlans(orgId, { employeeId: id, status: 'in_progress' }),
+    allowed('compensation.read') || ctx.can('compensation.update', 'org') ? getCompensation(orgId, id) : Promise.resolve(null),
   ]);
   const plan = onboarding[0];
   const activity = canAudit ? await activityForEmployee(orgId, id, history.map((h) => h.id)) : [];
@@ -271,6 +276,33 @@ export default async function EmployeePage({
                 upload={allowed('employee.document.upload') ? uploadDocumentAction.bind(null, slug, id) : undefined}
                 remove={allowed('employee.document.delete') ? deleteDocumentAction.bind(null, slug, id) : undefined}
               />
+            </Card>
+          )}
+
+          {compensation && (
+            <Card>
+              <CardHeader title="Compensation" description={compensation.current
+                ? `${inr.format(Number(compensation.current.annual_ctc))} a year since ${formatDate(compensation.current.effective_from)}`
+                : 'No compensation on record.'} />
+              {compensation.lines.length > 0 && (
+                <ul className="divide-y divide-line text-sm" aria-label="Salary components">
+                  {compensation.lines.map((l) => (
+                    <li key={l.component_id} className="flex justify-between px-5 py-2">
+                      <span>{compensation.components.find((c) => c.id === l.component_id)?.name ?? 'Component'}</span>
+                      <span className="tabular-nums">{inr.format(Number(l.monthly_amount))} / month</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {ctx.can('compensation.update', 'org') && (
+                <CompensationForm action={setCompensationAction.bind(null, slug)} employeeId={id} today={today}
+                  components={compensation.components.filter((c) => c.kind === 'earning').map((c) => ({ id: c.id, name: c.name }))}
+                  current={Object.fromEntries(compensation.lines.map((l) => [l.component_id, Number(l.monthly_amount)]))} />
+              )}
+              {ctx.can('payroll.prepare', 'org') && (
+                <StatutoryForm action={setStatutoryAction.bind(null, slug)} employeeId={id}
+                  profile={{ pf: compensation.profile?.pf_applicable ?? true, esi: compensation.profile?.esi_applicable ?? null, ptState: compensation.profile?.pt_state ?? null }} />
+              )}
             </Card>
           )}
 

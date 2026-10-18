@@ -19,6 +19,8 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     ...(ctx.can('leave.read') ? [{ href: `${base}/leave`, label: 'Leave' }] : []),
     ...(ctx.can('attendance.read') ? [{ href: `${base}/attendance`, label: 'Attendance' }] : []),
     ...(ctx.can('recruitment.read') ? [{ href: `${base}/recruitment`, label: 'Recruitment' }] : []),
+    ...(ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org') ? [{ href: `${base}/payroll`, label: 'Payroll' }] : []),
+    { href: `${base}/payslips`, label: 'Payslips' },
     ...(ctx.can('onboarding.manage', 'org') ? [{ href: `${base}/onboarding`, label: 'Onboarding' }] : []),
     { href: `${base}/policies`, label: 'Policies' },
     ...(ctx.can('org.read') ? [{ href: `${base}/structure`, label: 'Organization' }] : []),

@@ -429,6 +429,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      compensation_lines: {
+        Row: {
+          organization_id: string;
+          record_id: string;
+          component_id: string;
+          monthly_amount: number;
+        };
+        Insert: {
+          organization_id: string;
+          record_id: string;
+          component_id: string;
+          monthly_amount: number;
+        };
+        Update: {
+          organization_id?: string;
+          record_id?: string;
+          component_id?: string;
+          monthly_amount?: number;
+        };
+        Relationships: [];
+      };
+      compensation_records: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          effective_from: string;
+          effective_to: string | null;
+          annual_ctc: number;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          effective_from: string;
+          effective_to?: string | null;
+          annual_ctc: number;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          effective_from?: string;
+          effective_to?: string | null;
+          annual_ctc?: number;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       cost_centres: {
         Row: {
           id: string;
@@ -656,6 +713,33 @@ export type Database = {
           postal_code?: string | null;
           country_code?: string;
           updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      employee_statutory_profiles: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          pf_applicable: boolean;
+          esi_applicable: boolean | null;
+          pt_state: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          pf_applicable?: boolean;
+          esi_applicable?: boolean | null;
+          pt_state?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          pf_applicable?: boolean;
+          esi_applicable?: boolean | null;
+          pt_state?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -1569,6 +1653,159 @@ export type Database = {
         };
         Relationships: [];
       };
+      payroll_line_items: {
+        Row: {
+          id: number;
+          organization_id: string;
+          run_id: string;
+          employee_id: string;
+          code: string;
+          name: string;
+          kind: Database['public']['Enums']['line_kind'];
+          amount: number;
+        };
+        Insert: {
+          id?: never;
+          organization_id: string;
+          run_id: string;
+          employee_id: string;
+          code: string;
+          name: string;
+          kind: Database['public']['Enums']['line_kind'];
+          amount: number;
+        };
+        Update: {
+          id?: never;
+          organization_id?: string;
+          run_id?: string;
+          employee_id?: string;
+          code?: string;
+          name?: string;
+          kind?: Database['public']['Enums']['line_kind'];
+          amount?: number;
+        };
+        Relationships: [];
+      };
+      payroll_run_employees: {
+        Row: {
+          organization_id: string;
+          run_id: string;
+          employee_id: string;
+          period_month: string;
+          input: Json;
+          payable_days: number;
+          lop_days: number;
+          gross: number;
+          deductions: number;
+          net: number;
+          employer_cost: number;
+          taxable: number;
+          exceptions: Json;
+          has_blocking: boolean;
+        };
+        Insert: {
+          organization_id: string;
+          run_id: string;
+          employee_id: string;
+          period_month: string;
+          input: Json;
+          payable_days: number;
+          lop_days: number;
+          gross: number;
+          deductions: number;
+          net: number;
+          employer_cost: number;
+          taxable: number;
+          exceptions?: Json;
+          has_blocking?: boolean;
+        };
+        Update: {
+          organization_id?: string;
+          run_id?: string;
+          employee_id?: string;
+          period_month?: string;
+          input?: Json;
+          payable_days?: number;
+          lop_days?: number;
+          gross?: number;
+          deductions?: number;
+          net?: number;
+          employer_cost?: number;
+          taxable?: number;
+          exceptions?: Json;
+          has_blocking?: boolean;
+        };
+        Relationships: [];
+      };
+      payroll_runs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          period_month: string;
+          status: Database['public']['Enums']['payroll_status'];
+          lop_from_absence: boolean;
+          rule_set_id: string;
+          engine_version: string | null;
+          inputs_hash: string | null;
+          prepared_by: string | null;
+          computed_at: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          locked_by: string | null;
+          locked_at: string | null;
+          employee_count: number;
+          total_gross: number;
+          total_deductions: number;
+          total_net: number;
+          total_employer_cost: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          period_month: string;
+          status?: Database['public']['Enums']['payroll_status'];
+          lop_from_absence?: boolean;
+          rule_set_id: string;
+          engine_version?: string | null;
+          inputs_hash?: string | null;
+          prepared_by?: string | null;
+          computed_at?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          locked_by?: string | null;
+          locked_at?: string | null;
+          employee_count?: number;
+          total_gross?: number;
+          total_deductions?: number;
+          total_net?: number;
+          total_employer_cost?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          period_month?: string;
+          status?: Database['public']['Enums']['payroll_status'];
+          lop_from_absence?: boolean;
+          rule_set_id?: string;
+          engine_version?: string | null;
+          inputs_hash?: string | null;
+          prepared_by?: string | null;
+          computed_at?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          locked_by?: string | null;
+          locked_at?: string | null;
+          employee_count?: number;
+          total_gross?: number;
+          total_deductions?: number;
+          total_net?: number;
+          total_employer_cost?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       permissions: {
         Row: {
           key: string;
@@ -1803,6 +2040,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      salary_components: {
+        Row: {
+          id: string;
+          organization_id: string;
+          code: string;
+          name: string;
+          kind: Database['public']['Enums']['component_kind'];
+          taxable: boolean;
+          pf_wage: boolean;
+          position: number;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          code: string;
+          name: string;
+          kind?: Database['public']['Enums']['component_kind'];
+          taxable?: boolean;
+          pf_wage?: boolean;
+          position?: number;
+          is_active?: boolean;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          code?: string;
+          name?: string;
+          kind?: Database['public']['Enums']['component_kind'];
+          taxable?: boolean;
+          pf_wage?: boolean;
+          position?: number;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
       scorecard_ratings: {
         Row: {
           organization_id: string;
@@ -1898,6 +2171,48 @@ export type Database = {
           half_day_minutes?: number;
           is_default?: boolean;
           is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      statutory_rule_sets: {
+        Row: {
+          id: string;
+          country: string;
+          code: string;
+          effective_from: string;
+          effective_to: string | null;
+          rules: Json;
+          validated: boolean;
+          validated_by: string | null;
+          validated_at: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          country?: string;
+          code: string;
+          effective_from: string;
+          effective_to?: string | null;
+          rules: Json;
+          validated?: boolean;
+          validated_by?: string | null;
+          validated_at?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          country?: string;
+          code?: string;
+          effective_from?: string;
+          effective_to?: string | null;
+          rules?: Json;
+          validated?: boolean;
+          validated_by?: string | null;
+          validated_at?: string | null;
+          notes?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -2022,6 +2337,13 @@ export type Database = {
         };
         Returns: string;
       };
+      approve_payroll_run: {
+        Args: {
+          p_run: string;
+          p_inputs_hash: string;
+        };
+        Returns: undefined;
+      };
       attendance_days_for: {
         Args: {
           p_employee: string;
@@ -2051,6 +2373,12 @@ export type Database = {
       cancel_onboarding: {
         Args: {
           p_plan: string;
+        };
+        Returns: undefined;
+      };
+      cancel_payroll_run: {
+        Args: {
+          p_run: string;
         };
         Returns: undefined;
       };
@@ -2092,6 +2420,14 @@ export type Database = {
           p_name: string;
           p_slug: string;
           p_owner_user_id?: string;
+        };
+        Returns: string;
+      };
+      create_payroll_run: {
+        Args: {
+          p_org: string;
+          p_month: string;
+          p_lop_from_absence?: boolean;
         };
         Returns: string;
       };
@@ -2184,6 +2520,12 @@ export type Database = {
         };
         Returns: { leave_type_id: string; code: string; name: string; is_paid: boolean; allow_negative: boolean; allow_half_day: boolean; balance: number; pending: number; available: number }[];
       };
+      lock_payroll_run: {
+        Args: {
+          p_run: string;
+        };
+        Returns: undefined;
+      };
       log_employee_export: {
         Args: {
           p_org: string;
@@ -2232,6 +2574,18 @@ export type Database = {
         };
         Returns: { member_id: string; user_id: string; email: string; status: Database['public']['Enums']['member_status']; joined_at: string; last_sign_in_at: string; role_ids: string[]; employee_id: string; employee_name: string }[];
       };
+      payroll_bank_file: {
+        Args: {
+          p_run: string;
+        };
+        Returns: { employee_code: string; employee_name: string; account_holder: string; account_number: string; ifsc: string; amount: number }[];
+      };
+      payroll_run_inputs: {
+        Args: {
+          p_run: string;
+        };
+        Returns: Json;
+      };
       policy_acknowledgement_status: {
         Args: {
           p_policy: string;
@@ -2243,6 +2597,12 @@ export type Database = {
           p_org_slug: string;
         };
         Returns: { requisition_id: string; title: string; department: string; location: string; employment_type: Database['public']['Enums']['employment_type']; description: string; posted_at: string; organization_name: string }[];
+      };
+      purge_demo_payroll_run: {
+        Args: {
+          p_run: string;
+        };
+        Returns: undefined;
       };
       record_punch: {
         Args: {
@@ -2308,6 +2668,16 @@ export type Database = {
         };
         Returns: string;
       };
+      set_compensation: {
+        Args: {
+          p_employee: string;
+          p_effective_from: string;
+          p_annual_ctc: number;
+          p_lines: Json;
+          p_note?: string;
+        };
+        Returns: string;
+      };
       set_employee_bank_account: {
         Args: {
           p_employee: string;
@@ -2365,6 +2735,15 @@ export type Database = {
           p_template?: string;
         };
         Returns: string;
+      };
+      store_payroll_results: {
+        Args: {
+          p_run: string;
+          p_engine_version: string;
+          p_inputs_hash: string;
+          p_results: Json;
+        };
+        Returns: undefined;
       };
       structure_usage: {
         Args: {
@@ -2460,6 +2839,7 @@ export type Database = {
       attendance_status: 'present' | 'half_day' | 'absent' | 'on_leave' | 'weekly_off' | 'holiday' | 'not_marked';
       bank_account_type: 'savings' | 'current' | 'salary';
       candidate_source: 'careers_site' | 'referral' | 'agency' | 'job_board' | 'direct' | 'other';
+      component_kind: 'earning' | 'deduction';
       document_category: 'identity' | 'address' | 'education' | 'employment' | 'contract' | 'medical' | 'other';
       employee_status: 'pre_joining' | 'active' | 'on_notice' | 'exited';
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
@@ -2468,11 +2848,13 @@ export type Database = {
       interview_status: 'scheduled' | 'completed' | 'cancelled';
       leave_entry_kind: 'opening' | 'accrual' | 'debit' | 'reversal' | 'lapse' | 'adjust';
       leave_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+      line_kind: 'earning' | 'deduction' | 'employer';
       member_status: 'invited' | 'active' | 'suspended';
       offer_status: 'draft' | 'pending_approval' | 'approved' | 'sent' | 'accepted' | 'declined' | 'withdrawn';
       onboarding_assignee: 'joiner' | 'manager' | 'owner';
       onboarding_status: 'in_progress' | 'completed' | 'cancelled';
       org_status: 'active' | 'suspended' | 'archived';
+      payroll_status: 'draft' | 'computed' | 'approved' | 'locked' | 'cancelled';
       permission_scope: 'org' | 'team' | 'self';
       punch_method: 'web' | 'mobile' | 'biometric' | 'import' | 'regularization';
       recommendation: 'strong_yes' | 'yes' | 'no' | 'strong_no';

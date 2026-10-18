@@ -55,7 +55,7 @@ Versioned workflow definitions (trigger → conditions → steps), persisted exe
 
 `packages/ai` exposes `complete`, `extract<T>(zodSchema)` and `embed`. Provider adapters plug in behind that interface. Every call goes through a policy layer for permission-aware retrieval, redaction, tool allowlists and logging. See [06-ai-architecture.md](06-ai-architecture.md).
 
-## ADR-010 · Payroll calculations are deterministic and rule-versioned — Proposed (Phase 4)
+## ADR-010 · Payroll calculations are deterministic and rule-versioned — Accepted (built: packages/payroll, migration 20261018001600)
 
 `packages/payroll` is pure TypeScript with no I/O. Statutory rules (PF, ESI, PT, TDS, gratuity, bonus) are **data**: effective-dated, versioned rule sets stored in the DB, never constants in code. Each rule set has golden test cases. AI never computes amounts. **Professional validation is required before production payroll use.**
 

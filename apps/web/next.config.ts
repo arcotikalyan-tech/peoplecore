@@ -9,7 +9,7 @@ const securityHeaders = [
 ];
 
 const config: NextConfig = {
-  transpilePackages: ['@peoplecore/shared'],
+  transpilePackages: ['@peoplecore/shared', '@peoplecore/payroll'],
   poweredByHeader: false,
   // Document uploads are capped at 5 MB (checked again on the server); leave room for the other form fields.
   experimental: { serverActions: { bodySizeLimit: '6mb' } },
