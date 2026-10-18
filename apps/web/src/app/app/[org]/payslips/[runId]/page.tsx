@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
+import { buttonClass } from '@/components/ui/button';
 import { Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surface';
 import { getOrgContext } from '@/server/context';
 import { getEmployee, getMyEmployee } from '@/server/employees';
@@ -37,7 +38,8 @@ export default async function PayslipPage({ params, searchParams }: { params: Pr
     <>
       <PageHeader eyebrow={<Link href={`/app/${slug}/payslips`} className="hover:text-fg">← Payslips</Link>}
         title={`Payslip · ${monthLabel(slip.period_month)}`}
-        description={employee ? `${[employee.first_name, employee.last_name].filter(Boolean).join(' ')} · ${employee.employee_code}` : undefined} />
+        description={employee ? `${[employee.first_name, employee.last_name].filter(Boolean).join(' ')} · ${employee.employee_code}` : undefined}
+        actions={<a href={`/app/${slug}/payslips/${runId}/pdf${requested ? `?employee=${requested}` : ''}`} download className={buttonClass('secondary')}>Download PDF</a>} />
       <div className="grid gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader title="Summary" />

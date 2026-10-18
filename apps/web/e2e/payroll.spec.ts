@@ -106,6 +106,14 @@ test('the employee sees their payslip', async ({ page }) => {
   await expect(page.getByRole('list', { name: 'Earnings' }).getByText('Salary arrears')).toBeVisible();
   await expect(page.getByRole('list', { name: 'Deductions' }).getByText('Provident fund')).toBeVisible();
   await expect(page.getByText('₹54,000').first()).toBeVisible();
+
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Download PDF' }).click()]);
+  expect(download.suggestedFilename()).toMatch(/^payslip-2026-04-.+\.pdf$/);
+  const pdf = (await readFile(await download.path())).toString('latin1');
+  expect(pdf.startsWith('%PDF-')).toBe(true);
+  expect(pdf).toContain('(Payslip for April 2026)');
+  expect(pdf).toContain('(Salary arrears)');
+  expect(pdf).toContain('(54,000.00)');
 });
 
 test('the next month’s run shows what changed since the last locked run, and AI can summarise it', async ({ page }) => {
