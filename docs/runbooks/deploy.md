@@ -23,7 +23,7 @@ that passed CI; it refuses anything else. It applies the migrations and then dep
    - Optional: `ANTHROPIC_API_KEY` ([ai.md](ai.md)).
    - Never set `AI_PROVIDER=mock` in production (it is refused there anyway).
 5. **Supabase Auth URLs.** Add the production URL as the site URL and `https://<domain>/auth/callback` as a redirect URL. Then configure SMTP ([email.md](email.md)).
-6. **The worker.** Run it on an always-on host or a schedule ([operations.md](operations.md)). Give it `SUPABASE_URL` and `SUPABASE_SECRET_KEY`.
+6. **The worker.** `.github/workflows/worker.yml` runs one pass every hour on GitHub Actions once the `production` environment has the secrets `SUPABASE_URL` and `SUPABASE_SECRET_KEY`. For finer timing, run it on an always-on host instead ([operations.md](operations.md)).
 
 Each Deploy job skips itself until its secrets exist, so the workflow is safe to merge before any of this.
 

@@ -1,0 +1,44 @@
+name: Worker
+
+# The background worker as a scheduled pass (docs/runbooks/operations.md): enqueues the jobs that are due and runs a
+# batch. Hourly, because GitHub Actions minutes on a private repository are limited; jobs are keyed by hour or day,
+# so nothing is lost between passes. Move to an always-on host when hourly is too coarse. Skips itself until its
+# secrets exist on the "production" environment.
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-production
+  cancel-in-progress: false
+
+jobs:
+  pass:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      WORKER_ONCE: '1'
+      WORKER_ID: gha-${{ github.run_id }}
+    steps:
+      - id: ready
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_SECRET_KEY" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
+          else echo "::notice::Worker secrets not set; skipping."; fi
+      - if: steps.ready.outputs.ok == 'true'
+        uses: actions/checkout@v4
+      - if: steps.ready.outputs.ok == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - if: steps.ready.outputs.ok == 'true'
+        run: corepack enable && pnpm install --frozen-lockfile --filter @peoplecore/worker...
+      - if: steps.ready.outputs.ok == 'true'
+        run: pnpm --filter @peoplecore/worker start
