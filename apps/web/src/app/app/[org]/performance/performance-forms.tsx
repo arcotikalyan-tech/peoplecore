@@ -21,9 +21,9 @@ function Comments({ name, label, value, error }: { name: string; label: string; 
   );
 }
 
-export function GoalForm({ action, employeeId }: { action: Action; employeeId: string }) {
+export function GoalForm({ action, employeeId, cycleId }: { action: Action; employeeId: string; cycleId?: string }) {
   return (
-    <ActionForm action={action} label="Add a goal" submit="Add goal" hidden={{ employeeId }} className="space-y-3 border-t border-line px-5 py-4">
+    <ActionForm action={action} label="Add a goal" submit="Add goal" hidden={{ employeeId, ...(cycleId ? { cycleId } : {}) }} className="space-y-3 border-t border-line px-5 py-4">
       {(v, e) => (
         <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
           <TextField idPrefix={`goal-${employeeId}`} name="title" label="Goal" required placeholder="Launch the new billing flow by Q3" defaultValue={v.title} error={e.title} />
@@ -111,6 +111,96 @@ export function CalibrateForm({ action, reviewId, current, name }: { action: Act
           <SelectField idPrefix={`cal-${reviewId}`} name="rating" label="Final" options={RATINGS} defaultValue={current ? String(current) : ''} />
           <TextField idPrefix={`cal-${reviewId}`} name="note" label="Note (needed if it differs)" className="min-w-48" />
         </>
+      )}
+    </ActionForm>
+  );
+}
+
+export function SkillRatingForm({ action, reviewId, as, skills, label }: {
+  action: Action; reviewId: string; as: 'self' | 'manager'; label: string;
+  skills: Array<{ skill_id: string; name: string; category: string; self_rating: number | null; manager_rating: number | null }>;
+}) {
+  return (
+    <ActionForm action={action} label={label} submit="Save skill ratings" hidden={{ reviewId, as }} variant="secondary" size="sm" className="space-y-3 px-5 py-4">
+      {(v) => (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {skills.map((s) => (
+            <SelectField key={s.skill_id} idPrefix={`sk-${reviewId}-${as}`} name={`skill:${s.skill_id}`} label={`${s.name} (${s.category})`}
+              options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${n}` }))} placeholder="—"
+              defaultValue={v[`skill:${s.skill_id}`] ?? String((as === 'self' ? s.self_rating : s.manager_rating) ?? '')} />
+          ))}
+        </div>
+      )}
+    </ActionForm>
+  );
+}
+
+export function PmsSettingsForm({ action, s }: { action: Action; s: { evaluation_period: string; rating_labels: string[]; goals_weight: number; goal_weightage: boolean; self_appraisal: boolean; peer_feedback: boolean } }) {
+  const check = 'size-4 rounded border-line-strong accent-primary';
+  return (
+    <ActionForm action={action} label="Performance settings" submit="Save settings" className="space-y-4">
+      {(v, e) => (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SelectField idPrefix="pms" name="evaluationPeriod" label="Evaluation period" options={[{ value: 'quarterly', label: 'Quarterly' }, { value: 'half_yearly', label: 'Half-yearly' }, { value: 'annual', label: 'Annual' }]}
+              defaultValue={v.evaluationPeriod ?? s.evaluation_period} />
+            <TextField idPrefix="pms" name="goalsWeight" label="Goals weight in the overall rating (%)" inputMode="numeric" hint="Skills make up the rest."
+              defaultValue={v.goalsWeight ?? String(s.goals_weight)} error={e.goalsWeight} />
+          </div>
+          <fieldset><legend className="mb-2 text-sm font-medium">Rating scale</legend>
+            <div className="grid gap-2 sm:grid-cols-5">
+              {[1, 2, 3, 4, 5].map((n) => <TextField key={n} idPrefix="pms" name={`label${n}`} label={`${n}`} defaultValue={v[`label${n}`] ?? s.rating_labels[n - 1] ?? ''} />)}
+            </div>
+          </fieldset>
+          <div className="space-y-2 text-sm">
+            <label className="flex items-center gap-2"><input type="checkbox" name="goalWeightage" defaultChecked={s.goal_weightage} className={check} />Goals in a cycle must add up to 100% before the self review</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="selfAppraisal" defaultChecked={s.self_appraisal} className={check} />Employees write a self-appraisal</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="peerFeedback" defaultChecked={s.peer_feedback} className={check} />Employees can ask colleagues for feedback</label>
+          </div>
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+export function KraForm({ action, departments }: { action: Action; departments: Option[] }) {
+  return (
+    <ActionForm action={action} label="Add KRA" submit="＋ Add KRA" className="space-y-3">
+      {(v, e) => (
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem_7rem]">
+          <TextField idPrefix="kra" name="title" label="KRA" required placeholder="Deliver the quarterly roadmap" defaultValue={v.title ?? ''} error={e.title} />
+          <SelectField idPrefix="kra" name="departmentId" label="Department" options={departments} placeholder="Everyone" defaultValue={v.departmentId ?? ''} />
+          <TextField idPrefix="kra" name="weight" label="Weight (%)" inputMode="numeric" defaultValue={v.weight ?? '20'} error={e.weight} />
+          <TextField idPrefix="kra" name="description" label="How it’s measured" className="sm:col-span-3" defaultValue={v.description ?? ''} error={e.description} />
+        </div>
+      )}
+    </ActionForm>
+  );
+}
+
+export function AssignKraForm({ action, kraId, title, cycles, departments }: { action: Action; kraId: string; title: string; cycles: Option[]; departments: Option[] }) {
+  return (
+    <ActionForm action={action} label={`Assign ${title}`} submit="Assign as goal" hidden={{ kraId }} variant="secondary" size="sm" className="flex flex-wrap items-end gap-2">
+      {(v, e) => (
+        <>
+          <SelectField idPrefix={`ak-${kraId}`} name="cycleId" label="Cycle" options={cycles} placeholder="Choose…" defaultValue={v.cycleId ?? cycles[0]?.value ?? ''} error={e.cycleId} className="w-44" />
+          <SelectField idPrefix={`ak-${kraId}`} name="departmentId" label="To" options={departments} placeholder="Everyone" defaultValue={v.departmentId ?? ''} className="w-44" />
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+export function SkillForm({ action }: { action: Action }) {
+  return (
+    <ActionForm action={action} label="Add skill" submit="＋ Add skill" className="space-y-3">
+      {(v, e) => (
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
+          <TextField idPrefix="skill" name="name" label="Skill" required placeholder="Communication" defaultValue={v.name ?? ''} error={e.name} />
+          <TextField idPrefix="skill" name="category" label="Category" required list="skill-categories" defaultValue={v.category ?? 'Core'} error={e.category} />
+          <datalist id="skill-categories">{['Core', 'Technical', 'Leadership', 'Functional', 'Behavioural'].map((c) => <option key={c} value={c} />)}</datalist>
+          <TextField idPrefix="skill" name="description" label="What good looks like" className="sm:col-span-2" defaultValue={v.description ?? ''} error={e.description} />
+        </div>
       )}
     </ActionForm>
   );

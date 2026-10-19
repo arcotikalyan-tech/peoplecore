@@ -27,7 +27,9 @@ test.afterAll(async () => {
     if (reviews?.length) await admin.from('tasks').delete().in('subject_id', reviews.map((r) => r.id));
     await admin.from('review_cycles').delete().eq('id', c.id);
   }
-  await admin.from('goals').delete().eq('employee_id', devId).ilike('title', `%${run}%`);
+  await admin.from('goals').delete().eq('organization_id', orgId).ilike('title', `%${run}%`);
+  await admin.from('pms_kras').delete().eq('organization_id', orgId).ilike('title', `%${run}%`);
+  await admin.from('pms_skills').delete().eq('organization_id', orgId).ilike('name', `%${run}%`);
   await admin.from('notifications').delete().eq('organization_id', orgId).like('kind', 'performance.%').gte('created_at', startedAt);
 });
 
@@ -49,7 +51,7 @@ test('the employee sets a goal and submits a self review', async ({ page }) => {
   await open(page, '/app/demo/performance');
   const goal = page.getByRole('form', { name: 'Add a goal' });
   await goal.getByLabel('Goal').fill(`Cut checkout latency in half ${run}`);
-  await goal.getByLabel('Weight (%)').fill('50');
+  await goal.getByLabel('Weight (%)').fill('100'); // goals in the cycle must add up to 100%
   await goal.getByRole('button', { name: 'Add goal' }).click();
   await expect(page.getByRole('list', { name: 'Your goals' }).getByText(`Cut checkout latency in half ${run}`)).toBeVisible();
 
@@ -86,4 +88,24 @@ test('the manager reviews; HR calibrates and shares; the employee sees the outco
   await open(employee, '/app/demo/performance');
   await expect(employee.getByText('4 · Exceeds expectations').last()).toBeVisible();
   await expect(employee.getByText('Strong delivery; next year lead a project end to end.')).toBeVisible();
+});
+
+test('HR keeps the KRA and skills libraries and sees the PMS hub', async ({ page }) => {
+  await signIn(page, 'demo.hr');
+  await open(page, '/app/demo/performance');
+  await expect(page.getByRole('region', { name: 'Review pipeline' })).toBeVisible();
+
+  await open(page, '/app/demo/performance?tab=skills');
+  const skill = page.getByRole('form', { name: 'Add skill' });
+  await skill.getByLabel('Skill').fill(`Ownership ${run}`);
+  await skill.getByRole('button', { name: '＋ Add skill' }).click();
+  await expect(page.getByText(`Skill Ownership ${run} added.`)).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Core skills' }).getByText(`Ownership ${run}`)).toBeVisible();
+
+  await open(page, '/app/demo/performance?tab=kras');
+  const kra = page.getByRole('form', { name: 'Add KRA' });
+  await kra.getByLabel('KRA').fill(`Keep uptime above 99.9% ${run}`);
+  await kra.getByLabel('Weight (%)').fill('30');
+  await kra.getByRole('button', { name: '＋ Add KRA' }).click();
+  await expect(page.getByRole('list', { name: 'KRAs' }).getByText(`Keep uptime above 99.9% ${run}`)).toBeVisible();
 });

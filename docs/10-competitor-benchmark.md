@@ -209,7 +209,7 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 
 | Kredily | PeopleCore |
 |---|---|
-| PMS settings: evaluation period, skills, KRAs, feedback, rating scale, goal weightage; self-appraisal for employees (PMS 2.0 was not enabled on this account) | ✅ cycles, goals, self/manager reviews, calibration, 360 |
+| PMS settings: evaluation period, skills, KRAs, feedback, rating scale, goal weightage; self-appraisal for employees (PMS 2.0 was not enabled on this account) | ✅ cycles, goals, self/manager reviews, calibration, 360; settings (period, rating labels, goals vs skills weight, goal weightage, self-appraisal, peer feedback); KRA library assigned as goals; skills rated by employee and manager; hub |
 
 ## 18. Learning
 

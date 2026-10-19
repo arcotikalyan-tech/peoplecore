@@ -187,7 +187,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Peoplexp › settings
 
 ### Pms
-- [ ] Pms (hub)
+- [x] Pms (hub)
 
 ### Learn
 - [ ] Learn (hub)
@@ -377,7 +377,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Letters › settings › letter setup
 
 ### Pms
-- [ ] Pms (hub)
+- [x] Pms (hub)
 
 ### Learn
 - [ ] Learn (hub)

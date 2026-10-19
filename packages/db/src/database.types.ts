@@ -4623,6 +4623,102 @@ export type Database = {
         };
         Relationships: [];
       };
+      pms_kras: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          description: string | null;
+          department_id: string | null;
+          weight: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          description?: string | null;
+          department_id?: string | null;
+          weight?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          description?: string | null;
+          department_id?: string | null;
+          weight?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pms_settings: {
+        Row: {
+          organization_id: string;
+          evaluation_period: string;
+          rating_labels: string[];
+          goals_weight: number;
+          goal_weightage: boolean;
+          self_appraisal: boolean;
+          peer_feedback: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          evaluation_period?: string;
+          rating_labels?: string[];
+          goals_weight?: number;
+          goal_weightage?: boolean;
+          self_appraisal?: boolean;
+          peer_feedback?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          evaluation_period?: string;
+          rating_labels?: string[];
+          goals_weight?: number;
+          goal_weightage?: boolean;
+          self_appraisal?: boolean;
+          peer_feedback?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pms_skills: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          category: string;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          category?: string;
+          description?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          category?: string;
+          description?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       policy_acknowledgements: {
         Row: {
           id: string;
@@ -4905,6 +5001,30 @@ export type Database = {
           created_at?: string;
           activated_at?: string | null;
           shared_at?: string | null;
+        };
+        Relationships: [];
+      };
+      review_skill_ratings: {
+        Row: {
+          organization_id: string;
+          review_id: string;
+          skill_id: string;
+          self_rating: number | null;
+          manager_rating: number | null;
+        };
+        Insert: {
+          organization_id: string;
+          review_id: string;
+          skill_id: string;
+          self_rating?: number | null;
+          manager_rating?: number | null;
+        };
+        Update: {
+          organization_id?: string;
+          review_id?: string;
+          skill_id?: string;
+          self_rating?: number | null;
+          manager_rating?: number | null;
         };
         Relationships: [];
       };
@@ -6931,6 +7051,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      rate_review_skills: {
+        Args: {
+          p_review: string;
+          p_as: string;
+          p_ratings: Json;
+        };
+        Returns: number;
+      };
       recalculate_leave: {
         Args: {
           p_org: string;
@@ -7084,6 +7212,12 @@ export type Database = {
           p_status: string;
         };
         Returns: undefined;
+      };
+      review_skills: {
+        Args: {
+          p_review: string;
+        };
+        Returns: { skill_id: string; name: string; category: string; self_rating: number; manager_rating: number }[];
       };
       review_tax_declaration: {
         Args: {
