@@ -20,7 +20,7 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 15
+    timeout-minutes: 60
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -31,8 +31,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "::error::Deploy runs from main only."; exit 1; }
-          ci=$(gh run list -R "$GITHUB_REPOSITORY" --workflow CI --commit "$GITHUB_SHA" --status success --json databaseId --jq length)
-          [ "$ci" -gt 0 ] || { echo "::error::CI has not passed for $GITHUB_SHA yet."; exit 1; }
+          # Waits (up to 40 minutes) for CI on this commit to finish, so a deploy can be started right after a push.
+          for i in $(seq 1 80); do
+            ok=$(gh run list -R "$GITHUB_REPOSITORY" --workflow CI --commit "$GITHUB_SHA" --status success --json databaseId --jq length)
+            [ "$ok" -gt 0 ] && { echo "CI passed for $GITHUB_SHA."; exit 0; }
+            runs=$(gh run list -R "$GITHUB_REPOSITORY" --workflow CI --commit "$GITHUB_SHA" --json status --jq 'length')
+            open=$(gh run list -R "$GITHUB_REPOSITORY" --workflow CI --commit "$GITHUB_SHA" --json status --jq '[.[] | select(.status != "completed")] | length')
+            if [ "$open" -eq 0 ] && { [ "$runs" -gt 0 ] || [ "$i" -gt 6 ]; }; then
+              echo "::error::CI did not pass for $GITHUB_SHA (failed, cancelled or never ran). Fix it and push again."; exit 1
+            fi
+            [ "$i" = 1 ] && echo "Waiting for CI on $GITHUB_SHA to finish…"
+            sleep 30
+          done
+          echo "::error::CI on $GITHUB_SHA is still running after 40 minutes."; exit 1
       - id: ready
         run: |
           if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
