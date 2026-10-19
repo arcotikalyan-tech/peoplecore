@@ -1091,6 +1091,8 @@ export type Database = {
           note: string | null;
           created_by: string | null;
           created_at: string;
+          structure_id: string | null;
+          pay_basis: Database['public']['Enums']['pay_basis'];
         };
         Insert: {
           id?: string;
@@ -1102,6 +1104,8 @@ export type Database = {
           note?: string | null;
           created_by?: string | null;
           created_at?: string;
+          structure_id?: string | null;
+          pay_basis?: Database['public']['Enums']['pay_basis'];
         };
         Update: {
           id?: string;
@@ -1113,6 +1117,8 @@ export type Database = {
           note?: string | null;
           created_by?: string | null;
           created_at?: string;
+          structure_id?: string | null;
+          pay_basis?: Database['public']['Enums']['pay_basis'];
         };
         Relationships: [];
       };
@@ -3135,6 +3141,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      payroll_bank_settings: {
+        Row: {
+          organization_id: string;
+          bank_name: string | null;
+          account_number: string | null;
+          ifsc: string | null;
+          file_format: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          bank_name?: string | null;
+          account_number?: string | null;
+          ifsc?: string | null;
+          file_format?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          bank_name?: string | null;
+          account_number?: string | null;
+          ifsc?: string | null;
+          file_format?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      payroll_employee_inputs: {
+        Row: {
+          organization_id: string;
+          period_month: string;
+          employee_id: string;
+          lop_days: number | null;
+          tds_override: number | null;
+          units: number | null;
+          on_hold: boolean;
+          hold_reason: string | null;
+          note: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          period_month: string;
+          employee_id: string;
+          lop_days?: number | null;
+          tds_override?: number | null;
+          units?: number | null;
+          on_hold?: boolean;
+          hold_reason?: string | null;
+          note?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          period_month?: string;
+          employee_id?: string;
+          lop_days?: number | null;
+          tds_override?: number | null;
+          units?: number | null;
+          on_hold?: boolean;
+          hold_reason?: string | null;
+          note?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       payroll_line_items: {
         Row: {
           id: number;
@@ -3165,6 +3243,45 @@ export type Database = {
           name?: string;
           kind?: Database['public']['Enums']['line_kind'];
           amount?: number;
+        };
+        Relationships: [];
+      };
+      payroll_payouts: {
+        Row: {
+          organization_id: string;
+          run_id: string;
+          employee_id: string;
+          amount: number;
+          status: Database['public']['Enums']['payout_status'];
+          reference: string | null;
+          paid_on: string | null;
+          note: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          run_id: string;
+          employee_id: string;
+          amount: number;
+          status?: Database['public']['Enums']['payout_status'];
+          reference?: string | null;
+          paid_on?: string | null;
+          note?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          run_id?: string;
+          employee_id?: string;
+          amount?: number;
+          status?: Database['public']['Enums']['payout_status'];
+          reference?: string | null;
+          paid_on?: string | null;
+          note?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -3285,6 +3402,63 @@ export type Database = {
           total_net?: number;
           total_employer_cost?: number;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      payroll_settings: {
+        Row: {
+          organization_id: string;
+          pay_day: number | null;
+          lop_from_absence: boolean;
+          pf_enabled: boolean;
+          esi_enabled: boolean;
+          pt_enabled: boolean;
+          default_regime: string;
+          declaration_open: boolean;
+          declaration_mode: string;
+          declaration_until: string | null;
+          proof_from: string | null;
+          proof_until: string | null;
+          payslip_template: string;
+          payslip_show_ytd: boolean;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          pay_day?: number | null;
+          lop_from_absence?: boolean;
+          pf_enabled?: boolean;
+          esi_enabled?: boolean;
+          pt_enabled?: boolean;
+          default_regime?: string;
+          declaration_open?: boolean;
+          declaration_mode?: string;
+          declaration_until?: string | null;
+          proof_from?: string | null;
+          proof_until?: string | null;
+          payslip_template?: string;
+          payslip_show_ytd?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          pay_day?: number | null;
+          lop_from_absence?: boolean;
+          pf_enabled?: boolean;
+          esi_enabled?: boolean;
+          pt_enabled?: boolean;
+          default_regime?: string;
+          declaration_open?: boolean;
+          declaration_mode?: string;
+          declaration_until?: string | null;
+          proof_from?: string | null;
+          proof_until?: string | null;
+          payslip_template?: string;
+          payslip_show_ytd?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -3701,6 +3875,8 @@ export type Database = {
           pf_wage: boolean;
           position: number;
           is_active: boolean;
+          category: string;
+          description: string | null;
         };
         Insert: {
           id?: string;
@@ -3712,6 +3888,8 @@ export type Database = {
           pf_wage?: boolean;
           position?: number;
           is_active?: boolean;
+          category?: string;
+          description?: string | null;
         };
         Update: {
           id?: string;
@@ -3723,6 +3901,137 @@ export type Database = {
           pf_wage?: boolean;
           position?: number;
           is_active?: boolean;
+          category?: string;
+          description?: string | null;
+        };
+        Relationships: [];
+      };
+      salary_revisions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          effective_from: string;
+          structure_id: string | null;
+          pay_basis: Database['public']['Enums']['pay_basis'];
+          previous_annual_ctc: number | null;
+          annual_ctc: number;
+          lines: Json;
+          reason: string;
+          status: Database['public']['Enums']['revision_status'];
+          requested_by: string;
+          requested_at: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          decision_note: string | null;
+          compensation_record_id: string | null;
+          arrears: number;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          effective_from: string;
+          structure_id?: string | null;
+          pay_basis?: Database['public']['Enums']['pay_basis'];
+          previous_annual_ctc?: number | null;
+          annual_ctc: number;
+          lines: Json;
+          reason: string;
+          status?: Database['public']['Enums']['revision_status'];
+          requested_by?: string;
+          requested_at?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          compensation_record_id?: string | null;
+          arrears?: number;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          effective_from?: string;
+          structure_id?: string | null;
+          pay_basis?: Database['public']['Enums']['pay_basis'];
+          previous_annual_ctc?: number | null;
+          annual_ctc?: number;
+          lines?: Json;
+          reason?: string;
+          status?: Database['public']['Enums']['revision_status'];
+          requested_by?: string;
+          requested_at?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          compensation_record_id?: string | null;
+          arrears?: number;
+        };
+        Relationships: [];
+      };
+      salary_structure_lines: {
+        Row: {
+          organization_id: string;
+          structure_id: string;
+          component_id: string;
+          calc: Database['public']['Enums']['structure_calc'];
+          value: number;
+          position: number;
+        };
+        Insert: {
+          organization_id: string;
+          structure_id: string;
+          component_id: string;
+          calc: Database['public']['Enums']['structure_calc'];
+          value?: number;
+          position?: number;
+        };
+        Update: {
+          organization_id?: string;
+          structure_id?: string;
+          component_id?: string;
+          calc?: Database['public']['Enums']['structure_calc'];
+          value?: number;
+          position?: number;
+        };
+        Relationships: [];
+      };
+      salary_structures: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          description: string | null;
+          pay_basis: Database['public']['Enums']['pay_basis'];
+          is_default: boolean;
+          is_system: boolean;
+          archived_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          description?: string | null;
+          pay_basis?: Database['public']['Enums']['pay_basis'];
+          is_default?: boolean;
+          is_system?: boolean;
+          archived_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          description?: string | null;
+          pay_basis?: Database['public']['Enums']['pay_basis'];
+          is_default?: boolean;
+          is_system?: boolean;
+          archived_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -4019,6 +4328,102 @@ export type Database = {
           completed_by?: string | null;
           created_by?: string | null;
           created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      tax_declaration_items: {
+        Row: {
+          id: string;
+          organization_id: string;
+          declaration_id: string;
+          section: Database['public']['Enums']['declaration_section'];
+          label: string;
+          declared: number;
+          approved: number | null;
+          tds: number | null;
+          details: Json;
+          status: string;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          declaration_id: string;
+          section: Database['public']['Enums']['declaration_section'];
+          label: string;
+          declared: number;
+          approved?: number | null;
+          tds?: number | null;
+          details?: Json;
+          status?: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          declaration_id?: string;
+          section?: Database['public']['Enums']['declaration_section'];
+          label?: string;
+          declared?: number;
+          approved?: number | null;
+          tds?: number | null;
+          details?: Json;
+          status?: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      tax_declarations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          fy: string;
+          regime: string;
+          status: Database['public']['Enums']['declaration_status'];
+          metro: boolean;
+          senior_self: boolean;
+          senior_parents: boolean;
+          submitted_at: string | null;
+          decided_by: string | null;
+          decided_at: string | null;
+          review_note: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          fy: string;
+          regime?: string;
+          status?: Database['public']['Enums']['declaration_status'];
+          metro?: boolean;
+          senior_self?: boolean;
+          senior_parents?: boolean;
+          submitted_at?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          review_note?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          fy?: string;
+          regime?: string;
+          status?: Database['public']['Enums']['declaration_status'];
+          metro?: boolean;
+          senior_self?: boolean;
+          senior_parents?: boolean;
+          submitted_at?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          review_note?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -4593,6 +4998,17 @@ export type Database = {
         };
         Returns: number;
       };
+      assign_salary: {
+        Args: {
+          p_employee: string;
+          p_effective_from: string;
+          p_structure: string;
+          p_annual_ctc: number;
+          p_lines: Json;
+          p_note?: string;
+        };
+        Returns: string;
+      };
       attendance_analytics: {
         Args: {
           p_org: string;
@@ -4651,6 +5067,12 @@ export type Database = {
       cancel_payroll_run: {
         Args: {
           p_run: string;
+        };
+        Returns: undefined;
+      };
+      cancel_salary_revision: {
+        Args: {
+          p_revision: string;
         };
         Returns: undefined;
       };
@@ -4776,6 +5198,14 @@ export type Database = {
           p_employee: string;
           p_date: string;
           p_approve: boolean;
+        };
+        Returns: undefined;
+      };
+      decide_salary_revision: {
+        Args: {
+          p_revision: string;
+          p_approve: boolean;
+          p_note?: string;
         };
         Returns: undefined;
       };
@@ -5050,11 +5480,24 @@ export type Database = {
         };
         Returns: { member_id: string; user_id: string; email: string; status: Database['public']['Enums']['member_status']; joined_at: string; last_sign_in_at: string; role_ids: string[]; employee_id: string; employee_name: string }[];
       };
+      payroll_bank_advice: {
+        Args: {
+          p_run: string;
+        };
+        Returns: { employee_code: string; employee_name: string; account_holder: string; bank_name: string; account_number: string; ifsc: string; amount: number }[];
+      };
       payroll_bank_file: {
         Args: {
           p_run: string;
         };
         Returns: { employee_code: string; employee_name: string; account_holder: string; account_number: string; ifsc: string; amount: number }[];
+      };
+      payroll_export_log: {
+        Args: {
+          p_org: string;
+          p_days?: number;
+        };
+        Returns: { at: string; action: string; report: string; actor: string; run_id: string; employees: number }[];
       };
       payroll_journal_items: {
         Args: {
@@ -5062,11 +5505,24 @@ export type Database = {
         };
         Returns: { code: string; name: string; kind: Database['public']['Enums']['line_kind']; amount: number; employees: number }[];
       };
+      payroll_readiness: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { employee_id: string; pan: string; uan: string; esic_number: string; bank_name: string; ifsc: string; account_last4: string }[];
+      };
       payroll_run_inputs: {
         Args: {
           p_run: string;
         };
         Returns: Json;
+      };
+      payroll_statutory_rows: {
+        Args: {
+          p_run: string;
+          p_report: string;
+        };
+        Returns: { employee_id: string; employee_code: string; employee_name: string; pan: string; uan: string; esic_number: string; pt_state: string; payable_days: number; lop_days: number; gross: number; taxable: number; pf_wages: number; pf_employee: number; eps_employer: number; epf_employer: number; esi_wages: number; esi_employee: number; esi_employer: number; pt: number; tds: number }[];
       };
       policy_acknowledgement_status: {
         Args: {
@@ -5176,6 +5632,17 @@ export type Database = {
         };
         Returns: string;
       };
+      request_salary_revision: {
+        Args: {
+          p_employee: string;
+          p_effective_from: string;
+          p_structure: string;
+          p_annual_ctc: number;
+          p_lines: Json;
+          p_reason: string;
+        };
+        Returns: string;
+      };
       return_asset: {
         Args: {
           p_asset: string;
@@ -5213,6 +5680,15 @@ export type Database = {
         Args: {
           p_flag: string;
           p_status: string;
+        };
+        Returns: undefined;
+      };
+      review_tax_declaration: {
+        Args: {
+          p_declaration: string;
+          p_approve: boolean;
+          p_items: Json;
+          p_note?: string;
         };
         Returns: undefined;
       };
@@ -5276,6 +5752,19 @@ export type Database = {
           p_expires_on: string;
           p_designation?: string;
           p_terms?: string;
+        };
+        Returns: string;
+      };
+      save_tax_declaration: {
+        Args: {
+          p_org: string;
+          p_fy: string;
+          p_regime: string;
+          p_metro: boolean;
+          p_senior_self: boolean;
+          p_senior_parents: boolean;
+          p_items: Json;
+          p_submit: boolean;
         };
         Returns: string;
       };
@@ -5564,6 +6053,17 @@ export type Database = {
         };
         Returns: undefined;
       };
+      update_payouts: {
+        Args: {
+          p_run: string;
+          p_employees: string[];
+          p_status: Database['public']['Enums']['payout_status'];
+          p_reference?: string;
+          p_paid_on?: string;
+          p_note?: string;
+        };
+        Returns: number;
+      };
       update_ticket: {
         Args: {
           p_ticket: string;
@@ -5702,6 +6202,8 @@ export type Database = {
       component_kind: 'earning' | 'deduction';
       course_format: 'online' | 'classroom' | 'video' | 'reading' | 'external';
       cycle_status: 'draft' | 'active' | 'calibration' | 'shared';
+      declaration_section: 'hra' | '80C' | '80CCD1B' | '80D_self' | '80D_parents' | '80E' | '80G' | '80TTA' | '24B' | 'lta' | 'prev_employer' | 'reimbursement' | 'other';
+      declaration_status: 'draft' | 'submitted' | 'approved' | 'rejected';
       document_category: 'identity' | 'address' | 'education' | 'employment' | 'contract' | 'medical' | 'other';
       employee_status: 'pre_joining' | 'active' | 'on_notice' | 'exited';
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
@@ -5721,14 +6223,18 @@ export type Database = {
       onboarding_assignee: 'joiner' | 'manager' | 'owner';
       onboarding_status: 'in_progress' | 'completed' | 'cancelled';
       org_status: 'active' | 'suspended' | 'archived';
+      pay_basis: 'monthly' | 'daily' | 'hourly';
+      payout_status: 'pending' | 'paid' | 'failed' | 'on_hold';
       payroll_status: 'draft' | 'computed' | 'approved' | 'locked' | 'cancelled';
       permission_scope: 'org' | 'team' | 'self';
       punch_method: 'web' | 'mobile' | 'biometric' | 'import' | 'regularization';
       recommendation: 'strong_yes' | 'yes' | 'no' | 'strong_no';
       requisition_status: 'open' | 'on_hold' | 'closed';
       review_status: 'not_started' | 'self_submitted' | 'manager_submitted' | 'calibrated';
+      revision_status: 'pending' | 'approved' | 'rejected' | 'cancelled';
       separation_status: 'submitted' | 'approved' | 'completed' | 'rejected' | 'withdrawn' | 'cancelled';
       separation_type: 'resignation' | 'termination' | 'retirement' | 'contract_end' | 'other';
+      structure_calc: 'percent_of_gross' | 'percent_of_basic' | 'fixed' | 'balance';
       task_status: 'open' | 'done' | 'cancelled';
       ticket_priority: 'low' | 'normal' | 'high' | 'urgent';
       ticket_status: 'open' | 'in_progress' | 'waiting' | 'resolved' | 'closed';

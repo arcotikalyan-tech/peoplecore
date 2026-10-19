@@ -38,13 +38,32 @@ export const ruleSetSchema = z.object({
     marginalRelief: z.boolean(),           // …and, just above it, tax capped at the excess
     cessRate: z.number().min(0).max(1),
     surchargeThreshold: z.number().positive(), // the engine refuses to estimate above this (surcharge not modelled)
+    /** The old regime, for employees who choose it in their declaration (exemptions and deductions apply). */
+    oldRegime: z.object({
+      standardDeduction: z.number().min(0),
+      slabs: z.array(slab).min(1),
+      rebateIncomeLimit: z.number().min(0),  // section 87A (old regime): no tax up to this taxable income
+      marginalRelief: z.boolean(),
+      cessRate: z.number().min(0).max(1),
+    }).optional(),
+    /** Annual caps on old-regime deductions (rupees). */
+    deductionCaps: z.object({
+      sec80C: z.number().min(0),          // 80C + 80CCC + 80CCD(1)
+      sec80CCD1B: z.number().min(0),      // additional NPS
+      sec80DSelf: z.number().min(0),
+      sec80DSelfSenior: z.number().min(0),
+      sec80DParents: z.number().min(0),
+      sec80DParentsSenior: z.number().min(0),
+      sec80TTA: z.number().min(0),
+      sec24b: z.number().min(0),          // interest on a self-occupied home loan
+    }).optional(),
   }),
 });
 export type RuleSet = z.infer<typeof ruleSetSchema>;
 
 /**
- * FY 2025-26 values as understood when this was written (new tax regime from the Union Budget 2025; EPF/ESI
- * rates; Karnataka and Maharashtra professional tax). NOT professionally validated: the database marks rule sets
+ * FY 2025-26 values as understood when this was written (new tax regime from the Union Budget 2025, the old regime
+ * with its usual deduction caps; EPF/ESI rates; Karnataka and Maharashtra professional tax). NOT professionally validated: the database marks rule sets
  * built from this as validated = false, and the app warns on every run until a professional signs one off.
  */
 export const IN_FY2025_26: RuleSet = {
@@ -65,5 +84,16 @@ export const IN_FY2025_26: RuleSet = {
     marginalRelief: true,
     cessRate: 0.04,
     surchargeThreshold: 5000000,
+    oldRegime: {
+      standardDeduction: 50000,
+      slabs: [{ upTo: 250000, rate: 0 }, { upTo: 500000, rate: 0.05 }, { upTo: 1000000, rate: 0.2 }, { upTo: null, rate: 0.3 }],
+      rebateIncomeLimit: 500000,
+      marginalRelief: false,
+      cessRate: 0.04,
+    },
+    deductionCaps: {
+      sec80C: 150000, sec80CCD1B: 50000, sec80DSelf: 25000, sec80DSelfSenior: 50000, sec80DParents: 25000, sec80DParentsSenior: 50000,
+      sec80TTA: 10000, sec24b: 200000,
+    },
   },
 };
