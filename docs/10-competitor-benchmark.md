@@ -243,7 +243,7 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 
 | Kredily | PeopleCore |
 |---|---|
-| Library of 522 statutory forms (central, 28 states, 8 UTs), which apply to you (by state and headcount), compliance calendar with due dates and overdue items, generate forms per wage period, 5-year retention | ❌ (in "preview" in Kredily; most forms not yet renderable) |
+| Library of 522 statutory forms (central, 28 states, 8 UTs), which apply to you (by state and headcount), compliance calendar with due dates and overdue items, generate forms per wage period, 5-year retention | ✅ Compliance: 160-form catalogue (Labour Codes + continuing central laws, 11 states in detail, PT/LWF placeholders for the rest) with confidence levels; live applicability by headcount, state, PF/ESI/PT switches, contract labour and factory, with a trace; calendar with overdue and simulate-headcount; documents per wage period rendered through Reports, marked filed with acknowledgement and proof kept 5 years; regime map with establishment registrations; data-quality alerts; employees see My Statutory |
 
 ## 22. Holiday calendar
 

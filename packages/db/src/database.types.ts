@@ -2139,6 +2139,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      establishment_registrations: {
+        Row: {
+          organization_id: string;
+          location_id: string;
+          pt_number: string | null;
+          pt_enrolment: string | null;
+          lwf_number: string | null;
+          se_number: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          location_id: string;
+          pt_number?: string | null;
+          pt_enrolment?: string | null;
+          lwf_number?: string | null;
+          se_number?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          location_id?: string;
+          pt_number?: string | null;
+          pt_enrolment?: string | null;
+          lwf_number?: string | null;
+          se_number?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       expense_categories: {
         Row: {
           id: string;
@@ -5700,6 +5733,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      statutory_filings: {
+        Row: {
+          id: string;
+          organization_id: string;
+          form_id: string;
+          period_start: string;
+          period_end: string;
+          due_on: string | null;
+          status: string;
+          filed_on: string | null;
+          reference: string | null;
+          note: string | null;
+          proof_path: string | null;
+          proof_name: string | null;
+          retain_until: string | null;
+          recorded_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          form_id: string;
+          period_start: string;
+          period_end: string;
+          due_on?: string | null;
+          status: string;
+          filed_on?: string | null;
+          reference?: string | null;
+          note?: string | null;
+          proof_path?: string | null;
+          proof_name?: string | null;
+          retain_until?: never;
+          recorded_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          form_id?: string;
+          period_start?: string;
+          period_end?: string;
+          due_on?: string | null;
+          status?: string;
+          filed_on?: string | null;
+          reference?: string | null;
+          note?: string | null;
+          proof_path?: string | null;
+          proof_name?: string | null;
+          retain_until?: never;
+          recorded_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       statutory_rule_sets: {
         Row: {
           id: string;
@@ -5739,6 +5829,30 @@ export type Database = {
           validated_at?: string | null;
           notes?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      statutory_scope: {
+        Row: {
+          organization_id: string;
+          contract_labour: boolean;
+          factory: boolean;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          contract_labour?: boolean;
+          factory?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          contract_labour?: boolean;
+          factory?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -7693,6 +7807,12 @@ export type Database = {
           p_template?: string;
         };
         Returns: string;
+      };
+      statutory_facts: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
       };
       stop_workflow_run: {
         Args: {

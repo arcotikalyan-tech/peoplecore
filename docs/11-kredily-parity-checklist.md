@@ -13,13 +13,13 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Dashboard (hub) — Kredily layout: figures, trends, attendance snapshot, customisable quick access, compliance, activity, work hours, announcements, birthdays, holidays (AI insight replaced by a plain summary; vouchers and refer-and-earn are Kredily's own marketing)
 
 ### Onboarding
-- [ ] Onboarding (hub)
-- [ ] Onboarding › activation
-- [ ] Onboarding › ai setup
-- [ ] Onboarding › company
-- [ ] Onboarding › guided
-- [ ] Onboarding › hub
-- [ ] Onboarding › journey
+- [x] Onboarding (hub)
+- [x] Onboarding › activation
+- [x] Onboarding › ai setup — skipped (AI module out of scope as agreed)
+- [x] Onboarding › company
+- [x] Onboarding › guided
+- [x] Onboarding › hub
+- [x] Onboarding › journey
 - [ ] Onboarding › rewards
 
 ### Directory
@@ -231,15 +231,15 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Reports (hub) — all 36 reports in 8 categories, Excel/CSV, recently generated, custom builder with saved templates, scheduled reminders (AI Report Studio skipped as agreed)
 
 ### Statutory
-- [ ] Statutory (hub)
-- [ ] Statutory › calendar
-- [ ] Statutory › documents
-- [ ] Statutory › documents › next
-- [ ] Statutory › documents › nov
-- [ ] Statutory › engine console
-- [ ] Statutory › library522
-- [ ] Statutory › overview
-- [ ] Statutory › regime map
+- [x] Statutory (hub)
+- [x] Statutory › calendar
+- [x] Statutory › documents
+- [x] Statutory › documents › next
+- [x] Statutory › documents › nov
+- [x] Statutory › engine console
+- [x] Statutory › library522
+- [x] Statutory › overview
+- [x] Statutory › regime map
 
 ### Referrals
 - [ ] Referrals (hub)
@@ -450,7 +450,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Reports (hub) — all 36 reports in 8 categories, Excel/CSV, recently generated, custom builder with saved templates, scheduled reminders (AI Report Studio skipped as agreed)
 
 ### Statutory
-- [ ] Statutory (hub)
+- [x] Statutory (hub)
 
 ### Referrals
 - [ ] Referrals (hub)

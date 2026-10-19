@@ -74,6 +74,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     { label: 'Admin', items: [
       ...when(ctx.can('employee.read', 'org') || ctx.can('employee.read', 'team'), { href: `${base}/insights`, label: 'Insights', icon: 'chart' }),
       ...when(reports, { href: `${base}/reports`, label: 'Reports', icon: 'sheet' }),
+      ...when(ctx.can('statutory.manage', 'org'), { href: `${base}/statutory`, label: 'Compliance', icon: 'scale' }),
       ...when(ctx.can('member.manage', 'org'), { href: `${base}/members`, label: 'Members', icon: 'user-cog' }),
       ...when(ctx.can('org.manage', 'org') || ctx.can('role.manage', 'org'), { href: `${base}/settings`, label: 'Settings', icon: 'settings' }),
       ...when(ctx.can('workflow.manage', 'org'), { href: `${base}/workflows`, label: 'Workflows', icon: 'workflow' }),
@@ -93,6 +94,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       { href: `${base}/payslips`, label: 'My Pay', icon: 'receipt' },
       { href: `${base}/expenses`, label: 'Expenses', icon: 'card' },
       { href: `${base}/loans`, label: 'Loans', icon: 'coins' },
+      { href: `${base}/statutory`, label: 'My Statutory', icon: 'scale' },
     ] },
     { label: 'Grow', items: [
       ...when(ctx.can('performance.read'), { href: `${base}/performance`, label: 'Performance', icon: 'trophy' }),

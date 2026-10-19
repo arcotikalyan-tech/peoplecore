@@ -6,7 +6,7 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import { CATEGORIES, REPORT_BY_KEY, REPORTS, SCHEDULE_PERIODS, type ReportInfo } from '@/lib/report-catalog';
 import { getOrgContext } from '@/server/context';
 import { myFiles } from '@/server/profile';
-import { canRun, defaultParams, resolvePeriod } from '@/server/reports';
+import { canRun, readParams, resolvePeriod } from '@/server/reports';
 import { getStructure } from '@/server/structure';
 import { createClient } from '@/server/supabase';
 import { createScheduleAction, deleteScheduleAction, deleteTemplateAction, saveTemplateAction } from './actions';
@@ -64,7 +64,8 @@ export default async function ReportsPage({ params, searchParams }: { params: Pr
 
   let defaults: PanelDefaults | null = null;
   if (active) {
-    const d = defaultParams(active, today);
+    // Parameters in the link (e.g. Compliance › Documents opening a report for a wage period) fill the panel.
+    const d = readParams(active, new URLSearchParams(Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === 'string')), today);
     const sch = fromSchedule?.report_key === active.key ? (fromSchedule.params as Record<string, string>) : null;
     const resolved = sch ? resolvePeriod(active.param, sch.period ?? '', today, active) : {};
     const m = { ...d, ...resolved };

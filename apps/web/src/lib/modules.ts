@@ -6,6 +6,7 @@ export const MODULES = [
   { key: 'payroll', label: 'Payroll', group: 'Pay' },
   { key: 'expenses', label: 'Expenses', group: 'Pay' },
   { key: 'loans', label: 'Loans', group: 'Pay' },
+  { key: 'statutory', label: 'Compliance', group: 'Pay' },
   { key: 'letters', label: 'Letters', group: 'Core HR' },
   { key: 'insurance', label: 'Insurance', group: 'Core HR' },
   { key: 'recruitment', label: 'Recruitment', group: 'Talent' },

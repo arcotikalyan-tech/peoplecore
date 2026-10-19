@@ -21,11 +21,13 @@ export const RECEIPT_BUCKET = 'expense-receipts';
 /** Letterhead art and signatures: <org uuid>/<asset uuid>. Callers must hold letter.manage (checked by the action). */
 export const LETTER_BUCKET = 'letter-assets';
 const LETTER_PATH = new RegExp(`^${UUID}/${UUID}$`);
+/** Proof of statutory filings: <org uuid>/<file uuid>. Callers must hold statutory.manage (checked by the action). */
+export const STATUTORY_BUCKET = 'statutory-documents';
 /** Always named explicitly: a default bucket would silently put files in the wrong place. */
-type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET | typeof LETTER_BUCKET;
+type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET | typeof LETTER_BUCKET | typeof STATUTORY_BUCKET;
 
 function checkedPath(path: string, bucket?: Bucket) {
-  if (!(bucket === LETTER_BUCKET ? LETTER_PATH : PATH).test(path)) throw new Error('Invalid document path');
+  if (!(bucket === LETTER_BUCKET || bucket === STATUTORY_BUCKET ? LETTER_PATH : PATH).test(path)) throw new Error('Invalid document path');
   return path;
 }
 
