@@ -32,7 +32,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     home,
     { label: 'People', items: [
       ...when(ctx.can('employee.read'), { href: `${base}/employees`, label: 'People', icon: 'users' }),
-      ...when(ctx.can('org.read'), { href: `${base}/structure`, label: 'Organization', icon: 'building' }),
+      ...when(ctx.can('org.read'), { href: `${base}/company`, label: 'Company Profile', icon: 'building' }),
       ...when(ctx.can('recruitment.read'), { href: `${base}/recruitment`, label: 'Recruitment', icon: 'briefcase' }),
       ...when(ctx.can('onboarding.manage', 'org'), { href: `${base}/onboarding`, label: 'Onboarding', icon: 'user-plus' }),
       { href: `${base}/separations`, label: 'Separations', icon: 'log-out' },

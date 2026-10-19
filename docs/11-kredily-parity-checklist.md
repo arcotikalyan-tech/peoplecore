@@ -36,19 +36,19 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Directory › settings
 
 ### Company Profile
-- [ ] Company Profile (hub)
-- [ ] Company Profile › address
-- [ ] Company Profile › admin
-- [ ] Company Profile › announcements
-- [ ] Company Profile › department
-- [ ] Company Profile › designation
-- [ ] Company Profile › employee custom fields
-- [ ] Company Profile › my plan
-- [ ] Company Profile › overview
-- [ ] Company Profile › policies
-- [ ] Company Profile › statutory
-- [ ] Company Profile › statutory › auditors
-- [ ] Company Profile › statutory › company secretary
+- [x] Company Profile (hub)
+- [x] Company Profile › address
+- [x] Company Profile › admin
+- [x] Company Profile › announcements
+- [x] Company Profile › department
+- [x] Company Profile › designation
+- [x] Company Profile › employee custom fields
+- [ ] Company Profile › my plan — skipped: Kredily’s own billing
+- [x] Company Profile › overview
+- [x] Company Profile › policies
+- [x] Company Profile › statutory
+- [x] Company Profile › statutory › auditors
+- [x] Company Profile › statutory › company secretary
 
 ### My Profile
 - [ ] My Profile (hub)
@@ -438,7 +438,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Onboarding (hub)
 
 ### Company Profile
-- [ ] Company Profile (hub)
+- [x] Company Profile (hub)
 
 ### Insurance
 - [ ] Insurance (hub)

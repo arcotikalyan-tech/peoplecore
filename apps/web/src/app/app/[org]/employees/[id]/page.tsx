@@ -21,6 +21,9 @@ import { employeeNames, getEmployee, getEmploymentHistory, managerOptions, names
 import { listDocuments } from '@/server/documents';
 import { getPlans } from '@/server/onboarding';
 import { getCompensation } from '@/server/payroll';
+import { createClient } from '@/server/supabase';
+import { saveCustomValuesAction } from '../../company/actions';
+import { CustomValuesForm } from '../../company/company-forms';
 import { setCompensationAction, setStatutoryAction } from '../../payroll/actions';
 import { inr } from '../../payroll/format';
 import { CompensationForm, StatutoryForm } from '../../payroll/payroll-forms';
@@ -104,6 +107,14 @@ export default async function EmployeePage({
     ctx.can('asset.manage', 'org') ? employeeHoldings(id) : Promise.resolve(null),
   ]);
   const plan = onboarding[0];
+  const custom = await (async () => {
+    const supabase = await createClient();
+    const [fields, values] = await Promise.all([
+      supabase.from('employee_custom_fields').select('id, label, field_type, options, required, editable_by_employee').eq('organization_id', orgId).is('archived_at', null).order('position').order('created_at'),
+      supabase.from('employee_custom_values').select('field_id, value').eq('employee_id', id),
+    ]);
+    return { fields: fields.data ?? [], values: Object.fromEntries((values.data ?? []).map((v) => [v.field_id, v.value])) };
+  })();
   const activity = canAudit ? await activityForEmployee(orgId, id, history.map((h) => h.id)) : [];
   const [names, actors] = await Promise.all([
     employeeNames(orgId, [employee.manager_employee_id, ...history.map((h) => h.manager_employee_id)].filter((x): x is string => !!x)),
@@ -281,6 +292,14 @@ export default async function EmployeePage({
             </Card>
           )}
 
+          {custom.fields.length > 0 && (
+            <Card>
+              <CardHeader title="Custom fields" description={canEditWork ? 'Defined in Company Profile › Employee Custom Fields.' : undefined} />
+              {canEditWork || (isSelf && custom.fields.some((f) => f.editable_by_employee))
+                ? <CustomValuesForm action={saveCustomValuesAction.bind(null, slug, id)} fields={custom.fields} values={custom.values} canEditAll={canEditWork} />
+                : <dl className="grid gap-3 px-5 py-4 sm:grid-cols-2">{custom.fields.map((f) => <div key={f.id}><dt className="text-xs text-muted">{f.label}</dt><dd className="text-sm">{custom.values[f.id] ?? '—'}</dd></div>)}</dl>}
+            </Card>
+          )}
           {compensation && (
             <Card>
               <CardHeader title="Compensation" description={compensation.current

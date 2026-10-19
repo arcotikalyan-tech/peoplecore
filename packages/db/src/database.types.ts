@@ -1059,6 +1059,150 @@ export type Database = {
         };
         Relationships: [];
       };
+      company_addresses: {
+        Row: {
+          id: string;
+          organization_id: string;
+          kind: string;
+          label: string | null;
+          line1: string;
+          line2: string | null;
+          city: string;
+          state: string | null;
+          country: string;
+          pincode: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          kind: string;
+          label?: string | null;
+          line1: string;
+          line2?: string | null;
+          city: string;
+          state?: string | null;
+          country?: string;
+          pincode?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          kind?: string;
+          label?: string | null;
+          line1?: string;
+          line2?: string | null;
+          city?: string;
+          state?: string | null;
+          country?: string;
+          pincode?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      company_officers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          kind: string;
+          name: string;
+          email: string | null;
+          phone: string | null;
+          identifier: string | null;
+          firm: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          kind: string;
+          name: string;
+          email?: string | null;
+          phone?: string | null;
+          identifier?: string | null;
+          firm?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          kind?: string;
+          name?: string;
+          email?: string | null;
+          phone?: string | null;
+          identifier?: string | null;
+          firm?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      company_profiles: {
+        Row: {
+          organization_id: string;
+          legal_name: string | null;
+          brand_name: string | null;
+          email: string | null;
+          phone: string | null;
+          website: string | null;
+          industry: string | null;
+          social: Json;
+          entity_type: string | null;
+          cin: string | null;
+          llpin: string | null;
+          incorporated_on: string | null;
+          pan: string | null;
+          tan: string | null;
+          gstin: string | null;
+          pf_code: string | null;
+          esi_code: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          legal_name?: string | null;
+          brand_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          website?: string | null;
+          industry?: string | null;
+          social?: Json;
+          entity_type?: string | null;
+          cin?: string | null;
+          llpin?: string | null;
+          incorporated_on?: string | null;
+          pan?: string | null;
+          tan?: string | null;
+          gstin?: string | null;
+          pf_code?: string | null;
+          esi_code?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          legal_name?: string | null;
+          brand_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          website?: string | null;
+          industry?: string | null;
+          social?: Json;
+          entity_type?: string | null;
+          cin?: string | null;
+          llpin?: string | null;
+          incorporated_on?: string | null;
+          pan?: string | null;
+          tan?: string | null;
+          gstin?: string | null;
+          pf_code?: string | null;
+          esi_code?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       compensation_lines: {
         Row: {
           organization_id: string;
@@ -1305,6 +1449,7 @@ export type Database = {
           archived_at: string | null;
           created_at: string;
           updated_at: string;
+          grade_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1314,6 +1459,7 @@ export type Database = {
           archived_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          grade_id?: string | null;
         };
         Update: {
           id?: string;
@@ -1323,6 +1469,7 @@ export type Database = {
           archived_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          grade_id?: string | null;
         };
         Relationships: [];
       };
@@ -1386,6 +1533,72 @@ export type Database = {
           relationship?: string;
           phone?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      employee_custom_fields: {
+        Row: {
+          id: string;
+          organization_id: string;
+          label: string;
+          field_type: string;
+          options: string[];
+          required: boolean;
+          editable_by_employee: boolean;
+          position: number;
+          archived_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          label: string;
+          field_type: string;
+          options?: string[];
+          required?: boolean;
+          editable_by_employee?: boolean;
+          position?: number;
+          archived_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          label?: string;
+          field_type?: string;
+          options?: string[];
+          required?: boolean;
+          editable_by_employee?: boolean;
+          position?: number;
+          archived_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      employee_custom_values: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          field_id: string;
+          value: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          field_id: string;
+          value: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          field_id?: string;
+          value?: string;
+          updated_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -1950,6 +2163,30 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      grades: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          rank: number;
+          description: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          rank?: number;
+          description?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          rank?: number;
+          description?: string | null;
         };
         Relationships: [];
       };
