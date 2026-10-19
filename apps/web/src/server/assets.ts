@@ -11,21 +11,26 @@ export type AssetStatus = (typeof ASSET_STATUSES)[number];
 
 export async function listAssets(orgId: string, filter: { status?: AssetStatus; q?: string } = {}) {
   const supabase = await createClient();
-  let q = supabase.from('assets').select('id, tag, name, category, serial_number, status, warranty_until').eq('organization_id', orgId);
+  let q = supabase.from('assets')
+    .select('id, tag, name, category, category_id, serial_number, status, condition, location_id, purchased_on, purchase_cost, warranty_until, created_at')
+    .eq('organization_id', orgId);
   if (filter.status) q = q.eq('status', filter.status);
   if (filter.q) {
     const term = filter.q.replace(/[%,()*"\\]/g, ' ').trim();
     if (term) q = q.or(`tag.ilike.%${term}%,name.ilike.%${term}%,serial_number.ilike.%${term}%,category.ilike.%${term}%`);
   }
   const [assets, open] = await Promise.all([
-    q.order('tag').limit(300),
+    q.order('tag').limit(2000),
     supabase.from('asset_assignments').select('id, asset_id, employee_id, due_back_on, acknowledged_at')
       .eq('organization_id', orgId).is('returned_at', null).limit(5000),
   ]);
   if (assets.error || open.error) throw new Error('Failed to load assets');
   const holder = new Map(open.data.map((a) => [a.asset_id, a]));
-  return assets.data.map((a) => ({ ...a, issue: holder.get(a.id) ?? null }));
+  return assets.data.map((a) => ({
+    ...a, category_id: a.category_id ?? '', purchase_cost: a.purchase_cost === null ? null : Number(a.purchase_cost), issue: holder.get(a.id) ?? null,
+  }));
 }
+export type AssetRow = Awaited<ReturnType<typeof listAssets>>[number];
 
 /** How many assets are in each status, for the summary tiles. */
 export async function assetCounts(orgId: string): Promise<Record<AssetStatus, number>> {
@@ -48,7 +53,7 @@ export async function getAsset(orgId: string, id: string) {
 export async function assetHistory(orgId: string, assetId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.from('asset_assignments')
-    .select('id, employee_id, assigned_at, due_back_on, condition_out, acknowledged_at, returned_at, condition_in')
+    .select('id, employee_id, assigned_at, due_back_on, condition_out, acknowledged_at, returned_at, condition_in, recovery_amount, recovery_note, recovery_status, recovery_settled_at')
     .eq('organization_id', orgId).eq('asset_id', assetId).order('assigned_at', { ascending: false });
   if (error) throw new Error(`Failed to load the asset’s history (${error.code})`);
   return data;
@@ -58,7 +63,7 @@ export async function assetHistory(orgId: string, assetId: string) {
 export async function employeeAssets(orgId: string, employeeId: string) {
   const supabase = await createClient();
   const issues = await supabase.from('asset_assignments')
-    .select('id, asset_id, assigned_at, due_back_on, condition_out, acknowledged_at, returned_at')
+    .select('id, asset_id, assigned_at, due_back_on, condition_out, acknowledged_at, returned_at, recovery_amount, recovery_note, recovery_status')
     .eq('organization_id', orgId).eq('employee_id', employeeId).order('assigned_at', { ascending: false }).limit(100);
   if (issues.error) throw new Error(`Failed to load your assets (${issues.error.code})`);
   if (issues.data.length === 0) return [];
@@ -100,4 +105,46 @@ export async function employeeHoldings(employeeId: string) {
   const { data, error } = await supabase.rpc('employee_holdings', { p_employee: employeeId });
   if (error) throw new Error(`Failed to load holdings (${error.code})`);
   return data;
+}
+
+export async function assetCategories(orgId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('asset_categories')
+    .select('id, name, icon, description, useful_life_months, requestable').eq('organization_id', orgId).order('name');
+  if (error) throw new Error(`Failed to load asset categories (${error.code})`);
+  return data;
+}
+export type AssetCategory = Awaited<ReturnType<typeof assetCategories>>[number];
+
+/** Asset requests: all (asset managers) or the caller's own (RLS), newest first. */
+export async function assetRequests(orgId: string, employeeId?: string) {
+  const supabase = await createClient();
+  let q = supabase.from('asset_requests')
+    .select('id, employee_id, category_id, reason, status, asset_id, decided_at, decision_note, created_at').eq('organization_id', orgId);
+  if (employeeId) q = q.eq('employee_id', employeeId);
+  const { data, error } = await q.order('created_at', { ascending: false }).limit(1000);
+  if (error) throw new Error(`Failed to load asset requests (${error.code})`);
+  return data;
+}
+
+export async function assetRepairs(orgId: string, assetId?: string) {
+  const supabase = await createClient();
+  let q = supabase.from('asset_repairs')
+    .select('id, asset_id, vendor, issue, sent_on, expected_back_on, completed_on, cost, outcome, created_at').eq('organization_id', orgId);
+  if (assetId) q = q.eq('asset_id', assetId);
+  const { data, error } = await q.order('sent_on', { ascending: false }).limit(1000);
+  if (error) throw new Error(`Failed to load repairs (${error.code})`);
+  return data.map((r) => ({ ...r, cost: r.cost === null ? null : Number(r.cost) }));
+}
+
+/** Issues with dues recorded on them (pending first), and recent issue history for the activity feed. */
+export async function assetIssues(orgId: string, opts: { dues?: boolean; limit?: number } = {}) {
+  const supabase = await createClient();
+  let q = supabase.from('asset_assignments')
+    .select('id, asset_id, employee_id, assigned_at, returned_at, acknowledged_at, recovery_amount, recovery_note, recovery_status, recovery_settled_at')
+    .eq('organization_id', orgId);
+  if (opts.dues) q = q.not('recovery_status', 'is', null);
+  const { data, error } = await q.order('assigned_at', { ascending: false }).limit(opts.limit ?? 500);
+  if (error) throw new Error(`Failed to load asset issues (${error.code})`);
+  return data.map((x) => ({ ...x, recovery_amount: x.recovery_amount === null ? null : Number(x.recovery_amount) }));
 }

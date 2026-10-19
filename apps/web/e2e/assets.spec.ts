@@ -20,6 +20,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  await admin.from('asset_requests').delete().eq('organization_id', orgId).like('reason', `%${run}%`);
   const assets = (await admin.from('assets').select('id').eq('organization_id', orgId).like('name', `%${run}%`)).data ?? [];
   if (assets.length) {
     await admin.from('asset_assignments').delete().in('asset_id', assets.map((a) => a.id));
@@ -31,6 +32,9 @@ test.afterAll(async () => {
     await admin.from('access_systems').delete().in('id', systems.map((s) => s.id));
   }
   await admin.from('notifications').delete().eq('organization_id', orgId).like('kind', 'asset.%').gte('created_at', startedAt);
+  await admin.from('payroll_adjustments').delete().eq('organization_id', orgId).eq('code', 'ASSET_RECOVERY').like('reason', `%${run}%`).is('applied_run_id', null);
+  await admin.from('asset_requests').delete().eq('organization_id', orgId).like('reason', `%${run}%`);
+  await admin.from('asset_categories').delete().eq('organization_id', orgId).like('name', `%${run}%`);
 });
 
 test('HR issues a laptop; the employee confirms receipt; HR takes it back', async ({ browser }) => {
@@ -40,7 +44,7 @@ test('HR issues a laptop; the employee confirms receipt; HR takes it back', asyn
   await open(hr, '/app/demo/assets/new');
   const form = hr.getByRole('form', { name: 'Add an asset' });
   await form.getByLabel('Name').fill(laptop);
-  await form.getByLabel('Type').fill('Laptop');
+  await form.getByLabel('Category').selectOption({ label: 'Laptop' });
   await form.getByLabel('Serial number').fill(`E2E-${run}`);
   await form.getByRole('button', { name: 'Add asset' }).click();
   await hr.waitForURL(/\/assets\/[0-9a-f-]{36}$/);
@@ -117,4 +121,91 @@ test('employees can’t open the inventory or the access register', async ({ pag
   await expectNotFound(page);
   await open(page, '/app/demo/assets/access');
   await expectNotFound(page);
+});
+
+test('an employee requests a monitor; HR fulfils it; it is lost and the dues go to payroll', async ({ browser }) => {
+  const monitor = `Spare monitor ${run}`;
+  const hr = await (await browser.newContext()).newPage();
+  await signIn(hr, 'demo.hr');
+  await open(hr, '/app/demo/assets/new');
+  const form = hr.getByRole('form', { name: 'Add an asset' });
+  await form.getByLabel('Name').fill(monitor);
+  await form.getByLabel('Category').selectOption({ label: 'Monitor' });
+  await form.getByLabel('Condition').selectOption('new');
+  await form.getByRole('button', { name: 'Add asset' }).click();
+  await hr.waitForURL(/\/assets\/[0-9a-f-]{36}$/);
+  const assetUrl = new URL(hr.url()).pathname;
+
+  const employee = await (await browser.newContext()).newPage();
+  await signIn(employee, 'demo.employee');
+  await open(employee, '/app/demo/assets?tab=requests');
+  await expect(employee.getByRole('heading', { level: 1, name: 'My Assets' })).toBeVisible();
+  const req = employee.getByRole('form', { name: 'Request asset' });
+  await req.getByLabel('Category').selectOption((await req.getByLabel('Category').locator('option', { hasText: 'Monitor' }).getAttribute('value'))!);
+  await req.getByLabel('Reason').fill(`Second screen ${run}`);
+  await req.getByRole('button', { name: '＋ Request Asset' }).click();
+  await expect(req.getByText('Request raised. Asset managers have been told.')).toBeVisible();
+  await expect(employee.getByRole('table', { name: 'My requests' }).getByRole('row').filter({ hasText: `Second screen ${run}` }).getByText('Pending')).toBeVisible();
+
+  await open(hr, '/app/demo/assets?tab=requests');
+  await expect(hr.getByRole('heading', { level: 1, name: 'Asset Management' })).toBeVisible();
+  const decide = hr.getByRole('form', { name: 'Decide: Dev Nair: Monitor' });
+  const option = await decide.getByLabel('Issue').locator('option', { hasText: monitor }).getAttribute('value');
+  await decide.getByLabel('Issue').selectOption(option!);
+  await decide.getByRole('button', { name: 'Approve' }).click();
+  await expect(hr.getByRole('status').filter({ hasText: 'Approved and issued.' })).toBeVisible();
+
+  await employee.reload();
+  await expect(employee.getByRole('table', { name: 'My requests' }).getByRole('row').filter({ hasText: `Second screen ${run}` }).getByText('Fulfilled')).toBeVisible();
+
+  await open(hr, assetUrl);
+  const back = hr.getByRole('form', { name: 'Record return' });
+  await back.getByLabel('Then').selectOption('lost');
+  await back.getByRole('button', { name: 'Record return' }).click();
+  await expect(hr.getByRole('status').filter({ hasText: 'Recorded as lost.' })).toBeVisible();
+  await hr.getByRole('list', { name: 'Issue history' }).locator('summary', { hasText: 'Record dues' }).click();
+  const dues = hr.getByRole('form', { name: 'Record dues' });
+  await dues.getByLabel('Amount due (₹)').fill('12000');
+  await dues.getByLabel('For').fill(`Lost monitor ${run}`);
+  await dues.getByRole('button', { name: 'Record dues' }).click();
+  await expect(hr.getByText(/Dues ₹12,000(\.00)? · Pending/)).toBeVisible();
+
+  await open(hr, '/app/demo/assets?tab=dues');
+  await hr.getByRole('form', { name: `Settle dues: Dev Nair · ${monitor}` }).getByRole('button', { name: 'Deduct in payroll' }).click();
+  await expect(hr.getByRole('status').filter({ hasText: 'Added to the next payroll run as a deduction.' })).toBeVisible();
+  const adj = (await admin.from('payroll_adjustments').select('kind, amount').eq('organization_id', orgId).eq('code', 'ASSET_RECOVERY').like('reason', `%${run}%`).single()).data!;
+  expect(adj).toEqual({ kind: 'deduction', amount: 12000 });
+});
+
+test('HR adds a category and sends an asset for repair', async ({ page }) => {
+  await signIn(page, 'demo.hr');
+  await open(page, '/app/demo/assets?tab=categories');
+  const add = page.getByRole('form', { name: 'Add category' });
+  await add.getByLabel('Category').fill(`Tablet ${run}`);
+  await add.getByLabel('Useful life (months)').fill('30');
+  await add.getByRole('button', { name: '＋ Add Category' }).click();
+  await expect(add.getByText(`Category Tablet ${run} added.`)).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Asset categories' }).getByText(`Tablet ${run}`)).toBeVisible();
+
+  await open(page, '/app/demo/assets/new');
+  const form = page.getByRole('form', { name: 'Add an asset' });
+  await form.getByLabel('Name').fill(`Tab ${run}`);
+  await form.getByLabel('Category').selectOption({ label: `Tablet ${run}` });
+  await form.getByRole('button', { name: 'Add asset' }).click();
+  await page.waitForURL(/\/assets\/[0-9a-f-]{36}$/);
+  const repair = page.getByRole('form', { name: 'Send for repair' });
+  await repair.getByLabel('Problem').fill('Screen flickers');
+  await repair.getByLabel('Vendor').fill('Example Service Centre');
+  await repair.getByRole('button', { name: 'Send for repair' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Sent for repair.' })).toBeVisible();
+
+  await open(page, '/app/demo/assets?tab=repairs');
+  const done = page.getByRole('form', { name: `Complete repair of Tab ${run}` });
+  await done.getByLabel('Cost (₹)').fill('1500');
+  await done.getByRole('button', { name: 'Mark repaired' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Repair complete. The asset is available again.' })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Repair history' }).getByText('Screen flickers')).toBeVisible();
+
+  await open(page, `/app/demo/assets?tab=register&q=${run}`);
+  await expect(page.getByRole('table', { name: 'Asset register' }).getByText(`Tab ${run}`)).toBeVisible();
 });

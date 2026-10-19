@@ -278,6 +278,13 @@ async function main() {
   ]), 'add knowledge-base articles');
 
   // Assets and system access: Dev holds a laptop (receipt confirmed) and has email and GitHub accounts; Rohan owns GitHub.
+  exec(await db.from('asset_categories').insert([
+    { organization_id: orgId, name: 'Laptop', icon: '💻', useful_life_months: 36 },
+    { organization_id: orgId, name: 'Monitor', icon: '🖥', useful_life_months: 60 },
+    { organization_id: orgId, name: 'Phone', icon: '📱', useful_life_months: 24 },
+    { organization_id: orgId, name: 'Headset', icon: '🎧', useful_life_months: 24 },
+    { organization_id: orgId, name: 'Access card', icon: '🪪', requestable: false },
+  ]), 'add asset categories');
   const assets = must(await db.from('assets').insert([
     { organization_id: orgId, tag: 'AST-0001', name: 'ThinkPad T14 Gen 4', category: 'Laptop', serial_number: 'DEMO-LT-0001', location_id: locationId('BLR'),
       purchased_on: isoDaysAgo(400), purchase_cost: 98000, warranty_until: isoDaysAgo(-330) },

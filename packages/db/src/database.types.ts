@@ -555,6 +555,12 @@ export type Database = {
           returned_at: string | null;
           returned_by: string | null;
           condition_in: string | null;
+          recovery_amount: number | null;
+          recovery_note: string | null;
+          recovery_status: string | null;
+          recovery_settled_at: string | null;
+          recovery_settled_by: string | null;
+          recovery_adjustment_id: string | null;
         };
         Insert: {
           id?: string;
@@ -570,6 +576,12 @@ export type Database = {
           returned_at?: string | null;
           returned_by?: string | null;
           condition_in?: string | null;
+          recovery_amount?: number | null;
+          recovery_note?: string | null;
+          recovery_status?: string | null;
+          recovery_settled_at?: string | null;
+          recovery_settled_by?: string | null;
+          recovery_adjustment_id?: string | null;
         };
         Update: {
           id?: string;
@@ -585,6 +597,132 @@ export type Database = {
           returned_at?: string | null;
           returned_by?: string | null;
           condition_in?: string | null;
+          recovery_amount?: number | null;
+          recovery_note?: string | null;
+          recovery_status?: string | null;
+          recovery_settled_at?: string | null;
+          recovery_settled_by?: string | null;
+          recovery_adjustment_id?: string | null;
+        };
+        Relationships: [];
+      };
+      asset_categories: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          icon: string | null;
+          description: string | null;
+          useful_life_months: number | null;
+          requestable: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          icon?: string | null;
+          description?: string | null;
+          useful_life_months?: number | null;
+          requestable?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          icon?: string | null;
+          description?: string | null;
+          useful_life_months?: number | null;
+          requestable?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      asset_repairs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          asset_id: string;
+          vendor: string | null;
+          issue: string;
+          sent_on: string;
+          expected_back_on: string | null;
+          completed_on: string | null;
+          cost: number | null;
+          outcome: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          asset_id: string;
+          vendor?: string | null;
+          issue: string;
+          sent_on: string;
+          expected_back_on?: string | null;
+          completed_on?: string | null;
+          cost?: number | null;
+          outcome?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          asset_id?: string;
+          vendor?: string | null;
+          issue?: string;
+          sent_on?: string;
+          expected_back_on?: string | null;
+          completed_on?: string | null;
+          cost?: number | null;
+          outcome?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      asset_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          category_id: string;
+          reason: string;
+          status: string;
+          asset_id: string | null;
+          decided_by: string | null;
+          decided_at: string | null;
+          decision_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          category_id: string;
+          reason: string;
+          status?: string;
+          asset_id?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          category_id?: string;
+          reason?: string;
+          status?: string;
+          asset_id?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -604,6 +742,8 @@ export type Database = {
           notes: string | null;
           created_at: string;
           updated_at: string;
+          category_id: string | null;
+          condition: string;
         };
         Insert: {
           id?: string;
@@ -620,6 +760,8 @@ export type Database = {
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
+          category_id?: string | null;
+          condition?: string;
         };
         Update: {
           id?: string;
@@ -636,6 +778,8 @@ export type Database = {
           notes?: string | null;
           created_at?: string;
           updated_at?: string;
+          category_id?: string | null;
+          condition?: string;
         };
         Relationships: [];
       };
@@ -5782,6 +5926,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      cancel_asset_request: {
+        Args: {
+          p_request: string;
+        };
+        Returns: undefined;
+      };
       cancel_leave: {
         Args: {
           p_request: string;
@@ -5855,6 +6005,15 @@ export type Database = {
           p_ticket: string;
           p_body: string;
           p_internal?: boolean;
+        };
+        Returns: undefined;
+      };
+      complete_asset_repair: {
+        Args: {
+          p_repair: string;
+          p_cost?: number;
+          p_outcome?: string;
+          p_condition?: string;
         };
         Returns: undefined;
       };
@@ -5938,6 +6097,15 @@ export type Database = {
           p_comment?: string;
         };
         Returns: Database['public']['Enums']['approval_status'];
+      };
+      decide_asset_request: {
+        Args: {
+          p_request: string;
+          p_approve: boolean;
+          p_note?: string;
+          p_asset?: string;
+        };
+        Returns: string;
       };
       decide_overtime: {
         Args: {
@@ -6426,6 +6594,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      request_asset: {
+        Args: {
+          p_org: string;
+          p_category: string;
+          p_reason: string;
+        };
+        Returns: string;
+      };
       request_attendance: {
         Args: {
           p_employee: string;
@@ -6646,11 +6822,28 @@ export type Database = {
         };
         Returns: { source_kind: string; source_id: string; title: string; body: string; updated_at: string; rank: number }[];
       };
+      send_asset_for_repair: {
+        Args: {
+          p_asset: string;
+          p_issue: string;
+          p_vendor?: string;
+          p_expected?: string;
+        };
+        Returns: string;
+      };
       separation_details: {
         Args: {
           p_separation: string;
         };
         Returns: { reason: string; exit_interview: Json }[];
+      };
+      set_asset_recovery: {
+        Args: {
+          p_assignment: string;
+          p_amount: number;
+          p_note: string;
+        };
+        Returns: undefined;
       };
       set_compensation: {
         Args: {
@@ -6751,6 +6944,13 @@ export type Database = {
         Args: {
           p_task: string;
           p_status: Database['public']['Enums']['task_status'];
+        };
+        Returns: undefined;
+      };
+      settle_asset_recovery: {
+        Args: {
+          p_assignment: string;
+          p_mode: string;
         };
         Returns: undefined;
       };

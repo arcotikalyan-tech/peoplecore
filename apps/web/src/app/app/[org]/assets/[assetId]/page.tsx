@@ -6,13 +6,15 @@ import { ActionForm } from '@/components/action-form';
 import { ButtonLink } from '@/components/ui/button';
 import { Badge, Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surface';
 import { formatDate } from '@/lib/format';
-import { assetHistory, getAsset, type AssetStatus } from '@/server/assets';
+import { assetCategories, assetHistory, assetRepairs, getAsset, type AssetStatus } from '@/server/assets';
 import { requirePermission } from '@/server/context';
 import { employeeNames, managerOptions } from '@/server/employees';
 import { getStructure, structureOptions } from '@/server/structure';
-import { deleteAssetAction, issueAssetAction, returnAssetAction, saveAssetAction, setAssetStatusAction } from '../actions';
-import { AssetForm, AssetStatusForm, IssueAssetForm, ReturnAssetForm } from '../assets-forms';
-import { ASSET_STATUS_LABEL, ASSET_TONE } from '../tone';
+import {
+  completeRepairAction, deleteAssetAction, issueAssetAction, returnAssetAction, saveAssetAction, sendForRepairAction, setAssetStatusAction, setRecoveryAction,
+} from '../actions';
+import { AssetForm, AssetStatusForm, CompleteRepairForm, IssueAssetForm, RecoveryForm, RepairForm, ReturnAssetForm } from '../assets-forms';
+import { ASSET_STATUS_LABEL, ASSET_TONE, bookValue, CONDITION_LABEL, DUES_LABEL } from '../tone';
 
 export const metadata: Metadata = { title: 'Asset' };
 
@@ -26,11 +28,15 @@ export default async function AssetPage({ params, searchParams }: {
   const ctx = await requirePermission(slug, 'asset.manage', 'org');
   const asset = /^[0-9a-f-]{36}$/i.test(assetId) ? await getAsset(ctx.org.id, assetId) : null;
   if (!asset) notFound();
-  const [history, structure, people] = await Promise.all([
+  const [history, structure, people, categories, repairs] = await Promise.all([
     assetHistory(ctx.org.id, asset.id),
     getStructure(ctx.org.id),
     asset.status === 'in_stock' ? managerOptions(ctx.org.id) : Promise.resolve([]),
+    assetCategories(ctx.org.id),
+    assetRepairs(ctx.org.id, asset.id),
   ]);
+  const openRepair = repairs.find((r) => !r.completed_on) ?? null;
+  const life = categories.find((c) => c.id === asset.category_id)?.useful_life_months;
   const names = await employeeNames(ctx.org.id, history.map((h) => h.employee_id));
   const open = history.find((h) => !h.returned_at) ?? null;
   const location = structure.locations.find((l) => l.id === asset.location_id)?.name;
@@ -52,7 +58,8 @@ export default async function AssetPage({ params, searchParams }: {
             <Card>
               <CardHeader title="Edit asset" />
               <AssetForm action={saveAssetAction.bind(null, slug)} locations={structureOptions(structure).locations}
-                asset={{ ...asset, purchase_cost: asset.purchase_cost === null ? null : Number(asset.purchase_cost) }} />
+                categories={categories.map((c) => ({ value: c.id, label: c.name }))}
+                asset={{ ...asset, category_id: asset.category_id ?? '', purchase_cost: asset.purchase_cost === null ? null : Number(asset.purchase_cost) }} />
             </Card>
           ) : (
             <Card>
@@ -60,9 +67,12 @@ export default async function AssetPage({ params, searchParams }: {
               <div className="px-5 py-4">
                 <DetailList items={[
                   { label: 'Tag', value: asset.tag },
+                  { label: 'Category', value: asset.category },
+                  { label: 'Condition', value: CONDITION_LABEL[asset.condition] ?? asset.condition },
                   { label: 'Serial number', value: asset.serial_number ?? '—' },
                   { label: 'Location', value: location ?? '—' },
                   { label: 'Purchased', value: [asset.purchased_on && formatDate(asset.purchased_on), asset.purchase_cost !== null && inr.format(Number(asset.purchase_cost))].filter(Boolean).join(' · ') || '—' },
+                  { label: 'Book value', value: asset.purchase_cost === null ? '—' : `${inr.format(bookValue(Number(asset.purchase_cost), asset.purchased_on, life, today))}${life ? ` (${life}-month life)` : ''}` },
                   { label: 'Warranty until', value: asset.warranty_until
                     ? <span className="flex flex-wrap items-center gap-1">{formatDate(asset.warranty_until)}{asset.warranty_until < today && <Badge>Expired</Badge>}</span>
                     : '—' },
@@ -89,6 +99,17 @@ export default async function AssetPage({ params, searchParams }: {
                     {h.returned_at && (
                       <p className="mt-0.5 text-xs text-muted">{[`Returned ${formatDate(h.returned_at)}`, h.condition_in].filter(Boolean).join(' · ')}</p>
                     )}
+                    {h.recovery_status ? (
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                        <Badge tone={h.recovery_status === 'pending' ? 'warning' : 'neutral'}>Dues {inr.format(Number(h.recovery_amount))} · {DUES_LABEL[h.recovery_status]}</Badge>
+                        <span className="text-muted">{h.recovery_note}</span>
+                        {h.recovery_status === 'pending' && <Link className="text-primary hover:underline" href={`${base}?tab=dues`}>Settle</Link>}
+                      </p>
+                    ) : (h.returned_at === null || ['lost', 'retired', 'in_repair'].includes(status) || h.condition_in) && (
+                      <details className="mt-1"><summary className="cursor-pointer text-xs text-primary">Record dues</summary>
+                        <RecoveryForm action={setRecoveryAction.bind(null, slug)} assignmentId={h.id} />
+                      </details>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -109,7 +130,30 @@ export default async function AssetPage({ params, searchParams }: {
               <ReturnAssetForm action={returnAssetAction.bind(null, slug)} assetId={asset.id} />
             </Card>
           )}
-          {!open && (
+          {openRepair ? (
+            <Card>
+              <CardHeader title="Out for repair" description={[openRepair.issue, openRepair.vendor, `since ${formatDate(openRepair.sent_on)}`].filter(Boolean).join(' · ')} />
+              <div className="px-5 py-4"><CompleteRepairForm action={completeRepairAction.bind(null, slug)} repairId={openRepair.id} label={asset.name} /></div>
+            </Card>
+          ) : (status === 'in_stock' || status === 'in_repair') && (
+            <Card>
+              <CardHeader title="Repair" description="Send it to a vendor; it shows as In repair until it’s back." />
+              <RepairForm action={sendForRepairAction.bind(null, slug)} assetId={asset.id} today={today} />
+            </Card>
+          )}
+          {repairs.some((r) => r.completed_on) && (
+            <Card>
+              <CardHeader title="Repair history" />
+              <ul className="divide-y divide-line" aria-label="Repair history">
+                {repairs.filter((r) => r.completed_on).map((r) => (
+                  <li key={r.id} className="px-5 py-3 text-xs text-muted">
+                    <span className="font-medium text-fg">{r.issue}</span> · {[r.vendor, `${formatDate(r.sent_on)} – ${formatDate(r.completed_on!)}`, r.cost !== null && inr.format(r.cost)].filter(Boolean).join(' · ')}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+          {!open && !openRepair && (
             <Card>
               <CardHeader title="Status" />
               <AssetStatusForm action={setAssetStatusAction.bind(null, slug)} assetId={asset.id} status={status} />

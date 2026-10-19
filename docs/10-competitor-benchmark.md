@@ -174,8 +174,8 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 | Kredily | PeopleCore |
 |---|---|
 | Register with category, serial, assignee, status, condition, location; import/export | ✅ |
-| Requests from employees, categories, recent activity, repairs, warranty | 🟡 issue/return with receipt; no requests, repairs or warranty |
-| Settle dues in full and final | ✅ clearance in exits |
+| Requests from employees, categories, recent activity, repairs, warranty | ✅ hub (summary, figures with book value, quick actions, activity, fleet by category), register with filters, CSV import/export, requests fulfilled by issuing, categories with useful life, repair log, warranty expiry |
+| Settle dues in full and final | ✅ dues per issue: recovered, waived or deducted in the next payroll run; clearance in exits |
 
 ## 14. Letters
 

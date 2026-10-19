@@ -1,165 +1,104 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { todayIn } from '@peoplecore/shared';
-import { ActionForm } from '@/components/action-form';
-import { ButtonLink, buttonClass } from '@/components/ui/button';
-import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
-import { Table, Td, Th } from '@/components/ui/table';
-import { formatDate } from '@/lib/format';
-import { ASSET_STATUSES, assetCounts, employeeAssets, listAccess, listAssets, listSystems, type AssetStatus } from '@/server/assets';
+import { HubTabs } from '@/components/ui/hub';
+import { assetCategories, assetIssues, assetRepairs, assetRequests, employeeAssets, listAccess, listAssets, listSystems } from '@/server/assets';
 import { getOrgContext } from '@/server/context';
-import { colleagueNames } from '@/server/engagement';
-import { employeeNames, getMyEmployee } from '@/server/employees';
-import { acknowledgeAssetAction } from './actions';
-import { ASSET_STATUS_LABEL, ASSET_TONE } from './tone';
+import { getMyEmployee } from '@/server/employees';
+import { getStructure } from '@/server/structure';
+import { createClient } from '@/server/supabase';
+import { viewModeFor } from '@/server/view';
+import { CategoriesTab, DuesTab, HubTab, RegisterTab, RepairsTab, RequestsTab, type AdminProps } from './_tabs/admin';
+import { MyAssetsTab, MyRequestsTab } from './_tabs/mine';
 
 export const metadata: Metadata = { title: 'Assets' };
 
-export default async function AssetsPage({ params, searchParams }: {
-  params: Promise<{ org: string }>; searchParams: Promise<{ status?: string; q?: string }>;
-}) {
+type Search = Record<string, string | undefined>;
+const btn = 'rounded-lg border border-line bg-surface px-3 py-2 text-sm hover:bg-subtle';
+
+/**
+ * Assets (Kredily's Asset Management and My Assets). Asset managers: hub, asset register (filters, import, export),
+ * requests, categories, repairs and dues. Everyone: the assets issued to them, their system access, and requests.
+ */
+export default async function AssetsPage({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<Search> }) {
   const { org: slug } = await params;
   const sp = await searchParams;
-  const status = ASSET_STATUSES.find((s) => s === sp.status);
-  const q = (sp.q ?? '').trim().slice(0, 80);
   const ctx = await getOrgContext(slug);
-  const me = await getMyEmployee(ctx.org.id, ctx.user.id);
-  const manages = ctx.can('asset.manage', 'org');
-  const [inventory, counts, mine, myAccess, systems] = await Promise.all([
-    manages ? listAssets(ctx.org.id, { status, q }) : Promise.resolve([]),
-    manages ? assetCounts(ctx.org.id) : Promise.resolve(null),
-    me ? employeeAssets(ctx.org.id, me.id) : Promise.resolve([]),
-    me ? listAccess(ctx.org.id, { employeeId: me.id, active: true }) : Promise.resolve([]),
-    listSystems(ctx.org.id, true),
-  ]);
-  const ownsSystem = !!me && systems.some((s) => s.is_active && s.owner_employee_id === me.id);
-  const holders = inventory.flatMap((a) => (a.issue ? [a.issue.employee_id] : []));
-  const [colleagues, people] = await Promise.all([colleagueNames(ctx.org.id), employeeNames(ctx.org.id, holders)]);
-  const name = (id: string) => people.get(id) ?? colleagues.get(id) ?? '—';
-  const systemName = new Map(systems.map((s) => [s.id, s.name]));
-  const today = todayIn(ctx.org.timezone);
   const base = `/app/${slug}/assets`;
-  const filtered = !!status || !!q;
+  const today = todayIn(ctx.org.timezone);
+  const manages = ctx.can('asset.manage', 'org') && (await viewModeFor(ctx)) === 'admin';
+  const me = await getMyEmployee(ctx.org.id, ctx.user.id);
+  const categories = await assetCategories(ctx.org.id);
+
+  if (!manages) {
+    const [mine, requests, access, systems] = await Promise.all([
+      me ? employeeAssets(ctx.org.id, me.id) : Promise.resolve([]),
+      me ? assetRequests(ctx.org.id, me.id) : Promise.resolve([]),
+      me ? listAccess(ctx.org.id, { employeeId: me.id, active: true }) : Promise.resolve([]),
+      listSystems(ctx.org.id, true),
+    ]);
+    const ownsSystem = !!me && systems.some((s) => s.is_active && s.owner_employee_id === me.id);
+    const held = mine.filter((i) => !i.returned_at);
+    const tabs = [{ key: 'mine', label: '✦ My Assets', count: held.length }, { key: 'requests', label: 'My Requests', count: requests.filter((r) => r.status === 'pending').length }];
+    const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : 'mine';
+    return (
+      <>
+        <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">My Assets</h1>
+            <p className="mt-1 text-sm text-muted">Equipment issued to you, the systems you can sign in to, and what you’ve asked for.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ownsSystem && <Link className={btn} href={`${base}/access`}>System access</Link>}
+            <Link className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-fg" href={`${base}?tab=requests`}>＋ Request Asset</Link>
+          </div>
+        </header>
+        <HubTabs base={base} label="Asset sections" tabs={tabs} current={tab} />
+        {tab === 'mine' && <MyAssetsTab slug={slug} mine={mine} access={access} systems={systems} />}
+        {tab === 'requests' && <MyRequestsTab slug={slug} requests={requests} categories={categories} hasEmployee={!!me} />}
+      </>
+    );
+  }
+
+  const supabase = await createClient();
+  const [assets, requests, repairs, issues, structure, people] = await Promise.all([
+    listAssets(ctx.org.id), assetRequests(ctx.org.id), assetRepairs(ctx.org.id), assetIssues(ctx.org.id, { limit: 1000 }), getStructure(ctx.org.id),
+    supabase.from('employees').select('id, employee_code, first_name, last_name').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
+  ]);
+  const pendingRequests = requests.filter((r) => r.status === 'pending' || r.status === 'approved').length;
+  const tabs = [
+    { key: 'hub', label: '✦ Hub' }, { key: 'register', label: 'Asset Register', count: assets.length }, { key: 'requests', label: 'Requests', count: pendingRequests },
+    { key: 'categories', label: 'Categories' }, { key: 'repairs', label: 'Repairs', count: repairs.filter((r) => !r.completed_on).length },
+    { key: 'dues', label: 'Dues', count: issues.filter((x) => x.recovery_status === 'pending').length },
+  ];
+  const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : 'hub';
+  const props: AdminProps = {
+    slug, base, today, sp, assets, categories, requests, repairs, issues,
+    people: new Map(people.map((p) => [p.id, { code: p.employee_code, name: [p.first_name, p.last_name].filter(Boolean).join(' ') }])),
+    locations: structure.locations.map((l) => ({ id: l.id, name: l.name })),
+  };
 
   return (
     <>
-      <PageHeader title="Assets" description="Equipment issued to people, and the systems they can sign in to."
-        actions={<>
-          {(manages || ownsSystem) && <ButtonLink href={`${base}/access`} variant="secondary">System access</ButtonLink>}
-          {manages && <ButtonLink href={`${base}/new`}>Add asset</ButtonLink>}
-        </>} />
-
-      {counts && (
-        <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {ASSET_STATUSES.map((s) => (
-            <Link key={s} href={status === s ? base : `${base}?status=${s}`}
-              className={`rounded-lg border bg-surface px-4 py-3 hover:bg-subtle ${status === s ? 'border-primary' : 'border-line'}`}>
-              <dt className="text-xs text-muted">{ASSET_STATUS_LABEL[s]}</dt>
-              <dd className="mt-1 text-xl font-semibold tabular-nums">{counts[s]}</dd>
-            </Link>
-          ))}
-        </dl>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        <div className="space-y-6">
-          {manages && (
-            <Card>
-              <CardHeader title={status ? `${ASSET_STATUS_LABEL[status]} assets` : 'All assets'}
-                actions={filtered ? <Link className="text-sm text-primary hover:underline" href={base}>Clear filters</Link> : undefined} />
-              <form role="search" action={base} className="flex flex-wrap gap-2 border-b border-line px-5 py-3">
-                {status && <input type="hidden" name="status" value={status} />}
-                <label htmlFor="asset-q" className="sr-only">Search assets</label>
-                <input id="asset-q" name="q" type="search" defaultValue={q} placeholder="Tag, name, serial or type"
-                  className="h-9 min-w-0 flex-1 rounded-md border border-line-strong bg-surface px-3 text-sm" />
-                <button type="submit" className={buttonClass('secondary', 'sm')}>Search</button>
-              </form>
-              <Table caption="Assets">
-                <thead><tr><Th>Tag</Th><Th>Asset</Th><Th>Status</Th><Th>With</Th><Th>Due back</Th></tr></thead>
-                <tbody>
-                  {inventory.length === 0 && (
-                    <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-muted">
-                      {filtered ? 'No assets match.' : 'No assets yet. Add your first laptop, phone or ID card.'}
-                    </td></tr>
-                  )}
-                  {inventory.map((a) => (
-                    <tr key={a.id}>
-                      <Td className="tabular-nums text-muted">{a.tag}</Td>
-                      <Td className="font-medium">
-                        <Link className="text-primary hover:underline" href={`${base}/${a.id}`}>{a.name}</Link>
-                        <span className="block text-xs font-normal text-muted">{[a.category, a.serial_number].filter(Boolean).join(' · ')}</span>
-                      </Td>
-                      <Td>
-                        <span className="flex flex-wrap gap-1">
-                          <Badge tone={ASSET_TONE[a.status as AssetStatus]}>{ASSET_STATUS_LABEL[a.status as AssetStatus]}</Badge>
-                          {a.issue && !a.issue.acknowledged_at && <Badge tone="warning">Not confirmed</Badge>}
-                        </span>
-                      </Td>
-                      <Td>{a.issue ? name(a.issue.employee_id) : <span className="text-muted">—</span>}</Td>
-                      <Td className="text-muted">
-                        {a.issue?.due_back_on ? (
-                          <span className="flex flex-wrap items-center gap-1">
-                            {formatDate(a.issue.due_back_on)}
-                            {a.issue.due_back_on < today && <Badge tone="danger">Overdue</Badge>}
-                          </span>
-                        ) : '—'}
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-              {inventory.length === 300 && <p className="px-5 py-3 text-xs text-muted">Showing the first 300. Search or filter to narrow it down.</p>}
-            </Card>
-          )}
-
-          {me && (
-            <Card>
-              <CardHeader title="Your assets" description="Equipment the organization has issued to you." />
-              {mine.length === 0 ? <p className="px-5 py-4 text-sm text-muted">Nothing issued to you.</p> : (
-                <ul className="divide-y divide-line" aria-label="Your assets">
-                  {mine.map((i) => (
-                    <li key={i.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
-                      <div>
-                        <p className="font-medium">{i.asset.name} <span className="font-normal text-muted">{i.asset.tag}</span></p>
-                        <p className="mt-0.5 text-xs text-muted">
-                          {[i.asset.category, i.asset.serial_number && `Serial ${i.asset.serial_number}`, `Issued ${formatDate(i.assigned_at)}`,
-                            i.due_back_on && !i.returned_at && `Due back ${formatDate(i.due_back_on)}`,
-                            i.returned_at && `Returned ${formatDate(i.returned_at)}`].filter(Boolean).join(' · ')}
-                        </p>
-                      </div>
-                      {i.returned_at ? <Badge>Returned</Badge> : i.acknowledged_at ? <Badge tone="success">Confirmed</Badge> : (
-                        <ActionForm action={acknowledgeAssetAction.bind(null, slug)} label={`Confirm receipt of ${i.asset.name}`} submit="I have it"
-                          hidden={{ assignmentId: i.id }} size="sm" className="flex flex-wrap items-center gap-3" />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          )}
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Asset Management</h1>
+          <p className="mt-1 text-sm text-muted">Hardware and equipment: who has what, requests, repairs and dues.</p>
         </div>
-
-        {me && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader title="Your system access" description="Accounts recorded for you. They are revoked when you leave." />
-              {myAccess.length === 0 ? <p className="px-5 py-4 text-sm text-muted">No access recorded.</p> : (
-                <ul className="divide-y divide-line" aria-label="Your system access">
-                  {myAccess.map((g) => (
-                    <li key={g.id} className="px-5 py-3 text-sm">
-                      <p className="font-medium">{systemName.get(g.system_id) ?? 'System'}</p>
-                      <p className="mt-0.5 text-xs text-muted">{[g.account, g.access_level, `Since ${formatDate(g.granted_at)}`].filter(Boolean).join(' · ')}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-            <p className="text-sm text-muted">
-              Something broken or missing? <Link className="text-primary hover:underline" href={`/app/${slug}/helpdesk`}>Raise a ticket</Link>.
-            </p>
-          </div>
-        )}
-      </div>
+        <nav aria-label="Asset actions" className="flex flex-wrap gap-2">
+          <Link className={btn} href={`${base}/access`}>System access</Link>
+          <Link className={btn} href={`${base}?tab=register#import`}>⬆ Import</Link>
+          <a className={btn} href={`${base}/export`} download>⬇ Export</a>
+          <Link className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-fg" href={`${base}/new`}>＋ Add Asset</Link>
+        </nav>
+      </header>
+      <HubTabs base={base} label="Asset sections" tabs={tabs} current={tab} />
+      {tab === 'hub' && <HubTab {...props} />}
+      {tab === 'register' && <RegisterTab {...props} />}
+      {tab === 'requests' && <RequestsTab {...props} />}
+      {tab === 'categories' && <CategoriesTab {...props} />}
+      {tab === 'repairs' && <RepairsTab {...props} />}
+      {tab === 'dues' && <DuesTab {...props} />}
     </>
   );
 }

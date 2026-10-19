@@ -167,11 +167,11 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Loans (hub)
 
 ### Assets
-- [ ] Assets (hub)
-- [ ] Assets › asset register
-- [ ] Assets › categories
-- [ ] Assets › hub
-- [ ] Assets › requests
+- [x] Assets (hub)
+- [x] Assets › asset register
+- [x] Assets › categories
+- [x] Assets › hub
+- [x] Assets › requests
 
 ### Peoplexp
 - [ ] Peoplexp (hub)
@@ -413,11 +413,11 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Peoplexp › settings
 
 ### Assets
-- [ ] Assets (hub)
-- [ ] Assets › asset register
-- [ ] Assets › categories
-- [ ] Assets › hub
-- [ ] Assets › requests
+- [x] Assets (hub)
+- [x] Assets › asset register
+- [x] Assets › categories
+- [x] Assets › hub
+- [x] Assets › requests
 
 ### Loans
 - [ ] Loans (hub)
@@ -531,7 +531,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Loans Statements (hub)
 
 ### Assets My Requests
-- [ ] Assets My Requests (hub)
+- [x] Assets My Requests (hub)
 
 ### Peoplexp Recognition
 - [ ] Peoplexp Recognition (hub)

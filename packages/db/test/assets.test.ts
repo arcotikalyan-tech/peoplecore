@@ -148,3 +148,111 @@ describe('system access', () => {
       tx.query(`insert into access_systems (organization_id, name) values ($1, 'VPN')`, [f.orgA])))).toBe('42501');
   });
 });
+
+describe('asset suite', () => {
+  it('categories are created from a typed name, follow renames, and give each asset a category', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      const a = (await tx.query<{ id: string; category_id: string }>(
+        `insert into assets (organization_id, name, category, tag) values ($1, 'MacBook Air', ' laptop ', '') returning id, category_id`, [f.orgA])).rows[0]!;
+      const b = (await tx.query<{ category: string; category_id: string }>(
+        `insert into assets (organization_id, name, category, tag) values ($1, 'ThinkPad', 'LAPTOP', '') returning category, category_id`, [f.orgA])).rows[0]!;
+      expect(b.category_id).toBe(a.category_id);
+      expect(b.category).toBe('laptop');
+      await tx.query(`update asset_categories set name = 'Laptops', useful_life_months = 36 where id = $1`, [a.category_id]);
+      expect((await tx.query<{ category: string }>('select distinct category from assets')).rows).toEqual([{ category: 'Laptops' }]);
+      expect((await failure(tx, `insert into assets (organization_id, name, category, tag) values ($1, 'X', '', '')`, [f.orgA])).message).toBe('Choose a category.');
+      expect((await failure(tx, 'delete from asset_categories where id = $1', [a.category_id])).code).toBe('23503');
+      expect((await failure(tx, `insert into assets (organization_id, name, category, tag, condition) values ($1, 'Y', 'Phone', '', 'broken')`, [f.orgA])).code).toBe('23514');
+
+      await as(tx, f.users.icA); // employees read categories, can't change them
+      expect((await tx.query('select 1 from asset_categories')).rows).toHaveLength(1);
+      expect((await failure(tx, `insert into asset_categories (organization_id, name) values ($1, 'Mine')`, [f.orgA])).code).toBe('42501');
+      await as(tx, f.users.employeeB); // another organization
+      expect((await tx.query('select 1 from asset_categories')).rows).toHaveLength(0);
+    });
+  });
+
+  it('employees request assets; asset managers approve, fulfil by issuing, or reject; requesters cancel', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      const cat = (await tx.query<{ id: string }>(`insert into asset_categories (organization_id, name) values ($1, 'Monitor') returning id`, [f.orgA])).rows[0]!.id;
+      const locked = (await tx.query<{ id: string }>(`insert into asset_categories (organization_id, name, requestable) values ($1, 'Server', false) returning id`, [f.orgA])).rows[0]!.id;
+      const screen = (await tx.query<{ id: string }>(`insert into assets (organization_id, name, category_id, tag) values ($1, 'Dell 27"', $2, '') returning id`, [f.orgA, cat])).rows[0]!.id;
+      expect((await failure(tx, `select request_asset($1, $2, 'Need it')`, [f.orgA, cat])).code).toBe('42501'); // no employee record
+
+      await as(tx, f.users.icA);
+      expect((await failure(tx, `select request_asset($1, $2, 'For the rack')`, [f.orgA, locked])).message).toBe('Choose a category you can request.');
+      expect((await failure(tx, `select request_asset($1, $2, ' ')`, [f.orgA, cat])).message).toBe('Say why you need it.');
+      const r1 = (await tx.query<{ id: string }>(`select request_asset($1, $2, 'Second screen for design work') as id`, [f.orgA, cat])).rows[0]!.id;
+      expect((await failure(tx, `select request_asset($1, $2, 'Another one')`, [f.orgA, cat])).message).toBe('You already have an open request for this category.');
+      expect((await failure(tx, 'select decide_asset_request($1, true)', [r1])).code).toBe('42501');
+      expect((await failure(tx, `insert into asset_requests (organization_id, employee_id, category_id, reason) values ($1, $2, $3, 'direct')`,
+        [f.orgA, f.employees.icA, cat])).code).toBe('42501');
+
+      await as(tx, f.users.peerA);
+      expect((await tx.query('select 1 from asset_requests')).rows).toHaveLength(0);
+
+      await as(tx, f.users.hrA);
+      expect((await tx.query(`select 1 from notifications where kind = 'asset.requested' and user_id = $1`, [f.users.hrA])).rows).toHaveLength(1);
+      expect((await failure(tx, `select decide_asset_request($1, false, '')`, [r1])).message).toBe('Give a reason for rejecting it.');
+      expect((await tx.query<{ s: string }>('select decide_asset_request($1, true) as s', [r1])).rows[0]!.s).toBe('approved');
+      expect((await failure(tx, 'select decide_asset_request($1, true)', [r1])).message).toBe('This request has already been decided.');
+      expect((await tx.query<{ s: string }>(`select decide_asset_request($1, true, 'Here you go', $2) as s`, [r1, screen])).rows[0]!.s).toBe('fulfilled');
+      expect(await status(tx, screen)).toBe('assigned');
+
+      await as(tx, f.users.icA);
+      expect((await tx.query<{ status: string; asset_id: string }>('select status, asset_id from asset_requests')).rows).toEqual([{ status: 'fulfilled', asset_id: screen }]);
+      const r2 = (await tx.query<{ id: string }>(`select request_asset($1, $2, 'One for home too') as id`, [f.orgA, cat])).rows[0]!.id;
+      await tx.query('select cancel_asset_request($1)', [r2]);
+      expect((await failure(tx, 'select cancel_asset_request($1)', [r2])).message).toBe('Only a pending request can be cancelled.');
+      const r3 = (await tx.query<{ id: string }>(`select request_asset($1, $2, 'For the meeting room') as id`, [f.orgA, cat])).rows[0]!.id;
+
+      await as(tx, f.users.hrA);
+      expect((await tx.query<{ s: string }>(`select decide_asset_request($1, false, 'None left this quarter') as s`, [r3])).rows[0]!.s).toBe('rejected');
+      expect((await failure(tx, 'select decide_asset_request($1, true)', [r3])).message).toBe('This request has already been decided.');
+      await as(tx, f.users.icA);
+      expect((await tx.query(`select 1 from notifications where kind = 'asset.request.rejected'`)).rows).toHaveLength(1);
+      expect((await failure(tx, 'select cancel_asset_request($1)', [r3])).message).toBe('Only a pending request can be cancelled.');
+    });
+  });
+
+  it('assets go for repair and come back; dues are recorded and settled, through the next payroll run', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      const phone = (await tx.query<{ id: string }>(`insert into assets (organization_id, name, category, tag) values ($1, 'Pixel 8', 'Phone', '') returning id`, [f.orgA])).rows[0]!.id;
+      const issue = (await tx.query<{ id: string }>('select issue_asset($1, $2) as id', [phone, f.employees.icA])).rows[0]!.id;
+      expect((await failure(tx, `select send_asset_for_repair($1, 'Cracked screen')`, [phone])).message).toBe('Take the asset back before sending it for repair.');
+      await tx.query(`select return_asset($1, 'in_stock', 'Cracked screen')`, [phone]);
+      expect((await failure(tx, `select send_asset_for_repair($1, 'x')`, [phone])).message).toBe('Describe the problem.');
+      const repair = (await tx.query<{ id: string }>(`select send_asset_for_repair($1, 'Cracked screen', 'Example Repairs', current_date + 7) as id`, [phone])).rows[0]!.id;
+      expect(await status(tx, phone)).toBe('in_repair');
+      expect((await failure(tx, `select send_asset_for_repair($1, 'Again')`, [phone])).message).toBe('This asset is already out for repair.');
+      expect((await failure(tx, `select complete_asset_repair($1, 10, 'lost')`, [repair])).message).toBe('Choose whether it goes back in stock or is retired.');
+      await tx.query(`select complete_asset_repair($1, 4500, 'in_stock', 'fair')`, [repair]);
+      expect((await tx.query<{ status: string; condition: string }>('select status, condition from assets where id = $1', [phone])).rows[0])
+        .toEqual({ status: 'in_stock', condition: 'fair' });
+      expect((await failure(tx, 'select complete_asset_repair($1)', [repair])).message).toBe('This repair is already complete.');
+
+      expect((await failure(tx, `select set_asset_recovery($1, 0, 'Screen')`, [issue])).message).toBe('Enter the amount due.');
+      await tx.query(`select set_asset_recovery($1, 4500, 'Screen broken while issued')`, [issue]);
+
+      await as(tx, f.users.icA); // the holder sees their dues, can't settle them
+      expect((await tx.query<{ recovery_amount: string }>('select recovery_amount from asset_assignments where id = $1', [issue])).rows[0]!.recovery_amount).toBe('4500.00');
+      expect((await failure(tx, `select settle_asset_recovery($1, 'waived')`, [issue])).code).toBe('42501');
+      expect((await tx.query('select 1 from asset_repairs')).rows).toHaveLength(0);
+
+      await as(tx, f.users.payrollA); // payroll staff don't manage assets
+      expect((await failure(tx, `select settle_asset_recovery($1, 'payroll')`, [issue])).code).toBe('42501');
+      await as(tx, f.users.hrA);
+      await tx.query(`select settle_asset_recovery($1, 'payroll')`, [issue]);
+      await as(tx, f.users.payrollA); // payroll sees the deduction among the next run's adjustments
+      const adj = (await tx.query<{ code: string; kind: string; amount: string; employee_id: string }>(
+        `select code, kind, amount, employee_id from payroll_adjustments where code = 'ASSET_RECOVERY'`)).rows;
+      expect(adj).toEqual([{ code: 'ASSET_RECOVERY', kind: 'deduction', amount: '4500.00', employee_id: f.employees.icA }]);
+      await as(tx, f.users.hrA);
+      expect((await failure(tx, `select settle_asset_recovery($1, 'waived')`, [issue])).message).toBe('There are no pending dues on this asset.');
+      expect((await failure(tx, `select set_asset_recovery($1, 100, 'More')`, [issue])).message).toBe('These dues are already settled.');
+    });
+  });
+});
