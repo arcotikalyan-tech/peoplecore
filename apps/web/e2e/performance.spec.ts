@@ -12,11 +12,9 @@ const admin = adminClient();
 const startedAt = new Date().toISOString();
 const cycle = `E2E cycle ${run}`;
 let orgId = '';
-let devId = '';
 
 test.beforeAll(async () => {
   orgId = (await admin.from('organizations').select('id').eq('slug', 'demo').eq('is_demo', true).single()).data!.id;
-  devId = (await admin.from('employees').select('id').eq('organization_id', orgId).eq('first_name', 'Dev').eq('last_name', 'Nair').single()).data!.id;
 });
 
 test.afterAll(async () => {
