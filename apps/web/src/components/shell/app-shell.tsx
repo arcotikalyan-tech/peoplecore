@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import { Bell, ChevronsLeft, ChevronsRight, LogOut, Menu, Search, X } from 'lucide-react';
+import { Bell, ChevronsLeft, ChevronsRight, LogOut, Menu, Search, ShieldCheck, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/components/ui/cn';
 import type { PersonHit } from '@/app/app/[org]/search-actions';
@@ -160,7 +160,7 @@ function Sidebar({ base, nav, rail, org, user, platformAdmin, onToggleRail }: {
           <div className={cn('flex items-center gap-3 text-muted', rail && 'flex-col gap-1')}>
             <Link href="/app" className="hover:text-fg" title="Switch organization">{rail ? '⇄' : 'Switch'}</Link>
             <Link href={`${base}/preferences`} className="hover:text-fg" title="My preferences" aria-label="My preferences">{rail ? '⚙' : 'Preferences'}</Link>
-            {platformAdmin && !rail && <Link href="/platform" className="hover:text-fg">Platform</Link>}
+            {platformAdmin && <Link href="/platform" className="hover:text-fg" title="Platform console" aria-label="Platform console">{rail ? <ShieldCheck className="size-4" /> : 'Platform'}</Link>}
             <form action="/auth/signout" method="post">
               <button className="hover:text-fg" aria-label="Sign out" title={rail ? 'Sign out' : undefined}>{rail ? <LogOut className="size-4" /> : 'Sign out'}</button>
             </form>
