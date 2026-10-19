@@ -6,7 +6,8 @@
 export type IconKey =
   | 'home' | 'inbox' | 'users' | 'building' | 'user-plus' | 'briefcase' | 'log-out' | 'clock' | 'palm' | 'wallet'
   | 'receipt' | 'card' | 'trophy' | 'graduation' | 'megaphone' | 'lifebuoy' | 'book' | 'file' | 'shield' | 'laptop'
-  | 'sparkles' | 'chart' | 'user-cog' | 'workflow' | 'bot' | 'scroll' | 'user' | 'mail' | 'sheet';
+  | 'sparkles' | 'chart' | 'user-cog' | 'workflow' | 'bot' | 'scroll' | 'user' | 'mail' | 'sheet' | 'coins' | 'heart-pulse'
+  | 'timer' | 'calendar' | 'id-card' | 'handshake' | 'scale' | 'settings' | 'heart';
 
 export interface NavItem {
   href: string;

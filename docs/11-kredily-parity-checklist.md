@@ -164,7 +164,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Expense › settings
 
 ### Loans
-- [ ] Loans (hub)
+- [x] Loans (hub)
 
 ### Assets
 - [x] Assets (hub)
@@ -420,7 +420,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Assets › requests
 
 ### Loans
-- [ ] Loans (hub)
+- [x] Loans (hub)
 
 ### Directory
 - [x] Directory (hub)
@@ -525,10 +525,10 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Expense My Claims (hub)
 
 ### Loans Eligibility Simulator
-- [ ] Loans Eligibility Simulator (hub)
+- [x] Loans Eligibility Simulator (hub)
 
 ### Loans Statements
-- [ ] Loans Statements (hub)
+- [x] Loans Statements (hub)
 
 ### Assets My Requests
 - [x] Assets My Requests (hub)

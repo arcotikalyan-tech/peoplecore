@@ -166,8 +166,8 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 
 | Kredily | PeopleCore |
 |---|---|
-| Employee: my loans, eligibility and EMI simulator, apply, statements; recovered through payroll | ❌ |
-| Admin: loan tracker | ❌ |
+| Employee: my loans, eligibility and EMI simulator, apply, statements; recovered through payroll | ✅ (EMIs become LOAN_EMI deductions in each payroll run) |
+| Admin: loan tracker | ✅ hub, tracker, approvals (manager → payroll), disbursal, foreclosure, policy |
 
 ## 13. Assets
 

@@ -3495,6 +3495,162 @@ export type Database = {
         };
         Relationships: [];
       };
+      loan_installments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          loan_id: string;
+          seq: number;
+          due_month: string;
+          opening_balance: number;
+          principal: number;
+          interest: number;
+          emi: number;
+          status: string;
+          adjustment_id: string | null;
+          paid_run_id: string | null;
+          paid_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          loan_id: string;
+          seq: number;
+          due_month: string;
+          opening_balance: number;
+          principal: number;
+          interest: number;
+          emi: number;
+          status?: string;
+          adjustment_id?: string | null;
+          paid_run_id?: string | null;
+          paid_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          loan_id?: string;
+          seq?: number;
+          due_month?: string;
+          opening_balance?: number;
+          principal?: number;
+          interest?: number;
+          emi?: number;
+          status?: string;
+          adjustment_id?: string | null;
+          paid_run_id?: string | null;
+          paid_at?: string | null;
+        };
+        Relationships: [];
+      };
+      loan_settings: {
+        Row: {
+          organization_id: string;
+          enabled: boolean;
+          interest_rate: number;
+          max_amount: number;
+          salary_multiple: number;
+          max_tenure_months: number;
+          max_emi_percent: number;
+          min_service_months: number;
+          allow_multiple: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          enabled?: boolean;
+          interest_rate?: number;
+          max_amount?: number;
+          salary_multiple?: number;
+          max_tenure_months?: number;
+          max_emi_percent?: number;
+          min_service_months?: number;
+          allow_multiple?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          enabled?: boolean;
+          interest_rate?: number;
+          max_amount?: number;
+          salary_multiple?: number;
+          max_tenure_months?: number;
+          max_emi_percent?: number;
+          min_service_months?: number;
+          allow_multiple?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      loans: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          kind: string;
+          amount: number;
+          interest_rate: number;
+          tenure_months: number;
+          emi: number;
+          purpose: string;
+          status: string;
+          approval_request_id: string | null;
+          decided_at: string | null;
+          disbursed_on: string | null;
+          disbursal_mode: string | null;
+          disbursal_reference: string | null;
+          disbursed_by: string | null;
+          first_emi_month: string | null;
+          closed_at: string | null;
+          closure_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          kind: string;
+          amount: number;
+          interest_rate: number;
+          tenure_months: number;
+          emi: number;
+          purpose: string;
+          status?: string;
+          approval_request_id?: string | null;
+          decided_at?: string | null;
+          disbursed_on?: string | null;
+          disbursal_mode?: string | null;
+          disbursal_reference?: string | null;
+          disbursed_by?: string | null;
+          first_emi_month?: string | null;
+          closed_at?: string | null;
+          closure_note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          kind?: string;
+          amount?: number;
+          interest_rate?: number;
+          tenure_months?: number;
+          emi?: number;
+          purpose?: string;
+          status?: string;
+          approval_request_id?: string | null;
+          decided_at?: string | null;
+          disbursed_on?: string | null;
+          disbursal_mode?: string | null;
+          disbursal_reference?: string | null;
+          disbursed_by?: string | null;
+          first_emi_month?: string | null;
+          closed_at?: string | null;
+          closure_note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       locations: {
         Row: {
           id: string;
@@ -5849,6 +6005,16 @@ export type Database = {
         };
         Returns: string;
       };
+      apply_loan: {
+        Args: {
+          p_org: string;
+          p_kind: string;
+          p_amount: number;
+          p_tenure: number;
+          p_purpose: string;
+        };
+        Returns: string;
+      };
       approve_payroll_run: {
         Args: {
           p_run: string;
@@ -5935,6 +6101,12 @@ export type Database = {
       cancel_leave: {
         Args: {
           p_request: string;
+        };
+        Returns: undefined;
+      };
+      cancel_loan: {
+        Args: {
+          p_loan: string;
         };
         Returns: undefined;
       };
@@ -6140,6 +6312,15 @@ export type Database = {
         };
         Returns: string;
       };
+      disburse_loan: {
+        Args: {
+          p_loan: string;
+          p_mode: string;
+          p_reference?: string;
+          p_first_emi?: string;
+        };
+        Returns: undefined;
+      };
       document_download: {
         Args: {
           p_document: string;
@@ -6210,6 +6391,13 @@ export type Database = {
           p_comment: string;
         };
         Returns: undefined;
+      };
+      foreclose_loan: {
+        Args: {
+          p_loan: string;
+          p_note: string;
+        };
+        Returns: number;
       };
       give_feedback: {
         Args: {
@@ -6342,6 +6530,12 @@ export type Database = {
           p_employee: string;
         };
         Returns: { leave_type_id: string; code: string; name: string; is_paid: boolean; allow_negative: boolean; allow_half_day: boolean; balance: number; pending: number; available: number }[];
+      };
+      loan_eligibility: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
       };
       lock_payroll_run: {
         Args: {

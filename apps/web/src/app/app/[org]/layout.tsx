@@ -50,6 +50,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       ...when(ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org'), { href: `${base}/payroll`, label: 'Payroll', icon: 'wallet' }),
       { href: `${base}/payslips`, label: 'My Pay', icon: 'receipt' },
       { href: `${base}/expenses`, label: 'Expenses', icon: 'card' },
+      { href: `${base}/loans`, label: 'Loans', icon: 'coins' },
       ...when(reports, { href: `${base}/reports`, label: 'Reports', icon: 'sheet' }),
     ] },
     { label: 'Grow', items: [
@@ -83,6 +84,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       ...when(ctx.can('leave.read'), { href: `${base}/leave`, label: 'Leave', icon: 'palm' }),
       { href: `${base}/payslips`, label: 'My Pay', icon: 'receipt' },
       { href: `${base}/expenses`, label: 'Expenses', icon: 'card' },
+      { href: `${base}/loans`, label: 'Loans', icon: 'coins' },
     ] },
     { label: 'Grow', items: [
       ...when(ctx.can('performance.read'), { href: `${base}/performance`, label: 'Performance', icon: 'trophy' }),
