@@ -178,7 +178,8 @@ describe('requests', () => {
     await ctx.t.asUser(f.users.hrA, async (tx) => {
       await grant(tx, f.employees.icA, 'CL', 2);
       await as(tx, f.users.icA);
-      const past = (await tx.query<{ d: string }>(`select to_char(app.org_today($1) - 3, 'YYYY-MM-DD') as d`, [f.orgA])).rows[0]!.d;
+      const past = (await tx.query<{ d: string }>(`select to_char(d, 'YYYY-MM-DD') as d from generate_series(app.org_today($1) - 1, app.org_today($1) - 7, interval '-1 day') d
+                                                       where extract(isodow from d) < 6 order by d desc limit 1`, [f.orgA])).rows[0]!.d;
       const id = (await tx.query<{ id: string }>('select apply_leave($1, $2, $3, $3) as id', [f.employees.icA, types.LOP, past])).rows[0]!.id;
       await as(tx, f.users.leadA);
       await tx.query('select decide_approval($1, $2)', [await approvalOf(tx, id), 'approve']);

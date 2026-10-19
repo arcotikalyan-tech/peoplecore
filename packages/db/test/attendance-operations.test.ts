@@ -231,10 +231,15 @@ describe('open check-in', () => {
     const { f, t } = ctx;
     await t.db.exec('begin');
     try {
-      const at = `greatest(now() - interval '2 minutes', (app.org_today($1) || ' 00:00')::timestamp at time zone 'Asia/Kolkata')`;
+      // A work day collects punches from 4 hours before its shift starts, so just after midnight the open check-in
+      // still belongs to yesterday's work day.
+      const today = (await t.db.query<{ d: string }>(
+        `select to_char(case when (now() - interval '2 minutes') < ((app.org_today($1) + coalesce(s.start_time, '09:00')) - interval '4 hours')::timestamp at time zone 'Asia/Kolkata'
+                             then app.org_today($1) - 1 else app.org_today($1) end, 'YYYY-MM-DD') as d
+           from app.shift_for($2, app.org_today($1)) s`, [f.orgA, f.employees.peerA])).rows[0]!.d;
+      const at = `greatest(now() - interval '2 minutes', ('${today}'::date + coalesce((app.shift_for($2, '${today}')).start_time, '09:00') - interval '4 hours')::timestamp at time zone 'Asia/Kolkata')`;
       await t.db.query(`insert into attendance_punches (organization_id, employee_id, punched_at, method, source_key)
                         values ($1, $2, ${at}, 'import', 'open-in')`, [f.orgA, f.employees.peerA]);
-      const today = (await t.db.query<{ d: string }>(`select to_char(app.org_today($1), 'YYYY-MM-DD') as d`, [f.orgA])).rows[0]!.d;
       expect((await day(t.db as unknown as Transaction, f.employees.peerA, today))?.status).toBe('present');
       await t.db.query(`insert into attendance_punches (organization_id, employee_id, punched_at, method, source_key)
                         values ($1, $2, ${at} + interval '1 minute', 'import', 'open-out')`, [f.orgA, f.employees.peerA]);
