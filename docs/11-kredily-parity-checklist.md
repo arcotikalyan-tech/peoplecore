@@ -80,14 +80,14 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] My Profile › work week
 
 ### Letters
-- [ ] Letters (hub)
-- [ ] Letters › generate
-- [ ] Letters › hub
-- [ ] Letters › insights
-- [ ] Letters › letter requests0
-- [ ] Letters › settings
-- [ ] Letters › settings › letter head
-- [ ] Letters › settings › letter setup
+- [x] Letters (hub)
+- [x] Letters › generate — Kai (AI drafting) skipped as agreed
+- [x] Letters › hub
+- [x] Letters › insights
+- [x] Letters › letter requests0
+- [x] Letters › settings
+- [x] Letters › settings › letter head
+- [x] Letters › settings › letter setup
 
 ### Insurance
 - [ ] Insurance (hub)
@@ -367,14 +367,14 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Timesheet › workspace › tasks
 
 ### Letters
-- [ ] Letters (hub)
-- [ ] Letters › generate
-- [ ] Letters › hub
-- [ ] Letters › insights
-- [ ] Letters › letter requests0
-- [ ] Letters › settings
-- [ ] Letters › settings › letter head
-- [ ] Letters › settings › letter setup
+- [x] Letters (hub)
+- [x] Letters › generate — Kai (AI drafting) skipped as agreed
+- [x] Letters › hub
+- [x] Letters › insights
+- [x] Letters › letter requests0
+- [x] Letters › settings
+- [x] Letters › settings › letter head
+- [x] Letters › settings › letter setup
 
 ### Pms
 - [ ] Pms (hub)

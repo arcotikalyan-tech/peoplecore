@@ -3090,6 +3090,198 @@ export type Database = {
         };
         Relationships: [];
       };
+      letter_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          template_id: string;
+          letter_type: string;
+          reason: string | null;
+          status: string;
+          requested_by: string;
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision_note: string | null;
+          letter_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          template_id: string;
+          letter_type: string;
+          reason?: string | null;
+          status?: string;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          letter_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          template_id?: string;
+          letter_type?: string;
+          reason?: string | null;
+          status?: string;
+          requested_by?: string;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          letter_id?: string | null;
+        };
+        Relationships: [];
+      };
+      letter_settings: {
+        Row: {
+          organization_id: string;
+          header_style: string;
+          footer_style: string;
+          header_path: string | null;
+          footer_path: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          header_style?: string;
+          footer_style?: string;
+          header_path?: string | null;
+          footer_path?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          header_style?: string;
+          footer_style?: string;
+          header_path?: string | null;
+          footer_path?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      letter_signatories: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          designation: string;
+          address: string | null;
+          signature_path: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          designation: string;
+          address?: string | null;
+          signature_path?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          designation?: string;
+          address?: string | null;
+          signature_path?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      letter_templates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          letter_type: string;
+          name: string;
+          body: string;
+          signatory_id: string | null;
+          self_serve: boolean;
+          archived_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          letter_type: string;
+          name?: string;
+          body: string;
+          signatory_id?: string | null;
+          self_serve?: boolean;
+          archived_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          letter_type?: string;
+          name?: string;
+          body?: string;
+          signatory_id?: string | null;
+          self_serve?: boolean;
+          archived_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      letters: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          template_id: string | null;
+          letter_type: string;
+          body: string;
+          signatory: Json;
+          status: string;
+          request_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          released_at: string | null;
+          released_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          template_id?: string | null;
+          letter_type: string;
+          body: string;
+          signatory?: Json;
+          status?: string;
+          request_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          released_at?: string | null;
+          released_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          template_id?: string | null;
+          letter_type?: string;
+          body?: string;
+          signatory?: Json;
+          status?: string;
+          request_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          released_at?: string | null;
+          released_by?: string | null;
+        };
+        Relationships: [];
+      };
       locations: {
         Row: {
           id: string;
@@ -5506,6 +5698,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      close_letter_request: {
+        Args: {
+          p_request: string;
+          p_status: string;
+          p_note?: string;
+        };
+        Returns: undefined;
+      };
       colleague_directory: {
         Args: {
           p_org: string;
@@ -6020,6 +6220,12 @@ export type Database = {
         };
         Returns: string;
       };
+      release_letters: {
+        Args: {
+          p_letters: string[];
+        };
+        Returns: number;
+      };
       remove_expense_item: {
         Args: {
           p_item: string;
@@ -6049,6 +6255,14 @@ export type Database = {
           p_employee: string;
           p_type: string;
           p_days: number;
+          p_reason?: string;
+        };
+        Returns: string;
+      };
+      request_letter: {
+        Args: {
+          p_org: string;
+          p_template: string;
           p_reason?: string;
         };
         Returns: string;

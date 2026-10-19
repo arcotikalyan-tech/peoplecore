@@ -55,6 +55,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | learning.manage ⁷ | O | O | | | | | | |
 | workflow.manage ⁸ | O | O | | | | | | |
 | separation.manage † ⁹ | O | O | | | | | | |
+| letter.manage † | O | O | | | | | | |
 
 † Sensitive: every read is audited where the module supports it, and access is excluded from the AI retrieval default.
 ¹ Not granted. Every member, recruiters included, can read the minimal colleague directory (`colleague_directory`, migration 20261018002200): name, department and designation of current employees, never the employee row. A test asserts recruiters still see no employee rows.

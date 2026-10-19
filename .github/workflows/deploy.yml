@@ -32,16 +32,25 @@ jobs:
         run: |
           [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "::error::Deploy runs from main only."; exit 1; }
           # Waits (up to 40 minutes) for CI on this commit to finish, so a deploy can be started right after a push.
-          for i in $(seq 1 80); do
-            ok=$(gh run list -R "$GITHUB_REPOSITORY" --workflow CI --commit "$GITHUB_SHA" --status success --json databaseId --jq length)
-            [ "$ok" -gt 0 ] && { echo "CI passed for $GITHUB_SHA."; exit 0; }
-            runs=$(gh run list -R "$GITHUB_REPOSITORY" --workflow CI --commit "$GITHUB_SHA" --json status --jq 'length')
-            open=$(gh run list -R "$GITHUB_REPOSITORY" --workflow CI --commit "$GITHUB_SHA" --json status --jq '[.[] | select(.status != "completed")] | length')
-            if [ "$open" -eq 0 ] && { [ "$runs" -gt 0 ] || [ "$i" -gt 6 ]; }; then
-              echo "::error::CI did not pass for $GITHUB_SHA (failed, cancelled or never ran). Fix it and push again."; exit 1
+          # One query per check (status and conclusion together). A run that has just finished can show as
+          # completed a few seconds before its conclusion does, so "finished but not passed" must be seen three
+          # times in a row before the deploy gives up.
+          misses=0
+          for i in $(seq 1 120); do
+            runs=$(gh run list -R "$GITHUB_REPOSITORY" --workflow CI --commit "$GITHUB_SHA" --json status,conclusion)
+            if [ "$(jq '[.[] | select(.conclusion == "success")] | length' <<<"$runs")" -gt 0 ]; then echo "CI passed for $GITHUB_SHA."; exit 0; fi
+            total=$(jq 'length' <<<"$runs")
+            open=$(jq '[.[] | select(.status != "completed")] | length' <<<"$runs")
+            if [ "$open" -eq 0 ] && { [ "$total" -gt 0 ] || [ "$i" -gt 6 ]; }; then
+              misses=$((misses + 1))
+              if [ "$misses" -ge 3 ]; then
+                echo "::error::CI did not pass for $GITHUB_SHA (failed, cancelled or never ran). Fix it and push again."; exit 1
+              fi
+              sleep 10; continue
             fi
+            misses=0
             [ "$i" = 1 ] && echo "Waiting for CI on $GITHUB_SHA to finish…"
-            sleep 30
+            sleep 20
           done
           echo "::error::CI on $GITHUB_SHA is still running after 40 minutes."; exit 1
       - id: ready

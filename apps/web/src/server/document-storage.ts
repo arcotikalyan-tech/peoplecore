@@ -17,29 +17,38 @@ const SIGNED_URL_SECONDS = 60;
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const PATH = new RegExp(`^${UUID}/${UUID}/${UUID}$`);
 
-function checkedPath(path: string) {
-  if (!PATH.test(path)) throw new Error('Invalid document path');
+export const RECEIPT_BUCKET = 'expense-receipts';
+/** Letterhead art and signatures: <org uuid>/<asset uuid>. Callers must hold letter.manage (checked by the action). */
+export const LETTER_BUCKET = 'letter-assets';
+const LETTER_PATH = new RegExp(`^${UUID}/${UUID}$`);
+/** Always named explicitly: a default bucket would silently put files in the wrong place. */
+type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET | typeof LETTER_BUCKET;
+
+function checkedPath(path: string, bucket?: Bucket) {
+  if (!(bucket === LETTER_BUCKET ? LETTER_PATH : PATH).test(path)) throw new Error('Invalid document path');
   return path;
 }
 
-export const RECEIPT_BUCKET = 'expense-receipts';
-/** Always named explicitly: a default bucket would silently put files in the wrong place. */
-type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET;
-
 export async function storeDocumentFile(path: string, bytes: Uint8Array, contentType: string, bucket: Bucket): Promise<boolean> {
   const { error } = await createAdminClient().storage.from(bucket)
-    .upload(checkedPath(path), bytes, { contentType, upsert: false, cacheControl: 'private, max-age=0' });
+    .upload(checkedPath(path, bucket), bytes, { contentType, upsert: false, cacheControl: 'private, max-age=0' });
   return !error;
 }
 
 export async function removeDocumentFile(path: string, bucket: Bucket): Promise<boolean> {
-  const { error } = await createAdminClient().storage.from(bucket).remove([checkedPath(path)]);
+  const { error } = await createAdminClient().storage.from(bucket).remove([checkedPath(path, bucket)]);
   return !error;
 }
 
 /** A short-lived link that downloads the file under its original name. */
 export async function signDocumentUrl(path: string, fileName: string, bucket: Bucket): Promise<string | null> {
   const { data, error } = await createAdminClient().storage.from(bucket)
-    .createSignedUrl(checkedPath(path), SIGNED_URL_SECONDS, { download: fileName });
+    .createSignedUrl(checkedPath(path, bucket), SIGNED_URL_SECONDS, { download: fileName });
+  return error ? null : data.signedUrl;
+}
+
+/** A short-lived link to show an image inline (letterhead, signature) on a letter the viewer may read. */
+export async function signImageUrl(path: string): Promise<string | null> {
+  const { data, error } = await createAdminClient().storage.from(LETTER_BUCKET).createSignedUrl(checkedPath(path, LETTER_BUCKET), 300);
   return error ? null : data.signedUrl;
 }
