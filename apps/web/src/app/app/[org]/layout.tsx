@@ -7,6 +7,8 @@ import { pruneEmpty, type NavGroup, type NavItem } from '@/components/shell/nav-
 import { FlashMessage } from '@/components/flash-message';
 import { getOrgContext, isPlatformAdmin } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
+import { REPORTS } from '@/lib/report-catalog';
+import { canRun } from '@/server/reports';
 import { readFlash } from '@/server/flash';
 import { aiAvailable } from '@/server/ai';
 import { unreadNotificationCount } from '@/server/inbox';
@@ -22,6 +24,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
   const base = `/app/${slug}`;
   const profileHref = me ? `${base}/employees/${me.id}` : null;
   const when = (ok: boolean, item: NavItem) => (ok ? [item] : []);
+  const reports = REPORTS.some((r) => canRun(ctx, r.access));
 
   const home: NavGroup = { label: null, items: [
     { href: base, label: 'Dashboard', icon: 'home', exact: true },
@@ -47,6 +50,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       ...when(ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org'), { href: `${base}/payroll`, label: 'Payroll', icon: 'wallet' }),
       { href: `${base}/payslips`, label: 'My Pay', icon: 'receipt' },
       { href: `${base}/expenses`, label: 'Expenses', icon: 'card' },
+      ...when(reports, { href: `${base}/reports`, label: 'Reports', icon: 'sheet' }),
     ] },
     { label: 'Grow', items: [
       ...when(ctx.can('performance.read'), { href: `${base}/performance`, label: 'Performance', icon: 'trophy' }),
@@ -63,6 +67,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     ] },
     { label: 'Admin', items: [
       ...when(ctx.can('employee.read', 'org') || ctx.can('employee.read', 'team'), { href: `${base}/insights`, label: 'Insights', icon: 'chart' }),
+      ...when(reports, { href: `${base}/reports`, label: 'Reports', icon: 'sheet' }),
       ...when(ctx.can('member.manage', 'org'), { href: `${base}/members`, label: 'Members', icon: 'user-cog' }),
       ...when(ctx.can('workflow.manage', 'org'), { href: `${base}/workflows`, label: 'Workflows', icon: 'workflow' }),
       ...when(ctx.can('ai.manage', 'org'), { href: `${base}/ai`, label: 'AI assistants', icon: 'bot' }),

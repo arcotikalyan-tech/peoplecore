@@ -35,6 +35,8 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'recruitment.retention', key: `recruitment.retention:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // AI prompts and outputs are kept 30 days; runs that never finished are closed.
     { kind: 'ai.retention', key: `ai.retention:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
+    // Scheduled reports: a reminder when one is due in its organization's time zone (each schedule once per period).
+    { kind: 'reports.schedules', key: `reports.schedules:${hour}`, payload: { hour } },
     // Every 15 minutes: the shortest helpdesk SLA is 4 hours, so a breach is flagged within a quarter of it.
     { kind: 'helpdesk.sla', key: `helpdesk.sla:${hour}:${String(Math.floor(now.getUTCMinutes() / 15) * 15).padStart(2, '0')}`, payload: { hour } },
   ];

@@ -228,7 +228,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Hiring › settings
 
 ### Reports
-- [ ] Reports (hub)
+- [x] Reports (hub) — all 36 reports in 8 categories, Excel/CSV, recently generated, custom builder with saved templates, scheduled reminders (AI Report Studio skipped as agreed)
 
 ### Statutory
 - [ ] Statutory (hub)
@@ -447,7 +447,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Hiring (hub)
 
 ### Reports
-- [ ] Reports (hub)
+- [x] Reports (hub) — all 36 reports in 8 categories, Excel/CSV, recently generated, custom builder with saved templates, scheduled reminders (AI Report Studio skipped as agreed)
 
 ### Statutory
 - [ ] Statutory (hub)

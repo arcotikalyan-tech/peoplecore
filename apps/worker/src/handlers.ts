@@ -70,6 +70,11 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       if (error) throw new Error(error.message);
       log('recruitment.retention', data as Record<string, unknown>);
     },
+    'reports.schedules': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_report_schedules');
+      if (error) throw new Error(error.message);
+      log('reports.schedules', data as Record<string, unknown>);
+    },
     'ai.retention': async (_job, log) => {
       const { data, error } = await db.rpc('worker_ai_retention');
       if (error) throw new Error(error.message);

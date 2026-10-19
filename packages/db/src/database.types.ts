@@ -4218,6 +4218,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      report_schedules: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          report_key: string;
+          params: Json;
+          frequency: string;
+          next_run_on: string;
+          last_run_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id?: string;
+          report_key: string;
+          params?: Json;
+          frequency: string;
+          next_run_on: string;
+          last_run_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          user_id?: string;
+          report_key?: string;
+          params?: Json;
+          frequency?: string;
+          next_run_on?: string;
+          last_run_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      report_templates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          config: Json;
+          shared: boolean;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          config: Json;
+          shared?: boolean;
+          created_by?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          config?: Json;
+          shared?: boolean;
+          created_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       retention_actions: {
         Row: {
           id: number;
@@ -6032,6 +6098,15 @@ export type Database = {
         };
         Returns: number;
       };
+      log_report_export: {
+        Args: {
+          p_org: string;
+          p_report: string;
+          p_params: Json;
+          p_rows: number;
+        };
+        Returns: undefined;
+      };
       member_directory: {
         Args: {
           p_org: string;
@@ -6815,6 +6890,10 @@ export type Database = {
         Returns: Json;
       };
       worker_leave_accrual: {
+        Args: never;
+        Returns: Json;
+      };
+      worker_report_schedules: {
         Args: never;
         Returns: Json;
       };
