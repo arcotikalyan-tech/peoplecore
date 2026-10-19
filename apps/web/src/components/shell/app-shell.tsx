@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
-import { Bell, ChevronsLeft, ChevronsRight, Menu, Moon, Search, Sun, X } from 'lucide-react';
+import { Bell, ChevronsLeft, ChevronsRight, LogOut, Menu, Search, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/components/ui/cn';
 import type { PersonHit } from '@/app/app/[org]/search-actions';
 import { NAV_ICONS } from './icons';
 import type { NavGroup, NavItem, ViewMode } from './nav-model';
+import { ThemeMenu, type Appearance } from './theme-menu';
 
 const YEAR = 60 * 60 * 24 * 365;
 const setCookie = (name: string, value: string) => {
@@ -25,13 +26,13 @@ export interface ShellProps {
   canSwitchView: boolean;
   platformAdmin: boolean;
   railInitially: boolean;
-  theme: 'dark' | 'light';
+  appearance: Appearance;
   search: (q: string) => Promise<PersonHit[]>;
   children: ReactNode;
 }
 
 export function AppShell(props: ShellProps) {
-  const { base, nav, org, user, unread, view, canSwitchView, platformAdmin, railInitially, theme, search, children } = props;
+  const { base, nav, org, user, unread, view, canSwitchView, platformAdmin, railInitially, appearance, search, children } = props;
   const [rail, setRail] = useState(railInitially);
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
@@ -60,14 +61,14 @@ export function AppShell(props: ShellProps) {
       </a>
 
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-sidebar lg:flex print:hidden">
-        <Sidebar nav={nav} rail={rail} org={org} user={user} platformAdmin={platformAdmin} onToggleRail={toggleRail} />
+        <Sidebar base={base} nav={nav} rail={rail} org={org} user={user} platformAdmin={platformAdmin} onToggleRail={toggleRail} />
       </aside>
 
       {drawer && (
         <div className="fixed inset-0 z-40 lg:hidden print:hidden">
           <button aria-label="Close menu" className="absolute inset-0 bg-black/60" onClick={() => setDrawer(false)} />
           <aside className="relative flex h-full w-72 flex-col border-r border-line bg-sidebar" onClickCapture={(e) => { if ((e.target as HTMLElement).closest('a')) setDrawer(false); }}>
-            <Sidebar nav={nav} rail={false} org={org} user={user} platformAdmin={platformAdmin} />
+            <Sidebar base={base} nav={nav} rail={false} org={org} user={user} platformAdmin={platformAdmin} />
           </aside>
         </div>
       )}
@@ -75,6 +76,10 @@ export function AppShell(props: ShellProps) {
       <div className="flex min-w-0 flex-col">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line bg-canvas/85 px-3 backdrop-blur sm:px-5 print:hidden">
           <button aria-label="Open menu" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-subtle hover:text-fg lg:hidden" onClick={() => setDrawer(true)}>
+            <Menu className="size-5" />
+          </button>
+          <button aria-label={rail ? 'Expand menu' : 'Collapse menu'} aria-expanded={!rail} onClick={toggleRail}
+            className="hidden size-9 place-items-center rounded-lg text-muted hover:bg-subtle hover:text-fg lg:grid">
             <Menu className="size-5" />
           </button>
           <button
@@ -87,7 +92,7 @@ export function AppShell(props: ShellProps) {
           </button>
           <div className="ml-auto flex items-center gap-1.5">
             {canSwitchView && <ViewSwitch view={view} />}
-            <ThemeToggle initial={theme} />
+            <ThemeMenu initial={appearance} />
             <Link href={`${base}/inbox`} aria-label={unread ? `Inbox, ${unread} unread` : 'Inbox'} className="relative grid size-9 place-items-center rounded-lg text-muted hover:bg-subtle hover:text-fg">
               <Bell className="size-5" />
               {unread > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-fg">{unread > 99 ? '99+' : unread}</span>}
@@ -116,8 +121,8 @@ export function AppShell(props: ShellProps) {
   );
 }
 
-function Sidebar({ nav, rail, org, user, platformAdmin, onToggleRail }: {
-  nav: NavGroup[]; rail: boolean; org: ShellProps['org']; user: ShellProps['user']; platformAdmin: boolean; onToggleRail?: () => void;
+function Sidebar({ base, nav, rail, org, user, platformAdmin, onToggleRail }: {
+  base: string; nav: NavGroup[]; rail: boolean; org: ShellProps['org']; user: ShellProps['user']; platformAdmin: boolean; onToggleRail?: () => void;
 }) {
   return (
     <>
@@ -154,9 +159,10 @@ function Sidebar({ nav, rail, org, user, platformAdmin, onToggleRail }: {
         <div className={cn('flex items-center gap-1', rail ? 'flex-col' : 'justify-between px-1')}>
           <div className={cn('flex items-center gap-3 text-muted', rail && 'flex-col gap-1')}>
             <Link href="/app" className="hover:text-fg" title="Switch organization">{rail ? '⇄' : 'Switch'}</Link>
+            <Link href={`${base}/preferences`} className="hover:text-fg" title="My preferences" aria-label="My preferences">{rail ? '⚙' : 'Preferences'}</Link>
             {platformAdmin && !rail && <Link href="/platform" className="hover:text-fg">Platform</Link>}
             <form action="/auth/signout" method="post">
-              <button className="hover:text-fg">Sign out</button>
+              <button className="hover:text-fg" aria-label="Sign out" title={rail ? 'Sign out' : undefined}>{rail ? <LogOut className="size-4" /> : 'Sign out'}</button>
             </form>
           </div>
           {onToggleRail && (
@@ -213,21 +219,6 @@ function ViewSwitch({ view }: { view: ViewMode }) {
         </button>
       ))}
     </div>
-  );
-}
-
-function ThemeToggle({ initial }: { initial: 'dark' | 'light' }) {
-  const [theme, setTheme] = useState(initial);
-  const flip = () => {
-    const next = theme === 'light' ? 'dark' : 'light';
-    document.documentElement.dataset.theme = next;
-    setCookie('pc-theme', next);
-    setTheme(next);
-  };
-  return (
-    <button onClick={flip} aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'} className="grid size-9 place-items-center rounded-lg text-muted hover:bg-subtle hover:text-fg">
-      {theme === 'light' ? <Moon className="size-[18px]" /> : <Sun className="size-[18px]" />}
-    </button>
   );
 }
 

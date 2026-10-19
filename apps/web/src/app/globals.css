@@ -2,8 +2,8 @@
 
 /*
  * Design tokens. Components use the semantic utilities below (bg-surface, text-muted, …), never raw colors.
- * Dark is the default; <html data-theme="light"> switches (the theme cookie sets it on the server, so there is
- * no flash). Accent: coral. AI content keeps its own violet so it is never mistaken for a record.
+ * <html data-theme> is dark or light: chosen in the appearance menu, or "auto" (light by day, dark at night), applied
+ * before the first paint. Accent: coral. AI content keeps its own violet so it is never mistaken for a record.
  */
 :root,
 [data-theme='dark'] {
@@ -101,11 +101,83 @@ html {
 body {
   @apply bg-canvas text-fg antialiased;
   font-feature-settings: 'cv11', 'ss01';
+  isolation: isolate;
+  background-image:
+    radial-gradient(1100px 560px at 88% -12%, var(--glow-1, transparent), transparent 62%),
+    radial-gradient(900px 520px at -8% -6%, var(--glow-2, transparent), transparent 58%);
+  background-attachment: fixed;
+}
+
+/*
+ * Scenes (time of day) tint the page background; weather adds a quiet overlay behind the content. Both are
+ * decoration only: panels stay opaque, so text contrast never depends on them. Set on <html> by the theme
+ * menu / boot script (data-scene, data-weather).
+ */
+[data-theme='light'][data-scene='dawn'] { --glow-1: #ffd6c9; --glow-2: #f7d9f0; }
+[data-theme='light'][data-scene='morning'] { --glow-1: #ffe8b8; --glow-2: #dbe9ff; }
+[data-theme='light'][data-scene='midday'] { --glow-1: #cfe6ff; --glow-2: #e3f4ff; }
+[data-theme='light'][data-scene='afternoon'] { --glow-1: #ffdcae; --glow-2: #fff1d6; }
+[data-theme='light'][data-scene='dusk'] { --glow-1: #ffc4a3; --glow-2: #e6d4ff; }
+[data-theme='light'][data-scene='night'] { --glow-1: #d6dcff; --glow-2: #e8e4ff; }
+[data-theme='dark'][data-scene='dawn'] { --glow-1: #3a1f2a; --glow-2: #2a1a33; }
+[data-theme='dark'][data-scene='morning'] { --glow-1: #33280f; --glow-2: #13233d; }
+[data-theme='dark'][data-scene='midday'] { --glow-1: #10263f; --glow-2: #0f2233; }
+[data-theme='dark'][data-scene='afternoon'] { --glow-1: #36240e; --glow-2: #2a1d0c; }
+[data-theme='dark'][data-scene='dusk'] { --glow-1: #3d1f14; --glow-2: #2a1840; }
+[data-theme='dark'][data-scene='night'] { --glow-1: #161a3d; --glow-2: #1c1236; }
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--weather, none);
+  background-size: var(--weather-size, auto);
+}
+[data-weather='cloudy'] { --weather: linear-gradient(180deg, rgb(128 138 160 / 0.2), transparent 55%); }
+[data-weather='rain'] { --weather: repeating-linear-gradient(105deg, rgb(110 145 200 / 0.12) 0 1px, transparent 1px 16px); }
+[data-weather='storm'] {
+  --weather: repeating-linear-gradient(105deg, rgb(120 135 175 / 0.16) 0 1px, transparent 1px 12px),
+             linear-gradient(180deg, rgb(40 48 80 / 0.28), transparent 60%);
+}
+[data-weather='fog'] { --weather: linear-gradient(180deg, rgb(205 210 220 / 0.26), rgb(205 210 220 / 0.08)); }
+[data-weather='snow'] { --weather: radial-gradient(rgb(255 255 255 / 0.55) 1px, transparent 1.6px); --weather-size: 24px 24px; }
+[data-weather='haze'] { --weather: linear-gradient(180deg, rgb(230 205 160 / 0.22), rgb(230 205 160 / 0.06)); }
+[data-theme='dark'][data-weather='snow'] { --weather: radial-gradient(rgb(255 255 255 / 0.18) 1px, transparent 1.6px); }
+[data-theme='dark'][data-weather='fog'] { --weather: linear-gradient(180deg, rgb(150 155 170 / 0.14), transparent 70%); }
+
+@media print {
+  body { background-image: none; }
+  body::before { display: none; }
 }
 
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/*
+ * Hover feedback on cards (as in Kredily): figure cards and tiles lift slightly with a soft shadow; large panels
+ * only gain the shadow (they hold forms, so they never move under the cursor). Off for reduced motion.
+ */
+.lift, .lift-soft {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.lift:hover {
+  transform: translateY(-3px);
+  border-color: var(--line-strong);
+  box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.35), 0 2px 6px -2px rgb(0 0 0 / 0.12);
+}
+.lift-soft:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 8px 22px -14px rgb(0 0 0 / 0.3);
+}
+[data-theme='light'] .lift:hover { box-shadow: 0 12px 26px -12px rgb(30 30 60 / 0.22), 0 2px 6px -2px rgb(30 30 60 / 0.08); }
+[data-theme='light'] .lift-soft:hover { box-shadow: 0 10px 24px -16px rgb(30 30 60 / 0.2); }
+@media (prefers-reduced-motion: reduce) {
+  .lift, .lift-soft { transition: none; }
+  .lift:hover { transform: none; }
 }
 
 /* Thin, quiet scrollbars in the sidebar and wide tables. */

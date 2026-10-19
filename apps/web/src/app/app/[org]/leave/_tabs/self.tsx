@@ -96,11 +96,11 @@ export async function MyHub({ ctx, slug, base, me, today, action }: Ctx & { acti
 
         <Panel title="Smart actions">
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Smart actions">
-            <li><a href="#apply" className="block h-full rounded-xl border border-line p-3 hover:border-line-strong"><span className="text-sm font-medium">Apply leave</span><span className="block text-xs text-muted">Dates, type and reason</span></a></li>
-            <li><Link href={`${base}?tab=calendar`} className="block h-full rounded-xl border border-line p-3 hover:border-line-strong"><span className="text-sm font-medium">Plan a break</span><span className="block text-xs text-muted">Calendar with team overlay</span></Link></li>
-            <li><a href="#apply" className="block h-full rounded-xl border border-line p-3 hover:border-line-strong"><span className="text-sm font-medium">Use comp-off</span><span className="block text-xs text-muted">{compOff ? `${num(compOff.s.balance - compOff.s.pending)} day available` : 'None earned yet'}</span></a></li>
-            <li><Link href={`${base}?tab=hub&do=encash#encash`} className="block h-full rounded-xl border border-line p-3 hover:border-line-strong"><span className="text-sm font-medium">Encash leave</span><span className="block text-xs text-muted">{encashable.length ? `Convert unused ${encashable.map((m) => m.rule.short_name ?? m.rule.code).join(', ')}` : 'Nothing to encash'}</span></Link></li>
-            {settings.donation_enabled && <li><Link href={`${base}?tab=hub&do=donate#donate`} className="block h-full rounded-xl border border-line p-3 hover:border-line-strong"><span className="text-sm font-medium">Donate leave</span><span className="block text-xs text-muted">Give days to a colleague</span></Link></li>}
+            <li><a href="#apply" className="lift block h-full rounded-xl border border-line p-3"><span className="text-sm font-medium">Apply leave</span><span className="block text-xs text-muted">Dates, type and reason</span></a></li>
+            <li><Link href={`${base}?tab=calendar`} className="lift block h-full rounded-xl border border-line p-3"><span className="text-sm font-medium">Plan a break</span><span className="block text-xs text-muted">Calendar with team overlay</span></Link></li>
+            <li><a href="#apply" className="lift block h-full rounded-xl border border-line p-3"><span className="text-sm font-medium">Use comp-off</span><span className="block text-xs text-muted">{compOff ? `${num(compOff.s.balance - compOff.s.pending)} day available` : 'None earned yet'}</span></a></li>
+            <li><Link href={`${base}?tab=hub&do=encash#encash`} className="lift block h-full rounded-xl border border-line p-3"><span className="text-sm font-medium">Encash leave</span><span className="block text-xs text-muted">{encashable.length ? `Convert unused ${encashable.map((m) => m.rule.short_name ?? m.rule.code).join(', ')}` : 'Nothing to encash'}</span></Link></li>
+            {settings.donation_enabled && <li><Link href={`${base}?tab=hub&do=donate#donate`} className="lift block h-full rounded-xl border border-line p-3"><span className="text-sm font-medium">Donate leave</span><span className="block text-xs text-muted">Give days to a colleague</span></Link></li>}
           </ul>
         </Panel>
 

@@ -138,9 +138,9 @@ export async function AdminHub({ ctx, slug, base, today }: Ctx) {
       </div>
       <Panel title="Org actions">
         <ul className="grid gap-3 sm:grid-cols-3" aria-label="Org actions">
-          <li><Link href={`${base}?tab=approvals&status=pending`} className="block rounded-xl border border-line p-4 hover:border-line-strong"><span className="font-medium">Bulk approve</span><span className="block text-xs text-muted">{actionable.length} waiting for you</span></Link></li>
-          <li><Link href={`${base}?tab=rules`} className="block rounded-xl border border-line p-4 hover:border-line-strong"><span className="font-medium">Edit leave rules</span><span className="block text-xs text-muted">{rules.filter((r) => r.is_active).length} rules · assign directly</span></Link></li>
-          <li><Link href={`${base}?tab=accruals`} className="block rounded-xl border border-line p-4 hover:border-line-strong"><span className="font-medium">Close cycle</span><span className="block text-xs text-muted">{shortDate(cycle.start)} → {shortDate(cycle.end)}</span></Link></li>
+          <li><Link href={`${base}?tab=approvals&status=pending`} className="lift block rounded-xl border border-line p-4"><span className="font-medium">Bulk approve</span><span className="block text-xs text-muted">{actionable.length} waiting for you</span></Link></li>
+          <li><Link href={`${base}?tab=rules`} className="lift block rounded-xl border border-line p-4"><span className="font-medium">Edit leave rules</span><span className="block text-xs text-muted">{rules.filter((r) => r.is_active).length} rules · assign directly</span></Link></li>
+          <li><Link href={`${base}?tab=accruals`} className="lift block rounded-xl border border-line p-4"><span className="font-medium">Close cycle</span><span className="block text-xs text-muted">{shortDate(cycle.start)} → {shortDate(cycle.end)}</span></Link></li>
         </ul>
       </Panel>
       <div className="grid gap-5 xl:grid-cols-2">
@@ -280,7 +280,7 @@ export async function RulesTab({ ctx, slug, base, today, view, selected }: Ctx &
           )}
           <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Leave rules">
             {rules.map((r) => (
-              <li key={r.id} className={cn('flex flex-col rounded-xl border bg-surface p-4', editing?.id === r.id ? 'border-primary/60' : 'border-line', !r.is_active && 'opacity-60')}>
+              <li key={r.id} className={cn('lift flex flex-col rounded-xl border bg-surface p-4', editing?.id === r.id ? 'border-primary/60' : 'border-line', !r.is_active && 'opacity-60')}>
                 <div className="flex items-start justify-between gap-2">
                   <CategoryIcon category={r.category} />
                   <span className="flex gap-1">

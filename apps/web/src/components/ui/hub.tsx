@@ -94,8 +94,8 @@ export function StatCard({ label, value, note, tone = 'muted', href }: {
       {note && <p className="mt-1 truncate text-xs text-muted">{note}</p>}
     </>
   );
-  const cls = 'block rounded-xl border border-line bg-surface p-4';
-  return href ? <Link href={href} className={cn(cls, 'transition-colors hover:border-line-strong')}>{body}</Link> : <div className={cls}>{body}</div>;
+  const cls = 'lift block rounded-xl border border-line bg-surface p-4';
+  return href ? <Link href={href} className={cls}>{body}</Link> : <div className={cls}>{body}</div>;
 }
 
 /** A titled panel (the hubs' card). */
@@ -103,7 +103,7 @@ export function Panel({ title, meta, action, flush, children, className }: {
   title: string; meta?: ReactNode; action?: ReactNode; flush?: boolean; children: ReactNode; className?: string;
 }) {
   return (
-    <section className={cn('rounded-xl border border-line bg-surface', className)} aria-label={title}>
+    <section className={cn('lift-soft rounded-xl border border-line bg-surface', className)} aria-label={title}>
       <header className="flex flex-wrap items-center justify-between gap-3 px-5 pb-1 pt-4">
         <h2 className="text-sm font-semibold">{title}{meta && <span className="ml-2 font-normal text-muted">{meta}</span>}</h2>
         {action}

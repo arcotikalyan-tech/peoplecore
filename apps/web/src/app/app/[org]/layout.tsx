@@ -1,3 +1,4 @@
+import { asScene, asTheme, asWeather, COOKIE } from '@/lib/theme';
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 import { legalName } from '@peoplecore/shared';
@@ -100,8 +101,8 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       view={view}
       canSwitchView={hasAdminView(ctx)}
       platformAdmin={platformAdmin}
-      railInitially={jar.get('pc-nav')?.value === 'rail'}
-      theme={jar.get('pc-theme')?.value === 'light' ? 'light' : 'dark'}
+      railInitially={jar.get('pc-nav')?.value !== 'full'}
+      appearance={{ theme: asTheme(jar.get(COOKIE.theme)?.value), scene: asScene(jar.get(COOKIE.scene)?.value), weather: asWeather(jar.get(COOKIE.weather)?.value) }}
       search={searchPeopleAction.bind(null, slug)}
     >
       <FlashMessage message={flashed} />

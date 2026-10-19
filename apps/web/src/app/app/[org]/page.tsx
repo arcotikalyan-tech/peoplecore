@@ -231,7 +231,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {quick.map((q) => (
               <li key={q.href}>
-                <Link href={q.href} className="group flex flex-col items-center gap-2 rounded-xl border border-line bg-subtle/40 px-3 py-4 text-sm font-medium transition-colors hover:border-primary/40 hover:bg-primary-soft">
+                <Link href={q.href} className="lift group flex flex-col items-center gap-2 rounded-xl border border-line bg-subtle/40 px-3 py-4 text-sm font-medium hover:border-primary/40 hover:bg-primary-soft">
                   <span className="grid size-10 place-items-center rounded-xl bg-surface text-primary ring-1 ring-line group-hover:ring-primary/30"><q.icon className="size-5" /></span>
                   {q.label}
                 </Link>
@@ -249,7 +249,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
 
       <aside className="space-y-4" aria-label="At a glance">
         {me && (
-          <section className="rounded-xl border border-line bg-surface p-4">
+          <section className="lift-soft rounded-xl border border-line bg-surface p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Work hours</p>
             <p className="mt-1 text-sm text-muted">
               {todayPunches.length ? `Punches today: ${todayPunches.map((p) => time(p.punched_at)).join(', ')}` : 'You haven’t checked in today.'}
@@ -332,7 +332,7 @@ function Kpi({ label, value, note, tone, href }: { label: string; value: string;
       <p className="mt-1 truncate text-xs text-muted">{note}</p>
     </>
   );
-  const cls = 'block rounded-xl border border-line bg-surface p-4 transition-colors';
+  const cls = 'lift block rounded-xl border border-line bg-surface p-4';
   return href ? <Link href={href} className={cn(cls, 'hover:border-line-strong')}>{body}</Link> : <div className={cls}>{body}</div>;
 }
 
@@ -346,13 +346,13 @@ function Stat({ label, value, href, note }: { label: string; value: number | str
       {note && <p className="mt-1 text-xs font-medium text-danger">{note}</p>}
     </>
   );
-  const cls = 'rounded-xl border border-line bg-surface p-4';
+  const cls = 'lift rounded-xl border border-line bg-surface p-4';
   return href ? <Link href={href} className={cn(cls, 'transition-colors hover:border-line-strong')}>{body}</Link> : <div className={cls}>{body}</div>;
 }
 
 function Panel({ title, meta, action, flush, children }: { title: string; meta?: string; action?: ReactNode; flush?: boolean; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-surface">
+    <section className="lift-soft rounded-xl border border-line bg-surface">
       <header className="flex items-center justify-between gap-3 px-5 pb-1 pt-4">
         <h2 className="text-sm font-semibold">{title}{meta && <span className="ml-2 font-normal text-muted">{meta}</span>}</h2>
         {action}
@@ -364,7 +364,7 @@ function Panel({ title, meta, action, flush, children }: { title: string; meta?:
 
 function RailCard({ title, icon, href, children }: { title: string; icon: ReactNode; href: string; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-surface p-4">
+    <section className="lift-soft rounded-xl border border-line bg-surface p-4">
       <header className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-sm font-semibold"><span className="text-primary">{icon}</span>{title}</h2>
         <Link href={href} className="text-xs font-medium text-muted hover:text-fg">View all</Link>
