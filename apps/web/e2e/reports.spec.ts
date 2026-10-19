@@ -83,7 +83,7 @@ test('payroll staff see payroll reports and a clear message for an unprocessed m
   await open(page, '/app/demo/reports?report=consolidated_net_pay');
   await expect(page.getByRole('heading', { name: 'Consolidated Net Pay' })).toBeVisible();
   const year = String(new Date().getUTCFullYear() - 4);
-  await page.getByLabel('Year').selectOption(year);
+  await page.getByLabel('Year', { exact: true }).selectOption(year);
   await page.getByLabel('Month').selectOption('01');
   await page.getByRole('button', { name: '⬇ Generate & export' }).click();
   await expect(page.getByText(`No processed payroll for January ${year} yet`, { exact: false })).toBeVisible();
