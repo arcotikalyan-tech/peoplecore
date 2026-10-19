@@ -67,11 +67,11 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [~] My Profile › leave — same screens live under Leave (Me view); the profile tab comes with People and profile
 - [~] My Profile › leave › accrual history — same screens live under Leave (Me view); the profile tab comes with People and profile
 - [~] My Profile › leave › balances — same screens live under Leave (Me view); the profile tab comes with People and profile
-- [ ] My Profile › payroll
-- [ ] My Profile › payroll › bank account
-- [ ] My Profile › payroll › payslips
-- [ ] My Profile › payroll › reimbursements
-- [ ] My Profile › payroll › salary structure
+- [x] My Profile › payroll
+- [x] My Profile › payroll › bank account
+- [x] My Profile › payroll › payslips
+- [x] My Profile › payroll › reimbursements
+- [x] My Profile › payroll › salary structure
 - [ ] My Profile › personal
 - [ ] My Profile › pms
 - [ ] My Profile › stationery
@@ -134,25 +134,25 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Timesheet › workspace › tasks
 
 ### Payroll
-- [ ] Payroll (hub)
-- [ ] Payroll › compliance
-- [ ] Payroll › compliance › journal voucher
-- [ ] Payroll › compliance › statutory files reports
-- [ ] Payroll › declarations
-- [ ] Payroll › declarations › deductions
-- [ ] Payroll › declarations › forms
-- [ ] Payroll › declarations › house property
-- [ ] Payroll › declarations › hra
-- [ ] Payroll › declarations › lta
-- [ ] Payroll › declarations › prev employer
-- [ ] Payroll › declarations › reimbursements
-- [ ] Payroll › hub
-- [ ] Payroll › insights
-- [ ] Payroll › payout
-- [ ] Payroll › people salaries
-- [ ] Payroll › people salaries › salary revisions
-- [ ] Payroll › people salaries › salary view
-- [ ] Payroll › settings
+- [x] Payroll (hub)
+- [x] Payroll › compliance
+- [x] Payroll › compliance › journal voucher
+- [x] Payroll › compliance › statutory files reports
+- [x] Payroll › declarations
+- [x] Payroll › declarations › deductions
+- [x] Payroll › declarations › forms
+- [x] Payroll › declarations › house property
+- [x] Payroll › declarations › hra
+- [x] Payroll › declarations › lta
+- [x] Payroll › declarations › prev employer
+- [x] Payroll › declarations › reimbursements
+- [x] Payroll › hub
+- [x] Payroll › insights — computed from locked runs (no AI)
+- [x] Payroll › payout — bank advice files and marking payouts paid; direct bank API integration needs a bank partner
+- [x] Payroll › people salaries
+- [x] Payroll › people salaries › salary revisions
+- [x] Payroll › people salaries › salary view
+- [x] Payroll › settings
 
 ### Expense
 - [ ] Expense (hub)
@@ -292,12 +292,12 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [~] My Profile › leave › accrual history — same screens live under Leave (Me view); the profile tab comes with People and profile
 - [~] My Profile › leave › balances — same screens live under Leave (Me view); the profile tab comes with People and profile
 - [~] My Profile › leave › my leave rules — same screens live under Leave (Me view); the profile tab comes with People and profile
-- [ ] My Profile › payroll
-- [ ] My Profile › payroll › bank account
-- [ ] My Profile › payroll › payslips
-- [ ] My Profile › payroll › reimbursements
-- [ ] My Profile › payroll › salary structure
-- [ ] My Profile › payroll › tax center
+- [x] My Profile › payroll
+- [x] My Profile › payroll › bank account
+- [x] My Profile › payroll › payslips
+- [x] My Profile › payroll › reimbursements
+- [x] My Profile › payroll › salary structure
+- [x] My Profile › payroll › tax center
 - [ ] My Profile › personal
 - [ ] My Profile › pms
 - [ ] My Profile › stationery
@@ -322,25 +322,25 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Leave › settings
 
 ### Payroll
-- [ ] Payroll (hub)
-- [ ] Payroll › compliance
-- [ ] Payroll › compliance › journal voucher
-- [ ] Payroll › compliance › statutory files reports
-- [ ] Payroll › declarations
-- [ ] Payroll › declarations › deductions
-- [ ] Payroll › declarations › forms
-- [ ] Payroll › declarations › house property
-- [ ] Payroll › declarations › hra
-- [ ] Payroll › declarations › lta
-- [ ] Payroll › declarations › prev employer
-- [ ] Payroll › declarations › reimbursements
-- [ ] Payroll › hub
-- [ ] Payroll › insights
-- [ ] Payroll › payout
-- [ ] Payroll › people salaries
-- [ ] Payroll › people salaries › salary revisions
-- [ ] Payroll › people salaries › salary view
-- [ ] Payroll › settings
+- [x] Payroll (hub)
+- [x] Payroll › compliance
+- [x] Payroll › compliance › journal voucher
+- [x] Payroll › compliance › statutory files reports
+- [x] Payroll › declarations
+- [x] Payroll › declarations › deductions
+- [x] Payroll › declarations › forms
+- [x] Payroll › declarations › house property
+- [x] Payroll › declarations › hra
+- [x] Payroll › declarations › lta
+- [x] Payroll › declarations › prev employer
+- [x] Payroll › declarations › reimbursements
+- [x] Payroll › hub
+- [x] Payroll › insights — computed from locked runs (no AI)
+- [x] Payroll › payout — bank advice files and marking payouts paid; direct bank API integration needs a bank partner
+- [x] Payroll › people salaries
+- [x] Payroll › people salaries › salary revisions
+- [x] Payroll › people salaries › salary view
+- [x] Payroll › settings
 
 ### Expense
 - [ ] Expense (hub)
@@ -507,19 +507,19 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Timesheet Approvals (hub)
 
 ### Payroll Payslips
-- [ ] Payroll Payslips (hub)
+- [x] Payroll Payslips (hub)
 
 ### Payroll Tax Center
-- [ ] Payroll Tax Center (hub)
+- [x] Payroll Tax Center (hub)
 
 ### Payroll Salary Structure
-- [ ] Payroll Salary Structure (hub)
+- [x] Payroll Salary Structure (hub)
 
 ### Payroll Reimbursements
-- [ ] Payroll Reimbursements (hub)
+- [x] Payroll Reimbursements (hub)
 
 ### Payroll Bank Account
-- [ ] Payroll Bank Account (hub)
+- [x] Payroll Bank Account (hub)
 
 ### Expense My Claims
 - [ ] Expense My Claims (hub)

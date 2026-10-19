@@ -43,7 +43,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     ] },
     { label: 'Pay', items: [
       ...when(ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org'), { href: `${base}/payroll`, label: 'Payroll', icon: 'wallet' }),
-      { href: `${base}/payslips`, label: 'Payslips', icon: 'receipt' },
+      { href: `${base}/payslips`, label: 'My Pay', icon: 'receipt' },
       { href: `${base}/expenses`, label: 'Expenses', icon: 'card' },
     ] },
     { label: 'Grow', items: [
@@ -72,7 +72,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       ...(profileHref ? [{ href: profileHref, label: 'My profile', icon: 'user' } as NavItem] : []),
       ...when(ctx.can('attendance.read'), { href: `${base}/attendance`, label: 'Attendance', icon: 'clock' }),
       ...when(ctx.can('leave.read'), { href: `${base}/leave`, label: 'Leave', icon: 'palm' }),
-      { href: `${base}/payslips`, label: 'Payslips', icon: 'receipt' },
+      { href: `${base}/payslips`, label: 'My Pay', icon: 'receipt' },
       { href: `${base}/expenses`, label: 'Expenses', icon: 'card' },
     ] },
     { label: 'Grow', items: [

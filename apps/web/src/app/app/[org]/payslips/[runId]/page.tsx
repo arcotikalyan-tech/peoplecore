@@ -36,7 +36,7 @@ export default async function PayslipPage({ params, searchParams }: { params: Pr
 
   return (
     <>
-      <PageHeader eyebrow={<Link href={`/app/${slug}/payslips`} className="hover:text-fg">← Payslips</Link>}
+      <PageHeader eyebrow={<Link href={`/app/${slug}/payslips?tab=payslips`} className="hover:text-fg">← My Pay</Link>}
         title={`Payslip · ${monthLabel(slip.period_month)}`}
         description={employee ? `${[employee.first_name, employee.last_name].filter(Boolean).join(' ')} · ${employee.employee_code}` : undefined}
         actions={<a href={`/app/${slug}/payslips/${runId}/pdf${requested ? `?employee=${requested}` : ''}`} download className={buttonClass('secondary')}>Download PDF</a>} />
