@@ -2675,6 +2675,7 @@ export type Database = {
           location_id: string | null;
           weekly_offs: number[];
           created_at: string;
+          optional_limit: number;
         };
         Insert: {
           id?: string;
@@ -2683,6 +2684,7 @@ export type Database = {
           location_id?: string | null;
           weekly_offs?: number[];
           created_at?: string;
+          optional_limit?: number;
         };
         Update: {
           id?: string;
@@ -2691,6 +2693,7 @@ export type Database = {
           location_id?: string | null;
           weekly_offs?: number[];
           created_at?: string;
+          optional_limit?: number;
         };
         Relationships: [];
       };
@@ -2702,6 +2705,7 @@ export type Database = {
           holiday_date: string;
           name: string;
           is_optional: boolean;
+          description: string | null;
         };
         Insert: {
           id?: string;
@@ -2710,6 +2714,7 @@ export type Database = {
           holiday_date: string;
           name: string;
           is_optional?: boolean;
+          description?: string | null;
         };
         Update: {
           id?: string;
@@ -2718,6 +2723,7 @@ export type Database = {
           holiday_date?: string;
           name?: string;
           is_optional?: boolean;
+          description?: string | null;
         };
         Relationships: [];
       };
@@ -4091,6 +4097,27 @@ export type Database = {
           owner_employee_id?: string | null;
           is_default?: boolean;
           is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      optional_holiday_choices: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          holiday_id: string;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          holiday_id: string;
+          created_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          holiday_id?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -6283,6 +6310,13 @@ export type Database = {
         };
         Returns: string;
       };
+      choose_optional_holiday: {
+        Args: {
+          p_holiday: string;
+          p_choose: boolean;
+        };
+        Returns: undefined;
+      };
       clear_item: {
         Args: {
           p_item: string;
@@ -6733,6 +6767,12 @@ export type Database = {
           p_limit?: number;
         };
         Returns: { occurred_at: string; action: string; entity_type: string; entity_id: string; metadata: Json }[];
+      };
+      my_holiday_calendar: {
+        Args: {
+          p_org: string;
+        };
+        Returns: string;
       };
       my_insurance: {
         Args: {

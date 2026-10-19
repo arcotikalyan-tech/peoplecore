@@ -258,10 +258,10 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Idstudio › l3advanced
 
 ### Holiday
-- [ ] Holiday (hub)
-- [ ] Holiday › calendar
-- [ ] Holiday › calendar rules
-- [ ] Holiday › holiday list
+- [x] Holiday (hub)
+- [x] Holiday › calendar
+- [x] Holiday › calendar rules
+- [x] Holiday › holiday list
 
 ### Ceo
 - [ ] Ceo › payroll › pay register
@@ -462,7 +462,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Idstudio (hub)
 
 ### Holiday
-- [ ] Holiday (hub)
+- [x] Holiday (hub)
 
 ### Directory My Network
 - [x] Directory My Network (hub)

@@ -249,7 +249,7 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 
 | Kredily | PeopleCore |
 |---|---|
-| Month/day/year calendar with holidays, approved and pending leave, WFH, on-duty, events; holiday list; per-city calendars | 🟡 holidays in leave; no calendar view |
+| Month/day/year calendar with holidays, approved and pending leave, WFH, on-duty, events; holiday list; per-city calendars | ✅ month and year calendar with filters; holiday list with optional holidays to choose (yearly limit), import/export, copy to next year; calendar rules per location (weekly offs, optional limit) |
 
 ## 23. ID and visiting cards
 
