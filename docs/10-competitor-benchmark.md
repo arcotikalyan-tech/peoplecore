@@ -191,7 +191,7 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 
 | Kredily | PeopleCore |
 |---|---|
-| Group health policy: insurer, policy number, validity, cover, sum insured, room rent, waivers; members and dependants; read details from the policy PDF | ❌ |
+| Group health policy: insurer, policy number, validity, cover, sum insured, room rent, waivers; members and dependants; read details from the policy PDF | ✅ policy in three steps with show-to-employee per field and preview; coverage per employee; endorsements (additions/deletions since last sync, export, lock); reconcile with the insurer’s list; My Insurance. Reading the PDF is AI (skipped) |
 
 ## 16. People experience (engagement)
 

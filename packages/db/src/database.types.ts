@@ -2721,6 +2721,141 @@ export type Database = {
         };
         Relationships: [];
       };
+      insurance_coverage: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          covered: boolean;
+          sum_insured: number | null;
+          covered_from: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          covered?: boolean;
+          sum_insured?: number | null;
+          covered_from?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          covered?: boolean;
+          sum_insured?: number | null;
+          covered_from?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      insurance_policies: {
+        Row: {
+          organization_id: string;
+          insurer: string | null;
+          policy_number: string | null;
+          valid_from: string | null;
+          valid_to: string | null;
+          maternity_normal: number | null;
+          maternity_csection: number | null;
+          room_rent_normal_pct: number | null;
+          room_rent_icu_pct: number | null;
+          cover_type: string;
+          sum_insured: number | null;
+          sum_insured_type: string;
+          wellness: boolean;
+          e_consultation: boolean;
+          health_checkup: boolean;
+          pre_existing_covered: boolean;
+          waiting_period_waived: boolean;
+          exclusions_waived: boolean;
+          pre_post_hospitalisation: boolean;
+          ambulance_per_incident: number | null;
+          claim_process: string | null;
+          hidden_fields: string[];
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          insurer?: string | null;
+          policy_number?: string | null;
+          valid_from?: string | null;
+          valid_to?: string | null;
+          maternity_normal?: number | null;
+          maternity_csection?: number | null;
+          room_rent_normal_pct?: number | null;
+          room_rent_icu_pct?: number | null;
+          cover_type?: string;
+          sum_insured?: number | null;
+          sum_insured_type?: string;
+          wellness?: boolean;
+          e_consultation?: boolean;
+          health_checkup?: boolean;
+          pre_existing_covered?: boolean;
+          waiting_period_waived?: boolean;
+          exclusions_waived?: boolean;
+          pre_post_hospitalisation?: boolean;
+          ambulance_per_incident?: number | null;
+          claim_process?: string | null;
+          hidden_fields?: string[];
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          insurer?: string | null;
+          policy_number?: string | null;
+          valid_from?: string | null;
+          valid_to?: string | null;
+          maternity_normal?: number | null;
+          maternity_csection?: number | null;
+          room_rent_normal_pct?: number | null;
+          room_rent_icu_pct?: number | null;
+          cover_type?: string;
+          sum_insured?: number | null;
+          sum_insured_type?: string;
+          wellness?: boolean;
+          e_consultation?: boolean;
+          health_checkup?: boolean;
+          pre_existing_covered?: boolean;
+          waiting_period_waived?: boolean;
+          exclusions_waived?: boolean;
+          pre_post_hospitalisation?: boolean;
+          ambulance_per_incident?: number | null;
+          claim_process?: string | null;
+          hidden_fields?: string[];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      insurance_syncs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          synced_at: string;
+          synced_by: string | null;
+          roster: Json;
+          additions: number;
+          deletions: number;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          synced_at?: string;
+          synced_by?: string | null;
+          roster: Json;
+          additions: number;
+          deletions: number;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          synced_at?: string;
+          synced_by?: string | null;
+          roster?: Json;
+          additions?: number;
+          deletions?: number;
+        };
+        Relationships: [];
+      };
       interview_panelists: {
         Row: {
           organization_id: string;
@@ -6495,6 +6630,12 @@ export type Database = {
         };
         Returns: string;
       };
+      insurance_endorsement: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { change: string; key: string; employee_id: string; employee_code: string; employee_name: string; member_name: string; relationship: string; date_of_birth: string; gender: string; sum_insured: number; effective: string }[];
+      };
       issue_asset: {
         Args: {
           p_asset: string;
@@ -6532,6 +6673,12 @@ export type Database = {
         Returns: { leave_type_id: string; code: string; name: string; is_paid: boolean; allow_negative: boolean; allow_half_day: boolean; balance: number; pending: number; available: number }[];
       };
       loan_eligibility: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
+      };
+      lock_insurance_endorsement: {
         Args: {
           p_org: string;
         };
@@ -6586,6 +6733,12 @@ export type Database = {
           p_limit?: number;
         };
         Returns: { occurred_at: string; action: string; entity_type: string; entity_id: string; metadata: Json }[];
+      };
+      my_insurance: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
       };
       my_interviews: {
         Args: {

@@ -90,7 +90,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Letters › settings › letter setup
 
 ### Insurance
-- [ ] Insurance (hub)
+- [x] Insurance (hub)
 
 ### Attendance
 - [x] Attendance (hub)
@@ -441,7 +441,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Company Profile (hub)
 
 ### Insurance
-- [ ] Insurance (hub)
+- [x] Insurance (hub)
 
 ### Hiring
 - [ ] Hiring (hub)
