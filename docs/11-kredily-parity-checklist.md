@@ -51,33 +51,33 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Company Profile › statutory › company secretary
 
 ### My Profile
-- [ ] My Profile (hub)
-- [ ] My Profile › attendance
-- [ ] My Profile › attendance › logs
-- [ ] My Profile › attendance › my rule
-- [ ] My Profile › documents
-- [ ] My Profile › documents › certifications
-- [ ] My Profile › documents › policy
-- [ ] My Profile › documents › work
-- [ ] My Profile › e exit
-- [ ] My Profile › education
-- [ ] My Profile › expense
-- [ ] My Profile › family
-- [ ] My Profile › file manager
-- [~] My Profile › leave — same screens live under Leave (Me view); the profile tab comes with People and profile
-- [~] My Profile › leave › accrual history — same screens live under Leave (Me view); the profile tab comes with People and profile
-- [~] My Profile › leave › balances — same screens live under Leave (Me view); the profile tab comes with People and profile
+- [x] My Profile (hub)
+- [x] My Profile › attendance
+- [x] My Profile › attendance › logs
+- [x] My Profile › attendance › my rule
+- [x] My Profile › documents
+- [x] My Profile › documents › certifications
+- [x] My Profile › documents › policy
+- [x] My Profile › documents › work
+- [x] My Profile › e exit
+- [x] My Profile › education
+- [x] My Profile › expense
+- [x] My Profile › family
+- [x] My Profile › file manager
+- [x] My Profile › leave
+- [x] My Profile › leave › accrual history
+- [x] My Profile › leave › balances
 - [x] My Profile › payroll
 - [x] My Profile › payroll › bank account
 - [x] My Profile › payroll › payslips
 - [x] My Profile › payroll › reimbursements
 - [x] My Profile › payroll › salary structure
-- [ ] My Profile › personal
-- [ ] My Profile › pms
-- [ ] My Profile › stationery
-- [ ] My Profile › team
-- [ ] My Profile › work
-- [ ] My Profile › work week
+- [x] My Profile › personal
+- [x] My Profile › pms
+- [x] My Profile › stationery
+- [x] My Profile › team
+- [x] My Profile › work
+- [x] My Profile › work week
 
 ### Letters
 - [ ] Letters (hub)
@@ -277,33 +277,33 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Dashboard (hub) — Kredily layout: figures, trends, attendance snapshot, customisable quick access, compliance, activity, work hours, announcements, birthdays, holidays (AI insight replaced by a plain summary; vouchers and refer-and-earn are Kredily's own marketing)
 
 ### My Profile
-- [ ] My Profile (hub)
-- [ ] My Profile › attendance
-- [ ] My Profile › documents
-- [ ] My Profile › documents › certifications
-- [ ] My Profile › documents › policy
-- [ ] My Profile › documents › work
-- [ ] My Profile › e exit
-- [ ] My Profile › education
-- [ ] My Profile › expense
-- [ ] My Profile › family
-- [ ] My Profile › file manager
-- [~] My Profile › leave — same screens live under Leave (Me view); the profile tab comes with People and profile
-- [~] My Profile › leave › accrual history — same screens live under Leave (Me view); the profile tab comes with People and profile
-- [~] My Profile › leave › balances — same screens live under Leave (Me view); the profile tab comes with People and profile
-- [~] My Profile › leave › my leave rules — same screens live under Leave (Me view); the profile tab comes with People and profile
+- [x] My Profile (hub)
+- [x] My Profile › attendance
+- [x] My Profile › documents
+- [x] My Profile › documents › certifications
+- [x] My Profile › documents › policy
+- [x] My Profile › documents › work
+- [x] My Profile › e exit
+- [x] My Profile › education
+- [x] My Profile › expense
+- [x] My Profile › family
+- [x] My Profile › file manager
+- [x] My Profile › leave
+- [x] My Profile › leave › accrual history
+- [x] My Profile › leave › balances
+- [x] My Profile › leave › my leave rules
 - [x] My Profile › payroll
 - [x] My Profile › payroll › bank account
 - [x] My Profile › payroll › payslips
 - [x] My Profile › payroll › reimbursements
 - [x] My Profile › payroll › salary structure
 - [x] My Profile › payroll › tax center
-- [ ] My Profile › personal
-- [ ] My Profile › pms
-- [ ] My Profile › stationery
-- [ ] My Profile › team
-- [ ] My Profile › work
-- [ ] My Profile › work week
+- [x] My Profile › personal
+- [x] My Profile › pms
+- [x] My Profile › stationery
+- [x] My Profile › team
+- [x] My Profile › work
+- [x] My Profile › work week
 
 ### Attendance
 - [x] Attendance (hub)

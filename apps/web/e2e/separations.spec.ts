@@ -115,7 +115,7 @@ test('payroll computes the settlement from Dev’s salary; a second person appro
   await prepare.getByRole('button', { name: 'Compute settlement' }).click();
   await expect(prepare.getByText('No salary is recorded for this employee.')).toBeVisible();
 
-  await open(farah, `/app/demo/employees/${devId}`);
+  await open(farah, `/app/demo/employees/${devId}?tab=payroll&view=structure`);
   const salary = farah.getByRole('form', { name: 'Change compensation' });
   await salary.getByLabel('Basic salary (monthly ₹)').fill('30000');
   await salary.getByLabel('House rent allowance (monthly ₹)').fill('15000');

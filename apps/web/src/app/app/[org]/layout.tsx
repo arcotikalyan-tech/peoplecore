@@ -33,6 +33,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     { label: 'People', items: [
       ...when(ctx.can('employee.read'), { href: `${base}/employees`, label: 'People', icon: 'users' }),
       ...when(ctx.can('org.read'), { href: `${base}/company`, label: 'Company Profile', icon: 'building' }),
+      ...(profileHref ? [{ href: profileHref, label: 'My Profile', icon: 'user' } as NavItem] : []),
       ...when(ctx.can('recruitment.read'), { href: `${base}/recruitment`, label: 'Recruitment', icon: 'briefcase' }),
       ...when(ctx.can('onboarding.manage', 'org'), { href: `${base}/onboarding`, label: 'Onboarding', icon: 'user-plus' }),
       { href: `${base}/separations`, label: 'Separations', icon: 'log-out' },
@@ -69,7 +70,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
   ] : [
     home,
     { label: 'Me', items: [
-      ...(profileHref ? [{ href: profileHref, label: 'My profile', icon: 'user' } as NavItem] : []),
+      ...(profileHref ? [{ href: profileHref, label: 'My Profile', icon: 'user' } as NavItem] : []),
       { href: `${base}/employees`, label: 'People', icon: 'users' },
       ...when(ctx.can('attendance.read'), { href: `${base}/attendance`, label: 'Attendance', icon: 'clock' }),
       ...when(ctx.can('leave.read'), { href: `${base}/leave`, label: 'Leave', icon: 'palm' }),

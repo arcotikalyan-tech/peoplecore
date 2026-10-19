@@ -81,6 +81,7 @@ test('HR adds an employee', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: `${person.first} ${person.last}` })).toBeVisible();
   await expect(page.getByText(/^EMP\d{5}$/)).toBeVisible();
 
+  await page.getByRole('navigation', { name: 'Profile sections' }).getByRole('link', { name: 'Work', exact: true }).click();
   const history = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Employment history' }) });
   await expect(history.getByText('Joining', { exact: true })).toBeVisible();
 
@@ -105,7 +106,7 @@ test('a duplicate work email is refused and the form keeps what was typed', asyn
 
 test('HR records a transfer; history is kept, not overwritten', async ({ page }) => {
   await signIn(page, 'demo.hr');
-  await open(page, `/app/demo/employees/${employeeId}`);
+  await open(page, `/app/demo/employees/${employeeId}?tab=work`);
 
   await page.getByLabel('Reason').selectOption('transfer');
   await page.getByLabel('Department', { exact: true }).selectOption(engDeptId);

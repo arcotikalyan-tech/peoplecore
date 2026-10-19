@@ -1,7 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
-import { GENDERS, GENDER_LABELS } from '@peoplecore/shared';
+import { useActionState, useState } from 'react';
+import {
+  BLOOD_GROUPS, FAMILY_RELATIONSHIPS, FAMILY_RELATIONSHIP_LABELS, GENDERS, GENDER_LABELS, MARITAL_STATUSES, MARITAL_STATUS_LABELS,
+  QUALIFICATION_LEVELS, QUALIFICATION_LEVEL_LABELS,
+} from '@peoplecore/shared';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { SelectField, TextField, type Option } from '@/components/ui/fields';
@@ -10,18 +13,25 @@ import { initialActionState, type ActionState } from '@/lib/action-state';
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 type Defaults = Record<string, string | null | undefined>;
 
+type Counted = ActionState & { n?: number };
+
+/**
+ * Form state plus a submission count. React resets a form after each submission and a <select> goes back to the
+ * option it was first rendered with, so forms key their fields on `n` to re-render the echoed values.
+ */
 function useForm(action: Action, defaults: Defaults) {
-  const [state, formAction] = useActionState(action, initialActionState);
+  const [state, formAction] = useActionState<Counted, FormData>(
+    async (prev, formData) => ({ ...(await action(prev, formData)), n: (prev.n ?? 0) + 1 }), initialActionState);
   const v = state.ok ? {} : (state.values ?? {});
-  return { state, formAction, e: state.fieldErrors ?? {}, val: (key: string) => v[key] ?? defaults[key] ?? '' };
+  return { state, formAction, n: state.n ?? 0, e: state.fieldErrors ?? {}, val: (key: string) => v[key] ?? defaults[key] ?? '' };
 }
 
 export function WorkDetailsForm({ action, defaults, legalEntities }: { action: Action; defaults: Defaults; legalEntities: Option[] }) {
-  const { state, formAction, e, val } = useForm(action, defaults);
+  const { state, formAction, n, e, val } = useForm(action, defaults);
   return (
     <form action={formAction} noValidate className="space-y-4 px-5 py-4">
       <FormMessage state={state} />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div key={n} className="grid gap-4 sm:grid-cols-2">
         <TextField idPrefix="work" name="firstName" label="First name" required defaultValue={val('firstName')} error={e.firstName} />
         <TextField idPrefix="work" name="middleName" label="Middle name" defaultValue={val('middleName')} error={e.middleName} />
         <TextField idPrefix="work" name="lastName" label="Last name" defaultValue={val('lastName')} error={e.lastName} />
@@ -29,6 +39,9 @@ export function WorkDetailsForm({ action, defaults, legalEntities }: { action: A
         <TextField idPrefix="work" name="workPhone" label="Work phone" type="tel" defaultValue={val('workPhone')} error={e.workPhone} />
         <TextField idPrefix="work" name="probationEndDate" label="Probation end date" type="date" defaultValue={val('probationEndDate')} error={e.probationEndDate} />
         <SelectField idPrefix="work" name="legalEntityId" label="Legal entity" options={legalEntities} placeholder="None" defaultValue={val('legalEntityId')} error={e.legalEntityId} />
+        <TextField idPrefix="work" name="jobTitle" label="Job title" defaultValue={val('jobTitle')} error={e.jobTitle} />
+        <SelectField idPrefix="work" name="billable" label="Billing status" options={[{ value: 'no', label: 'Non-Billable' }, { value: 'yes', label: 'Billable' }]}
+          defaultValue={val('billable') || 'no'} error={e.billable} />
       </div>
       <p className="text-xs text-muted">Department, designation, location and manager change through “Change assignment”, which keeps history.</p>
       <div className="flex justify-end">
@@ -39,26 +52,130 @@ export function WorkDetailsForm({ action, defaults, legalEntities }: { action: A
 }
 
 const genders = GENDERS.map((g) => ({ value: g, label: GENDER_LABELS[g] }));
+const yesNo = [{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }];
+const bloodGroups = BLOOD_GROUPS.map((b) => ({ value: b, label: b }));
+const marital = MARITAL_STATUSES.map((m) => ({ value: m, label: MARITAL_STATUS_LABELS[m] }));
 
-export function PersonalDetailsForm({ action, defaults }: { action: Action; defaults: Defaults }) {
+function SaveRow({ label = 'Save' }: { label?: string }) {
+  return <div className="flex justify-end"><SubmitButton>{label}</SubmitButton></div>;
+}
+
+/** Personal tab › Personal info. Posts only its own fields. */
+export function PersonalInfoForm({ action, defaults }: { action: Action; defaults: Defaults }) {
+  const { state, formAction, n, e, val } = useForm(action, defaults);
+  return (
+    <form action={formAction} noValidate className="space-y-4 px-5 py-4" aria-label="Personal info">
+      <FormMessage state={state} />
+      <div key={n} className="grid gap-4 sm:grid-cols-3">
+        <TextField idPrefix="pi" name="dateOfBirth" label="Date of birth" type="date" defaultValue={val('dateOfBirth')} error={e.dateOfBirth} />
+        <SelectField idPrefix="pi" name="gender" label="Gender" options={genders} placeholder="Not recorded" defaultValue={val('gender')} error={e.gender} />
+        <SelectField idPrefix="pi" name="bloodGroup" label="Blood group" options={bloodGroups} placeholder="Not recorded" defaultValue={val('bloodGroup')} error={e.bloodGroup} />
+        <SelectField idPrefix="pi" name="maritalStatus" label="Marital status" options={marital} placeholder="Not recorded" defaultValue={val('maritalStatus')} error={e.maritalStatus} />
+        <SelectField idPrefix="pi" name="isDisabled" label="Is employee disabled" options={yesNo} defaultValue={val('isDisabled') || 'no'} error={e.isDisabled} />
+      </div>
+      <SaveRow label="Save personal info" />
+    </form>
+  );
+}
+
+export function ContactInfoForm({ action, defaults }: { action: Action; defaults: Defaults }) {
   const { state, formAction, e, val } = useForm(action, defaults);
   return (
-    <form action={formAction} noValidate className="space-y-4 px-5 py-4">
+    <form action={formAction} noValidate className="space-y-4 px-5 py-4" aria-label="Contact info">
       <FormMessage state={state} />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <TextField idPrefix="pd" name="dateOfBirth" label="Date of birth" type="date" defaultValue={val('dateOfBirth')} error={e.dateOfBirth} />
-        <SelectField idPrefix="pd" name="gender" label="Gender" options={genders} placeholder="Not recorded" defaultValue={val('gender')} error={e.gender} />
-        <TextField idPrefix="pd" name="personalEmail" label="Personal email" type="email" defaultValue={val('personalEmail')} error={e.personalEmail} />
-        <TextField idPrefix="pd" name="personalPhone" label="Personal phone" type="tel" defaultValue={val('personalPhone')} error={e.personalPhone} />
-        <TextField idPrefix="pd" name="addressLine1" label="Address line 1" className="sm:col-span-2" defaultValue={val('addressLine1')} error={e.addressLine1} />
-        <TextField idPrefix="pd" name="addressLine2" label="Address line 2" className="sm:col-span-2" defaultValue={val('addressLine2')} error={e.addressLine2} />
-        <TextField idPrefix="pd" name="city" label="City" defaultValue={val('city')} error={e.city} />
-        <TextField idPrefix="pd" name="stateCode" label="State" placeholder="KA" defaultValue={val('stateCode')} error={e.stateCode} />
-        <TextField idPrefix="pd" name="postalCode" label="PIN code" defaultValue={val('postalCode')} error={e.postalCode} />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <TextField idPrefix="ci" name="personalEmail" label="Personal email" type="email" defaultValue={val('personalEmail')} error={e.personalEmail} />
+        <TextField idPrefix="ci" name="personalPhone" label="Personal phone" type="tel" defaultValue={val('personalPhone')} error={e.personalPhone} />
+        <TextField idPrefix="ci" name="alternatePhone" label="Alternate phone" type="tel" defaultValue={val('alternatePhone')} error={e.alternatePhone} />
       </div>
-      <div className="flex justify-end">
-        <SubmitButton>Save personal details</SubmitButton>
+      <SaveRow label="Save contact info" />
+    </form>
+  );
+}
+
+export function AddressesForm({ action, defaults }: { action: Action; defaults: Defaults }) {
+  const { state, formAction, e, val } = useForm(action, defaults);
+  const [same, setSame] = useState(val('permSameAsCurrent') === 'yes');
+  return (
+    <form action={formAction} noValidate className="space-y-4 px-5 py-4" aria-label="Addresses">
+      <FormMessage state={state} />
+      <fieldset className="grid gap-4 sm:grid-cols-3">
+        <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Current address</legend>
+        <TextField idPrefix="ad" name="addressLine1" label="Address line 1" className="sm:col-span-3" defaultValue={val('addressLine1')} error={e.addressLine1} />
+        <TextField idPrefix="ad" name="addressLine2" label="Address line 2" className="sm:col-span-3" defaultValue={val('addressLine2')} error={e.addressLine2} />
+        <TextField idPrefix="ad" name="city" label="City" defaultValue={val('city')} error={e.city} />
+        <TextField idPrefix="ad" name="stateCode" label="State" placeholder="KA" defaultValue={val('stateCode')} error={e.stateCode} />
+        <TextField idPrefix="ad" name="postalCode" label="PIN code" defaultValue={val('postalCode')} error={e.postalCode} />
+      </fieldset>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={same} onChange={(ev) => setSame(ev.target.checked)} className="size-4 accent-primary" />
+        Permanent address is the same as current
+      </label>
+      <input type="hidden" name="permSameAsCurrent" value={same ? 'yes' : 'no'} />
+      {!same && (
+        <fieldset className="grid gap-4 sm:grid-cols-3">
+          <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Permanent address</legend>
+          <TextField idPrefix="pa" name="permAddressLine1" label="Permanent address line 1" className="sm:col-span-3" defaultValue={val('permAddressLine1')} error={e.permAddressLine1} />
+          <TextField idPrefix="pa" name="permAddressLine2" label="Permanent address line 2" className="sm:col-span-3" defaultValue={val('permAddressLine2')} error={e.permAddressLine2} />
+          <TextField idPrefix="pa" name="permCity" label="Permanent city" defaultValue={val('permCity')} error={e.permCity} />
+          <TextField idPrefix="pa" name="permStateCode" label="Permanent state" defaultValue={val('permStateCode')} error={e.permStateCode} />
+          <TextField idPrefix="pa" name="permPostalCode" label="Permanent PIN code" defaultValue={val('permPostalCode')} error={e.permPostalCode} />
+        </fieldset>
+      )}
+      <SaveRow label="Save addresses" />
+    </form>
+  );
+}
+
+const levels = QUALIFICATION_LEVELS.map((l) => ({ value: l, label: QUALIFICATION_LEVEL_LABELS[l] }));
+const relationships = FAMILY_RELATIONSHIPS.map((r) => ({ value: r, label: FAMILY_RELATIONSHIP_LABELS[r] }));
+
+export function QualificationForm({ action }: { action: Action }) {
+  const { state, formAction, n, e, val } = useForm(action, {});
+  return (
+    <form action={formAction} noValidate className="space-y-4 border-t border-line bg-subtle/40 px-5 py-4" aria-label="Add qualification">
+      <FormMessage state={state} />
+      <div key={n} className="grid gap-4 sm:grid-cols-3">
+        <SelectField idPrefix="q" name="level" label="Level" required options={levels} placeholder="Choose…" defaultValue={val('level')} error={e.level} />
+        <TextField idPrefix="q" name="degree" label="Degree" required placeholder="B.Tech" defaultValue={val('degree')} error={e.degree} />
+        <TextField idPrefix="q" name="specialization" label="Specialization" defaultValue={val('specialization')} error={e.specialization} />
+        <TextField idPrefix="q" name="institution" label="Institution" required className="sm:col-span-3" defaultValue={val('institution')} error={e.institution} />
+        <TextField idPrefix="q" name="startYear" label="From (year)" inputMode="numeric" defaultValue={val('startYear')} error={e.startYear} />
+        <TextField idPrefix="q" name="endYear" label="To (year)" inputMode="numeric" defaultValue={val('endYear')} error={e.endYear} />
+        <TextField idPrefix="q" name="score" label="Grade / %" defaultValue={val('score')} error={e.score} />
       </div>
+      <SaveRow label="⊕ Add qualification" />
+    </form>
+  );
+}
+
+export function FamilyForm({ action }: { action: Action }) {
+  const { state, formAction, n, e, val } = useForm(action, {});
+  return (
+    <form action={formAction} noValidate className="space-y-4 border-t border-line bg-subtle/40 px-5 py-4" aria-label="Add family member">
+      <FormMessage state={state} />
+      <div key={n} className="grid gap-4 sm:grid-cols-3">
+        <TextField idPrefix="fm" name="name" label="Full name" required defaultValue={val('name')} error={e.name} />
+        <SelectField idPrefix="fm" name="relationship" label="Relation" required options={relationships} placeholder="Choose…" defaultValue={val('relationship')} error={e.relationship} />
+        <TextField idPrefix="fm" name="dateOfBirth" label="Date of birth" type="date" defaultValue={val('dateOfBirth')} error={e.dateOfBirth} />
+        <SelectField idPrefix="fm" name="gender" label="Gender" options={genders} placeholder="Not recorded" defaultValue={val('gender')} error={e.gender} />
+        <TextField idPrefix="fm" name="phone" label="Contact number" type="tel" defaultValue={val('phone')} error={e.phone} />
+        <TextField idPrefix="fm" name="occupation" label="Occupation" defaultValue={val('occupation')} error={e.occupation} />
+        <SelectField idPrefix="fm" name="isDependent" label="Dependent" options={yesNo} defaultValue={val('isDependent') || 'no'} error={e.isDependent} />
+      </div>
+      <SaveRow label="⊕ Add family member" />
+    </form>
+  );
+}
+
+export function RemoveRow({ action, kind, id, label }: { action: Action; kind: 'qualification' | 'family'; id: string; label: string }) {
+  const [state, formAction] = useActionState(action, initialActionState);
+  return (
+    <form action={formAction} className="flex items-center gap-2">
+      <input type="hidden" name="kind" value={kind} />
+      <input type="hidden" name="rowId" value={id} />
+      {state.message && !state.ok && <span role="alert" className="text-xs text-danger">{state.message}</span>}
+      <SubmitButton size="sm" variant="ghost" pendingLabel="Removing…" aria-label={`Remove ${label}`}>Remove</SubmitButton>
     </form>
   );
 }

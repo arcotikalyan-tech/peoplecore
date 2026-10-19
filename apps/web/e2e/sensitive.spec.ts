@@ -52,29 +52,37 @@ test.afterAll(async () => {
 
 test('HR edits work details and personal details', async ({ page }) => {
   await signIn(page, 'demo.hr');
-  await open(page, `/app/demo/employees/${subjectId}`);
+  await open(page, `/app/demo/employees/${subjectId}?tab=work`);
 
-  const work = section(page, 'Work details');
+  const work = section(page, 'Basic Info');
   await work.getByRole('button', { name: 'Edit' }).click();
   await work.getByLabel('Work phone').fill('+91 98450 12345');
   await work.getByRole('button', { name: 'Save work details' }).click();
   await expect(work.getByText('+919845012345')).toBeVisible();
 
-  const personal = section(page, 'Personal details');
+  await open(page, `/app/demo/employees/${subjectId}?tab=personal`);
+  const personal = section(page, 'Personal Info');
   await personal.getByRole('button', { name: 'Edit' }).click();
   await personal.getByLabel('Date of birth').fill('1993-08-21');
-  await personal.getByLabel('City').fill('Mysuru');
-  await personal.getByRole('button', { name: 'Save personal details' }).click();
+  await personal.getByLabel('Blood group').selectOption('O+');
+  await personal.getByRole('button', { name: 'Save personal info' }).click();
   await expect(personal.getByText('21 Aug 1993')).toBeVisible();
-  await expect(personal.getByText('Mysuru', { exact: false })).toBeVisible();
+  await expect(personal.getByText('O+')).toBeVisible();
 
-  const { data } = await admin.from('employee_personal').select('date_of_birth, city').eq('employee_id', subjectId).single();
-  expect(data).toEqual({ date_of_birth: '1993-08-21', city: 'Mysuru' });
+  const addresses = section(page, 'Addresses');
+  await addresses.getByRole('button', { name: 'Edit' }).click();
+  await addresses.getByLabel('City', { exact: true }).fill('Mysuru');
+  await addresses.getByText('Permanent address is the same as current').click();
+  await addresses.getByRole('button', { name: 'Save addresses' }).click();
+  await expect(addresses.getByText('Mysuru (same as current)', { exact: false })).toBeVisible();
+
+  const { data } = await admin.from('employee_personal').select('date_of_birth, city, blood_group, perm_same_as_current').eq('employee_id', subjectId).single();
+  expect(data).toEqual({ date_of_birth: '1993-08-21', city: 'Mysuru', blood_group: 'O+', perm_same_as_current: true });
 });
 
 test('HR records identity numbers; they show masked, and viewing them in full is audited', async ({ page }) => {
   await signIn(page, 'demo.hr');
-  await open(page, `/app/demo/employees/${subjectId}`);
+  await open(page, `/app/demo/employees/${subjectId}?tab=documents`);
   const identity = section(page, 'Identity numbers');
   await identity.getByRole('button', { name: 'Add identity details' }).click();
 
@@ -94,14 +102,14 @@ test('HR records identity numbers; they show masked, and viewing them in full is
   await expect(identity.getByText('ABCPE1234F')).toBeVisible();
   await expect(identity.getByText('100123456789')).toBeVisible();
 
-  await page.reload();
+  await open(page, `/app/demo/employees/${subjectId}?tab=work`);
   await expect(section(page, 'Activity').getByText('viewed the full identity details').first()).toBeVisible();
 });
 
 test('payroll changes the bank account; HR cannot see bank details at all', async ({ browser }) => {
   const payroll = await (await browser.newContext()).newPage();
   await signIn(payroll, 'demo.payroll');
-  await open(payroll, `/app/demo/employees/${subjectId}`);
+  await open(payroll, `/app/demo/employees/${subjectId}?tab=payroll&view=bank`);
   const bank = section(payroll, 'Bank account');
   await bank.getByRole('button', { name: 'Add bank account' }).click();
   await bank.getByLabel('Account holder name').fill(`Sana Test${run}`);
@@ -120,8 +128,9 @@ test('payroll changes the bank account; HR cannot see bank details at all', asyn
 
   const hr = await (await browser.newContext()).newPage();
   await signIn(hr, 'demo.hr');
-  await open(hr, `/app/demo/employees/${subjectId}`);
+  await open(hr, `/app/demo/employees/${subjectId}?tab=documents`);
   await expect(hr.getByRole('heading', { name: 'Identity numbers' })).toBeVisible();
+  await open(hr, `/app/demo/employees/${subjectId}?tab=payroll&view=bank`);
   await expect(hr.getByRole('heading', { name: 'Bank account' })).toHaveCount(0);
 });
 
@@ -129,18 +138,20 @@ test('employees edit their own personal details and emergency contacts, and cann
   await signIn(page, 'demo.employee');
   await open(page, `/app/demo/employees/${devId}`);
 
-  const personal = section(page, 'Personal details');
-  await expect(personal.getByText('Visible to you and HR.')).toBeVisible();
-  await personal.getByRole('button', { name: 'Edit' }).click();
-  await personal.getByLabel('Personal phone').fill('+91 90000 11111');
-  await personal.getByRole('button', { name: 'Save personal details' }).click();
-  await expect(personal.getByText('+919000011111')).toBeVisible();
+  await expect(section(page, 'Personal Info').getByText('Visible to you and HR.')).toBeVisible();
+  const contact = section(page, 'Contact Info');
+  await contact.getByRole('button', { name: 'Edit' }).click();
+  await contact.getByLabel('Personal phone').fill('+91 90000 11111');
+  await contact.getByRole('button', { name: 'Save contact info' }).click();
+  await expect(contact.getByText('+919000011111').first()).toBeVisible();
 
-  await personal.getByLabel('Name').fill('Asha Nair');
-  await personal.getByLabel('Relationship').fill('Sister');
-  await personal.getByRole('textbox', { name: 'Phone', exact: true }).fill('+91 90000 22222');
-  await personal.getByRole('button', { name: 'Add contact' }).click();
-  await expect(personal.getByText('Asha Nair')).toBeVisible();
+  await open(page, `/app/demo/employees/${devId}?tab=family`);
+  const emergency = section(page, 'Emergency Contact');
+  await emergency.getByRole('textbox', { name: 'Name', exact: true }).fill('Asha Nair');
+  await emergency.getByLabel('Relationship').fill('Sister');
+  await emergency.getByRole('textbox', { name: 'Phone', exact: true }).fill('+91 90000 22222');
+  await emergency.getByRole('button', { name: 'Add contact' }).click();
+  await expect(emergency.getByText('Asha Nair')).toBeVisible();
 
   // The employee has no access to restricted sections for colleagues, or to colleagues at all.
   await open(page, `/app/demo/employees/${subjectId}`);
@@ -151,7 +162,8 @@ test('a manager sees a report’s work profile but no personal, identity or bank
   await signIn(page, 'demo.manager');
   await open(page, `/app/demo/employees/${subjectId}`);
   await expect(page.getByRole('heading', { level: 1, name: `Sana Test${run}` })).toBeVisible();
-  for (const title of ['Personal details', 'Identity numbers', 'Bank account']) {
+  await expect(page.getByRole('navigation', { name: 'Profile sections' }).getByRole('link', { name: 'Family' })).toHaveCount(0);
+  for (const title of ['Personal Info', 'Identity numbers', 'Bank account']) {
     await expect(page.getByRole('heading', { name: title, exact: true })).toHaveCount(0);
   }
 });

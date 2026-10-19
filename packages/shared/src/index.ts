@@ -14,3 +14,4 @@ export * from './schemas/recruitment.ts';
 export * from './schemas/leave.ts';
 export * from './schemas/attendance.ts';
 export * from './schemas/recruitment-offers.ts';
+export * from './schemas/profile.ts';

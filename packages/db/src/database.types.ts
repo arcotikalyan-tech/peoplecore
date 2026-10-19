@@ -1617,6 +1617,9 @@ export type Database = {
           created_at: string;
           deleted_at: string | null;
           deleted_by: string | null;
+          proves: string[];
+          verified_at: string | null;
+          verified_by: string | null;
         };
         Insert: {
           id: string;
@@ -1632,6 +1635,9 @@ export type Database = {
           created_at?: string;
           deleted_at?: string | null;
           deleted_by?: string | null;
+          proves?: string[];
+          verified_at?: string | null;
+          verified_by?: string | null;
         };
         Update: {
           id?: string;
@@ -1647,6 +1653,51 @@ export type Database = {
           created_at?: string;
           deleted_at?: string | null;
           deleted_by?: string | null;
+          proves?: string[];
+          verified_at?: string | null;
+          verified_by?: string | null;
+        };
+        Relationships: [];
+      };
+      employee_family_members: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          name: string;
+          relationship: string;
+          date_of_birth: string | null;
+          gender: Database['public']['Enums']['gender'] | null;
+          phone: string | null;
+          occupation: string | null;
+          is_dependent: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          name: string;
+          relationship: string;
+          date_of_birth?: string | null;
+          gender?: Database['public']['Enums']['gender'] | null;
+          phone?: string | null;
+          occupation?: string | null;
+          is_dependent?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          name?: string;
+          relationship?: string;
+          date_of_birth?: string | null;
+          gender?: Database['public']['Enums']['gender'] | null;
+          phone?: string | null;
+          occupation?: string | null;
+          is_dependent?: boolean;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -1667,6 +1718,16 @@ export type Database = {
           country_code: string;
           updated_by: string | null;
           updated_at: string;
+          blood_group: string | null;
+          marital_status: string | null;
+          is_disabled: boolean;
+          alternate_phone: string | null;
+          perm_same_as_current: boolean;
+          perm_address_line1: string | null;
+          perm_address_line2: string | null;
+          perm_city: string | null;
+          perm_state_code: string | null;
+          perm_postal_code: string | null;
         };
         Insert: {
           id?: string;
@@ -1684,6 +1745,16 @@ export type Database = {
           country_code?: string;
           updated_by?: string | null;
           updated_at?: string;
+          blood_group?: string | null;
+          marital_status?: string | null;
+          is_disabled?: boolean;
+          alternate_phone?: string | null;
+          perm_same_as_current?: boolean;
+          perm_address_line1?: string | null;
+          perm_address_line2?: string | null;
+          perm_city?: string | null;
+          perm_state_code?: string | null;
+          perm_postal_code?: string | null;
         };
         Update: {
           id?: string;
@@ -1701,6 +1772,58 @@ export type Database = {
           country_code?: string;
           updated_by?: string | null;
           updated_at?: string;
+          blood_group?: string | null;
+          marital_status?: string | null;
+          is_disabled?: boolean;
+          alternate_phone?: string | null;
+          perm_same_as_current?: boolean;
+          perm_address_line1?: string | null;
+          perm_address_line2?: string | null;
+          perm_city?: string | null;
+          perm_state_code?: string | null;
+          perm_postal_code?: string | null;
+        };
+        Relationships: [];
+      };
+      employee_qualifications: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          level: string;
+          degree: string;
+          specialization: string | null;
+          institution: string;
+          start_year: number | null;
+          end_year: number | null;
+          score: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          level: string;
+          degree: string;
+          specialization?: string | null;
+          institution: string;
+          start_year?: number | null;
+          end_year?: number | null;
+          score?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          level?: string;
+          degree?: string;
+          specialization?: string | null;
+          institution?: string;
+          start_year?: number | null;
+          end_year?: number | null;
+          score?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -1758,6 +1881,8 @@ export type Database = {
           updated_at: string;
           search_text: string | null;
           confirmed_on: string | null;
+          job_title: string | null;
+          billable: boolean;
         };
         Insert: {
           id?: string;
@@ -1785,6 +1910,8 @@ export type Database = {
           updated_at?: string;
           search_text?: never;
           confirmed_on?: string | null;
+          job_title?: string | null;
+          billable?: boolean;
         };
         Update: {
           id?: string;
@@ -1812,6 +1939,8 @@ export type Database = {
           updated_at?: string;
           search_text?: never;
           confirmed_on?: string | null;
+          job_title?: string | null;
+          billable?: boolean;
         };
         Relationships: [];
       };
@@ -5723,6 +5852,13 @@ export type Database = {
         };
         Returns: { question: string; response: string }[];
       };
+      my_file_activity: {
+        Args: {
+          p_org: string;
+          p_limit?: number;
+        };
+        Returns: { occurred_at: string; action: string; entity_type: string; entity_id: string; metadata: Json }[];
+      };
       my_interviews: {
         Args: {
           p_org: string;
@@ -6118,6 +6254,13 @@ export type Database = {
         };
         Returns: string;
       };
+      set_document_proofs: {
+        Args: {
+          p_document: string;
+          p_proves: string[];
+        };
+        Returns: undefined;
+      };
       set_employee_bank_account: {
         Args: {
           p_employee: string;
@@ -6365,6 +6508,13 @@ export type Database = {
           p_status: Database['public']['Enums']['ticket_status'];
           p_assignee?: string;
           p_priority?: Database['public']['Enums']['ticket_priority'];
+        };
+        Returns: undefined;
+      };
+      verify_employee_document: {
+        Args: {
+          p_document: string;
+          p_verified: boolean;
         };
         Returns: undefined;
       };

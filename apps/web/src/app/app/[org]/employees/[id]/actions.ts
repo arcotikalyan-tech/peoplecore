@@ -8,11 +8,16 @@ import {
   safeFileName,
   uploadDocumentSchema,
   emergencyContactSchema,
+  familyMemberSchema,
   identitySchema,
-  personalDetailsSchema,
+  personalProfileSchema,
+  qualificationSchema,
   updateWorkDetailsSchema,
+  workProfileSchema,
+  DOCUMENT_PROOFS,
 } from '@peoplecore/shared';
 import { z } from 'zod';
+import type { Database } from '@peoplecore/db/types';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { flash } from '@/server/flash';
@@ -33,6 +38,8 @@ export async function updateWorkDetailsAction(orgSlug: string, employeeId: strin
   const ctx = await getOrgContext(orgSlug);
   const parsed = updateWorkDetailsSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(parsed.error, formData);
+  const extra = workProfileSchema.safeParse(Object.fromEntries(formData));
+  if (!extra.success) return invalid(extra.error, formData);
   const v = parsed.data;
 
   const supabase = await createClient();
@@ -46,6 +53,8 @@ export async function updateWorkDetailsAction(orgSlug: string, employeeId: strin
       work_phone: v.workPhone ?? null,
       probation_end_date: v.probationEndDate ?? null,
       legal_entity_id: v.legalEntityId ?? null,
+      ...(formData.has('jobTitle') ? { job_title: extra.data.jobTitle ?? null } : {}),
+      ...(formData.has('billable') ? { billable: extra.data.billable === 'yes' } : {}),
     })
     .eq('id', employeeIdSchema.parse(employeeId))
     .eq('organization_id', ctx.org.id)
@@ -56,32 +65,87 @@ export async function updateWorkDetailsAction(orgSlug: string, employeeId: strin
   return { ok: true, message: 'Work details saved.' };
 }
 
+const PERSONAL_COLUMNS = {
+  dateOfBirth: 'date_of_birth', gender: 'gender', personalEmail: 'personal_email', personalPhone: 'personal_phone',
+  addressLine1: 'address_line1', addressLine2: 'address_line2', city: 'city', stateCode: 'state_code', postalCode: 'postal_code',
+  bloodGroup: 'blood_group', maritalStatus: 'marital_status', isDisabled: 'is_disabled', alternatePhone: 'alternate_phone',
+  permSameAsCurrent: 'perm_same_as_current', permAddressLine1: 'perm_address_line1', permAddressLine2: 'perm_address_line2',
+  permCity: 'perm_city', permStateCode: 'perm_state_code', permPostalCode: 'perm_postal_code',
+} as const;
+const PERSONAL_FLAGS = new Set(['isDisabled', 'permSameAsCurrent']);
+
+/** Each Personal-tab card posts only its own fields; only those columns are written. */
 export async function savePersonalDetailsAction(orgSlug: string, employeeId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await getOrgContext(orgSlug);
-  const parsed = personalDetailsSchema.safeParse(Object.fromEntries(formData));
+  const parsed = personalProfileSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(parsed.error, formData);
-  const v = parsed.data;
+  const v = parsed.data as Record<string, unknown>;
+  const row: Record<string, unknown> = { organization_id: ctx.org.id, employee_id: employeeIdSchema.parse(employeeId) };
+  for (const [key, column] of Object.entries(PERSONAL_COLUMNS)) {
+    if (!formData.has(key)) continue;
+    row[column] = PERSONAL_FLAGS.has(key) ? v[key] === 'yes' : (v[key] ?? null);
+  }
+  if (row.perm_same_as_current === true) {
+    for (const c of ['perm_address_line1', 'perm_address_line2', 'perm_city', 'perm_state_code', 'perm_postal_code']) row[c] = null;
+  }
 
   const supabase = await createClient();
-  const { error } = await supabase.from('employee_personal').upsert(
-    {
-      organization_id: ctx.org.id,
-      employee_id: employeeIdSchema.parse(employeeId),
-      date_of_birth: v.dateOfBirth ?? null,
-      gender: v.gender ?? null,
-      personal_email: v.personalEmail ?? null,
-      personal_phone: v.personalPhone ?? null,
-      address_line1: v.addressLine1 ?? null,
-      address_line2: v.addressLine2 ?? null,
-      city: v.city ?? null,
-      state_code: v.stateCode ?? null,
-      postal_code: v.postalCode ?? null,
-    },
-    { onConflict: 'employee_id' },
-  );
+  const { error } = await supabase.from('employee_personal')
+    .upsert(row as Database['public']['Tables']['employee_personal']['Insert'], { onConflict: 'employee_id' });
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   revalidatePath(profilePath(orgSlug, employeeId));
   return { ok: true, message: 'Personal details saved.' };
+}
+
+// ─── Education and family ───────────────────────────────────────────────────
+
+export async function addQualificationAction(orgSlug: string, employeeId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  const parsed = qualificationSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase.from('employee_qualifications').insert({
+    organization_id: ctx.org.id, employee_id: employeeIdSchema.parse(employeeId), level: v.level, degree: v.degree,
+    specialization: v.specialization ?? null, institution: v.institution, start_year: v.startYear ?? null, end_year: v.endYear ?? null,
+    score: v.score ?? null,
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(profilePath(orgSlug, employeeId));
+  await flash('Qualification added.');
+  return { ok: true, message: 'Qualification added.' };
+}
+
+export async function addFamilyMemberAction(orgSlug: string, employeeId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  const parsed = familyMemberSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase.from('employee_family_members').insert({
+    organization_id: ctx.org.id, employee_id: employeeIdSchema.parse(employeeId), name: v.name, relationship: v.relationship,
+    date_of_birth: v.dateOfBirth ?? null, gender: v.gender ?? null, phone: v.phone ?? null, occupation: v.occupation ?? null,
+    is_dependent: v.isDependent === 'yes',
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(profilePath(orgSlug, employeeId));
+  await flash('Family member added.');
+  return { ok: true, message: 'Family member added.' };
+}
+
+const REMOVABLE = { qualification: 'employee_qualifications', family: 'employee_family_members' } as const;
+
+export async function removeProfileRowAction(orgSlug: string, employeeId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await getOrgContext(orgSlug);
+  const kind = z.enum(['qualification', 'family']).safeParse(formData.get('kind'));
+  const rowId = z.uuid().safeParse(formData.get('rowId'));
+  if (!kind.success || !rowId.success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from(REMOVABLE[kind.data]).delete().eq('id', rowId.data).eq('employee_id', employeeId).select('id');
+  if (error) return { ok: false, message: toUserMessage(error) };
+  if (data.length === 0) return { ok: false, message: 'You can’t remove this.' };
+  revalidatePath(profilePath(orgSlug, employeeId));
+  return { ok: true, message: 'Removed.' };
 }
 
 export async function addEmergencyContactAction(orgSlug: string, employeeId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -240,6 +304,8 @@ export async function uploadDocumentAction(orgSlug: string, employeeId: string, 
     await removeDocumentFile(path, DOCUMENT_BUCKET);
     return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   }
+  const proves = proofsFrom(formData);
+  if (proves.length > 0) await supabase.rpc('set_document_proofs', { p_document: documentId, p_proves: proves });
   revalidatePath(profilePath(orgSlug, employeeId));
   return { ok: true, message: `“${parsed.data.title}” uploaded.` };
 }
@@ -262,4 +328,29 @@ export async function deleteDocumentAction(orgSlug: string, employeeId: string, 
   revalidatePath(profilePath(orgSlug, employeeId));
   await flash('Document deleted.');
   return { ok: true, message: 'Document deleted.' };
+}
+
+const proofsFrom = (formData: FormData) =>
+  formData.getAll('proves').map(String).filter((p): p is (typeof DOCUMENT_PROOFS)[number] => (DOCUMENT_PROOFS as readonly string[]).includes(p));
+
+export async function setProofsAction(orgSlug: string, employeeId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await getOrgContext(orgSlug);
+  const documentId = z.uuid().safeParse(formData.get('documentId'));
+  if (!documentId.success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_document_proofs', { p_document: documentId.data, p_proves: proofsFrom(formData) });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath(profilePath(orgSlug, employeeId));
+  return { ok: true, message: 'Saved.' };
+}
+
+export async function verifyDocumentAction(orgSlug: string, employeeId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await getOrgContext(orgSlug);
+  const documentId = z.uuid().safeParse(formData.get('documentId'));
+  if (!documentId.success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('verify_employee_document', { p_document: documentId.data, p_verified: formData.get('verified') === 'yes' });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath(profilePath(orgSlug, employeeId));
+  return { ok: true, message: formData.get('verified') === 'yes' ? 'Verified.' : 'Verification removed.' };
 }
