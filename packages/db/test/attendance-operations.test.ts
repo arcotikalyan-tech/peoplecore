@@ -225,3 +225,22 @@ describe('settings', () => {
     });
   });
 });
+
+describe('open check-in', () => {
+  it('someone checked in today and not yet out counts as present; checking out judges the hours', async () => {
+    const { f, t } = ctx;
+    await t.db.exec('begin');
+    try {
+      const at = `greatest(now() - interval '2 minutes', (app.org_today($1) || ' 00:00')::timestamp at time zone 'Asia/Kolkata')`;
+      await t.db.query(`insert into attendance_punches (organization_id, employee_id, punched_at, method, source_key)
+                        values ($1, $2, ${at}, 'import', 'open-in')`, [f.orgA, f.employees.peerA]);
+      const today = (await t.db.query<{ d: string }>(`select to_char(app.org_today($1), 'YYYY-MM-DD') as d`, [f.orgA])).rows[0]!.d;
+      expect((await day(t.db as unknown as Transaction, f.employees.peerA, today))?.status).toBe('present');
+      await t.db.query(`insert into attendance_punches (organization_id, employee_id, punched_at, method, source_key)
+                        values ($1, $2, ${at} + interval '1 minute', 'import', 'open-out')`, [f.orgA, f.employees.peerA]);
+      expect((await day(t.db as unknown as Transaction, f.employees.peerA, today))?.status).toBe('not_marked');
+    } finally {
+      await t.db.exec('rollback');
+    }
+  });
+});

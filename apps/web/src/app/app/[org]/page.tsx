@@ -136,8 +136,8 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
           <section aria-label="Key figures" className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-5">
             <Kpi label="Headcount" value={headcount?.toLocaleString('en-IN') ?? '—'} note="active employees" tone="primary" href={`${base}/employees?status=active`} />
             {pay && <Kpi label="Monthly payroll" value={pay.latest ? inr(Number(pay.latest.total_net)) : '—'} note={pay.latest ? `${monthName(pay.latest.period_month)} · net payout` : 'no locked run yet'} tone="success" href={`${base}/payroll`} />}
-            {presence && <Kpi label="Present today" value={presence.present === null ? '—' : String(presence.present)} note={headcount ? `of ${headcount.toLocaleString('en-IN')} · ${presence.late ?? 0} late` : 'clocked in'} tone="info" href={`${base}/attendance`} />}
-            <Kpi label="Attrition (30 days)" value={attrition === null ? '—' : `${attrition.toFixed(1)}%`} note={`${exits ?? 0} exits / headcount`} tone="warning" />
+            {presence && <Kpi label="Present today" value={presence.present === null ? '—' : String(presence.present)} note={headcount ? `of ${headcount.toLocaleString('en-IN')} · ${presence.late ?? 0} late` : 'clocked in'} tone="info" href={`${base}/attendance?tab=hub&pulse=present`} />}
+            <Kpi label="Attrition (30 days)" value={attrition === null ? '—' : `${attrition.toFixed(1)}%`} note={`${exits ?? 0} exits / headcount`} tone="warning" href={`${base}/separations`} />
             <Kpi label="Joining soon" value={String(workforce?.[1] ?? '—')} note={`${workforce?.[2] ?? 0} on notice`} tone="accent" href={`${base}/employees?status=pre_joining`} />
           </section>
         )}
@@ -273,7 +273,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
           )}
         </RailCard>
 
-        <RailCard title="Holidays" icon={<CalendarDays className="size-4" />} href={`${base}/leave`}>
+        <RailCard title="Holidays" icon={<CalendarDays className="size-4" />} href={`${base}/leave?tab=${admin ? 'settings' : 'calendar'}`}>
           {nextHolidays.length === 0 ? <p className="text-sm text-muted">No upcoming holidays.</p> : (
             <ul className="space-y-2.5">
               {nextHolidays.map((h) => (
