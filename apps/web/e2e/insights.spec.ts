@@ -32,7 +32,11 @@ const activeCount = async () =>
 test('HR sees organization-wide reports and asks the copilot', async ({ page }) => {
   await signIn(page, 'demo.hr');
   await open(page, '/app/demo');
-  await expect(page.getByRole('region', { name: 'Needs your attention' }).getByText('Exits in progress')).toBeVisible();
+  const figures = page.getByRole('region', { name: 'Key figures' });
+  await expect(figures.getByText('Headcount', { exact: true })).toBeVisible();
+  await expect(figures.getByText('Attrition (30d)')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Attendance Snapshot' }).getByRole('group', { name: 'Absent' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Quick access' })).toBeVisible();
   await page.getByRole('navigation', { name: 'Main' }).first().getByRole('link', { name: 'Insights' }).click();
   await page.waitForURL(/\/insights$/);
   await expect(page.getByText('Workforce figures for the whole organization')).toBeVisible();
@@ -66,10 +70,10 @@ test('a manager’s figures cover only their reporting line', async ({ page }) =
 test('employees get no Insights; their dashboard shows what is waiting for them', async ({ page }) => {
   await signIn(page, 'demo.employee');
   await open(page, '/app/demo');
-  const cards = page.getByRole('region', { name: 'Needs your attention' });
-  await expect(cards.getByText('Waiting for your approval')).toBeVisible();
-  await expect(cards.getByText('Your open tasks')).toBeVisible();
-  await expect(cards.getByText('Exits in progress')).toHaveCount(0);
+  const cards = page.getByRole('region', { name: 'Key figures' });
+  await expect(cards.getByText('Days present')).toBeVisible();
+  await expect(cards.getByText('Pending actions')).toBeVisible();
+  await expect(cards.getByText('Attrition (30d)')).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Main' }).first().getByRole('link', { name: 'Insights' })).toHaveCount(0);
   await open(page, '/app/demo/insights');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();

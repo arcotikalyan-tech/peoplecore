@@ -3,7 +3,7 @@
 /*
  * Design tokens. Components use the semantic utilities below (bg-surface, text-muted, …), never raw colors.
  * <html data-theme> is dark or light: chosen in the appearance menu, or "auto" (light by day, dark at night), applied
- * before the first paint. Accent: coral. AI content keeps its own violet so it is never mistaken for a record.
+ * before the first paint. Accent: coral in the dark theme, indigo in the light one (as Kredily). AI content keeps its own violet so it is never mistaken for a record.
  */
 :root,
 [data-theme='dark'] {
@@ -36,17 +36,17 @@
 }
 
 [data-theme='light'] {
-  --canvas: #f6f6f8;
+  --canvas: #f7f6fb;
   --surface: #ffffff;
-  --subtle: #f1f1f4;
+  --subtle: #f3f2f8;
   --raised: #ffffff;
-  --line: #e5e5ea;
-  --line-strong: #cfcfd8;
+  --line: #e9e7f2;
+  --line-strong: #d4d1e3;
   --fg: #16161b;
   --muted: #5f5f6c;
-  --primary: #d9472f;
+  --primary: #5652e8;
   --primary-fg: #ffffff;
-  --primary-soft: #fdebe7;
+  --primary-soft: #ecebff;
   --accent: #5b4ae6;
   --accent-soft: #eeebfe;
   --danger: #c4282d;
@@ -59,7 +59,7 @@
   --info-soft: #e8f0fc;
   --ai: #6d3fd1;
   --ai-soft: #f1ebfd;
-  --ring: #d9472f;
+  --ring: #5652e8;
   --sidebar: #ffffff;
   color-scheme: light;
 }

@@ -5541,6 +5541,13 @@ export type Database = {
         };
         Returns: { id: string; author_name: string; mine: boolean; body: string; internal: boolean; created_at: string }[];
       };
+      upcoming_birthdays: {
+        Args: {
+          p_org: string;
+          p_days?: number;
+        };
+        Returns: { employee_id: string; name: string; next_birthday: string }[];
+      };
       update_enrollment: {
         Args: {
           p_enrollment: string;

@@ -10,7 +10,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 ## Admin (CEO) view
 
 ### Dashboard
-- [~] Dashboard (hub)
+- [x] Dashboard (hub) — Kredily layout: figures, trends, attendance snapshot, customisable quick access, compliance, activity, work hours, announcements, birthdays, holidays (AI insight replaced by a plain summary; vouchers and refer-and-earn are Kredily's own marketing)
 
 ### Onboarding
 - [ ] Onboarding (hub)
@@ -274,7 +274,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 ## Employee view
 
 ### Dashboard
-- [~] Dashboard (hub)
+- [x] Dashboard (hub) — Kredily layout: figures, trends, attendance snapshot, customisable quick access, compliance, activity, work hours, announcements, birthdays, holidays (AI insight replaced by a plain summary; vouchers and refer-and-earn are Kredily's own marketing)
 
 ### My Profile
 - [ ] My Profile (hub)
