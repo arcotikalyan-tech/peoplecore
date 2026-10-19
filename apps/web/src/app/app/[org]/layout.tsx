@@ -31,7 +31,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
   const nav: NavGroup[] = view === 'admin' ? [
     home,
     { label: 'People', items: [
-      ...when(ctx.can('employee.read'), { href: `${base}/employees`, label: 'Employees', icon: 'users' }),
+      ...when(ctx.can('employee.read'), { href: `${base}/employees`, label: 'People', icon: 'users' }),
       ...when(ctx.can('org.read'), { href: `${base}/structure`, label: 'Organization', icon: 'building' }),
       ...when(ctx.can('recruitment.read'), { href: `${base}/recruitment`, label: 'Recruitment', icon: 'briefcase' }),
       ...when(ctx.can('onboarding.manage', 'org'), { href: `${base}/onboarding`, label: 'Onboarding', icon: 'user-plus' }),
@@ -70,6 +70,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     home,
     { label: 'Me', items: [
       ...(profileHref ? [{ href: profileHref, label: 'My profile', icon: 'user' } as NavItem] : []),
+      { href: `${base}/employees`, label: 'People', icon: 'users' },
       ...when(ctx.can('attendance.read'), { href: `${base}/attendance`, label: 'Attendance', icon: 'clock' }),
       ...when(ctx.can('leave.read'), { href: `${base}/leave`, label: 'Leave', icon: 'palm' }),
       { href: `${base}/payslips`, label: 'My Pay', icon: 'receipt' },

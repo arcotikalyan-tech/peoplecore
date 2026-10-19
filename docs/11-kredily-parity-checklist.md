@@ -23,17 +23,17 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Onboarding › rewards
 
 ### Directory
-- [ ] Directory (hub)
-- [ ] Directory › insights
-- [ ] Directory › lifecycle
-- [ ] Directory › org chart
-- [ ] Directory › org chart › fit
-- [ ] Directory › overview
-- [ ] Directory › overview › exiting
-- [ ] Directory › people
-- [ ] Directory › people › deletion requests
-- [ ] Directory › people › mail
-- [ ] Directory › settings
+- [x] Directory (hub)
+- [x] Directory › insights
+- [x] Directory › lifecycle
+- [x] Directory › org chart
+- [x] Directory › org chart › fit
+- [x] Directory › overview
+- [x] Directory › overview › exiting
+- [x] Directory › people
+- [ ] Directory › people › deletion requests — not built: no self-service data-deletion requests yet
+- [x] Directory › people › mail — opens a mail to the filtered people (BCC)
+- [x] Directory › settings
 
 ### Company Profile
 - [ ] Company Profile (hub)
@@ -423,13 +423,13 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Loans (hub)
 
 ### Directory
-- [ ] Directory (hub)
-- [ ] Directory › insights
-- [ ] Directory › lifecycle
-- [ ] Directory › org chart
-- [ ] Directory › overview
-- [ ] Directory › people
-- [ ] Directory › settings
+- [x] Directory (hub)
+- [x] Directory › insights
+- [x] Directory › lifecycle
+- [x] Directory › org chart
+- [x] Directory › overview
+- [x] Directory › people
+- [x] Directory › settings
 
 ### Home
 - [ ] Home (hub)
@@ -465,10 +465,10 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Holiday (hub)
 
 ### Directory My Network
-- [ ] Directory My Network (hub)
+- [x] Directory My Network (hub)
 
 ### Directory Directory
-- [ ] Directory Directory (hub)
+- [x] Directory Directory (hub)
 
 ### Attendance Calendar
 - [x] Attendance Calendar (hub)

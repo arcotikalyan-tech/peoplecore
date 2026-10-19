@@ -1326,6 +1326,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      directory_settings: {
+        Row: {
+          organization_id: string;
+          show_department: boolean;
+          show_designation: boolean;
+          show_email: boolean;
+          show_phone: boolean;
+          show_location: boolean;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          show_department?: boolean;
+          show_designation?: boolean;
+          show_email?: boolean;
+          show_phone?: boolean;
+          show_location?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          show_department?: boolean;
+          show_designation?: boolean;
+          show_email?: boolean;
+          show_phone?: boolean;
+          show_location?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       emergency_contacts: {
         Row: {
           id: string;
@@ -1511,6 +1544,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           search_text: string | null;
+          confirmed_on: string | null;
         };
         Insert: {
           id?: string;
@@ -1537,6 +1571,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           search_text?: never;
+          confirmed_on?: string | null;
         };
         Update: {
           id?: string;
@@ -1563,6 +1598,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           search_text?: never;
+          confirmed_on?: string | null;
         };
         Relationships: [];
       };
@@ -5120,6 +5156,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      confirm_probation: {
+        Args: {
+          p_org: string;
+          p_employees: string[];
+          p_date?: string;
+        };
+        Returns: number;
+      };
       create_employee: {
         Args: {
           p_organization_id: string;
@@ -5523,6 +5567,20 @@ export type Database = {
           p_report: string;
         };
         Returns: { employee_id: string; employee_code: string; employee_name: string; pan: string; uan: string; esic_number: string; pt_state: string; payable_days: number; lop_days: number; gross: number; taxable: number; pf_wages: number; pf_employee: number; eps_employer: number; epf_employer: number; esi_wages: number; esi_employee: number; esi_employer: number; pt: number; tds: number }[];
+      };
+      people_directory: {
+        Args: {
+          p_org: string;
+          p_query?: string;
+          p_limit?: number;
+        };
+        Returns: { id: string; name: string; department: string; designation: string; location: string; work_email: string; work_phone: string; tenure_years: number; manager_id: string }[];
+      };
+      people_profile_gaps: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { employee_id: string; has_pan: boolean; has_uan: boolean; has_aadhaar: boolean; has_bank: boolean }[];
       };
       policy_acknowledgement_status: {
         Args: {
