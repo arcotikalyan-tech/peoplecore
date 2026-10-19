@@ -93,63 +93,162 @@
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
+/*
+ * Scenes and weather (as in Kredily). Each scene paints its own five-colour mesh behind the whole app; weather
+ * shifts the mesh's saturation, brightness, hue and contrast and adds a moving overlay (rain, snow, fog). Cards
+ * are frosted glass, so the scene shows through them. Text sits on ≥66% white (light) or ≥88% dark glass, so
+ * contrast never depends on the scene. Set on <html> by the theme menu / boot script (data-scene, data-weather).
+ */
+:root {
+  --mesh-sat: 108%; --mesh-bright: 100%; --mesh-hue: 0deg; --mesh-contrast: 100%;
+  --mesh-a: #ffb3c8; --mesh-b: #c9b3ff; --mesh-c: #8ec5ff; --mesh-d: #ffd9a3; --mesh-e: #aef0d1;
+  --mesh-base-1: #fbf3ec; --mesh-base-2: #f5eefb;
+}
+[data-theme='light'] {
+  --surface: rgb(255 255 255 / 0.66);
+  --subtle: rgb(243 242 250 / 0.72);
+  --sidebar: rgb(255 255 255 / 0.62);
+  --line: rgb(15 18 30 / 0.08);
+  --line-strong: rgb(15 18 30 / 0.16);
+}
+[data-theme='light'][data-scene='dawn'] { --mesh-a: #ffc4a8; --mesh-b: #d8a5e8; --mesh-c: #ffb8c8; --mesh-d: #ffd9b0; --mesh-e: #c8b8e8; --mesh-base-1: #fde8dc; --mesh-base-2: #f3e6f3; }
+[data-theme='light'][data-scene='morning'] { --mesh-a: #ffb3c8; --mesh-b: #c9b3ff; --mesh-c: #8ec5ff; --mesh-d: #ffd9a3; --mesh-e: #aef0d1; --mesh-base-1: #fbf3ec; --mesh-base-2: #f5eefb; }
+[data-theme='light'][data-scene='midday'] { --mesh-a: #a8d8ff; --mesh-b: #c4e4ff; --mesh-c: #8ec5ff; --mesh-d: #fff0c8; --mesh-e: #b8ecd4; --mesh-base-1: #eef6fb; --mesh-base-2: #f0f4fb; }
+[data-theme='light'][data-scene='afternoon'] { --mesh-a: #ffc89c; --mesh-b: #ffb8a0; --mesh-c: #ffd4a8; --mesh-d: #ffe0a8; --mesh-e: #f7b8c4; --mesh-base-1: #fbeee0; --mesh-base-2: #f9eee6; }
+[data-theme='light'][data-scene='dusk'] { --mesh-a: #ff9bb8; --mesh-b: #a87ce0; --mesh-c: #ff9d7e; --mesh-d: #f57588; --mesh-e: #7c52b8; --mesh-base-1: #f3deea; --mesh-base-2: #ebe0f3; }
+/* The night scene in the light theme turns the glass navy, as Kredily's night scene does. */
+[data-theme='light'][data-scene='night'] {
+  --mesh-a: #6a4a9c; --mesh-b: #4a5aa8; --mesh-c: #3a6a9c; --mesh-d: #8a4a8c; --mesh-e: #2a5a7c; --mesh-base-1: #1a1828; --mesh-base-2: #161a28;
+  --canvas: #0f1222;
+  --surface: rgb(20 24 50 / 0.72);
+  --subtle: rgb(255 255 255 / 0.07);
+  --raised: #1b2142;
+  --line: rgb(255 255 255 / 0.1);
+  --line-strong: rgb(255 255 255 / 0.2);
+  --fg: #e8eefc;
+  --muted: #afbce1;
+  --primary: #6b6bff;
+  --primary-soft: rgb(91 91 255 / 0.2);
+  --accent-soft: rgb(91 91 255 / 0.2);
+  --danger: #ff7b7b; --danger-soft: #3b1618;
+  --success: #3fd68b; --success-soft: #11301f;
+  --warning: #f6b445; --warning-soft: #352710;
+  --info: #5aa9ff; --info-soft: #132a45;
+  --ai: #a594ff; --ai-soft: #251f45;
+  --sidebar: rgb(14 16 36 / 0.86);
+  color-scheme: dark;
+}
+/* The dark theme keeps its near-black canvas; each scene adds a deep tint of its colours. */
+[data-theme='dark'] {
+  --surface: rgb(19 19 23 / 0.88);
+  --sidebar: rgb(12 12 15 / 0.86);
+  --mesh-base-1: #0b0b0e; --mesh-base-2: #08080b;
+}
+[data-theme='dark'][data-scene='dawn'] { --mesh-a: #4a2a3a; --mesh-b: #3a2a50; --mesh-c: #4a2f3a; --mesh-d: #503528; --mesh-e: #2e2a48; }
+[data-theme='dark'][data-scene='morning'] { --mesh-a: #3f2a3a; --mesh-b: #33295a; --mesh-c: #1f3a5a; --mesh-d: #4a3a20; --mesh-e: #1f4a3a; }
+[data-theme='dark'][data-scene='midday'] { --mesh-a: #1e3a5a; --mesh-b: #23405a; --mesh-c: #1f3a5a; --mesh-d: #4a4428; --mesh-e: #1f4a3e; }
+[data-theme='dark'][data-scene='afternoon'] { --mesh-a: #50351f; --mesh-b: #4a2a22; --mesh-c: #4a3826; --mesh-d: #50401e; --mesh-e: #4a2a33; }
+[data-theme='dark'][data-scene='dusk'] { --mesh-a: #4f2238; --mesh-b: #3a2558; --mesh-c: #4f2a22; --mesh-d: #4a1f2a; --mesh-e: #2e1f4a; }
+[data-theme='dark'][data-scene='night'] { --mesh-a: #2c2148; --mesh-b: #212a52; --mesh-c: #1a3048; --mesh-d: #3a2140; --mesh-e: #142a3a; }
+
+[data-weather='clear'] { --mesh-sat: 112%; --mesh-bright: 102%; --mesh-contrast: 102%; }
+[data-weather='cloudy'] { --mesh-sat: 72%; --mesh-bright: 98%; --mesh-contrast: 96%; }
+[data-weather='rain'] { --mesh-sat: 58%; --mesh-bright: 92%; --mesh-contrast: 95%; --mesh-hue: -10deg; }
+[data-weather='storm'] { --mesh-sat: 42%; --mesh-bright: 76%; --mesh-contrast: 92%; --mesh-hue: -18deg; }
+[data-weather='fog'] { --mesh-sat: 46%; --mesh-bright: 104%; --mesh-contrast: 82%; }
+[data-weather='snow'] { --mesh-sat: 55%; --mesh-bright: 108%; --mesh-contrast: 94%; --mesh-hue: 8deg; }
+[data-weather='haze'] { --mesh-sat: 82%; --mesh-bright: 102%; --mesh-contrast: 92%; --mesh-hue: 10deg; }
+
 html {
-  background: var(--canvas);
+  background: var(--mesh-base-1);
   color: var(--fg);
 }
 
 body {
-  @apply bg-canvas text-fg antialiased;
+  @apply text-fg antialiased;
   font-feature-settings: 'cv11', 'ss01';
   isolation: isolate;
-  background-image:
-    radial-gradient(1100px 560px at 88% -12%, var(--glow-1, transparent), transparent 62%),
-    radial-gradient(900px 520px at -8% -6%, var(--glow-2, transparent), transparent 58%);
-  background-attachment: fixed;
+  background: transparent;
 }
 
-/*
- * Scenes (time of day) tint the page background; weather adds a quiet overlay behind the content. Both are
- * decoration only: panels stay opaque, so text contrast never depends on them. Set on <html> by the theme
- * menu / boot script (data-scene, data-weather).
- */
-[data-theme='light'][data-scene='dawn'] { --glow-1: #ffd6c9; --glow-2: #f7d9f0; }
-[data-theme='light'][data-scene='morning'] { --glow-1: #ffe8b8; --glow-2: #dbe9ff; }
-[data-theme='light'][data-scene='midday'] { --glow-1: #cfe6ff; --glow-2: #e3f4ff; }
-[data-theme='light'][data-scene='afternoon'] { --glow-1: #ffdcae; --glow-2: #fff1d6; }
-[data-theme='light'][data-scene='dusk'] { --glow-1: #ffc4a3; --glow-2: #e6d4ff; }
-[data-theme='light'][data-scene='night'] { --glow-1: #d6dcff; --glow-2: #e8e4ff; }
-[data-theme='dark'][data-scene='dawn'] { --glow-1: #3a1f2a; --glow-2: #2a1a33; }
-[data-theme='dark'][data-scene='morning'] { --glow-1: #33280f; --glow-2: #13233d; }
-[data-theme='dark'][data-scene='midday'] { --glow-1: #10263f; --glow-2: #0f2233; }
-[data-theme='dark'][data-scene='afternoon'] { --glow-1: #36240e; --glow-2: #2a1d0c; }
-[data-theme='dark'][data-scene='dusk'] { --glow-1: #3d1f14; --glow-2: #2a1840; }
-[data-theme='dark'][data-scene='night'] { --glow-1: #161a3d; --glow-2: #1c1236; }
+/* The scene mesh (behind everything). */
+html::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(50% 42% at 8% 6%, color-mix(in srgb, var(--mesh-a) 70%, transparent) 0%, transparent 68%),
+    radial-gradient(38% 46% at 95% 10%, color-mix(in srgb, var(--mesh-d) 62%, transparent) 0%, transparent 65%),
+    radial-gradient(46% 50% at 5% 95%, color-mix(in srgb, var(--mesh-c) 65%, transparent) 0%, transparent 68%),
+    radial-gradient(50% 46% at 96% 88%, color-mix(in srgb, var(--mesh-b) 65%, transparent) 0%, transparent 65%),
+    radial-gradient(32% 32% at 50% 50%, color-mix(in srgb, var(--mesh-e) 45%, transparent) 0%, transparent 62%),
+    linear-gradient(180deg, var(--mesh-base-1) 0%, var(--mesh-base-2) 100%);
+  filter: saturate(var(--mesh-sat)) brightness(var(--mesh-bright)) hue-rotate(var(--mesh-hue)) contrast(var(--mesh-contrast));
+  transition: filter 1.6s, background 1.6s;
+}
 
+/* Fine grain over the mesh. */
+html::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.26;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Weather overlay: rain and storm fall, snow drifts down, fog and haze sway. */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: var(--weather, none);
-  background-size: var(--weather-size, auto);
+  opacity: 0;
+  mix-blend-mode: overlay;
+  background-repeat: repeat;
+  transition: opacity 1s;
 }
-[data-weather='cloudy'] { --weather: linear-gradient(180deg, rgb(128 138 160 / 0.2), transparent 55%); }
-[data-weather='rain'] { --weather: repeating-linear-gradient(105deg, rgb(110 145 200 / 0.12) 0 1px, transparent 1px 16px); }
-[data-weather='storm'] {
-  --weather: repeating-linear-gradient(105deg, rgb(120 135 175 / 0.16) 0 1px, transparent 1px 12px),
-             linear-gradient(180deg, rgb(40 48 80 / 0.28), transparent 60%);
+[data-weather='rain'] body::before, [data-weather='storm'] body::before {
+  opacity: 0.45;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><g stroke='rgba(180,200,230,0.55)' stroke-width='0.6' stroke-linecap='round'><line x1='10' y1='0' x2='4' y2='14'/><line x1='30' y1='0' x2='24' y2='14'/><line x1='52' y1='0' x2='46' y2='14'/><line x1='72' y1='0' x2='66' y2='14'/><line x1='20' y1='40' x2='14' y2='54'/><line x1='42' y1='40' x2='36' y2='54'/><line x1='62' y1='40' x2='56' y2='54'/></g></svg>");
+  animation: pc-rainfall 1.4s linear infinite;
 }
-[data-weather='fog'] { --weather: linear-gradient(180deg, rgb(205 210 220 / 0.26), rgb(205 210 220 / 0.08)); }
-[data-weather='snow'] { --weather: radial-gradient(rgb(255 255 255 / 0.55) 1px, transparent 1.6px); --weather-size: 24px 24px; }
-[data-weather='haze'] { --weather: linear-gradient(180deg, rgb(230 205 160 / 0.22), rgb(230 205 160 / 0.06)); }
-[data-theme='dark'][data-weather='snow'] { --weather: radial-gradient(rgb(255 255 255 / 0.18) 1px, transparent 1.6px); }
-[data-theme='dark'][data-weather='fog'] { --weather: linear-gradient(180deg, rgb(150 155 170 / 0.14), transparent 70%); }
+[data-weather='storm'] body::before { opacity: 0.6; animation-duration: 0.9s; }
+[data-weather='snow'] body::before {
+  opacity: 0.55;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><g fill='rgba(255,255,255,0.9)'><circle cx='14' cy='18' r='1.4'/><circle cx='42' cy='8' r='1'/><circle cx='78' cy='22' r='1.5'/><circle cx='28' cy='52' r='1.2'/><circle cx='96' cy='60' r='1.3'/><circle cx='60' cy='88' r='1.1'/><circle cx='12' cy='100' r='1.4'/></g></svg>");
+  animation: pc-snowfall 6s linear infinite;
+}
+[data-weather='fog'] body::before, [data-weather='haze'] body::before {
+  opacity: 0.6;
+  background-image: radial-gradient(60% 40% at 30% 40%, rgb(255 255 255 / 0.55), transparent 70%), radial-gradient(60% 30% at 70% 70%, rgb(255 255 255 / 0.45), transparent 70%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  animation: pc-fogdrift 18s ease-in-out infinite alternate;
+}
+@keyframes pc-rainfall { to { background-position: -20px 80px; } }
+@keyframes pc-snowfall { to { background-position: 10px 120px; } }
+@keyframes pc-fogdrift { from { transform: translateX(-2%); } to { transform: translateX(2%); } }
+
+/* Frosted glass: panels, the sidebar and the top bar blur the scene behind them. */
+.bg-surface, .bg-sidebar {
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none !important; }
+  html::before { transition: none; }
+}
 
 @media print {
-  body { background-image: none; }
-  body::before { display: none; }
+  html::before, html::after, body::before { display: none; }
+  html { background: #fff; }
 }
 
 :focus-visible {

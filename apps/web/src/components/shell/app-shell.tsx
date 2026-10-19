@@ -74,7 +74,7 @@ export function AppShell(props: ShellProps) {
       )}
 
       <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line bg-canvas/85 px-3 backdrop-blur sm:px-5 print:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line bg-sidebar px-3 sm:px-5 print:hidden">
           <button aria-label="Open menu" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-subtle hover:text-fg lg:hidden" onClick={() => setDrawer(true)}>
             <Menu className="size-5" />
           </button>

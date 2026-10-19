@@ -72,10 +72,12 @@ function Choices<T extends string>({ legend, values, labels, icons, current, onP
 function Panel({ a, shown, update }: ReturnType<typeof useAppearance>) {
   return (
     <div className="space-y-4">
-      <Choices legend="Theme" values={THEMES} labels={THEME_LABELS} icons={THEME_ICONS} current={a.theme} onPick={(theme) => update({ theme })} columns="grid-cols-3" />
-      {a.theme === 'auto' && <p className="-mt-2 text-xs text-muted">Light from 6 am to 7 pm, dark at night{shown ? ` — ${shown.theme} now` : ''}.</p>}
       <Choices legend="Scene" values={SCENES} labels={SCENE_LABELS} icons={SCENE_ICONS} current={a.scene} onPick={(scene) => update({ scene })} columns="grid-cols-4" />
       <Choices legend="Weather" values={WEATHERS} labels={WEATHER_LABELS} icons={WEATHER_ICONS} current={a.weather} onPick={(weather) => update({ weather })} columns="grid-cols-4" />
+      <div className="border-t border-line pt-4">
+        <Choices legend="Theme" values={THEMES} labels={THEME_LABELS} icons={THEME_ICONS} current={a.theme} onPick={(theme) => update({ theme })} columns="grid-cols-3" />
+        {a.theme === 'auto' && <p className="mt-2 text-xs text-muted">Light from 6 am to 7 pm, dark at night{shown ? ` — ${shown.theme} now` : ''}.</p>}
+      </div>
     </div>
   );
 }
