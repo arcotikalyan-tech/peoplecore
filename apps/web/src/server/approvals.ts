@@ -8,7 +8,9 @@ export const SUBJECT_LABEL: Record<string, string> = {
   leave_request: 'Leave requests',
   regularization: 'Attendance corrections',
   offer: 'Job offers',
-  expense_claim: 'Expense claims',
+  expense_claim: 'Expense claims (manager, then finance)',
+  expense_claim_manager: 'Expense claims (manager only)',
+  expense_claim_finance: 'Expense claims (finance only)',
 };
 
 export async function approvalFlows(orgId: string) {

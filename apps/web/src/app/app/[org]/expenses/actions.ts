@@ -35,6 +35,7 @@ const itemSchema = z.object({
   amount: z.coerce.number({ error: 'Enter the amount' }).positive('Enter the amount').max(9_999_999),
   merchant: z.string().trim().max(120).optional(),
   description: z.string().trim().max(500).optional(),
+  subcategory: z.string().trim().max(60).optional(),
 });
 
 export async function addItemAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -69,7 +70,7 @@ export async function addItemAction(orgSlug: string, _prev: ActionState, formDat
   const { error } = await supabase.rpc('add_expense_item', {
     p_claim: v.claimId, p_id: id, p_category: v.categoryId, p_date: v.expenseDate, p_amount: v.amount,
     p_merchant: sqlNull(v.merchant || undefined), p_description: sqlNull(v.description || undefined),
-    p_receipt_name: sqlNull(receiptName), p_receipt_hash: sqlNull(receiptHash),
+    p_receipt_name: sqlNull(receiptName), p_receipt_hash: sqlNull(receiptHash), p_subcategory: sqlNull(v.subcategory || undefined),
   });
   if (error) {
     if (path) await removeDocumentFile(path, RECEIPT_BUCKET);
@@ -103,8 +104,13 @@ export async function submitClaimAction(orgSlug: string, _prev: ActionState, for
   const { error } = await supabase.rpc('submit_expense_claim', { p_claim: id.data });
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${orgSlug}`, 'layout');
-  await flash('Submitted. Your manager approves first, then finance.');
-  return { ok: true, message: 'Submitted. Your manager approves first, then finance.' };
+  const { data: flow } = await supabase.from('expense_claims').select('approval_request_id').eq('id', id.data).maybeSingle();
+  const { data: req } = flow?.approval_request_id
+    ? await supabase.from('approval_requests').select('subject_type').eq('id', flow.approval_request_id).maybeSingle() : { data: null };
+  const who = req?.subject_type === 'expense_claim_manager' ? 'Your manager approves it.' : req?.subject_type === 'expense_claim_finance' ? 'Finance approves it.'
+    : 'Your manager approves first, then finance.';
+  await flash(`Submitted. ${who}`);
+  return { ok: true, message: `Submitted. ${who}` };
 }
 
 /** Reads a receipt with AI for the add-expense form. A suggestion only: the employee fills in, checks and adds. */

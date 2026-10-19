@@ -30,8 +30,10 @@ export interface ReceiptState extends ActionState {
  * Add an expense. With `read`, the chosen receipt can be read by AI first: what it found is shown as a
  * suggestion, and "Fill in" copies it into the fields for the employee to check before adding.
  */
-export function AddItemForm({ action, read, claimId, categories, today }: {
+export function AddItemForm({ action, read, claimId, categories, today, subs = {} }: {
   action: Action; read?: (prev: ReceiptState, formData: FormData) => Promise<ReceiptState>; claimId: string; categories: Option[]; today: string;
+  /** Sub-categories by category id. */
+  subs?: Record<string, string[]>;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction] = useActionState(action, initialActionState);
@@ -39,6 +41,7 @@ export function AddItemForm({ action, read, claimId, categories, today }: {
   const [filled, setFilled] = useState<ReceiptState | null>(null);
   const v = state.ok ? {} : (state.values ?? {});
   const e = state.fieldErrors ?? {};
+  const [cat, setCat] = useState(v.categoryId ?? '');
   const r = readState.ok && readState.result?.isReceipt ? readState.result : null;
   const label = (id: string | null) => categories.find((c) => c.value === id)?.label ?? null;
 
@@ -55,6 +58,7 @@ export function AddItemForm({ action, read, claimId, categories, today }: {
       if (value != null && (el instanceof HTMLInputElement || el instanceof HTMLSelectElement)) el.value = String(value);
     };
     set('categoryId', r.categoryId);
+    if (r.categoryId) setCat(r.categoryId);
     set('expenseDate', r.date);
     set('amount', r.currency === 'INR' || r.currency === null ? r.total : null);
     set('merchant', r.merchant);
@@ -91,11 +95,14 @@ export function AddItemForm({ action, read, claimId, categories, today }: {
         )}
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
-        <SelectField idPrefix="item" name="categoryId" label="Category" required options={categories} placeholder="Choose…" defaultValue={v.categoryId ?? ''} error={e.categoryId} />
+        <SelectField idPrefix="item" name="categoryId" label="Category" required options={categories} placeholder="Choose…" value={cat} onChange={(ev) => setCat(ev.target.value)} error={e.categoryId} />
         <TextField idPrefix="item" name="expenseDate" label="Date" type="date" required max={today} defaultValue={v.expenseDate ?? today} error={e.expenseDate} />
         <TextField idPrefix="item" name="amount" label="Amount (₹)" required inputMode="decimal" defaultValue={v.amount} error={e.amount} />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {(subs[cat] ?? []).length > 0
+          ? <SelectField idPrefix="item" name="subcategory" label="Sub-category" options={(subs[cat] ?? []).map((x) => ({ value: x, label: x }))} placeholder="—" defaultValue={v.subcategory ?? ''} />
+          : null}
         <TextField idPrefix="item" name="merchant" label="Merchant" defaultValue={v.merchant} />
         <TextField idPrefix="item" name="description" label="Notes" defaultValue={v.description} />
       </div>

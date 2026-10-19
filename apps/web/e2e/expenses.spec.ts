@@ -64,7 +64,7 @@ test('the employee files a claim with a receipt and submits it', async ({ page }
   await expect(page.getByRole('list', { name: 'Expense items' }).getByText('Meals · ₹1,200')).toBeVisible();
 
   await page.getByRole('button', { name: 'Submit for approval' }).click();
-  await expect(page.getByText('pending', { exact: true })).toBeVisible();
+  await expect(page.getByText('submitted', { exact: true })).toBeVisible();
 });
 
 test('the manager and then finance approve it in the Inbox', async ({ browser }) => {

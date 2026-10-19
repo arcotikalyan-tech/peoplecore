@@ -2004,6 +2004,8 @@ export type Database = {
           requires_receipt: boolean;
           max_per_item: number | null;
           is_active: boolean;
+          description: string | null;
+          subcategories: string[];
         };
         Insert: {
           id?: string;
@@ -2013,6 +2015,8 @@ export type Database = {
           requires_receipt?: boolean;
           max_per_item?: number | null;
           is_active?: boolean;
+          description?: string | null;
+          subcategories?: string[];
         };
         Update: {
           id?: string;
@@ -2022,6 +2026,8 @@ export type Database = {
           requires_receipt?: boolean;
           max_per_item?: number | null;
           is_active?: boolean;
+          description?: string | null;
+          subcategories?: string[];
         };
         Relationships: [];
       };
@@ -2039,6 +2045,14 @@ export type Database = {
           paid_run_id: string | null;
           created_by: string | null;
           created_at: string;
+          payout_mode: string | null;
+          payout_reference: string | null;
+          paid_at: string | null;
+          paid_by: string | null;
+          held_at: string | null;
+          hold_note: string | null;
+          hold_reply: string | null;
+          recorded_by_finance: boolean;
         };
         Insert: {
           id?: string;
@@ -2053,6 +2067,14 @@ export type Database = {
           paid_run_id?: string | null;
           created_by?: string | null;
           created_at?: string;
+          payout_mode?: string | null;
+          payout_reference?: string | null;
+          paid_at?: string | null;
+          paid_by?: string | null;
+          held_at?: string | null;
+          hold_note?: string | null;
+          hold_reply?: string | null;
+          recorded_by_finance?: boolean;
         };
         Update: {
           id?: string;
@@ -2067,6 +2089,14 @@ export type Database = {
           paid_run_id?: string | null;
           created_by?: string | null;
           created_at?: string;
+          payout_mode?: string | null;
+          payout_reference?: string | null;
+          paid_at?: string | null;
+          paid_by?: string | null;
+          held_at?: string | null;
+          hold_note?: string | null;
+          hold_reply?: string | null;
+          recorded_by_finance?: boolean;
         };
         Relationships: [];
       };
@@ -2085,6 +2115,7 @@ export type Database = {
           receipt_hash: string | null;
           duplicate_note: string | null;
           created_at: string;
+          subcategory: string | null;
         };
         Insert: {
           id?: string;
@@ -2100,6 +2131,7 @@ export type Database = {
           receipt_hash?: string | null;
           duplicate_note?: string | null;
           created_at?: string;
+          subcategory?: string | null;
         };
         Update: {
           id?: string;
@@ -2115,6 +2147,43 @@ export type Database = {
           receipt_hash?: string | null;
           duplicate_note?: string | null;
           created_at?: string;
+          subcategory?: string | null;
+        };
+        Relationships: [];
+      };
+      expense_settings: {
+        Row: {
+          organization_id: string;
+          receipt_reading: boolean;
+          multi_level: boolean;
+          threshold: number | null;
+          auto_finalize: boolean;
+          finance_only: boolean;
+          allow_skip: boolean;
+          escalation_days: number;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          receipt_reading?: boolean;
+          multi_level?: boolean;
+          threshold?: number | null;
+          auto_finalize?: boolean;
+          finance_only?: boolean;
+          allow_skip?: boolean;
+          escalation_days?: number;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          receipt_reading?: boolean;
+          multi_level?: boolean;
+          threshold?: number | null;
+          auto_finalize?: boolean;
+          finance_only?: boolean;
+          allow_skip?: boolean;
+          escalation_days?: number;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -5482,6 +5551,7 @@ export type Database = {
           p_description?: string;
           p_receipt_name?: string;
           p_receipt_hash?: string;
+          p_subcategory?: string;
         };
         Returns: string;
       };
@@ -5953,11 +6023,25 @@ export type Database = {
         };
         Returns: undefined;
       };
+      expense_bank_advice: {
+        Args: {
+          p_org: string;
+          p_claims: string[];
+        };
+        Returns: { claim_id: string; employee_code: string; employee_name: string; account_holder_name: string; bank_name: string; account_number: string; ifsc: string; amount: number }[];
+      };
       expense_receipt: {
         Args: {
           p_item: string;
         };
         Returns: { receipt_path: string; receipt_name: string }[];
+      };
+      finalize_expense_claim: {
+        Args: {
+          p_claim: string;
+          p_comment: string;
+        };
+        Returns: undefined;
       };
       give_feedback: {
         Args: {
@@ -6022,6 +6106,13 @@ export type Database = {
           p_employment_type?: Database['public']['Enums']['employment_type'];
         };
         Returns: string;
+      };
+      hold_expense_claim: {
+        Args: {
+          p_claim: string;
+          p_note: string;
+        };
+        Returns: undefined;
       };
       import_device_punches: {
         Args: {
@@ -6172,6 +6263,14 @@ export type Database = {
         };
         Returns: { member_id: string; user_id: string; email: string; status: Database['public']['Enums']['member_status']; joined_at: string; last_sign_in_at: string; role_ids: string[]; employee_id: string; employee_name: string }[];
       };
+      pay_expense_claims: {
+        Args: {
+          p_claims: string[];
+          p_mode: string;
+          p_reference?: string;
+        };
+        Returns: number;
+      };
       payroll_bank_advice: {
         Args: {
           p_run: string;
@@ -6283,6 +6382,19 @@ export type Database = {
         };
         Returns: Json;
       };
+      record_expense: {
+        Args: {
+          p_org: string;
+          p_employee: string;
+          p_category: string;
+          p_date: string;
+          p_amount: number;
+          p_merchant?: string;
+          p_description?: string;
+          p_subcategory?: string;
+        };
+        Returns: string;
+      };
       record_punch: {
         Args: {
           p_client_id: string;
@@ -6306,6 +6418,13 @@ export type Database = {
           p_item: string;
         };
         Returns: string;
+      };
+      reply_expense_claim: {
+        Args: {
+          p_claim: string;
+          p_reply: string;
+        };
+        Returns: undefined;
       };
       request_attendance: {
         Args: {

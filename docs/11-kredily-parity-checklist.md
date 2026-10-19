@@ -155,13 +155,13 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Payroll › settings
 
 ### Expense
-- [ ] Expense (hub)
-- [ ] Expense › all claims
-- [ ] Expense › analytics
-- [ ] Expense › categories
-- [ ] Expense › hub
-- [ ] Expense › reimbursement
-- [ ] Expense › settings
+- [x] Expense (hub)
+- [x] Expense › all claims
+- [x] Expense › analytics
+- [x] Expense › categories
+- [x] Expense › hub
+- [x] Expense › reimbursement
+- [x] Expense › settings
 
 ### Loans
 - [ ] Loans (hub)
@@ -343,13 +343,13 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Payroll › settings
 
 ### Expense
-- [ ] Expense (hub)
-- [ ] Expense › all claims
-- [ ] Expense › analytics
-- [ ] Expense › categories
-- [ ] Expense › hub
-- [ ] Expense › reimbursement
-- [ ] Expense › settings
+- [x] Expense (hub)
+- [x] Expense › all claims
+- [x] Expense › analytics
+- [x] Expense › categories
+- [x] Expense › hub
+- [x] Expense › reimbursement
+- [x] Expense › settings
 
 ### Timesheet
 - [ ] Timesheet (hub)
