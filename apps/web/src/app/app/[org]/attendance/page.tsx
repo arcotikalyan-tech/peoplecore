@@ -39,9 +39,9 @@ export default async function AttendancePage({ params, searchParams }: { params:
   const reviews = manage || ctx.can('attendance.approve');
 
   const adminTabs = [
-    { key: 'hub', label: 'Hub' }, { key: 'logs', label: 'Logs' },
+    { key: 'hub', label: '✦ Hub' }, { key: 'logs', label: 'Logs' },
     ...(reviews || me ? [{ key: 'approvals', label: 'Approvals' }] : []),
-    ...(manage ? [{ key: 'rules', label: 'Rules' }] : []),
+    ...(manage ? [{ key: 'rules', label: 'Attendance Rules' }] : []),
     { key: 'analytics', label: 'Analytics' },
     ...(manage ? [{ key: 'devices', label: 'Devices' }, { key: 'settings', label: 'Settings' }] : []),
   ];
@@ -57,19 +57,31 @@ export default async function AttendancePage({ params, searchParams }: { params:
 
   return (
     <>
-      <HubHeader title="Attendance" badge={admin ? 'Command centre' : undefined}
-        subtitle={admin ? (ctx.can('attendance.read', 'org') ? 'Everyone’s attendance, live: presence, logs, approvals, rules and trends.' : 'Your reporting line’s attendance, live.') : 'Check in and out, your month, and corrections.'}
+      <HubHeader title={admin ? 'Attendance · Command Center' : 'Attendance'} badge={admin ? 'Live' : undefined}
+        subtitle={admin ? (ctx.can('attendance.read', 'org') ? 'Real-time workforce presence · all locations · all shifts' : 'Your reporting line’s attendance, live.') : 'Check in and out, your month, and corrections.'}
         actions={admin && (
           <>
-            {ctx.can('attendance.read', 'org') && <Link className={buttonClass('secondary')} href={`${base}/summary`}>Monthly summary</Link>}
-            {manage && <Link className={buttonClass('secondary')} href={`${base}?tab=logs&view=penalty`}>Penalties</Link>}
+            <Link className={buttonClass('secondary', 'sm')} href={`${base}?tab=${tab}`}>↻ Refresh</Link>
+            <a className={buttonClass('secondary', 'sm')} href={`${base}/export?date=${date}`}>⬇ Export</a>
+            <details className="relative">
+              <summary className={buttonClass('primary', 'sm', 'cursor-pointer list-none')}>+ Quick Action ▾</summary>
+              <ul className="absolute right-0 z-20 mt-2 w-60 rounded-xl border border-line bg-raised p-1.5 text-sm shadow-xl">
+                {[
+                  ...(ctx.can('attendance.read', 'org') ? [[`${base}/summary`, 'Monthly summary']] : []),
+                  [`${base}?tab=approvals`, 'Review approvals'],
+                  [`${base}?tab=logs&view=daily`, 'Open the daily log'],
+                  ...(manage ? [[`${base}?tab=logs&view=penalty`, 'Run penalties'], [`${base}?tab=rules&rule=new`, 'New attendance rule'],
+                    [`${base}?tab=rules&view=workweek`, 'Assign a work week'], [`${base}?tab=devices`, 'Import device punches'], [`${base}?tab=settings`, 'Attendance settings']] : []),
+                ].map(([href, label]) => <li key={href}><Link href={href!} className="block rounded-lg px-3 py-2 hover:bg-subtle">{label}</Link></li>)}
+              </ul>
+            </details>
           </>
         )} />
       <HubTabs base={base} label="Attendance sections" tabs={tabs} current={tab} />
 
       {admin ? (
         <>
-          {tab === 'hub' && <AdminHub ctx={ctx} orgBase={orgBase} base={base} today={today} pulse={sp.pulse ?? 'all'} />}
+          {tab === 'hub' && <AdminHub ctx={ctx} orgBase={orgBase} base={base} today={today} pulse={sp.pulse ?? 'all'} q={sp.q ?? ''} />}
           {tab === 'logs' && <LogsTab ctx={ctx} slug={slug} orgBase={orgBase} base={base} today={today}
             p={{ view: sp.view ?? 'daily', date, month, q: sp.q ?? '', dept: sp.dept ?? '', page }} />}
           {tab === 'approvals' && <ApprovalsTab ctx={ctx} slug={slug} orgBase={orgBase} base={base} view={sp.view ?? 'open'} myEmployeeId={me?.id ?? null} />}

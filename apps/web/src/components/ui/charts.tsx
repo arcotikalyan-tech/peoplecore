@@ -54,3 +54,31 @@ export function SplitBar({ parts, label }: { parts: Array<{ label: string; value
     </figure>
   );
 }
+
+/** A small trend line (e.g. the last 7 days under a figure). Decorative: the figure itself carries the value. */
+export function Sparkline({ values, tone = 'primary', className }: { values: number[]; tone?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'accent'; className?: string }) {
+  const stroke = { primary: 'var(--primary)', success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)', info: 'var(--info)', accent: 'var(--accent)' }[tone];
+  const w = 160;
+  const h = 26;
+  const max = Math.max(...values, 1);
+  const pts = values.map((v, i) => `${values.length > 1 ? (i / (values.length - 1)) * w : 0},${h - 3 - (v / max) * (h - 6)}`).join(' ');
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true" className={cn('h-6 w-full', className)}>
+      <polyline points={pts} fill="none" stroke={stroke} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+/** A ring gauge with a percentage in the middle and a label below. */
+export function Ring({ pct, label, tone = 'primary' }: { pct: number; label: string; tone?: 'primary' | 'success' | 'warning' | 'danger' }) {
+  const color = { primary: 'var(--primary)', success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)' }[tone];
+  const p = Math.max(0, Math.min(100, Math.round(pct)));
+  return (
+    <figure className="flex flex-col items-center gap-1.5" aria-label={`${label} ${p}%`}>
+      <span className="grid size-[68px] place-items-center rounded-full" style={{ background: `conic-gradient(${color} ${p}%, var(--subtle) 0)` }} aria-hidden="true">
+        <span className="grid size-[54px] place-items-center rounded-full bg-surface text-base font-bold tabular-nums">{p}%</span>
+      </span>
+      <figcaption className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</figcaption>
+    </figure>
+  );
+}

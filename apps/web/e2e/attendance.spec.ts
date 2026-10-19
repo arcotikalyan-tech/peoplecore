@@ -112,6 +112,7 @@ test('HR imports a biometric export; importing it again adds nothing', async ({ 
 test('HR reads the monthly summary and exports it for payroll', async ({ page }) => {
   await signIn(page, 'demo.hr');
   await open(page, '/app/demo/attendance');
+  await page.getByText('+ Quick Action ▾').click();
   await page.getByRole('link', { name: 'Monthly summary' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Monthly attendance' })).toBeVisible();
   await expect(page.getByRole('row').filter({ hasText: devCode })).toBeVisible();
