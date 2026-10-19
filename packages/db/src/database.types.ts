@@ -2727,6 +2727,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      id_card_designs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          template: string;
+          orientation: string;
+          fields: string[];
+          primary_color: string;
+          accent_color: string;
+          text_color: string;
+          show_logo: boolean;
+          show_photo: boolean;
+          show_qr: boolean;
+          qr_content: string;
+          back_text: string | null;
+          logo_path: string | null;
+          is_default: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          template?: string;
+          orientation?: string;
+          fields?: string[];
+          primary_color?: string;
+          accent_color?: string;
+          text_color?: string;
+          show_logo?: boolean;
+          show_photo?: boolean;
+          show_qr?: boolean;
+          qr_content?: string;
+          back_text?: string | null;
+          logo_path?: string | null;
+          is_default?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          template?: string;
+          orientation?: string;
+          fields?: string[];
+          primary_color?: string;
+          accent_color?: string;
+          text_color?: string;
+          show_logo?: boolean;
+          show_photo?: boolean;
+          show_qr?: boolean;
+          qr_content?: string;
+          back_text?: string | null;
+          logo_path?: string | null;
+          is_default?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       insurance_coverage: {
         Row: {
           organization_id: string;
@@ -7375,6 +7438,12 @@ export type Database = {
           p_note?: string;
         };
         Returns: string;
+      };
+      set_default_id_card: {
+        Args: {
+          p_design: string;
+        };
+        Returns: undefined;
       };
       set_document_proofs: {
         Args: {

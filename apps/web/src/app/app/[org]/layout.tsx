@@ -66,6 +66,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       { href: `${base}/policies`, label: 'Policies', icon: 'file' },
       { href: `${base}/assets`, label: 'Assets', icon: 'laptop' },
       { href: `${base}/grievances`, label: 'Grievances', icon: 'shield' },
+      { href: `${base}/idstudio`, label: 'ID Studio', icon: 'id-card' },
       ...when(ai, { href: `${base}/assistant`, label: 'Ask HR', icon: 'sparkles' }),
     ] },
     { label: 'Admin', items: [
@@ -102,6 +103,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       { href: `${base}/assets`, label: 'Assets', icon: 'laptop' },
       { href: `${base}/grievances`, label: 'Grievances', icon: 'shield' },
       { href: `${base}/separations`, label: 'Separations', icon: 'log-out' },
+      { href: `${base}/idstudio`, label: 'My ID Card', icon: 'id-card' },
       ...when(ai, { href: `${base}/assistant`, label: 'Ask HR', icon: 'sparkles' }),
     ] },
   ];

@@ -255,7 +255,7 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 
 | Kredily | PeopleCore |
 |---|---|
-| 15 card templates, choose fields and layout, colours, logo, QR/NFC, print-ready | ❌ |
+| 15 card templates, choose fields and layout, colours, logo, QR/NFC, print-ready | ✅ 15 templates, fields and orientation, colours, logo, QR (vCard or ID), back text, default design, print sheets at card size; employees see their own card (no NFC) |
 
 ## 24. Where PeopleCore is already ahead
 

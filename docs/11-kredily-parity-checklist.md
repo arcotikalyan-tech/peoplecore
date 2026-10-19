@@ -252,10 +252,10 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Settings › support access
 
 ### Idstudio
-- [ ] Idstudio (hub)
-- [ ] Idstudio › l1templates
-- [ ] Idstudio › l2fields layout
-- [ ] Idstudio › l3advanced
+- [x] Idstudio (hub)
+- [x] Idstudio › l1templates
+- [x] Idstudio › l2fields layout
+- [x] Idstudio › l3advanced
 
 ### Holiday
 - [x] Holiday (hub)
@@ -459,7 +459,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Settings (hub)
 
 ### Idstudio
-- [ ] Idstudio (hub)
+- [x] Idstudio (hub)
 
 ### Holiday
 - [x] Holiday (hub)

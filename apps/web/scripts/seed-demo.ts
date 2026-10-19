@@ -278,6 +278,9 @@ async function main() {
   ]), 'add knowledge-base articles');
 
   // Assets and system access: Dev holds a laptop (receipt confirmed) and has email and GitHub accounts; Rohan owns GitHub.
+  exec(await db.from('id_card_designs').insert({
+    organization_id: orgId, name: 'Standard card', template: 'classic', is_default: true, back_text: 'If found, please return to PeopleCore Demo reception.',
+  }), 'add the ID card design');
   exec(await db.from('asset_categories').insert([
     { organization_id: orgId, name: 'Laptop', icon: '💻', useful_life_months: 36 },
     { organization_id: orgId, name: 'Monitor', icon: '🖥', useful_life_months: 60 },
