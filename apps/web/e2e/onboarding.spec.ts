@@ -39,7 +39,7 @@ test.afterAll(async () => {
 test('HR starts onboarding; the manager completes a task from the Inbox; HR sees progress', async ({ browser }) => {
   const hr = await (await browser.newContext()).newPage();
   await signIn(hr, 'demo.hr');
-  await open(hr, '/app/demo/onboarding');
+  await open(hr, '/app/demo/onboarding?tab=journeys');
   const form = hr.getByRole('form', { name: 'Start onboarding' });
   await form.getByLabel('Employee').selectOption({ label: `${joiner} (E2E-${run})` });
   await form.getByRole('button', { name: 'Start onboarding' }).click();
@@ -53,7 +53,7 @@ test('HR starts onboarding; the manager completes a task from the Inbox; HR sees
   await manager.getByRole('button', { name: `Mark “Plan the first week — ${joiner}” done` }).click();
   await expect(manager.getByRole('list', { name: 'Tasks' }).getByText(`Plan the first week — ${joiner}`)).toHaveCount(0);
 
-  await open(hr, '/app/demo/onboarding');
+  await open(hr, '/app/demo/onboarding?tab=journeys');
   await expect(hr.getByRole('list', { name: 'Onboarding in progress' }).getByRole('listitem').filter({ hasText: joiner }).first().getByText('1/7 done')).toBeVisible();
   const { data } = await admin.from('tasks').select('title, status').eq('assignee_employee_id', joinerId).order('title');
   expect(data?.map((t) => t.status)).toEqual(['open', 'open', 'open']); // the joiner's own three tasks wait for them

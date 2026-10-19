@@ -9,6 +9,7 @@ import { cn } from '@/components/ui/cn';
 import { Alert, EmptyState } from '@/components/ui/surface';
 import { getMyMonth, getPunches } from '@/server/attendance';
 import { myRule } from '@/server/attendance-ops';
+import { orgControls } from '@/server/modules';
 import { getOrgContext } from '@/server/context';
 import {
   attendanceSnapshot, averagePresence, complianceStatus, exitsSince, headcountTrend, myWork, needsAttention, payrollActivity, payrollTrend,
@@ -36,6 +37,7 @@ const RUN_STATUS: Record<string, string> = { draft: 'Draft', computed: 'Computed
 export default async function Dashboard({ params }: { params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await getOrgContext(slug);
+  const controls = await orgControls(ctx.org.id);
   const orgId = ctx.org.id;
   const base = `/app/${slug}`;
   const tz = ctx.org.timezone;
@@ -295,7 +297,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
           )}
         </RailCard>
 
-        <RailCard title="🎂 Upcoming Birthdays">
+        {controls.birthdays_visible && <RailCard title="🎂 Upcoming Birthdays">
           {birthdays.length === 0 ? <p className="text-sm text-muted">No birthdays in the next few weeks.</p> : (
             <ul className="space-y-3" aria-label="Upcoming birthdays">
               {birthdays.slice(0, 5).map((b) => (
@@ -307,9 +309,9 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
               ))}
             </ul>
           )}
-        </RailCard>
+        </RailCard>}
 
-        <RailCard title="🗓️ Holidays" action={<Link href={`${base}/leave?tab=${admin && ctx.can('leave.manage', 'org') ? 'settings' : 'calendar'}`} className="text-xs font-medium text-primary hover:underline">View all →</Link>}>
+        <RailCard title="🗓️ Holidays" action={<Link href={`${base}/holidays?tab=list`} className="text-xs font-medium text-primary hover:underline">View all →</Link>}>
           {nextHolidays.length === 0 ? <p className="text-sm text-muted">No upcoming holidays.</p> : (
             <ul className="space-y-2.5">
               {nextHolidays.map((h) => (

@@ -11,6 +11,7 @@ import { getStructure } from '@/server/structure';
 import { createClient } from '@/server/supabase';
 import { createScheduleAction, deleteScheduleAction, deleteTemplateAction, saveTemplateAction } from './actions';
 import { AgainButton, DeleteForm, ReportPanel, type PanelDefaults } from './reports-client';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Reports' };
 
@@ -36,6 +37,7 @@ export default async function ReportsPage({ params, searchParams }: { params: Pr
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'reports');
   const visible = REPORTS.filter((r) => canRun(ctx, r.access));
   if (visible.length === 0) notFound();
   const base = `/app/${slug}/reports`;

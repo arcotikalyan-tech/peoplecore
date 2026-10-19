@@ -17,6 +17,7 @@ import { RegisterTab } from './_tabs/register';
 import { RunTab } from './_tabs/run';
 import { SettingsTab } from './_tabs/settings';
 import { cycleState } from './_tabs/shared';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Payroll' };
 
@@ -30,6 +31,7 @@ export default async function PayrollPage({ params, searchParams }: { params: Pr
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'payroll');
   const prepares = ctx.can('payroll.prepare', 'org');
   const approves = ctx.can('payroll.approve', 'org');
   if (!prepares && !approves) redirect(`/app/${slug}/payslips`);

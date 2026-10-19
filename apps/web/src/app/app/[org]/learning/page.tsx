@@ -12,12 +12,14 @@ import { learningSummary, listCourses, listEnrollments } from '@/server/learning
 import { enrollAction, updateEnrollmentAction } from './actions';
 import { CompleteForm } from './learning-forms';
 import { duration, FORMAT_LABEL, STATUS_LABEL, STATUS_TONE } from './labels';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Learning' };
 
 export default async function LearningPage({ params }: { params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'learning');
   const me = await getMyEmployee(ctx.org.id, ctx.user.id);
   const hr = ctx.can('learning.manage', 'org');
   const [courses, visible, summary] = await Promise.all([

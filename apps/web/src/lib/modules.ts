@@ -1,0 +1,40 @@
+/** Optional modules an organization can switch off (Settings › Module selector). Keys match the first path segment. */
+export const MODULES = [
+  { key: 'attendance', label: 'Attendance', group: 'Time' },
+  { key: 'leave', label: 'Leave', group: 'Time' },
+  { key: 'holidays', label: 'Holidays', group: 'Time' },
+  { key: 'payroll', label: 'Payroll', group: 'Pay' },
+  { key: 'expenses', label: 'Expenses', group: 'Pay' },
+  { key: 'loans', label: 'Loans', group: 'Pay' },
+  { key: 'letters', label: 'Letters', group: 'Core HR' },
+  { key: 'insurance', label: 'Insurance', group: 'Core HR' },
+  { key: 'recruitment', label: 'Recruitment', group: 'Talent' },
+  { key: 'onboarding', label: 'Onboarding', group: 'Talent' },
+  { key: 'performance', label: 'Performance', group: 'Talent' },
+  { key: 'learning', label: 'Learning', group: 'Talent' },
+  { key: 'engagement', label: 'Engagement', group: 'Workplace' },
+  { key: 'helpdesk', label: 'Helpdesk', group: 'Workplace' },
+  { key: 'knowledge', label: 'Knowledge base', group: 'Workplace' },
+  { key: 'policies', label: 'Policies', group: 'Workplace' },
+  { key: 'assets', label: 'Assets', group: 'Workplace' },
+  { key: 'grievances', label: 'Grievances', group: 'Workplace' },
+  { key: 'idstudio', label: 'ID Studio', group: 'Workplace' },
+  { key: 'reports', label: 'Reports', group: 'Insights' },
+] as const;
+export type ModuleKey = (typeof MODULES)[number]['key'];
+
+export const NOTIFICATION_CATEGORIES = [
+  ['approval', 'Approvals', 'Requests waiting for a decision, and decisions made'],
+  ['leave', 'Leave', 'Leave requests, balances and encashment'],
+  ['attendance', 'Attendance', 'Regularizations, penalties, WFH and on-duty'],
+  ['payroll', 'Payroll', 'Payslips, revisions and declarations'],
+  ['expense', 'Expenses', 'Claims, holds and payouts'],
+  ['loan', 'Loans', 'Approval and disbursal of loans and advances'],
+  ['asset', 'Assets', 'Issued assets, requests and overdue returns'],
+  ['performance', 'Performance', 'Review cycles and feedback'],
+  ['announcement', 'Announcements', 'Company announcements'],
+  ['helpdesk', 'Helpdesk', 'Ticket updates'],
+  ['letter', 'Letters', 'Letters released and requested'],
+  ['separation', 'Exits', 'Resignations and clearance'],
+  ['report', 'Reports', 'Scheduled report reminders'],
+] as const;

@@ -4,6 +4,7 @@ import { ButtonLink, buttonClass } from '@/components/ui/button';
 import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
 import { getOrgContext } from '@/server/context';
 import { listArticles, searchKnowledge } from '@/server/helpdesk';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Knowledge base' };
 
@@ -11,6 +12,7 @@ export default async function KnowledgePage({ params, searchParams }: { params: 
   const { org: slug } = await params;
   const q = ((await searchParams).q ?? '').trim().slice(0, 200);
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'knowledge');
   const editor = ctx.can('helpdesk.manage', 'org');
   const [results, all] = await Promise.all([searchKnowledge(ctx.org.id, q), editor ? listArticles(ctx.org.id) : Promise.resolve([])]);
   const drafts = new Set(all.filter((a) => !a.published).map((a) => a.id));

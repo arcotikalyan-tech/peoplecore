@@ -9,12 +9,14 @@ import { getMyEmployee } from '@/server/employees';
 import { getStructure, structureOptions } from '@/server/structure';
 import { acknowledgeAnnouncementAction, deleteAnnouncementAction, giveKudosAction, publishAnnouncementAction } from './actions';
 import { KudosForm, PublishAnnouncementForm } from './engagement-forms';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Engagement' };
 
 export default async function EngagementPage({ params }: { params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'engagement');
   const me = await getMyEmployee(ctx.org.id, ctx.user.id);
   const manages = ctx.can('announcement.manage', 'org');
   const [announcements, kudos, colleagues, structure] = await Promise.all([

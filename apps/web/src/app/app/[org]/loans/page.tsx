@@ -15,6 +15,7 @@ import { decideApprovalAction } from '../inbox/actions';
 import { applyLoanAction, cancelLoanAction, saveLoanSettingsAction } from './actions';
 import { month, ScheduleTable } from './schedule';
 import { ApplyForm, CancelLoanButton, LoanSettingsForm, Simulator } from './loans-client';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Loans' };
 
@@ -30,6 +31,7 @@ export default async function LoansPage({ params, searchParams }: { params: Prom
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'loans');
   const base = `/app/${slug}/loans`;
   const today = todayIn(ctx.org.timezone);
   const payroll = (ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org')) && (await viewModeFor(ctx)) === 'admin';

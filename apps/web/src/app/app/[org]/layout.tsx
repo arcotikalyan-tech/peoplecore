@@ -12,6 +12,7 @@ import { canRun } from '@/server/reports';
 import { readFlash } from '@/server/flash';
 import { aiAvailable } from '@/server/ai';
 import { unreadNotificationCount } from '@/server/inbox';
+import { disabledModules } from '@/server/modules';
 import { hasAdminView, viewModeFor } from '@/server/view';
 import { searchPeopleAction } from './search-actions';
 
@@ -31,6 +32,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     { href: `${base}/inbox`, label: 'Inbox', icon: 'inbox', count: unread },
   ] };
 
+  const off = await disabledModules(ctx.org.id);
   const nav: NavGroup[] = view === 'admin' ? [
     home,
     { label: 'People', items: [
@@ -73,6 +75,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       ...when(ctx.can('employee.read', 'org') || ctx.can('employee.read', 'team'), { href: `${base}/insights`, label: 'Insights', icon: 'chart' }),
       ...when(reports, { href: `${base}/reports`, label: 'Reports', icon: 'sheet' }),
       ...when(ctx.can('member.manage', 'org'), { href: `${base}/members`, label: 'Members', icon: 'user-cog' }),
+      ...when(ctx.can('org.manage', 'org') || ctx.can('role.manage', 'org'), { href: `${base}/settings`, label: 'Settings', icon: 'settings' }),
       ...when(ctx.can('workflow.manage', 'org'), { href: `${base}/workflows`, label: 'Workflows', icon: 'workflow' }),
       ...when(ctx.can('ai.manage', 'org'), { href: `${base}/ai`, label: 'AI assistants', icon: 'bot' }),
       ...when(ctx.can('audit.read'), { href: `${base}/audit`, label: 'Audit log', icon: 'scroll' }),
@@ -111,7 +114,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
   return (
     <AppShell
       base={base}
-      nav={pruneEmpty(nav)}
+      nav={pruneEmpty(nav.map((g) => ({ ...g, items: g.items.filter((i) => !off.has(i.href.slice(base.length + 1).split(/[/?]/)[0] ?? '')) })))}
       org={{ name: ctx.org.name, isDemo: ctx.org.is_demo }}
       user={{ name: me ? legalName(me) : (ctx.user.email ?? 'You'), email: ctx.user.email, profileHref }}
       unread={unread}

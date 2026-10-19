@@ -11,12 +11,14 @@ import { listGrievances } from '@/server/grievances';
 import { raiseGrievanceAction } from './actions';
 import { RaiseGrievanceForm } from './grievance-forms';
 import { CATEGORY_LABEL, OPEN_STATUSES, STATUS_LABEL, STATUS_TONE } from './labels';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Grievances' };
 
 export default async function GrievancesPage({ params }: { params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'grievances');
   const me = await getMyEmployee(ctx.org.id, ctx.user.id);
   const handler = ctx.can('grievance.manage', 'org') || ctx.can('grievance.read', 'org');
   const [cases, colleagues] = await Promise.all([listGrievances(ctx.org.id), me ? colleagueOptions(ctx.org.id, me.id) : Promise.resolve([])]);

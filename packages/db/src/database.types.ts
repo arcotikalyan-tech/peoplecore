@@ -3948,6 +3948,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      notification_settings: {
+        Row: {
+          organization_id: string;
+          category: string;
+          enabled: boolean;
+        };
+        Insert: {
+          organization_id: string;
+          category: string;
+          enabled?: boolean;
+        };
+        Update: {
+          organization_id?: string;
+          category?: string;
+          enabled?: boolean;
+        };
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
@@ -4182,6 +4200,75 @@ export type Database = {
           employee_id?: string;
           holiday_id?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      org_controls: {
+        Row: {
+          organization_id: string;
+          block_self_edit: boolean;
+          salary_history_visible: boolean;
+          birthdays_visible: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          block_self_edit?: boolean;
+          salary_history_visible?: boolean;
+          birthdays_visible?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          block_self_edit?: boolean;
+          salary_history_visible?: boolean;
+          birthdays_visible?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      org_modules: {
+        Row: {
+          organization_id: string;
+          module: string;
+          enabled: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          module: string;
+          enabled?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          module?: string;
+          enabled?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      org_setup_steps: {
+        Row: {
+          organization_id: string;
+          step_key: string;
+          done_at: string;
+          done_by: string | null;
+          note: string | null;
+        };
+        Insert: {
+          organization_id: string;
+          step_key: string;
+          done_at?: string;
+          done_by?: string | null;
+          note?: string | null;
+        };
+        Update: {
+          organization_id?: string;
+          step_key?: string;
+          done_at?: string;
+          done_by?: string | null;
+          note?: string | null;
         };
         Relationships: [];
       };
@@ -5655,6 +5742,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      support_access_windows: {
+        Row: {
+          id: string;
+          organization_id: string;
+          granted_by: string;
+          reason: string;
+          starts_at: string;
+          expires_at: string;
+          revoked_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          granted_by?: string;
+          reason: string;
+          starts_at?: string;
+          expires_at: string;
+          revoked_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          granted_by?: string;
+          reason?: string;
+          starts_at?: string;
+          expires_at?: string;
+          revoked_at?: string | null;
+        };
+        Relationships: [];
+      };
       tasks: {
         Row: {
           id: string;
@@ -6775,6 +6892,14 @@ export type Database = {
         };
         Returns: string;
       };
+      grant_support_access: {
+        Args: {
+          p_org: string;
+          p_hours: number;
+          p_reason: string;
+        };
+        Returns: string;
+      };
       grantable_roles: {
         Args: {
           p_org: string;
@@ -7304,6 +7429,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      revoke_support_access: {
+        Args: {
+          p_org: string;
+        };
+        Returns: number;
+      };
       run_attendance_penalties: {
         Args: {
           p_org: string;
@@ -7651,6 +7782,12 @@ export type Database = {
           p_comments: string;
         };
         Returns: undefined;
+      };
+      support_overview: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
       };
       team_leave_calendar: {
         Args: {

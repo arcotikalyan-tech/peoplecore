@@ -10,6 +10,7 @@ import { createClient } from '@/server/supabase';
 import { viewModeFor } from '@/server/view';
 import { CategoriesTab, DuesTab, HubTab, RegisterTab, RepairsTab, RequestsTab, type AdminProps } from './_tabs/admin';
 import { MyAssetsTab, MyRequestsTab } from './_tabs/mine';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Assets' };
 
@@ -24,6 +25,7 @@ export default async function AssetsPage({ params, searchParams }: { params: Pro
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'assets');
   const base = `/app/${slug}/assets`;
   const today = todayIn(ctx.org.timezone);
   const manages = ctx.can('asset.manage', 'org') && (await viewModeFor(ctx)) === 'admin';

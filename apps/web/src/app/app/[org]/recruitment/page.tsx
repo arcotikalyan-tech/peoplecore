@@ -11,12 +11,14 @@ import { candidateRetention, listRequisitions } from '@/server/recruitment';
 import { getStructure, structureOptions } from '@/server/structure';
 import { createRequisitionAction, saveCandidateRetentionAction } from './actions';
 import { CandidateRetentionForm, RequisitionForm } from './recruitment-forms';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Recruitment' };
 
 export default async function RecruitmentPage({ params }: { params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await requirePermission(slug, 'recruitment.read');
+  await requireModule(ctx.org.id, 'recruitment');
   const canManage = ctx.can('recruitment.manage', 'org');
   const [requisitions, structure, managers, retention] = await Promise.all([
     listRequisitions(ctx.org.id),

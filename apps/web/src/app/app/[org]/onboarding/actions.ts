@@ -1,9 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { z } from 'zod';
 import { formValues, invalid, sqlNull, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { findOrInviteUser } from '@/server/admin-users';
 import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
@@ -106,4 +108,51 @@ export async function acknowledgePolicyAction(orgSlug: string, _prev: ActionStat
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${orgSlug}/policies`);
   return { ok: true, message: 'Acknowledged.' };
+}
+
+// ─── Company onboarding: guided plan and activation ─────────────────────────
+
+export async function markSetupStepAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  if (!ctx.can('org.manage', 'org') && !ctx.can('onboarding.manage', 'org')) return DENIED;
+  const parsed = z.object({ step: z.string().regex(/^[a-z_]{3,40}$/), done: z.enum(['yes', 'no']) }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, message: 'Step not found.' };
+  const supabase = await createClient();
+  const { error } = parsed.data.done === 'yes'
+    ? await supabase.from('org_setup_steps').upsert({ organization_id: ctx.org.id, step_key: parsed.data.step })
+    : await supabase.from('org_setup_steps').delete().eq('organization_id', ctx.org.id).eq('step_key', parsed.data.step);
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath(`/app/${orgSlug}/onboarding`);
+  return { ok: true, message: parsed.data.done === 'yes' ? 'Marked done.' : 'Marked not done.' };
+}
+
+/** Invite employees without a sign-in, with the Employee role, linked to their record (at most 25 at a time). */
+export async function activateEmployeesAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  if (!ctx.can('member.manage', 'org')) return DENIED;
+  const ids = formData.getAll('employeeId').map(String).filter((v) => z.uuid().safeParse(v).success).slice(0, 25);
+  if (ids.length === 0) return { ok: false, message: 'Choose who to invite.' };
+  const supabase = await createClient();
+  const [{ data: grantable, error: gErr }, { data: emps }] = await Promise.all([
+    supabase.rpc('grantable_roles', { p_org: ctx.org.id }),
+    supabase.from('employees').select('id, work_email, user_id').eq('organization_id', ctx.org.id).in('id', ids),
+  ]);
+  if (gErr) return { ok: false, message: toUserMessage(gErr) };
+  const role = (grantable ?? []).find((r) => r.key === 'employee');
+  if (!role) return { ok: false, message: 'You can’t grant the Employee role.' };
+  const origin = (await headers()).get('origin') ?? '';
+  let invited = 0; const problems: string[] = [];
+  for (const e of emps ?? []) {
+    if (e.user_id) continue;
+    if (!e.work_email) { problems.push('someone has no work email'); continue; }
+    // Authorization was checked above; only now is the secret-key client used (CLAUDE.md).
+    const account = await findOrInviteUser(e.work_email, `${origin}/auth/callback?next=/app`);
+    if (!account.ok) { problems.push(account.message); continue; }
+    const { error } = await supabase.rpc('add_member', { p_org: ctx.org.id, p_user_id: account.userId, p_role_ids: [role.id], p_employee_id: e.id });
+    if (error) { problems.push(toUserMessage(error)); continue; }
+    invited += 1;
+  }
+  revalidatePath(`/app/${orgSlug}`, 'layout');
+  const message = `Invited ${invited} employee${invited === 1 ? '' : 's'}.${problems.length ? ` Not invited: ${[...new Set(problems)].slice(0, 2).join('; ')}.` : ''}`;
+  return { ok: invited > 0 || problems.length === 0, message };
 }

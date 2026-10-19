@@ -16,6 +16,7 @@ import {
 import {
   CloseRequestForm, GenerateForm, LetterheadForm, LetterStatusForm, PickForm, ReleaseForm, RemoveSignatoryForm, RequestForm, SignatoryForm, TemplateEditor,
 } from './letters-client';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Letters' };
 
@@ -43,6 +44,7 @@ export default async function LettersPage({ params, searchParams }: { params: Pr
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'letters');
   const base = `/app/${slug}/letters`;
   const today = todayIn(ctx.org.timezone);
   const view = await viewModeFor(ctx);

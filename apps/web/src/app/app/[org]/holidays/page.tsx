@@ -11,6 +11,7 @@ import { createClient } from '@/server/supabase';
 import { viewModeFor } from '@/server/view';
 import { addHolidayAction, chooseOptionalAction, copyYearAction, deleteCalendarAction, importHolidaysAction, removeHolidayAction, saveCalendarAction } from './actions';
 import { CalendarForm, HolidayForm, ImportHolidaysForm, SmallAction } from './holidays-client';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Holidays' };
 
@@ -41,6 +42,7 @@ export default async function HolidaysPage({ params, searchParams }: { params: P
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'holidays');
   const base = `/app/${slug}/holidays`;
   const today = todayIn(ctx.org.timezone);
   const admin = ctx.can('leave.manage', 'org') && (await viewModeFor(ctx)) === 'admin';

@@ -11,6 +11,7 @@ import { getTicketCategories, listTickets } from '@/server/helpdesk';
 import { raiseTicketAction } from './actions';
 import { RaiseTicketForm } from './helpdesk-forms';
 import { STATUS_LABEL, TICKET_TONE, isOverdue } from './tone';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Helpdesk' };
 
@@ -18,6 +19,7 @@ export default async function HelpdeskPage({ params, searchParams }: { params: P
   const { org: slug } = await params;
   const { view } = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'helpdesk');
   const me = await getMyEmployee(ctx.org.id, ctx.user.id);
   const agent = ctx.can('helpdesk.manage', 'org');
   const showAll = view === 'all';

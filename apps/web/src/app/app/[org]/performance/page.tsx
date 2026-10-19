@@ -18,6 +18,7 @@ import {
 import {
   AssignKraForm, FeedbackRequestForm, GiveFeedbackForm, GoalForm, GoalProgressForm, KraForm, PmsSettingsForm, ReviewForm, SkillForm, SkillRatingForm, SmallAction,
 } from './performance-forms';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Performance' };
 
@@ -42,6 +43,7 @@ export default async function PerformancePage({ params, searchParams }: { params
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'performance');
   if (!ctx.can('performance.read')) notFound();
   const hr = ctx.can('performance.manage', 'org') && (await viewModeFor(ctx)) === 'admin';
   const base = `/app/${slug}/performance`;

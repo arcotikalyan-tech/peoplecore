@@ -75,12 +75,12 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 | Departments (with head, headcount), designations, grades | ✅ structure (heads and grades partly) |
 | Announcements, policies with e-sign | ✅ announcements with acknowledgement; policies with acknowledgement (no e-sign) |
 | Statutory: entity type, CIN, PAN, TAN, GST; directors, auditors, company secretary; company bank account | ❌ |
-| Admin roles with a capability matrix (CEO, HR admin, finance admin, HR executive, manager, vendor admin, partner/auditor) | ✅ roles and permissions (stronger: scoped, MFA, in the database) |
+| Admin roles with a capability matrix (CEO, HR admin, finance admin, HR executive, manager, vendor admin, partner/auditor) | ✅ capability matrix; custom roles (owners; two-step sign-in) |
 | Work-week rules: 5-week grid, working / half day / off per day, default rule, assign | 🟡 shifts and weekly offs; no 5-week pattern editor |
-| Module selector (turn modules on/off) | ❌ |
-| Controls: directory visibility, payroll view for managers, salary revision history to employees, HR can't edit own record | 🟡 permissions cover some |
-| Notification preferences by role | ❌ |
-| **Support access window** (time-boxed vendor access) | ❌ (platform admin exists) |
+| Module selector (turn modules on/off) | ✅ hidden from navigation and closed for everyone; data kept |
+| Controls: directory visibility, payroll view for managers, salary revision history to employees, HR can't edit own record | ✅ self-edit block (enforced in the database), salary history, birthdays; directory privacy in People |
+| Notification preferences by role | ✅ by category for the organization |
+| **Support access window** (time-boxed vendor access) | ✅ owners open 1 hour–7 days; platform admins see an audited summary only while open |
 | Bank integration (corporate banking, wallet) | ❌ |
 | Plan and seats | n/a (we are not a reseller yet) |
 

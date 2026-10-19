@@ -7,6 +7,7 @@ import { HubHeader, HubTabs, SubTabs } from '@/components/ui/hub';
 import { EmptyState } from '@/components/ui/surface';
 import { formatDate } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
+import { orgControls } from '@/server/modules';
 import { getMyEmployee } from '@/server/employees';
 import { getPayslips } from '@/server/payroll';
 import { fyOf, myDeclaration, payrollSettings } from '@/server/payroll-suite';
@@ -216,7 +217,7 @@ export default async function MyPayPage({ params, searchParams }: { params: Prom
               )}
               <p className="mt-3 text-xs text-muted">* Effective date reflects the most recent change in gross or structure breakup.</p>
             </Card>
-            <Card title="Revision History">
+            {(await orgControls(ctx.org.id)).salary_history_visible && <Card title="Revision History">
               <ol className="space-y-3">
                 {(recs ?? []).map((r) => (
                   <li key={r.id} className="flex gap-3 text-sm">
@@ -226,7 +227,7 @@ export default async function MyPayPage({ params, searchParams }: { params: Prom
                 ))}
                 <li className="flex gap-3 text-sm"><span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-success" /><span><span className="block font-medium">Joined</span><span className="text-xs text-muted">{joined ? formatDate(joined) : ''}</span></span></li>
               </ol>
-            </Card>
+            </Card>}
           </div>
         );
       })()}

@@ -14,7 +14,8 @@ export const metadata: Metadata = { title: 'Platform console' };
 
 const statusTone = { active: 'success', suspended: 'warning', archived: 'neutral' } as const;
 
-export default async function PlatformPage() {
+export default async function PlatformPage({ searchParams }: { searchParams: Promise<{ support?: string }> }) {
+  const { support } = await searchParams;
   const user = await requireUser();
   if (!(await isPlatformAdmin())) notFound();
   await requireMfaIfNeeded(user, '/platform');
@@ -27,6 +28,11 @@ export default async function PlatformPage() {
     .order('created_at', { ascending: false })
     .limit(200);
   if (error) throw new Error('Failed to load organizations');
+  // Support windows tenants have opened (Settings › Support access); a summary is read only on request, and audited.
+  const now = new Date().toISOString();
+  const { data: windows } = await supabase.from('support_access_windows').select('organization_id, reason, expires_at, revoked_at').is('revoked_at', null).gt('expires_at', now);
+  const summary = support && (windows ?? []).some((w) => w.organization_id === support)
+    ? ((await supabase.rpc('support_overview', { p_org: support })).data as Record<string, unknown> | null) : null;
 
   return (
     <div className="min-h-dvh">
@@ -75,6 +81,27 @@ export default async function PlatformPage() {
               </Table>
             )}
           </Card>
+          {(windows ?? []).length > 0 && (
+            <Card className="lg:col-span-2">
+              <CardHeader title="Support access" description="Tenants that opened support access. Viewing a summary is recorded in their audit log." />
+              <ul className="divide-y divide-line text-sm" aria-label="Open support access">
+                {(windows ?? []).map((w) => {
+                  const org = orgs.find((o) => o.id === w.organization_id);
+                  return (
+                    <li key={w.organization_id} className="space-y-2 px-5 py-3">
+                      <p className="flex flex-wrap items-center justify-between gap-2"><span><span className="font-medium">{org?.name ?? 'Organization'}</span> · {w.reason} · until {formatDate(w.expires_at)}</span>
+                        <Link className="text-primary hover:underline" href={`/platform?support=${w.organization_id}`}>View summary</Link></p>
+                      {support === w.organization_id && summary && (
+                        <dl className="grid grid-cols-2 gap-2 rounded-lg bg-subtle p-3 sm:grid-cols-5">
+                          {Object.entries(summary).map(([k, v]) => <div key={k}><dt className="text-xs text-muted">{k}</dt><dd className="font-medium">{Array.isArray(v) ? v.join(', ') || '—' : String(v)}</dd></div>)}
+                        </dl>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </Card>
+          )}
           <Card className="self-start">
             <CardHeader title="New organization" description="Seeds the standard roles. The owner manages everything else." />
             <CreateOrgForm />

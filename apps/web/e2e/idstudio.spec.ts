@@ -49,7 +49,7 @@ test('HR designs a card in three steps and prints; the employee sees their card'
   const make = page.getByRole('form', { name: `Make Head office ${run} the default` });
   if (await make.count()) {
     await make.getByRole('button', { name: 'Make default' }).click();
-    await expect(make.getByText('Now the default.')).toBeVisible();
+    await expect(page.getByRole('list', { name: 'Designs' }).getByRole('listitem').filter({ hasText: `Head office ${run}` }).getByText('Default', { exact: true })).toBeVisible();
   }
   await open(page, '/app/demo/idstudio/print');
   await expect(page.getByRole('region', { name: 'ID card for Dev Nair', exact: true })).toBeVisible();

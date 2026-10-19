@@ -12,6 +12,7 @@ import { getLeaveSettings, leaveCycle } from '@/server/leave-ops';
 import { viewModeFor } from '@/server/view';
 import { AccrualsTab, AdminHub, ApprovalsTab, BalancesTab, RulesTab, SettingsTab } from './_tabs/admin';
 import { MyAccruals, MyBalances, MyCalendar, MyHub, MyInsights, MyRequests, MyRules } from './_tabs/self';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Leave' };
 
@@ -26,6 +27,7 @@ export default async function LeavePage({ params, searchParams }: { params: Prom
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'leave');
   if (!ctx.can('leave.read')) notFound();
   const today = todayIn(ctx.org.timezone);
   const [me, view, settings] = await Promise.all([getMyEmployee(ctx.org.id, ctx.user.id), viewModeFor(ctx), getLeaveSettings(ctx.org.id)]);

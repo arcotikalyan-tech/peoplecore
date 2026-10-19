@@ -11,6 +11,7 @@ import { viewModeFor } from '@/server/view';
 import { createDesignAction, deleteDesignAction, saveAdvancedAction, saveFieldsAction, setDefaultDesignAction, setTemplateAction } from './actions';
 import { IdCard } from './card';
 import { AdvancedForm, FieldsForm, SmallAction, TemplatePicker } from './idstudio-client';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'ID Studio' };
 
@@ -24,6 +25,7 @@ export default async function IdStudioPage({ params, searchParams }: { params: P
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'idstudio');
   const base = `/app/${slug}/idstudio`;
   const admin = ctx.can('org.manage', 'org') && (await viewModeFor(ctx)) === 'admin';
   const designs = await cardDesigns(ctx.org.id);

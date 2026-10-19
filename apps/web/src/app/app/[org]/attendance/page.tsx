@@ -14,6 +14,7 @@ import { ApprovalsTab } from './_tabs/approvals';
 import { LogsTab } from './_tabs/logs';
 import { RulesTab } from './_tabs/rules';
 import { MyCalendar, MyHub, MyInsights, MyLogs, MyRule } from './_tabs/self';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Attendance' };
 
@@ -28,6 +29,7 @@ export default async function AttendancePage({ params, searchParams }: { params:
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'attendance');
   if (!ctx.can('attendance.read')) notFound();
   const [me, view] = await Promise.all([getMyEmployee(ctx.org.id, ctx.user.id), viewModeFor(ctx)]);
   const today = todayIn(ctx.org.timezone);

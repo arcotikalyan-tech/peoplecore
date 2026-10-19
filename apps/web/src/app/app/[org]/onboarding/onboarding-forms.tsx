@@ -1,8 +1,10 @@
 'use client';
 
+import { useActionState } from 'react';
 import { ActionForm } from '@/components/action-form';
+import { SubmitButton } from '@/components/submit-button';
 import { SelectField, TextField, type Option } from '@/components/ui/fields';
-import type { ActionState } from '@/lib/action-state';
+import { initialActionState, type ActionState } from '@/lib/action-state';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -52,5 +54,25 @@ export function PublishPolicyForm({ action }: { action: Action }) {
         </>
       )}
     </ActionForm>
+  );
+}
+
+/** Activation: tick employees without a sign-in and invite them (Employee role, linked to their record). */
+export function ActivationForm({ action, people }: { action: Action; people: Array<{ id: string; code: string; name: string; email: string | null }> }) {
+  const [state, formAction] = useActionState(action, initialActionState);
+  return (
+    <form action={formAction} aria-label="Invite employees" className="space-y-3">
+      {state.message && <p role={state.ok ? 'status' : 'alert'} className={`text-sm ${state.ok ? 'text-success' : 'text-danger'}`}>{state.message}</p>}
+      <ul className="divide-y divide-line" aria-label="Not yet activated">
+        {people.map((p) => (
+          <li key={p.id} className="flex items-center gap-3 py-2 text-sm">
+            <input type="checkbox" name="employeeId" value={p.id} disabled={!p.email} defaultChecked={!!p.email} aria-label={`Invite ${p.name}`} className="size-4 rounded border-line-strong accent-primary" />
+            <span className="flex-1"><span className="font-medium">{p.name}</span> <span className="text-xs text-muted">{p.code}</span></span>
+            <span className="text-xs text-muted">{p.email ?? 'No work email'}</span>
+          </li>
+        ))}
+      </ul>
+      <SubmitButton pendingLabel="Inviting…">Send invitations (up to 25)</SubmitButton>
+    </form>
   );
 }

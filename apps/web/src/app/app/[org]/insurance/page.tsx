@@ -9,6 +9,7 @@ import { createClient } from '@/server/supabase';
 import { viewModeFor } from '@/server/view';
 import { coverAllAction, importCoverageAction, lockEndorsementAction, reconcileAction, savePolicyAction, setCoverageAction } from './actions';
 import { ButtonAction, CoverageForm, MyCover, PolicyForm, ReconcileForm, SumInsuredForm, UploadForm, type Policy } from './insurance-client';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Insurance' };
 
@@ -36,6 +37,7 @@ export default async function InsurancePage({ params, searchParams }: { params: 
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'insurance');
   const base = `/app/${slug}/insurance`;
   const supabase = await createClient();
   const manages = ctx.can('insurance.manage', 'org') && (await viewModeFor(ctx)) === 'admin';

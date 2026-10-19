@@ -245,11 +245,11 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Referrals (hub)
 
 ### Settings
-- [ ] Settings (hub)
-- [ ] Settings › bank integration
-- [ ] Settings › module selector
-- [ ] Settings › setup wizard
-- [ ] Settings › support access
+- [x] Settings (hub)
+- [x] Settings › bank integration
+- [x] Settings › module selector
+- [x] Settings › setup wizard
+- [x] Settings › support access
 
 ### Idstudio
 - [x] Idstudio (hub)
@@ -264,12 +264,12 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Holiday › holiday list
 
 ### Ceo
-- [ ] Ceo › payroll › pay register
-- [ ] Ceo › payroll › run payroll
-- [ ] Ceo › settings › controls
-- [ ] Ceo › settings › notifications
-- [ ] Ceo › settings › roles permissions
-- [ ] Ceo › settings › work week
+- [x] Ceo › payroll › pay register
+- [x] Ceo › payroll › run payroll
+- [x] Ceo › settings › controls
+- [x] Ceo › settings › notifications
+- [x] Ceo › settings › roles permissions
+- [x] Ceo › settings › work week
 
 ## Employee view
 
@@ -456,7 +456,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Referrals (hub)
 
 ### Settings
-- [ ] Settings (hub)
+- [x] Settings (hub)
 
 ### Idstudio
 - [x] Idstudio (hub)

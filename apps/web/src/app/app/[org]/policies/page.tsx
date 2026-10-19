@@ -7,12 +7,14 @@ import { getMyEmployee } from '@/server/employees';
 import { getAcknowledgementStatus, getPolicies } from '@/server/onboarding';
 import { acknowledgePolicyAction, publishPolicyAction } from '../onboarding/actions';
 import { PublishPolicyForm } from '../onboarding/onboarding-forms';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Policies' };
 
 export default async function PoliciesPage({ params }: { params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'policies');
   const me = await getMyEmployee(ctx.org.id, ctx.user.id);
   const policies = await getPolicies(ctx.org.id, me?.id ?? null);
   const manages = ctx.can('policy.manage', 'org');

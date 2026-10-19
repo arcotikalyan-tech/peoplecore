@@ -12,6 +12,7 @@ import { viewModeFor } from '@/server/view';
 import { AnalyticsTab, CategoriesTab, ClaimsTab, HubTab, ReimbursementTab, SettingsTab, type AdminProps } from './_tabs/admin';
 import { ApprovalsTab, MyClaims, MyHub } from './_tabs/mine';
 import { monthLabel, shiftMonth } from './_tabs/shared';
+import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Expenses' };
 
@@ -27,6 +28,7 @@ export default async function ExpensesPage({ params, searchParams }: { params: P
   const { org: slug } = await params;
   const sp = await searchParams;
   const ctx = await getOrgContext(slug);
+  await requireModule(ctx.org.id, 'expenses');
   const base = `/app/${slug}/expenses`;
   const today = todayIn(ctx.org.timezone);
   const view = await viewModeFor(ctx);
