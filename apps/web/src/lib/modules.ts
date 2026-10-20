@@ -15,6 +15,7 @@ export const MODULES = [
   { key: 'performance', label: 'Performance', group: 'Talent' },
   { key: 'learning', label: 'Learning', group: 'Talent' },
   { key: 'engagement', label: 'Engagement', group: 'Workplace' },
+  { key: 'peoplexp', label: 'PeopleXP', group: 'Workplace' },
   { key: 'helpdesk', label: 'Helpdesk', group: 'Workplace' },
   { key: 'knowledge', label: 'Knowledge base', group: 'Workplace' },
   { key: 'policies', label: 'Policies', group: 'Workplace' },

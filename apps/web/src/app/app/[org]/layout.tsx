@@ -64,6 +64,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     ] },
     { label: 'Workplace', items: [
       { href: `${base}/engagement`, label: 'Engagement', icon: 'megaphone' },
+      { href: `${base}/peoplexp`, label: 'PeopleXP', icon: 'heart' },
       { href: `${base}/helpdesk`, label: 'Helpdesk', icon: 'lifebuoy' },
       { href: `${base}/knowledge`, label: 'Knowledge base', icon: 'book' },
       { href: `${base}/policies`, label: 'Policies', icon: 'file' },
@@ -104,6 +105,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     ] },
     { label: 'Workplace', items: [
       { href: `${base}/engagement`, label: 'Engagement', icon: 'megaphone' },
+      { href: `${base}/peoplexp`, label: 'PeopleXP', icon: 'heart' },
       { href: `${base}/helpdesk`, label: 'Helpdesk', icon: 'lifebuoy' },
       { href: `${base}/knowledge`, label: 'Knowledge base', icon: 'book' },
       { href: `${base}/policies`, label: 'Policies', icon: 'file' },

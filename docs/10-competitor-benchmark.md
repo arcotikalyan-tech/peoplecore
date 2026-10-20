@@ -197,13 +197,13 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 
 | Kredily | PeopleCore |
 |---|---|
-| Social feed (posts, photos, celebrations, classifieds) to team / department / location / company | 🟡 announcements |
-| Daily mood pulse | ❌ |
-| Recognition with badges and **points**, nominations for culture values, approvals for high-value badges | 🟡 kudos |
-| Culture values, coverage ("never recognised" list), culture OKRs | ❌ |
-| Points wallet and gift-voucher marketplace | ❌ (commercial partnership) |
+| Social feed (posts, photos, celebrations, classifieds) to team / department / location / company | ✅ PeopleXP feed with general, classified, announcement and celebration posts to team / department / location / everyone, reactions and comments (no photos yet) |
+| Daily mood pulse | ✅ private daily check-in; summaries only for days with 3+ answers |
+| Recognition with badges and **points**, nominations for culture values, approvals for high-value badges | ✅ badges with points, daily limits, approval of high-value badges, nominations with winners |
+| Culture values, coverage ("never recognised" list), culture OKRs | ✅ values, culture health, coverage, overlooked people, department leaderboard, culture OKRs per quarter |
+| Points wallet and gift-voucher marketplace | 🟡 points wallet (append-only ledger) and organization-defined rewards fulfilled by HR; no voucher marketplace or point purchases (commercial partnership) |
 | Birthdays and work anniversaries | ❌ |
-| Analytics: posts, active users, pulse by department | ❌ |
+| Analytics: posts, active users, pulse by department | ✅ posts, recognitions, active users, points, pulse by day, badge distribution, leaderboards |
 
 ## 17. Performance
 

@@ -59,6 +59,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | insurance.manage † | O | O | | | | | | |
 | statutory.manage | O | O | | O | | | | |
 | timesheet.manage ¹¹ | O | O | | O | | | | |
+| peoplexp.manage ¹² | O | O | | | | | | |
 
 † Sensitive: every read is audited where the module supports it, and access is excluded from the AI retrieval default.
 ¹ Not granted. Every member, recruiters included, can read the minimal colleague directory (`colleague_directory`, migration 20261018002200): name, department and designation of current employees, never the employee row. A test asserts recruiters still see no employee rows.
@@ -72,6 +73,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 ⁹ Employees resign themselves; their manager approves first, then HR. Managers see separations in their reporting line and clear the handover item; asset managers see and settle asset and access items; payroll or expense managers the no-dues item. Why someone left and the exit interview are readable only by the employee and HR (`separation_details`; not in the table privileges).
 ¹⁰ AI (migration 20261018003000). `ai.use` lets a person use the assistants once the owner has turned them on (`ai.manage`, owner only: on/off, monthly token budget, hourly limit per person, usage). Every run passes a gate in the database (`ai_begin_run`): ai.use, the agent's own module permission (resume reading needs recruitment.manage, for example), AI turned on, the hourly limit and the monthly budget. Assistants read data as the person asking (RLS). Runs are visible to their own user and to ai.manage holders, without the prompt or output (no column privilege; kept 30 days for troubleshooting, service role only). Suggestions are visible only to the person who asked. No agent or tool can be declared above tier 2, so no assistant can approve, reject, change pay or end employment.
 ¹¹ Not granted to employees. Workspace members log their own time; an employee's reporting manager approves (and, if the settings allow, logs or corrects) their time without `timesheet.manage`. Nobody approves their own time.
+¹² Not granted to employees. Everyone posts to the PeopleXP feed, recognises colleagues within the daily limits, redeems their own points and sees their own pulse answers; `peoplexp.manage` approves high-value recognitions, fulfils rewards, adjusts points and sees pulse summaries (groups of three or more only).
 
 Platform super-admins are **not** org members by default (tested). They manage tenants through `/platform`. Time-boxed support access will use an audited `member_roles.valid_until` grant; the mechanism exists and is tested, the support-access workflow is Phase 1b.
 

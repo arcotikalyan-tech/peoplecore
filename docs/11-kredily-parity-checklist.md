@@ -174,17 +174,17 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Assets › requests
 
 ### Peoplexp
-- [ ] Peoplexp (hub)
-- [ ] Peoplexp › analytics
-- [ ] Peoplexp › culture okrs
-- [ ] Peoplexp › culture os
-- [ ] Peoplexp › feed
-- [ ] Peoplexp › gift vouchers
-- [ ] Peoplexp › gift vouchers › power 1 000 points 1
-- [ ] Peoplexp › gift vouchers › pro 2 500 points 2
-- [ ] Peoplexp › my insights
-- [ ] Peoplexp › recognition
-- [ ] Peoplexp › settings
+- [x] Peoplexp (hub)
+- [x] Peoplexp › analytics
+- [x] Peoplexp › culture okrs
+- [x] Peoplexp › culture os
+- [x] Peoplexp › feed
+- [x] Peoplexp › gift vouchers — replaced by organization-defined rewards redeemed with points (no third-party vouchers or payments)
+- [x] Peoplexp › gift vouchers › power 1 000 points 1 — replaced by organization-defined rewards redeemed with points (no third-party vouchers or payments)
+- [x] Peoplexp › gift vouchers › pro 2 500 points 2 — replaced by organization-defined rewards redeemed with points (no third-party vouchers or payments)
+- [x] Peoplexp › my insights
+- [x] Peoplexp › recognition
+- [x] Peoplexp › settings
 
 ### Pms
 - [x] Pms (hub)
@@ -400,17 +400,17 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Learn › skills
 
 ### Peoplexp
-- [ ] Peoplexp (hub)
-- [ ] Peoplexp › analytics
-- [ ] Peoplexp › culture okrs
-- [ ] Peoplexp › culture os
-- [ ] Peoplexp › feed
-- [ ] Peoplexp › gift vouchers
-- [ ] Peoplexp › gift vouchers › power 1 000 points 1
-- [ ] Peoplexp › gift vouchers › pro 2 500 points 2
-- [ ] Peoplexp › my insights
-- [ ] Peoplexp › recognition
-- [ ] Peoplexp › settings
+- [x] Peoplexp (hub)
+- [x] Peoplexp › analytics
+- [x] Peoplexp › culture okrs
+- [x] Peoplexp › culture os
+- [x] Peoplexp › feed
+- [x] Peoplexp › gift vouchers — replaced by organization-defined rewards redeemed with points (no third-party vouchers or payments)
+- [x] Peoplexp › gift vouchers › power 1 000 points 1 — replaced by organization-defined rewards redeemed with points (no third-party vouchers or payments)
+- [x] Peoplexp › gift vouchers › pro 2 500 points 2 — replaced by organization-defined rewards redeemed with points (no third-party vouchers or payments)
+- [x] Peoplexp › my insights
+- [x] Peoplexp › recognition
+- [x] Peoplexp › settings
 
 ### Assets
 - [x] Assets (hub)
@@ -534,16 +534,16 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Assets My Requests (hub)
 
 ### Peoplexp Recognition
-- [ ] Peoplexp Recognition (hub)
+- [x] Peoplexp Recognition (hub)
 
 ### Peoplexp Gift Vouchers
-- [ ] Peoplexp Gift Vouchers (hub)
+- [x] Peoplexp Gift Vouchers (hub) — replaced by organization-defined rewards redeemed with points (no third-party vouchers or payments)
 
 ### Peoplexp My Insights
-- [ ] Peoplexp My Insights (hub)
+- [x] Peoplexp My Insights (hub)
 
 ### Peoplexp Me
-- [ ] Peoplexp Me (hub)
+- [x] Peoplexp Me (hub)
 
 ### Learn My Journeys
 - [ ] Learn My Journeys (hub)

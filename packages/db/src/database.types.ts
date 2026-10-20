@@ -5022,6 +5022,456 @@ export type Database = {
         };
         Relationships: [];
       };
+      pxp_badges: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          emoji: string;
+          points: number;
+          value_id: string | null;
+          active: boolean;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          emoji?: string;
+          points?: number;
+          value_id?: string | null;
+          active?: boolean;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          emoji?: string;
+          points?: number;
+          value_id?: string | null;
+          active?: boolean;
+        };
+        Relationships: [];
+      };
+      pxp_comments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          post_id: string;
+          employee_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          post_id: string;
+          employee_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          post_id?: string;
+          employee_id?: string;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pxp_ledger: {
+        Row: {
+          id: number;
+          organization_id: string;
+          employee_id: string;
+          delta: number;
+          kind: string;
+          recognition_id: string | null;
+          redemption_id: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: never;
+          organization_id: string;
+          employee_id: string;
+          delta: number;
+          kind: string;
+          recognition_id?: string | null;
+          redemption_id?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: never;
+          organization_id?: string;
+          employee_id?: string;
+          delta?: number;
+          kind?: string;
+          recognition_id?: string | null;
+          redemption_id?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pxp_nominations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          nominee_employee_id: string;
+          nominator_employee_id: string;
+          value_id: string;
+          month: string;
+          reason: string;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          nominee_employee_id: string;
+          nominator_employee_id: string;
+          value_id: string;
+          month: string;
+          reason: string;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          nominee_employee_id?: string;
+          nominator_employee_id?: string;
+          value_id?: string;
+          month?: string;
+          reason?: string;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pxp_okrs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          value_id: string | null;
+          quarter: string;
+          owner_employee_id: string | null;
+          target: number;
+          current: number;
+          unit: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          value_id?: string | null;
+          quarter: string;
+          owner_employee_id?: string | null;
+          target: number;
+          current?: number;
+          unit?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          value_id?: string | null;
+          quarter?: string;
+          owner_employee_id?: string | null;
+          target?: number;
+          current?: number;
+          unit?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pxp_posts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          author_employee_id: string;
+          kind: string;
+          body: string;
+          audience: string;
+          audience_department_id: string | null;
+          audience_location_id: string | null;
+          visible: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          author_employee_id: string;
+          kind?: string;
+          body: string;
+          audience?: string;
+          audience_department_id?: string | null;
+          audience_location_id?: string | null;
+          visible?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          author_employee_id?: string;
+          kind?: string;
+          body?: string;
+          audience?: string;
+          audience_department_id?: string | null;
+          audience_location_id?: string | null;
+          visible?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pxp_pulse: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          day: string;
+          mood: number;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          day: string;
+          mood: number;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          day?: string;
+          mood?: number;
+        };
+        Relationships: [];
+      };
+      pxp_reactions: {
+        Row: {
+          organization_id: string;
+          post_id: string;
+          employee_id: string;
+          emoji: string;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          post_id: string;
+          employee_id: string;
+          emoji?: string;
+          created_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          post_id?: string;
+          employee_id?: string;
+          emoji?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pxp_recognition_recipients: {
+        Row: {
+          organization_id: string;
+          recognition_id: string;
+          employee_id: string;
+        };
+        Insert: {
+          organization_id: string;
+          recognition_id: string;
+          employee_id: string;
+        };
+        Update: {
+          organization_id?: string;
+          recognition_id?: string;
+          employee_id?: string;
+        };
+        Relationships: [];
+      };
+      pxp_recognitions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          post_id: string;
+          from_employee_id: string;
+          badge_id: string;
+          points: number;
+          message: string;
+          status: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          post_id: string;
+          from_employee_id: string;
+          badge_id: string;
+          points: number;
+          message: string;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          post_id?: string;
+          from_employee_id?: string;
+          badge_id?: string;
+          points?: number;
+          message?: string;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pxp_redemptions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          reward_id: string;
+          points: number;
+          status: string;
+          note: string | null;
+          decided_by: string | null;
+          decided_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          reward_id: string;
+          points: number;
+          status?: string;
+          note?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          reward_id?: string;
+          points?: number;
+          status?: string;
+          note?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pxp_rewards: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          description: string | null;
+          cost: number;
+          stock: number | null;
+          active: boolean;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          description?: string | null;
+          cost: number;
+          stock?: number | null;
+          active?: boolean;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          description?: string | null;
+          cost?: number;
+          stock?: number | null;
+          active?: boolean;
+        };
+        Relationships: [];
+      };
+      pxp_settings: {
+        Row: {
+          organization_id: string;
+          points_enabled: boolean;
+          daily_recognition_limit: number;
+          daily_points_limit: number;
+          high_value_threshold: number;
+          require_approval: boolean;
+          notify_recipient: boolean;
+          notify_manager: boolean;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          points_enabled?: boolean;
+          daily_recognition_limit?: number;
+          daily_points_limit?: number;
+          high_value_threshold?: number;
+          require_approval?: boolean;
+          notify_recipient?: boolean;
+          notify_manager?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          points_enabled?: boolean;
+          daily_recognition_limit?: number;
+          daily_points_limit?: number;
+          high_value_threshold?: number;
+          require_approval?: boolean;
+          notify_recipient?: boolean;
+          notify_manager?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pxp_values: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          emoji: string;
+          description: string | null;
+          archived_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          emoji?: string;
+          description?: string | null;
+          archived_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          emoji?: string;
+          description?: string | null;
+          archived_at?: string | null;
+        };
+        Relationships: [];
+      };
       recruiting_email_templates: {
         Row: {
           id: string;
@@ -7920,6 +8370,61 @@ export type Database = {
           p_run: string;
         };
         Returns: undefined;
+      };
+      pxp_adjust: {
+        Args: {
+          p_employee: string;
+          p_delta: number;
+          p_note: string;
+        };
+        Returns: undefined;
+      };
+      pxp_checkin: {
+        Args: {
+          p_org: string;
+          p_mood: number;
+        };
+        Returns: undefined;
+      };
+      pxp_decide: {
+        Args: {
+          p_recognition: string;
+          p_approve: boolean;
+        };
+        Returns: undefined;
+      };
+      pxp_fulfil: {
+        Args: {
+          p_redemption: string;
+          p_status: string;
+          p_note?: string;
+        };
+        Returns: undefined;
+      };
+      pxp_pulse_summary: {
+        Args: {
+          p_org: string;
+          p_from: string;
+          p_to: string;
+          p_department?: string;
+        };
+        Returns: { day: string; responses: number; great: number; good: number; okay: number; stressed: number; burnt: number }[];
+      };
+      pxp_recognize: {
+        Args: {
+          p_org: string;
+          p_recipients: string[];
+          p_badge: string;
+          p_message: string;
+          p_audience?: string;
+        };
+        Returns: Json;
+      };
+      pxp_redeem: {
+        Args: {
+          p_reward: string;
+        };
+        Returns: string;
       };
       raise_grievance: {
         Args: {
