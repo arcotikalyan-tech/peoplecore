@@ -72,7 +72,10 @@ test('HR handles it; the employee sees replies and the outcome, never internal n
 
   await update.getByLabel('Status').selectOption('resolved');
   await update.getByLabel('Outcome').fill('The manager has been given feedback and will chair reviews with HR present for the next quarter.');
+  // The confirmation from the first update is still showing, so wait for this save itself to come back.
+  const saved = hr.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/grievances/'));
   await update.getByRole('button', { name: 'Update' }).click();
+  await saved;
   await expect(update.getByText('Case updated. The person who raised it has been told.')).toBeVisible();
 
   await employee.reload();
