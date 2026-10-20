@@ -14,7 +14,6 @@ The machine is shared. EasyBooks owns the stack in `/opt/easybooks`, including t
 | `/opt/peoplecore/.env` | Runtime settings, mode 600: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (and `ANTHROPIC_API_KEY` once AI is on). |
 | `/opt/peoplecore/src` | The source of the deployed commit (replaced on each deploy). |
 | `/opt/peoplecore/docker-compose.yml` | Copied from `deploy/docker-compose.yml`. It defines the `web` and `worker` services. |
-| `/opt/peoplecore/receive.sh` | Copy of `deploy/receive.sh`: the forced command for the GitHub deploy key. |
 | `/srv/caddy/sites/hr.stepupp.in.caddy` | Copy of `deploy/hr.stepupp.in.caddy`. |
 
 The web container publishes `172.18.0.1:3200`. That address is the bridge gateway of the `easybooks_default`
@@ -23,17 +22,20 @@ ports bypass ufw.
 
 ## Deploy
 
-**Normally:** run Actions → Deploy. The workflow applies migrations, then the `server` job sends the commit's
-source over SSH to `receive.sh`. That script builds both images on the server (about 6–8 minutes) and restarts the
-containers.
+**Normally:** from the repository on the Mac, once the commit is pushed and CI is green, run:
 
-The job needs these secrets on the `production` environment:
-- `SERVER_HOST`
-- `SERVER_SSH_KEY`: the private half of a key that `authorized_keys` restricts to
-  `command="/opt/peoplecore/receive.sh",restrict`.
-- `SERVER_KNOWN_HOSTS`: the output of `ssh-keyscan -t ed25519 187.127.120.22`.
+```sh
+deploy/ship.sh
+```
 
-**By hand:** copy the source to `/opt/peoplecore/src`, then run `bash /opt/peoplecore/src/deploy/deploy.sh <tag>`.
+It refuses to run if the working tree has uncommitted changes, if HEAD isn't `origin/main`, or if CI hasn't passed
+on that commit. It sends the commit's source over SSH to `/opt/peoplecore/src`, then runs `deploy/deploy.sh`.
+That builds both images on the server (about 6–8 minutes) and restarts the containers.
+
+**Database migrations** still go through Actions → Deploy, whose migrate job holds the database password. When a
+commit adds a migration, run Deploy first, then `deploy/ship.sh`.
+
+**By hand, on the server:** `bash /opt/peoplecore/src/deploy/deploy.sh <tag>`.
 
 ## Operate
 

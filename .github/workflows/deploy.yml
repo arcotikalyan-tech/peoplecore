@@ -2,7 +2,8 @@ name: Deploy
 
 # Production release, started by hand (Actions → Deploy → Run workflow, or `gh workflow run Deploy`) for a commit on
 # main that passed CI. Manual on purpose: the repository's plan has no required reviewers for environments, so a
-# person starting the run is the approval. Migrations first, then the web app on the server (and on Vercel while it is still configured). Each job skips itself until its
+# person starting the run is the approval. Migrations first, then the web app on Vercel (the fallback). The Hostinger server is deployed from a Mac with
+# deploy/ship.sh (docs/runbooks/server.md). Each job skips itself until its
 # secrets exist (docs/runbooks/deploy.md).
 
 on:
@@ -72,33 +73,6 @@ jobs:
         run: supabase db push --dry-run --password "$SUPABASE_DB_PASSWORD"
       - if: steps.ready.outputs.ok == 'true'
         run: supabase db push --password "$SUPABASE_DB_PASSWORD"
-
-  server:
-    needs: migrate
-    runs-on: ubuntu-latest
-    environment: production
-    timeout-minutes: 40
-    env:
-      SERVER_HOST: ${{ secrets.SERVER_HOST }}
-      SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
-      SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
-    steps:
-      - id: ready
-        run: |
-          if [ -n "$SERVER_HOST" ] && [ -n "$SERVER_SSH_KEY" ] && [ -n "$SERVER_KNOWN_HOSTS" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
-          else echo "::notice::Server secrets not set; skipping the server deploy."; fi
-      - if: steps.ready.outputs.ok == 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-      # The deploy key is restricted on the server to deploy/receive.sh: it takes this commit's source on stdin,
-      # builds the web and worker images there and restarts them (docs/runbooks/server.md).
-      - if: steps.ready.outputs.ok == 'true'
-        run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
-          printf '%s\n' "$SERVER_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          git archive --format=tar.gz HEAD | ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "root@$SERVER_HOST" "$GITHUB_SHA"
 
   web:
     needs: migrate
