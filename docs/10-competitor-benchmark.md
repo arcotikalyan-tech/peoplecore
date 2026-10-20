@@ -128,10 +128,10 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 
 | Kredily | PeopleCore |
 |---|---|
-| Time tracker (start–end or live timer, copy last week, favourites), weekly view | ❌ |
-| Workspace: members, clients, projects (budget, burn), tasks with rates | ❌ |
-| Approvals with auto-lock; finance: billable roll-up and **invoices** | ❌ |
-| Reports: utilisation, project burn, scheduled exports | ❌ |
+| Time tracker (start–end or live timer, copy last week, favourites), weekly view | ✅ day navigation, start–end or total hours, live timer, copy last week, week strip, day’s logs (no favourites) |
+| Workspace: members, clients, projects (budget, burn), tasks with rates | ✅ members from the directory with rates, clients (currency, GSTIN), external/internal projects with hours or fee budgets and members, tasks with rates (no paid seats) |
+| Approvals with auto-lock; finance: billable roll-up and **invoices** | ✅ manager or admin / manager then admin, bulk approve, reject with reason, approver corrections, auto-lock; billable roll-up by currency, invoices at the rate on each log’s date, sent/paid/void, printable |
+| Reports: utilisation, project burn, scheduled exports | ✅ summary (utilisation, total, average per person per day, approval SLA, burn), detailed with CSV export, weekly grid; settings for methods, rounding, caps, blocked days, lock, overlap, creators, reminders (worker) and allowed networks (no share/schedule, no geo-fencing or push to attendance yet) |
 | Settings: entry methods, overlap rules, rounding, lock dates, reminders, IP and geofence limits | ❌ |
 
 ## 10. Payroll

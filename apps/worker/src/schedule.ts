@@ -37,6 +37,8 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'ai.retention', key: `ai.retention:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // Scheduled reports: a reminder when one is due in its organization's time zone (each schedule once per period).
     { kind: 'reports.schedules', key: `reports.schedules:${hour}`, payload: { hour } },
+    // Timesheet reminders: missing hours at 6 pm on working days, the weekly reminder on Friday at 4 pm (local time).
+    { kind: 'timesheet.reminders', key: `timesheet.reminders:${hour}`, payload: { hour } },
     // Every 15 minutes: the shortest helpdesk SLA is 4 hours, so a breach is flagged within a quarter of it.
     { kind: 'helpdesk.sla', key: `helpdesk.sla:${hour}:${String(Math.floor(now.getUTCMinutes() / 15) * 15).padStart(2, '0')}`, payload: { hour } },
   ];

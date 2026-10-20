@@ -3,6 +3,7 @@ export const MODULES = [
   { key: 'attendance', label: 'Attendance', group: 'Time' },
   { key: 'leave', label: 'Leave', group: 'Time' },
   { key: 'holidays', label: 'Holidays', group: 'Time' },
+  { key: 'timesheet', label: 'Timesheet', group: 'Time' },
   { key: 'payroll', label: 'Payroll', group: 'Pay' },
   { key: 'expenses', label: 'Expenses', group: 'Pay' },
   { key: 'loans', label: 'Loans', group: 'Pay' },

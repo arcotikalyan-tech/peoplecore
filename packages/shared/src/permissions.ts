@@ -69,6 +69,7 @@ export const PERMISSIONS = {
   'letter.manage': { module: 'core_hr', description: 'Generate and release employee letters; manage templates, signatories and letterhead', sensitive: true },
   'insurance.manage': { module: 'benefits', description: 'Manage the group health policy, coverage and insurer endorsements', sensitive: true },
   'statutory.manage': { module: 'payroll', description: 'Track statutory registers, returns and filings' },
+  'timesheet.manage': { module: 'timesheet', description: 'Manage the timesheet workspace, approve any time logs and invoice clients' },
   'ai.use': { module: 'ai', description: 'Use AI assistants' },
   'ai.manage': { module: 'ai', description: 'Turn AI assistants on or off and see AI usage' },
 } as const satisfies Record<string, PermissionDef>;
@@ -118,7 +119,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
       'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org', 'expense.manage': 'org',
-      'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org', 'workflow.manage': 'org', 'separation.manage': 'org', 'letter.manage': 'org', 'insurance.manage': 'org', 'statutory.manage': 'org',
+      'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org', 'workflow.manage': 'org', 'separation.manage': 'org', 'letter.manage': 'org', 'insurance.manage': 'org', 'statutory.manage': 'org', 'timesheet.manage': 'org',
     },
   },
   hr_admin: {
@@ -137,7 +138,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
       'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org',
-      'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org', 'workflow.manage': 'org', 'separation.manage': 'org', 'letter.manage': 'org', 'insurance.manage': 'org', 'statutory.manage': 'org',
+      'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org', 'workflow.manage': 'org', 'separation.manage': 'org', 'letter.manage': 'org', 'insurance.manage': 'org', 'statutory.manage': 'org', 'timesheet.manage': 'org',
     },
   },
   recruiter: {
@@ -159,7 +160,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'employee.identity.read': 'org', 'employee.bank.read': 'org',
       'compensation.read': 'org', 'compensation.update': 'org',
       'payroll.prepare': 'org', 'payroll.approve': 'org',
-      'attendance.read': 'org', 'expense.approve': 'org', 'ai.use': 'org', 'leave.read': 'org', 'expense.manage': 'org', 'statutory.manage': 'org',
+      'attendance.read': 'org', 'expense.approve': 'org', 'ai.use': 'org', 'leave.read': 'org', 'expense.manage': 'org', 'statutory.manage': 'org', 'timesheet.manage': 'org',
     },
   },
   department_head: {

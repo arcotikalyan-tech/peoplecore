@@ -6141,6 +6141,417 @@ export type Database = {
         };
         Relationships: [];
       };
+      timesheet_settings: {
+        Row: {
+          organization_id: string;
+          methods: string[];
+          timer_edit: string[];
+          capture_location: boolean;
+          max_billable: string;
+          max_billable_hours: number;
+          restrict_days: string[];
+          period: string;
+          overlap: string;
+          rounding: number;
+          lock_before: string | null;
+          auto_lock: boolean;
+          default_billable: boolean;
+          creators: string[];
+          approval_flow: string;
+          approver_can_edit: boolean;
+          rejection_reason_required: boolean;
+          remind_submit: boolean;
+          remind_missing: boolean;
+          daily_target_minutes: number;
+          restrict_networks: boolean;
+          allowed_ips: string[];
+          last_missing_reminder: string | null;
+          last_submit_reminder: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          methods?: string[];
+          timer_edit?: string[];
+          capture_location?: boolean;
+          max_billable?: string;
+          max_billable_hours?: number;
+          restrict_days?: string[];
+          period?: string;
+          overlap?: string;
+          rounding?: number;
+          lock_before?: string | null;
+          auto_lock?: boolean;
+          default_billable?: boolean;
+          creators?: string[];
+          approval_flow?: string;
+          approver_can_edit?: boolean;
+          rejection_reason_required?: boolean;
+          remind_submit?: boolean;
+          remind_missing?: boolean;
+          daily_target_minutes?: number;
+          restrict_networks?: boolean;
+          allowed_ips?: string[];
+          last_missing_reminder?: string | null;
+          last_submit_reminder?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          methods?: string[];
+          timer_edit?: string[];
+          capture_location?: boolean;
+          max_billable?: string;
+          max_billable_hours?: number;
+          restrict_days?: string[];
+          period?: string;
+          overlap?: string;
+          rounding?: number;
+          lock_before?: string | null;
+          auto_lock?: boolean;
+          default_billable?: boolean;
+          creators?: string[];
+          approval_flow?: string;
+          approver_can_edit?: boolean;
+          rejection_reason_required?: boolean;
+          remind_submit?: boolean;
+          remind_missing?: boolean;
+          daily_target_minutes?: number;
+          restrict_networks?: boolean;
+          allowed_ips?: string[];
+          last_missing_reminder?: string | null;
+          last_submit_reminder?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      ts_clients: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          organisation: string | null;
+          email: string | null;
+          country: string;
+          currency: string;
+          gstin: string | null;
+          finance_poc: string | null;
+          rate: number | null;
+          archived_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          organisation?: string | null;
+          email?: string | null;
+          country?: string;
+          currency?: string;
+          gstin?: string | null;
+          finance_poc?: string | null;
+          rate?: number | null;
+          archived_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          organisation?: string | null;
+          email?: string | null;
+          country?: string;
+          currency?: string;
+          gstin?: string | null;
+          finance_poc?: string | null;
+          rate?: number | null;
+          archived_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      ts_entries: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          project_id: string;
+          task_id: string | null;
+          work_date: string;
+          start_time: string | null;
+          end_time: string | null;
+          minutes: number;
+          description: string | null;
+          billable: boolean;
+          rate: number | null;
+          currency: string;
+          status: string;
+          reject_reason: string | null;
+          decided_by: string | null;
+          decided_at: string | null;
+          invoice_id: string | null;
+          source: string;
+          created_ip: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          project_id: string;
+          task_id?: string | null;
+          work_date: string;
+          start_time?: string | null;
+          end_time?: string | null;
+          minutes: number;
+          description?: string | null;
+          billable?: boolean;
+          rate?: number | null;
+          currency?: string;
+          status?: string;
+          reject_reason?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          invoice_id?: string | null;
+          source?: string;
+          created_ip?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          project_id?: string;
+          task_id?: string | null;
+          work_date?: string;
+          start_time?: string | null;
+          end_time?: string | null;
+          minutes?: number;
+          description?: string | null;
+          billable?: boolean;
+          rate?: number | null;
+          currency?: string;
+          status?: string;
+          reject_reason?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          invoice_id?: string | null;
+          source?: string;
+          created_ip?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      ts_invoices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          number: string;
+          client_id: string;
+          project_id: string | null;
+          period_from: string;
+          period_to: string;
+          currency: string;
+          minutes: number;
+          total: number;
+          status: string;
+          created_by: string | null;
+          created_at: string;
+          sent_at: string | null;
+          paid_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          number: string;
+          client_id: string;
+          project_id?: string | null;
+          period_from: string;
+          period_to: string;
+          currency: string;
+          minutes: number;
+          total: number;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+          paid_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          number?: string;
+          client_id?: string;
+          project_id?: string | null;
+          period_from?: string;
+          period_to?: string;
+          currency?: string;
+          minutes?: number;
+          total?: number;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+          paid_at?: string | null;
+        };
+        Relationships: [];
+      };
+      ts_members: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          rate: number | null;
+          active: boolean;
+          added_by: string | null;
+          added_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          rate?: number | null;
+          active?: boolean;
+          added_by?: string | null;
+          added_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          rate?: number | null;
+          active?: boolean;
+          added_by?: string | null;
+          added_at?: string;
+        };
+        Relationships: [];
+      };
+      ts_project_members: {
+        Row: {
+          organization_id: string;
+          project_id: string;
+          employee_id: string;
+        };
+        Insert: {
+          organization_id: string;
+          project_id: string;
+          employee_id: string;
+        };
+        Update: {
+          organization_id?: string;
+          project_id?: string;
+          employee_id?: string;
+        };
+        Relationships: [];
+      };
+      ts_projects: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          client_id: string | null;
+          kind: string;
+          budget_type: string;
+          budget_amount: number | null;
+          manager_employee_id: string | null;
+          rate: number | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          client_id?: string | null;
+          kind?: string;
+          budget_type?: string;
+          budget_amount?: number | null;
+          manager_employee_id?: string | null;
+          rate?: number | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          client_id?: string | null;
+          kind?: string;
+          budget_type?: string;
+          budget_amount?: number | null;
+          manager_employee_id?: string | null;
+          rate?: number | null;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      ts_tasks: {
+        Row: {
+          id: string;
+          organization_id: string;
+          project_id: string;
+          name: string;
+          billable: boolean;
+          rate: number | null;
+          archived_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          project_id: string;
+          name: string;
+          billable?: boolean;
+          rate?: number | null;
+          archived_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          project_id?: string;
+          name?: string;
+          billable?: boolean;
+          rate?: number | null;
+          archived_at?: string | null;
+        };
+        Relationships: [];
+      };
+      ts_timers: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          project_id: string;
+          task_id: string | null;
+          description: string | null;
+          billable: boolean;
+          started_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          project_id: string;
+          task_id?: string | null;
+          description?: string | null;
+          billable?: boolean;
+          started_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          project_id?: string;
+          task_id?: string | null;
+          description?: string | null;
+          billable?: boolean;
+          started_at?: string;
+        };
+        Relationships: [];
+      };
       work_week_assignments: {
         Row: {
           id: string;
@@ -7923,6 +8334,92 @@ export type Database = {
         };
         Returns: { id: string; author_name: string; mine: boolean; body: string; internal: boolean; created_at: string }[];
       };
+      ts_adjust_entry: {
+        Args: {
+          p_entry: string;
+          p_minutes: number;
+          p_billable: boolean;
+          p_description: string;
+        };
+        Returns: undefined;
+      };
+      ts_copy_last_week: {
+        Args: {
+          p_org: string;
+          p_week_start: string;
+          p_ip?: string;
+        };
+        Returns: Json;
+      };
+      ts_decide: {
+        Args: {
+          p_entries: string[];
+          p_decision: string;
+          p_reason?: string;
+        };
+        Returns: number;
+      };
+      ts_delete_entry: {
+        Args: {
+          p_entry: string;
+        };
+        Returns: undefined;
+      };
+      ts_discard_timer: {
+        Args: {
+          p_org: string;
+        };
+        Returns: undefined;
+      };
+      ts_generate_invoice: {
+        Args: {
+          p_org: string;
+          p_client: string;
+          p_project: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: string;
+      };
+      ts_log_time: {
+        Args: {
+          p_project: string;
+          p_task: string;
+          p_date: string;
+          p_start: string;
+          p_end: string;
+          p_minutes: number;
+          p_description: string;
+          p_billable: boolean;
+          p_employee?: string;
+          p_ip?: string;
+          p_source?: string;
+        };
+        Returns: Json;
+      };
+      ts_set_invoice_status: {
+        Args: {
+          p_invoice: string;
+          p_status: string;
+        };
+        Returns: undefined;
+      };
+      ts_start_timer: {
+        Args: {
+          p_project: string;
+          p_task: string;
+          p_description: string;
+          p_billable: boolean;
+        };
+        Returns: undefined;
+      };
+      ts_stop_timer: {
+        Args: {
+          p_org: string;
+          p_ip?: string;
+        };
+        Returns: Json;
+      };
       upcoming_birthdays: {
         Args: {
           p_org: string;
@@ -8085,6 +8582,10 @@ export type Database = {
         Args: {
           p_event: number;
         };
+        Returns: Json;
+      };
+      worker_timesheet_reminders: {
+        Args: never;
         Returns: Json;
       };
       workflow_trigger_catalog: {

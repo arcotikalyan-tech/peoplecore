@@ -49,6 +49,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       ...when(ctx.can('attendance.read'), { href: `${base}/attendance`, label: 'Attendance', icon: 'clock' }),
       ...when(ctx.can('leave.read'), { href: `${base}/leave`, label: 'Leave', icon: 'palm' }),
       { href: `${base}/holidays`, label: 'Holidays', icon: 'calendar' },
+      { href: `${base}/timesheet`, label: 'Timesheet', icon: 'timer' },
     ] },
     { label: 'Pay', items: [
       ...when(ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org'), { href: `${base}/payroll`, label: 'Payroll', icon: 'wallet' }),
@@ -91,6 +92,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       ...when(ctx.can('attendance.read'), { href: `${base}/attendance`, label: 'Attendance', icon: 'clock' }),
       ...when(ctx.can('leave.read'), { href: `${base}/leave`, label: 'Leave', icon: 'palm' }),
       { href: `${base}/holidays`, label: 'Holidays', icon: 'calendar' },
+      { href: `${base}/timesheet`, label: 'Timesheet', icon: 'timer' },
       { href: `${base}/payslips`, label: 'My Pay', icon: 'receipt' },
       { href: `${base}/expenses`, label: 'Expenses', icon: 'card' },
       { href: `${base}/loans`, label: 'Loans', icon: 'coins' },

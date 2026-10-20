@@ -119,19 +119,19 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Leave › settings
 
 ### Timesheet
-- [ ] Timesheet (hub)
-- [ ] Timesheet › approvals
-- [ ] Timesheet › dashboard
-- [ ] Timesheet › finance
-- [ ] Timesheet › reports
-- [ ] Timesheet › settings
-- [ ] Timesheet › settings › attendance integration
-- [ ] Timesheet › settings › permission settings
-- [ ] Timesheet › time tracker
-- [ ] Timesheet › workspace
-- [ ] Timesheet › workspace › clients
-- [ ] Timesheet › workspace › projects
-- [ ] Timesheet › workspace › tasks
+- [x] Timesheet (hub)
+- [x] Timesheet › approvals
+- [x] Timesheet › dashboard
+- [x] Timesheet › finance
+- [x] Timesheet › reports
+- [x] Timesheet › settings
+- [x] Timesheet › settings › attendance integration
+- [x] Timesheet › settings › permission settings
+- [x] Timesheet › time tracker
+- [x] Timesheet › workspace
+- [x] Timesheet › workspace › clients
+- [x] Timesheet › workspace › projects
+- [x] Timesheet › workspace › tasks
 
 ### Payroll
 - [x] Payroll (hub)
@@ -352,19 +352,19 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Expense › settings
 
 ### Timesheet
-- [ ] Timesheet (hub)
-- [ ] Timesheet › approvals
-- [ ] Timesheet › dashboard
-- [ ] Timesheet › finance
-- [ ] Timesheet › reports
-- [ ] Timesheet › settings
-- [ ] Timesheet › settings › attendance integration
-- [ ] Timesheet › settings › permission settings
-- [ ] Timesheet › time tracker
-- [ ] Timesheet › workspace
-- [ ] Timesheet › workspace › clients
-- [ ] Timesheet › workspace › projects
-- [ ] Timesheet › workspace › tasks
+- [x] Timesheet (hub)
+- [x] Timesheet › approvals
+- [x] Timesheet › dashboard
+- [x] Timesheet › finance
+- [x] Timesheet › reports
+- [x] Timesheet › settings
+- [x] Timesheet › settings › attendance integration
+- [x] Timesheet › settings › permission settings
+- [x] Timesheet › time tracker
+- [x] Timesheet › workspace
+- [x] Timesheet › workspace › clients
+- [x] Timesheet › workspace › projects
+- [x] Timesheet › workspace › tasks
 
 ### Letters
 - [x] Letters (hub)
@@ -504,7 +504,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Leave Insights (hub)
 
 ### Timesheet Approvals
-- [ ] Timesheet Approvals (hub)
+- [x] Timesheet Approvals (hub)
 
 ### Payroll Payslips
 - [x] Payroll Payslips (hub)
