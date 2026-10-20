@@ -1,0 +1,21 @@
+# PeopleCore on the Hostinger server (/opt/peoplecore). See docs/runbooks/server.md.
+# The web app listens only on the bridge gateway of the shared Caddy's network (172.18.0.1), so the proxy can
+# reach it and the internet cannot (Docker-published ports bypass ufw, hence no 0.0.0.0).
+name: peoplecore
+services:
+  web:
+    image: peoplecore-web:${TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    ports: ['172.18.0.1:3200:3000']
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  worker:
+    image: peoplecore-worker:${TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      WORKER_ID: hostinger-1

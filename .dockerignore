@@ -1,0 +1,16 @@
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/coverage
+**/test-results
+**/playwright-report
+**/.env
+**/.env.*
+!**/.env.example
+**/.demo-mfa.json
+**/.vercel
+.git
+.claude
+supabase/.temp
+supabase/.branches

@@ -1,14 +1,18 @@
+import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // Location for geofenced check-ins on our own pages only; the selfie uses the file picker, which this doesn't govern.
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
 ];
 
 const config: NextConfig = {
+  // The server image (Dockerfile) runs Next's self-contained output; Vercel and `next start` use the default.
+  ...(process.env.NEXT_OUTPUT === 'standalone' ? { output: 'standalone' as const, outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)) } : {}),
   transpilePackages: ['@peoplecore/shared', '@peoplecore/payroll', '@peoplecore/ai'],
   poweredByHeader: false,
   // Document uploads are capped at 5 MB (checked again on the server); leave room for the other form fields.

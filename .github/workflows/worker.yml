@@ -7,9 +7,9 @@ name: Worker
 # host when that is too coarse. Skips itself until its
 # secrets exist on the "production" environment.
 
+# Since 2026-10-21 the worker runs always-on on the Hostinger server (docs/runbooks/server.md); this stays as a
+# manual fallback.
 on:
-  schedule:
-    - cron: '7 */3 * * *'
   workflow_dispatch:
 
 permissions:
