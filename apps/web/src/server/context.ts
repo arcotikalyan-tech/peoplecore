@@ -33,6 +33,8 @@ export async function requireUser(): Promise<SessionUser> {
 
 /** Whether the user's roles need two-factor sign-in (owner, HR, payroll, auditor, platform admin). */
 export const needsMfa = cache(async (): Promise<boolean> => {
+  const known = requestShell().needsMfa;
+  if (known !== undefined) return known;
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('my_mfa_requirement');
   if (error) throw new Error('Failed to check two-factor requirement');
@@ -57,32 +59,46 @@ export interface OrgContext {
   can(key: PermissionKey, scope?: PermissionScope): boolean;
 }
 
+interface ShellBundle {
+  org: Organization | null;
+  grants: Grant[];
+  platform_admin: boolean;
+  needs_mfa: boolean;
+  disabled_modules: string[];
+}
+
+/** What getOrgContext already learned this request, so isPlatformAdmin / disabledModules / needsMfa skip their own queries. */
+export const requestShell = cache(() => ({ platformAdmin: undefined as boolean | undefined, needsMfa: undefined as boolean | undefined, disabled: new Map<string, Set<string>>() }));
+
 /**
  * Resolves the organization from the URL slug *through RLS*: a slug the user isn't a member of
- * returns nothing and becomes a 404, so URLs can't be used to probe other tenants.
+ * returns nothing and becomes a 404, so URLs can't be used to probe other tenants. One round trip
+ * (my_org_context) brings the organization, permissions, platform-admin flag, two-factor requirement
+ * and switched-off modules.
  */
 export const getOrgContext = cache(async (slug: string): Promise<OrgContext> => {
   const user = await requireUser();
-  // Before loading permissions: at aal1 the database hides privileged roles' grants entirely.
-  await requireMfaIfNeeded(user, `/app/${slug}`);
   const supabase = await createClient();
-  const { data: org, error } = await supabase
-    .from('organizations')
-    .select('id, name, slug, is_demo, timezone, status')
-    .eq('slug', slug)
-    .maybeSingle();
-  if (error) throw new Error('Failed to load organization');
+  const { data, error } = await supabase.rpc('my_org_context', { p_slug: slug });
+  if (error || !data) throw new Error('Failed to load organization');
+  const bundle = data as unknown as ShellBundle;
+  const shell = requestShell();
+  shell.platformAdmin = bundle.platform_admin;
+  shell.needsMfa = bundle.needs_mfa;
+  // At aal1 the database withholds privileged roles' grants; send those users to /mfa before anything renders.
+  await requireMfaIfNeeded(user, `/app/${slug}`);
+  const org = bundle.org;
   if (!org) {
     // Explain suspension, but only for the caller's own memberships; anything else stays a plain 404.
     const { data: mine } = await supabase.rpc('my_organizations');
     if (mine?.some((o) => o.slug === slug && o.status !== 'active')) redirect(`/app?suspended=${encodeURIComponent(slug)}`);
     notFound();
   }
+  shell.disabled.set(org.id, new Set(bundle.disabled_modules));
 
-  const { data: grants, error: grantsError } = await supabase.rpc('my_permissions', { p_org: org.id });
-  if (grantsError) throw new Error('Failed to load permissions');
+  const grants = bundle.grants;
   // Platform admins can see the organization row but are not members: no grants → no tenant access.
-  if (!grants || grants.length === 0) notFound();
+  if (grants.length === 0) notFound();
 
   return { user, org, grants, can: (key, scope) => hasGrant(grants, key, scope) };
 });
@@ -106,6 +122,8 @@ export async function isVerifiedPlatformAdmin(): Promise<boolean> {
 export const isPlatformAdmin = cache(async (): Promise<boolean> => {
   const user = await getSessionUser();
   if (!user) return false;
+  const known = requestShell().platformAdmin;
+  if (known !== undefined) return known;
   const supabase = await createClient();
   const { data } = await supabase.from('platform_admins').select('user_id').eq('user_id', user.id).maybeSingle();
   return Boolean(data);

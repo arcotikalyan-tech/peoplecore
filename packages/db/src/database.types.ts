@@ -8766,6 +8766,12 @@ export type Database = {
         Args: never;
         Returns: boolean;
       };
+      my_org_context: {
+        Args: {
+          p_slug: string;
+        };
+        Returns: Json;
+      };
       my_organizations: {
         Args: never;
         Returns: { id: string; name: string; slug: string; is_demo: boolean; status: Database['public']['Enums']['org_status'] }[];

@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import type { Tables } from '@peoplecore/db/types';
 import { escapeLikePattern, legalName, pageCount, parsePageRequest, type EmployeeListQuery } from '@peoplecore/shared';
 import { createClient } from './supabase';
@@ -77,7 +78,8 @@ export async function getEmployee(orgId: string, id: string) {
   return data;
 }
 
-export async function getMyEmployee(orgId: string, userId: string) {
+/** The signed-in person's own employee record. Cached per request: the layout and most pages ask for it. */
+export const getMyEmployee = cache(async (orgId: string, userId: string) => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('employees')
@@ -87,7 +89,7 @@ export async function getMyEmployee(orgId: string, userId: string) {
     .maybeSingle();
   if (error) throw new Error(`Failed to load your profile (${error.code})`);
   return data;
-}
+});
 
 export async function getEmploymentHistory(orgId: string, employeeId: string) {
   const supabase = await createClient();

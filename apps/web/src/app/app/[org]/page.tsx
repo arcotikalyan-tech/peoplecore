@@ -37,20 +37,17 @@ const RUN_STATUS: Record<string, string> = { draft: 'Draft', computed: 'Computed
 export default async function Dashboard({ params }: { params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await getOrgContext(slug);
-  const controls = await orgControls(ctx.org.id);
+  const [controls, view, jar, me] = await Promise.all([orgControls(ctx.org.id), viewModeFor(ctx), cookies(), getMyEmployee(ctx.org.id, ctx.user.id)]);
   const orgId = ctx.org.id;
   const base = `/app/${slug}`;
   const tz = ctx.org.timezone;
   const today = todayIn(tz);
   const monthStart = `${today.slice(0, 7)}-01`;
-  const view = await viewModeFor(ctx);
   const admin = view === 'admin';
   const seesPeople = admin && (ctx.can('employee.read', 'org') || ctx.can('employee.read', 'team'));
   const seesPayroll = admin && (ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org'));
   const seesAttendance = admin && (ctx.can('attendance.read', 'org') || ctx.can('attendance.read', 'team'));
-  const jar = await cookies();
 
-  const me = await getMyEmployee(orgId, ctx.user.id);
   const [work, attention, headcount, trend, pay, snapshot, presence, exits, compliance, activity, holidays, birthdays, announcements, punches, balances, myDays, rule, structure] = await Promise.all([
     myWork(orgId, me?.id ?? null, today),
     needsAttention(ctx, today),
