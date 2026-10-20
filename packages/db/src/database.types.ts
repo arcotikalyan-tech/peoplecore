@@ -2700,6 +2700,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      hiring_plan_lines: {
+        Row: {
+          id: string;
+          organization_id: string;
+          plan_id: string;
+          department_id: string;
+          headcount: number;
+          budget: number | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          plan_id: string;
+          department_id: string;
+          headcount: number;
+          budget?: number | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          plan_id?: string;
+          department_id?: string;
+          headcount?: number;
+          budget?: number | null;
+        };
+        Relationships: [];
+      };
+      hiring_plans: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          period_kind: string;
+          period_start: string;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          period_kind: string;
+          period_start: string;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          period_kind?: string;
+          period_start?: string;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       holiday_calendars: {
         Row: {
           id: string;
@@ -4962,24 +5022,96 @@ export type Database = {
         };
         Relationships: [];
       };
+      recruiting_email_templates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          kind: string;
+          subject: string;
+          body: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          kind?: string;
+          subject: string;
+          body: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          kind?: string;
+          subject?: string;
+          body?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      recruiting_spend: {
+        Row: {
+          id: string;
+          organization_id: string;
+          source: Database['public']['Enums']['candidate_source'];
+          month: string;
+          amount: number;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          source: Database['public']['Enums']['candidate_source'];
+          month: string;
+          amount: number;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          source?: Database['public']['Enums']['candidate_source'];
+          month?: string;
+          amount?: number;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       recruitment_settings: {
         Row: {
           organization_id: string;
           candidate_retention_days: number;
           updated_by: string | null;
           updated_at: string;
+          stall_days: number;
+          notify_hiring_manager: boolean;
         };
         Insert: {
           organization_id: string;
           candidate_retention_days?: number;
           updated_by?: string | null;
           updated_at?: string;
+          stall_days?: number;
+          notify_hiring_manager?: boolean;
         };
         Update: {
           organization_id?: string;
           candidate_retention_days?: number;
           updated_by?: string | null;
           updated_at?: string;
+          stall_days?: number;
+          notify_hiring_manager?: boolean;
         };
         Relationships: [];
       };
@@ -5883,6 +6015,60 @@ export type Database = {
           starts_at?: string;
           expires_at?: string;
           revoked_at?: string | null;
+        };
+        Relationships: [];
+      };
+      talent_pool_members: {
+        Row: {
+          organization_id: string;
+          pool_id: string;
+          candidate_id: string;
+          note: string | null;
+          added_by: string | null;
+          added_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          pool_id: string;
+          candidate_id: string;
+          note?: string | null;
+          added_by?: string | null;
+          added_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          pool_id?: string;
+          candidate_id?: string;
+          note?: string | null;
+          added_by?: string | null;
+          added_at?: string;
+        };
+        Relationships: [];
+      };
+      talent_pools: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          description: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          description?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          description?: string | null;
+          created_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -7803,6 +7989,19 @@ export type Database = {
         };
         Returns: string;
       };
+      recruiting_activity: {
+        Args: {
+          p_org: string;
+          p_limit?: number;
+        };
+        Returns: { occurred_at: string; actor: string; action: string; entity_type: string; entity_id: string; subject: string; changes: Json }[];
+      };
+      recruiting_team: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { user_id: string; name: string; email: string; roles: string[]; access: string }[];
+      };
       release_letters: {
         Args: {
           p_letters: string[];
@@ -8009,6 +8208,14 @@ export type Database = {
           p_terms?: string;
         };
         Returns: string;
+      };
+      save_recruiting_automations: {
+        Args: {
+          p_org: string;
+          p_stall_days: number;
+          p_notify: boolean;
+        };
+        Returns: undefined;
       };
       save_tax_declaration: {
         Args: {

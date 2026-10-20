@@ -226,11 +226,11 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 
 | Kredily | PeopleCore |
 |---|---|
-| Hub: active jobs, candidates, interviews, pending offers, hired; needs-action queue; funnel; sources | 🟡 |
-| Jobs / requisitions, candidates (CV upload, fit score), **hiring plan** by department | ✅ requisitions and candidates; ❌ hiring plan |
+| Hub: active jobs, candidates, interviews, pending offers, hired; needs-action queue; funnel; sources | ✅ hub with needs-action queue (new, stalled, to schedule, offers, scorecards), funnel, sources, upcoming interviews |
+| Jobs / requisitions, candidates (CV upload, fit score), **hiring plan** by department | ✅ requisitions, org-wide candidates with filters and export, resume reading (AI), hiring plans by department with progress (no AI fit score) |
 | Pipeline kanban, interviews calendar, feedback and scorecards, offers, approvals | ✅ |
-| Talent pools, careers page with job-board feeds (Naukri, LinkedIn, Indeed), email templates with variables | 🟡 careers page; ❌ pools, feeds, templates |
-| Insights: time to hire, offer acceptance, recruiter performance, cost per hire | ❌ |
+| Talent pools, careers page with job-board feeds (Naukri, LinkedIn, Indeed), email templates with variables | ✅ talent pools, careers page and published jobs with links, email templates with variables, live preview and compose; ❌ automatic job-board feeds |
+| Insights: time to hire, offer acceptance, recruiter performance, cost per hire | ✅ hire rate, offer acceptance, time to hire (overall and by role), interviews, pass rate, conversion funnel, source effectiveness, recruiter performance, cost per hire from recorded spend, activity log |
 | Offer → employee in one click | ✅ |
 
 ## 20. Reports

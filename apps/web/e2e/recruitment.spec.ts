@@ -59,7 +59,7 @@ test.afterAll(async () => {
 
 test('HR opens a requisition with a hiring manager', async ({ page }) => {
   await signIn(page, 'demo.hr');
-  await open(page, '/app/demo/recruitment');
+  await open(page, '/app/demo/recruitment?tab=recruitment&view=jobs');
   const form = page.getByRole('form', { name: 'New requisition' });
   await form.getByLabel('Job title').fill(title);
   await form.getByLabel('Department').selectOption({ label: 'Engineering (ENG)' });
@@ -97,7 +97,7 @@ test('candidates need consent, are not duplicated, and can be erased', async ({ 
 
 test('HR sets how long candidate records are kept and sees who is due for erasure', async ({ page }) => {
   await signIn(page, 'demo.hr');
-  await open(page, '/app/demo/recruitment');
+  await open(page, '/app/demo/recruitment?tab=settings&view=automations');
   const form = page.getByRole('form', { name: 'Candidate retention' });
   const days = form.getByLabel('Days after a candidate’s last activity');
   const current = await days.inputValue();

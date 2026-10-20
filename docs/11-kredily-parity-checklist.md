@@ -210,22 +210,22 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [ ] Learn › skills
 
 ### Hiring
-- [ ] Hiring (hub)
-- [ ] Hiring › hub
-- [ ] Hiring › insights
-- [ ] Hiring › outreach
-- [ ] Hiring › outreach › email templates
-- [ ] Hiring › outreach › job board
-- [ ] Hiring › pipeline
-- [ ] Hiring › pipeline › approvals
-- [ ] Hiring › pipeline › feedback
-- [ ] Hiring › pipeline › interviews
-- [ ] Hiring › pipeline › offers
-- [ ] Hiring › pipeline › scorecards
-- [ ] Hiring › recruitment
-- [ ] Hiring › recruitment › candidates
-- [ ] Hiring › recruitment › hiring plan
-- [ ] Hiring › settings
+- [x] Hiring (hub)
+- [x] Hiring › hub
+- [x] Hiring › insights
+- [x] Hiring › outreach
+- [x] Hiring › outreach › email templates
+- [x] Hiring › outreach › job board
+- [x] Hiring › pipeline
+- [x] Hiring › pipeline › approvals
+- [x] Hiring › pipeline › feedback
+- [x] Hiring › pipeline › interviews
+- [x] Hiring › pipeline › offers
+- [x] Hiring › pipeline › scorecards
+- [x] Hiring › recruitment
+- [x] Hiring › recruitment › candidates
+- [x] Hiring › recruitment › hiring plan
+- [x] Hiring › settings
 
 ### Reports
 - [x] Reports (hub) — all 36 reports in 8 categories, Excel/CSV, recently generated, custom builder with saved templates, scheduled reminders (AI Report Studio skipped as agreed)
@@ -444,7 +444,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Insurance (hub)
 
 ### Hiring
-- [ ] Hiring (hub)
+- [x] Hiring (hub)
 
 ### Reports
 - [x] Reports (hub) — all 36 reports in 8 categories, Excel/CSV, recently generated, custom builder with saved templates, scheduled reminders (AI Report Studio skipped as agreed)
