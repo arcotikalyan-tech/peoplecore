@@ -75,6 +75,11 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       if (error) throw new Error(error.message);
       log('reports.schedules', data as Record<string, unknown>);
     },
+    'learning.rules': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_learning_rules');
+      if (error) throw new Error(error.message);
+      log('learning.rules', data as Record<string, unknown>);
+    },
     'timesheet.reminders': async (_job, log) => {
       const { data, error } = await db.rpc('worker_timesheet_reminders');
       if (error) throw new Error(error.message);

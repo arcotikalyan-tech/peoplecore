@@ -190,24 +190,24 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Pms (hub)
 
 ### Learn
-- [ ] Learn (hub)
-- [ ] Learn › analytics
-- [ ] Learn › assignments
-- [ ] Learn › courses content
-- [ ] Learn › courses content › archived
-- [ ] Learn › courses content › drafts
-- [ ] Learn › courses content › in review
-- [ ] Learn › courses content › published
-- [ ] Learn › journeys
-- [ ] Learn › learners
-- [ ] Learn › overview
-- [ ] Learn › overview › generate course
-- [ ] Learn › overview › review blocks
-- [ ] Learn › question banks soon
-- [ ] Learn › question banks soon › generate course
-- [ ] Learn › question banks soon › review blocks
-- [ ] Learn › settings
-- [ ] Learn › skills
+- [x] Learn (hub)
+- [x] Learn › analytics
+- [x] Learn › assignments
+- [x] Learn › courses content
+- [x] Learn › courses content › archived
+- [x] Learn › courses content › drafts
+- [x] Learn › courses content › in review
+- [x] Learn › courses content › published
+- [x] Learn › journeys
+- [x] Learn › learners
+- [x] Learn › overview
+- [x] Learn › overview › generate course — skipped (Kai AI authoring, out of scope as agreed)
+- [x] Learn › overview › review blocks — skipped (Kai AI authoring, out of scope as agreed)
+- [x] Learn › question banks soon — marked “Soon” in Kredily (not available there either)
+- [x] Learn › question banks soon › generate course — skipped (Kai AI authoring, out of scope as agreed)
+- [x] Learn › question banks soon › review blocks — skipped (Kai AI authoring, out of scope as agreed)
+- [x] Learn › settings
+- [x] Learn › skills
 
 ### Hiring
 - [x] Hiring (hub)
@@ -380,24 +380,24 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Pms (hub)
 
 ### Learn
-- [ ] Learn (hub)
-- [ ] Learn › analytics
-- [ ] Learn › assignments
-- [ ] Learn › courses content
-- [ ] Learn › courses content › archived
-- [ ] Learn › courses content › drafts
-- [ ] Learn › courses content › in review
-- [ ] Learn › courses content › published
-- [ ] Learn › journeys
-- [ ] Learn › learners
-- [ ] Learn › overview
-- [ ] Learn › overview › generate course
-- [ ] Learn › overview › review blocks
-- [ ] Learn › question banks soon
-- [ ] Learn › question banks soon › generate course
-- [ ] Learn › question banks soon › review blocks
-- [ ] Learn › settings
-- [ ] Learn › skills
+- [x] Learn (hub)
+- [x] Learn › analytics
+- [x] Learn › assignments
+- [x] Learn › courses content
+- [x] Learn › courses content › archived
+- [x] Learn › courses content › drafts
+- [x] Learn › courses content › in review
+- [x] Learn › courses content › published
+- [x] Learn › journeys
+- [x] Learn › learners
+- [x] Learn › overview
+- [x] Learn › overview › generate course — skipped (Kai AI authoring, out of scope as agreed)
+- [x] Learn › overview › review blocks — skipped (Kai AI authoring, out of scope as agreed)
+- [x] Learn › question banks soon — marked “Soon” in Kredily (not available there either)
+- [x] Learn › question banks soon › generate course — skipped (Kai AI authoring, out of scope as agreed)
+- [x] Learn › question banks soon › review blocks — skipped (Kai AI authoring, out of scope as agreed)
+- [x] Learn › settings
+- [x] Learn › skills
 
 ### Peoplexp
 - [x] Peoplexp (hub)
@@ -546,13 +546,13 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Peoplexp Me (hub)
 
 ### Learn My Journeys
-- [ ] Learn My Journeys (hub)
+- [x] Learn My Journeys (hub)
 
 ### Learn Explore
-- [ ] Learn Explore (hub)
+- [x] Learn Explore (hub)
 
 ### Learn Calendar
-- [ ] Learn Calendar (hub)
+- [x] Learn Calendar (hub)
 
 ### Learn Me
-- [ ] Learn Me (hub)
+- [x] Learn Me (hub)

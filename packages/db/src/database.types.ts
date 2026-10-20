@@ -1458,6 +1458,7 @@ export type Database = {
           valid_until: string | null;
           reminded_at: string | null;
           created_at: string;
+          due_soon_reminded_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1476,6 +1477,7 @@ export type Database = {
           valid_until?: string | null;
           reminded_at?: string | null;
           created_at?: string;
+          due_soon_reminded_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1494,6 +1496,64 @@ export type Database = {
           valid_until?: string | null;
           reminded_at?: string | null;
           created_at?: string;
+          due_soon_reminded_at?: string | null;
+        };
+        Relationships: [];
+      };
+      course_lessons: {
+        Row: {
+          id: string;
+          organization_id: string;
+          course_id: string;
+          position: number;
+          title: string;
+          kind: string;
+          body: string | null;
+          url: string | null;
+          duration_minutes: number | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          course_id: string;
+          position: number;
+          title: string;
+          kind?: string;
+          body?: string | null;
+          url?: string | null;
+          duration_minutes?: number | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          course_id?: string;
+          position?: number;
+          title?: string;
+          kind?: string;
+          body?: string | null;
+          url?: string | null;
+          duration_minutes?: number | null;
+        };
+        Relationships: [];
+      };
+      course_skills: {
+        Row: {
+          organization_id: string;
+          course_id: string;
+          skill_id: string;
+          level: number;
+        };
+        Insert: {
+          organization_id: string;
+          course_id: string;
+          skill_id: string;
+          level?: number;
+        };
+        Update: {
+          organization_id?: string;
+          course_id?: string;
+          skill_id?: string;
+          level?: number;
         };
         Relationships: [];
       };
@@ -1512,6 +1572,9 @@ export type Database = {
           is_active: boolean;
           created_at: string;
           updated_at: string;
+          status: string;
+          version: number;
+          points: number;
         };
         Insert: {
           id?: string;
@@ -1527,6 +1590,9 @@ export type Database = {
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
+          status?: string;
+          version?: number;
+          points?: number;
         };
         Update: {
           id?: string;
@@ -1542,6 +1608,9 @@ export type Database = {
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
+          status?: string;
+          version?: number;
+          points?: number;
         };
         Relationships: [];
       };
@@ -1581,6 +1650,27 @@ export type Database = {
           archived_at?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      designation_skills: {
+        Row: {
+          organization_id: string;
+          designation_id: string;
+          skill_id: string;
+          level: number;
+        };
+        Insert: {
+          organization_id: string;
+          designation_id: string;
+          skill_id: string;
+          level?: number;
+        };
+        Update: {
+          organization_id?: string;
+          designation_id?: string;
+          skill_id?: string;
+          level?: number;
         };
         Relationships: [];
       };
@@ -1968,6 +2058,33 @@ export type Database = {
           end_year?: number | null;
           score?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      employee_skills: {
+        Row: {
+          organization_id: string;
+          employee_id: string;
+          skill_id: string;
+          level: number;
+          course_id: string | null;
+          achieved_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          employee_id: string;
+          skill_id: string;
+          level: number;
+          course_id?: string | null;
+          achieved_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          employee_id?: string;
+          skill_id?: string;
+          level?: number;
+          course_id?: string | null;
+          achieved_at?: string;
         };
         Relationships: [];
       };
@@ -3135,6 +3252,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      journey_enrollments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          journey_id: string;
+          employee_id: string;
+          source: string;
+          due_on: string | null;
+          enrolled_at: string;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          journey_id: string;
+          employee_id: string;
+          source?: string;
+          due_on?: string | null;
+          enrolled_at?: string;
+          completed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          journey_id?: string;
+          employee_id?: string;
+          source?: string;
+          due_on?: string | null;
+          enrolled_at?: string;
+          completed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      journey_steps: {
+        Row: {
+          organization_id: string;
+          journey_id: string;
+          position: number;
+          course_id: string;
+        };
+        Insert: {
+          organization_id: string;
+          journey_id: string;
+          position: number;
+          course_id: string;
+        };
+        Update: {
+          organization_id?: string;
+          journey_id?: string;
+          position?: number;
+          course_id?: string;
+        };
+        Relationships: [];
+      };
       kb_articles: {
         Row: {
           id: string;
@@ -3195,6 +3366,147 @@ export type Database = {
           to_employee_id?: string;
           message?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      learn_journeys: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          description: string | null;
+          status: string;
+          points: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          description?: string | null;
+          status?: string;
+          points?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          description?: string | null;
+          status?: string;
+          points?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      learn_rules: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          course_id: string | null;
+          journey_id: string | null;
+          department_id: string | null;
+          designation_id: string | null;
+          location_id: string | null;
+          employment_type: Database['public']['Enums']['employment_type'] | null;
+          trigger: string;
+          due_days: number;
+          recurrence: string;
+          mandatory: boolean;
+          active: boolean;
+          created_at: string;
+          last_applied_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          course_id?: string | null;
+          journey_id?: string | null;
+          department_id?: string | null;
+          designation_id?: string | null;
+          location_id?: string | null;
+          employment_type?: Database['public']['Enums']['employment_type'] | null;
+          trigger?: string;
+          due_days?: number;
+          recurrence?: string;
+          mandatory?: boolean;
+          active?: boolean;
+          created_at?: string;
+          last_applied_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          course_id?: string | null;
+          journey_id?: string | null;
+          department_id?: string | null;
+          designation_id?: string | null;
+          location_id?: string | null;
+          employment_type?: Database['public']['Enums']['employment_type'] | null;
+          trigger?: string;
+          due_days?: number;
+          recurrence?: string;
+          mandatory?: boolean;
+          active?: boolean;
+          created_at?: string;
+          last_applied_at?: string | null;
+        };
+        Relationships: [];
+      };
+      learn_settings: {
+        Row: {
+          organization_id: string;
+          journey_points: number;
+          due_soon_days: number;
+          overdue_alerts: boolean;
+          certificate_accent: string;
+          signature_name: string | null;
+          signature_title: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          journey_points?: number;
+          due_soon_days?: number;
+          overdue_alerts?: boolean;
+          certificate_accent?: string;
+          signature_name?: string | null;
+          signature_title?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          journey_points?: number;
+          due_soon_days?: number;
+          overdue_alerts?: boolean;
+          certificate_accent?: string;
+          signature_name?: string | null;
+          signature_title?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      learn_skills: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          category: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          category?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          category?: string | null;
         };
         Relationships: [];
       };
@@ -3597,6 +3909,27 @@ export type Database = {
           archived_at?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      lesson_progress: {
+        Row: {
+          organization_id: string;
+          enrollment_id: string;
+          lesson_id: string;
+          completed_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          enrollment_id: string;
+          lesson_id: string;
+          completed_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          enrollment_id?: string;
+          lesson_id?: string;
+          completed_at?: string;
         };
         Relationships: [];
       };
@@ -5091,6 +5424,7 @@ export type Database = {
           note: string | null;
           created_by: string | null;
           created_at: string;
+          enrollment_id: string | null;
         };
         Insert: {
           id?: never;
@@ -5103,6 +5437,7 @@ export type Database = {
           note?: string | null;
           created_by?: string | null;
           created_at?: string;
+          enrollment_id?: string | null;
         };
         Update: {
           id?: never;
@@ -5115,6 +5450,7 @@ export type Database = {
           note?: string | null;
           created_by?: string | null;
           created_at?: string;
+          enrollment_id?: string | null;
         };
         Relationships: [];
       };
@@ -7616,6 +7952,12 @@ export type Database = {
         };
         Returns: Json;
       };
+      apply_learning_rules: {
+        Args: {
+          p_org: string;
+        };
+        Returns: number;
+      };
       apply_leave: {
         Args: {
           p_employee: string;
@@ -7819,6 +8161,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      complete_lesson: {
+        Args: {
+          p_lesson: string;
+        };
+        Returns: Json;
+      };
       confirm_probation: {
         Args: {
           p_org: string;
@@ -7995,6 +8343,14 @@ export type Database = {
           p_course: string;
         };
         Returns: string;
+      };
+      enroll_journey: {
+        Args: {
+          p_journey: string;
+          p_employees?: string[];
+          p_due?: string;
+        };
+        Returns: number;
       };
       erase_candidate: {
         Args: {
@@ -8510,6 +8866,12 @@ export type Database = {
       release_letters: {
         Args: {
           p_letters: string[];
+        };
+        Returns: number;
+      };
+      remind_overdue_learning: {
+        Args: {
+          p_org: string;
         };
         Returns: number;
       };
@@ -9261,6 +9623,10 @@ export type Database = {
         Returns: Json;
       };
       worker_learning: {
+        Args: never;
+        Returns: Json;
+      };
+      worker_learning_rules: {
         Args: never;
         Returns: Json;
       };

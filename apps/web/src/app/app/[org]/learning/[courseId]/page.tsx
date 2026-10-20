@@ -9,10 +9,21 @@ import { formatDate } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
 import { employeeNames, getMyEmployee, managerOptions } from '@/server/employees';
 import { getCourse, listEnrollments } from '@/server/learning';
+import { courseLessons, learnSkills, lessonProgress } from '@/server/learn';
 import { getStructure, structureOptions } from '@/server/structure';
 import { assignCourseAction, enrollAction, saveCourseAction, updateEnrollmentAction } from '../actions';
 import { AssignCourseForm, CompleteForm, CourseForm } from '../learning-forms';
 import { duration, FORMAT_LABEL, STATUS_LABEL, STATUS_TONE } from '../labels';
+import { completeLessonAction, courseSkillAction, coursePointsAction, courseStatusAction, deleteLessonAction, saveLessonAction } from '../learn-actions';
+import { Buttons, CourseSkillForm, LessonForm, PointsForm } from '../learn-client';
+
+const STATUS_STEPS: Record<string, Array<{ text: string; value: string; variant?: 'primary' | 'secondary' | 'ghost' }>> = {
+  draft: [{ text: 'Send for review', value: 'in_review', variant: 'secondary' }, { text: 'Publish', value: 'published', variant: 'primary' }],
+  in_review: [{ text: 'Publish', value: 'published', variant: 'primary' }, { text: 'Back to draft', value: 'draft' }],
+  published: [{ text: 'New draft version', value: 'draft' }, { text: 'Archive', value: 'archived' }],
+  archived: [{ text: 'Publish again', value: 'published', variant: 'secondary' }],
+};
+const STATUS_NAME: Record<string, string> = { draft: 'Draft', in_review: 'In review', published: 'Published', archived: 'Archived' };
 
 export const metadata: Metadata = { title: 'Course' };
 
@@ -38,12 +49,17 @@ export default async function CoursePage({ params, searchParams }: {
   const today = todayIn(ctx.org.timezone);
   const myOpen = enrollments.find((x) => me && x.employee_id === me.id && (x.status === 'assigned' || x.status === 'in_progress'));
   const others = enrollments.filter((x) => !me || x.employee_id !== me.id);
+  const myDone = enrollments.find((x) => me && x.employee_id === me.id && x.status === 'completed');
+  const [lessons, skills, progress] = await Promise.all([courseLessons(ctx.org.id, c.id), learnSkills(ctx.org.id), lessonProgress(myOpen ? [myOpen.id] : [])]);
+  const doneLessons = new Set(progress.map((x) => x.lesson_id));
+  const taught = skills.courseSkills.filter((x) => x.course_id === c.id);
 
   return (
     <>
       <PageHeader eyebrow={FORMAT_LABEL[c.format]} title={c.title}
         actions={<>
-          {!c.is_active && <Badge>Retired</Badge>}
+          <Badge tone={c.status === 'published' ? 'success' : c.status === 'in_review' ? 'warning' : 'neutral'}>{STATUS_NAME[c.status]} · v{c.version}</Badge>
+          {myDone && <ButtonLink href={`/app/${slug}/learning/certificate/${myDone.id}`} variant="secondary">🎓 Certificate</ButtonLink>}
           {c.url && <ButtonLink href={c.url} variant="secondary" target="_blank" rel="noreferrer">Open course</ButtonLink>}
           {hr && !editing && <ButtonLink href={`/app/${slug}/learning/${c.id}?edit=1`} variant="secondary">Edit</ButtonLink>}
           <ButtonLink href={`/app/${slug}/learning`} variant="ghost">Learning</ButtonLink>
@@ -70,6 +86,32 @@ export default async function CoursePage({ params, searchParams }: {
               )}
             </Card>
           )}
+
+          <Card>
+            <CardHeader title="Lessons" description={lessons.length ? `${lessons.length} lesson${lessons.length === 1 ? '' : 's'}${myOpen ? ` · ${doneLessons.size} done` : ''}` : 'No lessons — the course is completed as a whole.'} />
+            {lessons.length > 0 && (
+              <ol className="divide-y divide-line" aria-label="Lessons">
+                {lessons.map((l) => (
+                  <li key={l.id} className="space-y-2 px-5 py-3 text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-medium">{l.position}. {l.title} <span className="font-normal text-muted">· {l.kind}{l.duration_minutes ? ` · ${l.duration_minutes} min` : ''}</span></span>
+                      {myOpen && (doneLessons.has(l.id) ? <Badge tone="success">Done</Badge>
+                        : <Buttons action={completeLessonAction.bind(null, slug)} hidden={{ lessonId: l.id }} label={`Mark ${l.title} done`} buttons={[{ text: 'Mark done', variant: 'secondary' }]} />)}
+                    </div>
+                    {l.url && <a className="text-primary hover:underline" href={l.url} target="_blank" rel="noreferrer">{l.kind === 'video' ? '▶ Watch' : '↗ Open'}</a>}
+                    {l.body && <p className="whitespace-pre-line text-muted">{l.body}</p>}
+                    {hr && (
+                      <details><summary className="cursor-pointer text-xs text-primary">Edit lesson</summary>
+                        <div className="mt-2 space-y-2"><LessonForm action={saveLessonAction.bind(null, slug)} courseId={c.id} lesson={l} />
+                          <Buttons action={deleteLessonAction.bind(null, slug)} hidden={{ lessonId: l.id }} label={`Remove ${l.title}`} buttons={[{ text: 'Remove lesson' }]} confirm="Remove this lesson?" /></div>
+                      </details>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+            {hr && <div className="border-t border-line px-5 py-4"><LessonForm action={saveLessonAction.bind(null, slug)} courseId={c.id} /></div>}
+          </Card>
 
           {(hr || others.length > 0) && (
             <Card>
@@ -106,6 +148,28 @@ export default async function CoursePage({ params, searchParams }: {
           )}
         </div>
 
+        <div className="space-y-6">
+        {hr && (
+          <Card>
+            <CardHeader title="Lifecycle" description="Only published courses are live. Editing a published course starts a new draft version." />
+            <div className="space-y-3 px-5 py-4">
+              <Buttons action={courseStatusAction.bind(null, slug)} hidden={{ courseId: c.id }} label="Course status"
+                buttons={(STATUS_STEPS[c.status] ?? []).map((b) => ({ ...b, name: 'status' }))} />
+              <PointsForm action={coursePointsAction.bind(null, slug)} courseId={c.id} points={c.points} />
+            </div>
+          </Card>
+        )}
+        <Card>
+          <CardHeader title="Skills" description="What completing this course teaches." />
+          <ul className="divide-y divide-line px-5 text-sm">
+            {taught.length === 0 && <li className="py-3 text-muted">No skills tagged.</li>}
+            {taught.map((t) => (
+              <li key={t.skill_id} className="flex items-center justify-between py-2"><span>{skills.skills.find((x) => x.id === t.skill_id)?.name} · Level {t.level}</span>
+                {hr && <Buttons action={courseSkillAction.bind(null, slug)} hidden={{ courseId: c.id, skillId: t.skill_id, level: String(t.level), remove: '1' }} label="Remove skill" buttons={[{ text: 'Remove' }]} />}</li>
+            ))}
+          </ul>
+          {hr && <div className="border-t border-line px-5 py-4"><CourseSkillForm action={courseSkillAction.bind(null, slug)} courseId={c.id} skills={skills.skills.map((x) => ({ value: x.id, label: x.name }))} /></div>}
+        </Card>
         {c.is_active && assignable.length > 0 && (
           <Card>
             <CardHeader title="Assign" description="They’re notified and see it in their learning." />
@@ -113,6 +177,7 @@ export default async function CoursePage({ params, searchParams }: {
               departments={structure ? structureOptions(structure).departments : null} />
           </Card>
         )}
+        </div>
       </div>
     </>
   );

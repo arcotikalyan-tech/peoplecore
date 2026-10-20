@@ -215,12 +215,12 @@ Legend for PeopleCore today: ✅ have it · 🟡 partly · ❌ missing.
 
 | Kredily | PeopleCore |
 |---|---|
-| Courses with content blocks, versions, review workflow; journeys (course paths) | 🟡 catalog and enrolment |
-| AI course generation | ❌ |
-| **Skill graph**: taxonomy, role requirements, proficiency from completions | ❌ |
-| Auto-assignment rules from the directory (e.g. every new hire) | 🟡 mandatory training |
-| Learners table, bulk reminders, analytics by department | 🟡 |
-| Gamification (points, badges, streaks), branded certificates with verify link | ❌ |
+| Courses with content blocks, versions, review workflow; journeys (course paths) | ✅ lessons (text, video, link) with progress, versions, draft → review → published → archived; journeys |
+| AI course generation | ❌ skipped (AI module out of scope) |
+| **Skill graph**: taxonomy, role requirements, proficiency from completions | ✅ taxonomy, course coverage, proficiency written on completion, role requirements, coverage analytics |
+| Auto-assignment rules from the directory (e.g. every new hire) | ✅ rules by department / designation / location / type for new joiners or everyone, yearly recurrence, applied daily |
+| Learners table, bulk reminders, analytics by department | ✅ |
+| Gamification (points, badges, streaks), branded certificates with verify link | 🟡 course and journey points into the PeopleXP wallet; branded printable certificates with an ID (no public verify page, no streaks) |
 
 ## 19. Hiring
 

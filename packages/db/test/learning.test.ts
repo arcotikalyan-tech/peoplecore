@@ -119,8 +119,8 @@ describe('learning', () => {
       await tx.exec('reset role');
       await tx.query(`update course_enrollments set due_on = app.org_today($1) - 1 where employee_id = $2`, [f.orgA, f.employees.peerA]);
       const ishan = (await tx.query<{ id: string }>('select id from course_enrollments where employee_id = $1', [f.employees.icA])).rows[0]!.id;
-      expect(await run()).toEqual({ reminded: 1, recertifications: 0 });
-      expect(await run()).toEqual({ reminded: 0, recertifications: 0 });
+      expect(await run()).toMatchObject({ reminded: 1, recertifications: 0 });
+      expect(await run()).toMatchObject({ reminded: 0, recertifications: 0 });
       const told = (await tx.query<{ user_id: string }>(`select user_id from notifications where kind = 'learning.overdue'`)).rows.map((r) => r.user_id);
       expect(told.sort()).toEqual([f.users.peerA, f.users.hrA].sort());
 
@@ -128,8 +128,8 @@ describe('learning', () => {
       await tx.query(`select update_enrollment($1, 'completed')`, [ishan]);
       await tx.exec('reset role');
       await tx.query(`update course_enrollments set valid_until = app.org_today($1) + 10 where id = $2`, [f.orgA, ishan]);
-      expect(await run()).toEqual({ reminded: 0, recertifications: 1 });
-      expect(await run()).toEqual({ reminded: 0, recertifications: 0 });
+      expect(await run()).toMatchObject({ reminded: 0, recertifications: 1 });
+      expect(await run()).toMatchObject({ reminded: 0, recertifications: 0 });
       const renewal = (await tx.query<{ source: string; status: string; mandatory: boolean; due: boolean }>(
         `select source, status, mandatory, due_on = app.org_today($1) + 10 as due from course_enrollments where employee_id = $2 and id <> $3`,
         [f.orgA, f.employees.icA, ishan])).rows;

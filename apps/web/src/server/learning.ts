@@ -3,7 +3,7 @@ import { createClient } from './supabase';
 
 /** Courses and enrolments. RLS: learners see their own, managers their reporting line, HR everything. */
 
-const COURSE_COLUMNS = 'id, title, description, category, format, url, duration_minutes, valid_for_months, self_enroll, is_active';
+const COURSE_COLUMNS = 'id, title, description, category, format, url, duration_minutes, valid_for_months, self_enroll, is_active, status, version, points';
 
 export async function listCourses(orgId: string) {
   const supabase = await createClient();
