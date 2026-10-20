@@ -3,11 +3,16 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { todayIn } from '@peoplecore/shared';
 import { buttonClass } from '@/components/ui/button';
-import { HubTabs } from '@/components/ui/hub';
+import { HubTabs, Panel } from '@/components/ui/hub';
+import { Badge } from '@/components/ui/surface';
 import { Avatar } from '@/components/ui/avatar';
 import { BarChart } from '@/components/ui/charts';
 import { formatDate } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
+import { employeeNames } from '@/server/employees';
+import { createClient } from '@/server/supabase';
+import { decideDeletionAction } from '../preferences/privacy-actions';
+import { DecideDeletionForm, SCOPE_LABELS } from '../preferences/privacy-client';
 import { directory, directorySettings, genderMix, peopleRecords, profileGaps, signInStats, upcomingBirthdays, type Person } from '@/server/people';
 import { viewModeFor } from '@/server/view';
 import { bulkPeopleAction, saveDirectorySettingsAction } from './people-actions';
@@ -42,7 +47,8 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
   const locs = new Set(current.map((p) => p.location).filter(Boolean));
   const tabs = hr
     ? [{ key: 'overview', label: 'Overview' }, { key: 'people', label: 'People', count: current.length }, { key: 'orgchart', label: 'Org Chart' },
-       { key: 'lifecycle', label: 'Lifecycle' }, { key: 'insights', label: 'Insights' }, { key: 'settings', label: 'Settings' }]
+       { key: 'lifecycle', label: 'Lifecycle' }, { key: 'insights', label: 'Insights' }, { key: 'settings', label: 'Settings' },
+       ...(ctx.can('employee.personal.update', 'org') ? [{ key: 'deletion', label: 'Deletion requests' }] : [])]
     : [{ key: 'people', label: 'People', count: current.length }, { key: 'orgchart', label: 'Org Chart' }];
   const filtering = Boolean(sp.q || sp.status || sp.department || sp.flag);
   const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : filtering || !hr ? 'people' : 'overview';
@@ -70,6 +76,7 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
       <HubTabs base={base} label="People sections" tabs={tabs} current={tab} />
 
       {tab === 'overview' && <Overview slug={slug} base={base} today={today} people={people} href={href} />}
+      {tab === 'deletion' && <DeletionRequests slug={slug} orgId={ctx.org.id} />}
       {tab === 'people' && <PeopleTab ctx={ctx} slug={slug} base={base} today={today} people={people} hr={hr} manage={manage} sp={sp} stats={stats} />}
       {tab === 'orgchart' && <OrgChart people={current} slug={slug} hr={hr} />}
       {tab === 'lifecycle' && <Lifecycle people={people} today={today} slug={slug} />}
@@ -387,5 +394,32 @@ function OrgNode({ p, depth, kids, slug, linkable }: { p: Person; depth: number;
         </details>
       )}
     </li>
+  );
+}
+
+/** Personal-data deletion requests (HR with employee.personal.update). */
+async function DeletionRequests({ slug, orgId }: { slug: string; orgId: string }) {
+  const supabase = await createClient();
+  const { data } = await supabase.from('data_deletion_requests').select('id, employee_id, scope, reason, status, decision_note, created_at, decided_at')
+    .eq('organization_id', orgId).order('created_at', { ascending: false }).limit(200);
+  const rows = data ?? [];
+  const names = await employeeNames(orgId, rows.map((r) => r.employee_id));
+  return (
+    <Panel title="Deletion requests" meta={`${rows.filter((r) => r.status === 'pending').length} pending`}>
+      <p className="mb-3 text-sm text-muted">Employees can ask for optional personal details to be erased. Erasing is immediate and audited; records the law requires are never included.</p>
+      {rows.length === 0 ? <p className="text-sm text-muted">No requests.</p> : (
+        <ul className="divide-y divide-line text-sm" aria-label="Deletion requests">{rows.map((r) => {
+          const name = names.get(r.employee_id) ?? 'Employee';
+          return (
+            <li key={r.id} className="space-y-2 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2"><span><span className="font-medium">{name}</span> <span className="text-muted">· {formatDate(r.created_at)}</span></span>
+                <Badge tone={r.status === 'completed' ? 'success' : r.status === 'rejected' ? 'danger' : 'warning'}>{r.status === 'completed' ? 'Erased' : r.status === 'rejected' ? 'Declined' : 'Pending'}</Badge></div>
+              <p className="text-muted">{r.scope.map((x) => SCOPE_LABELS[x] ?? x).join(' · ')}{r.reason ? ` — “${r.reason}”` : ''}</p>
+              {r.status === 'pending' ? <DecideDeletionForm action={decideDeletionAction.bind(null, slug)} requestId={r.id} name={name} /> : r.decision_note && <p className="text-xs text-muted">Note: {r.decision_note}</p>}
+            </li>
+          );
+        })}</ul>
+      )}
+    </Panel>
   );
 }

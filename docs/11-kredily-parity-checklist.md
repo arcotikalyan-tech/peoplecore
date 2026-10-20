@@ -20,7 +20,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Onboarding › guided
 - [x] Onboarding › hub
 - [x] Onboarding › journey
-- [ ] Onboarding › rewards
+- [x] Onboarding › rewards — skipped: Kredily’s own rewards for its customers
 
 ### Directory
 - [x] Directory (hub)
@@ -31,7 +31,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Directory › overview
 - [x] Directory › overview › exiting
 - [x] Directory › people
-- [ ] Directory › people › deletion requests — not built: no self-service data-deletion requests yet
+- [x] Directory › people › deletion requests — employees ask (My preferences), HR erases optional personal data or declines with a reason; statutory records are never erased
 - [x] Directory › people › mail — opens a mail to the filtered people (BCC)
 - [x] Directory › settings
 
@@ -43,7 +43,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Company Profile › department
 - [x] Company Profile › designation
 - [x] Company Profile › employee custom fields
-- [ ] Company Profile › my plan — skipped: Kredily’s own billing
+- [x] Company Profile › my plan — skipped: Kredily’s own billing
 - [x] Company Profile › overview
 - [x] Company Profile › policies
 - [x] Company Profile › statutory
@@ -98,7 +98,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Attendance › approvals
 - [x] Attendance › approvals › open
 - [x] Attendance › approvals › resolved
-- [~] Attendance › attendance rules — rotational shifts and enforcing selfie / office-IP checks still to come
+- [x] Attendance › attendance rules — rotating shifts; office network, geofence and selfie now decide at check-in (mobile punches without a selfie are flagged)
 - [x] Attendance › devices
 - [x] Attendance › devices › biometric logs
 - [x] Attendance › hub
@@ -106,7 +106,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Attendance › logs › comp off logs
 - [x] Attendance › logs › overtime logs
 - [x] Attendance › logs › penalty logs
-- [~] Attendance › settings — reminder switches are stored; the reminders themselves aren’t sent yet
+- [x] Attendance › settings — missing check-out, approvals digest and late-arrival reminders are sent by the worker
 
 ### Leave
 - [x] Leave (hub)
@@ -242,7 +242,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Statutory › regime map
 
 ### Referrals
-- [ ] Referrals (hub)
+- [x] Referrals (hub) — skipped: Kredily’s own refer-a-company programme
 
 ### Settings
 - [x] Settings (hub)
@@ -432,10 +432,10 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Directory › settings
 
 ### Home
-- [ ] Home (hub)
+- [x] Home (hub)
 
 ### Onboarding
-- [ ] Onboarding (hub)
+- [x] Onboarding (hub) — My onboarding: plan progress, your tasks, policies to acknowledge
 
 ### Company Profile
 - [x] Company Profile (hub)
@@ -453,7 +453,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Statutory (hub)
 
 ### Referrals
-- [ ] Referrals (hub)
+- [x] Referrals (hub) — skipped: Kredily’s own refer-a-company programme
 
 ### Settings
 - [x] Settings (hub)
@@ -522,7 +522,7 @@ for what each screen contains). Status: `[ ]` to build · `[~]` partly there · 
 - [x] Payroll Bank Account (hub)
 
 ### Expense My Claims
-- [ ] Expense My Claims (hub)
+- [x] Expense My Claims (hub) — plus Log mileage at the organization’s rate
 
 ### Loans Eligibility Simulator
 - [x] Loans Eligibility Simulator (hub)

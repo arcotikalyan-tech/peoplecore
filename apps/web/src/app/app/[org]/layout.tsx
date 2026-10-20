@@ -98,6 +98,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       { href: `${base}/expenses`, label: 'Expenses', icon: 'card' },
       { href: `${base}/loans`, label: 'Loans', icon: 'coins' },
       { href: `${base}/statutory`, label: 'My Statutory', icon: 'scale' },
+      { href: `${base}/onboarding`, label: 'My Onboarding', icon: 'user-plus' },
     ] },
     { label: 'Grow', items: [
       ...when(ctx.can('performance.read'), { href: `${base}/performance`, label: 'Performance', icon: 'trophy' }),

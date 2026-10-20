@@ -21,6 +21,28 @@ export function NewClaimForm({ action }: { action: Action }) {
   );
 }
 
+/** Log a trip: the amount is the distance × the organization’s rate; it goes into this month’s draft mileage claim. */
+export function MileageForm({ action, rate, today }: { action: Action; rate: number; today: string }) {
+  const [km, setKm] = useState('');
+  const amount = Number(km) > 0 ? Math.round(Number(km) * rate * 100) / 100 : 0;
+  return (
+    <ActionForm action={action} label="Log mileage" submit="Add trip" className="space-y-3 px-5 py-4">
+      {(v, e) => (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextField idPrefix="mi" name="from" label="From" required placeholder="Office" defaultValue={v.from} error={e.from} />
+            <TextField idPrefix="mi" name="to" label="To" required placeholder="Client site" defaultValue={v.to} error={e.to} />
+            <TextField idPrefix="mi" name="date" label="Date" type="date" required max={today} defaultValue={v.date ?? today} error={e.date} />
+            <TextField idPrefix="mi" name="km" label="Distance (km)" required inputMode="decimal" defaultValue={v.km} onChange={(ev) => setKm(ev.target.value)} error={e.km} />
+          </div>
+          <TextField idPrefix="mi" name="purpose" label="Purpose" placeholder="Optional" defaultValue={v.purpose} />
+          <p className="text-xs text-muted">At ₹{rate}/km{amount ? ` → ₹${amount.toLocaleString('en-IN')}` : ''}. No receipt needed.</p>
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
 export interface ReceiptState extends ActionState {
   result?: ReceiptResult;
   suggestionId?: string;

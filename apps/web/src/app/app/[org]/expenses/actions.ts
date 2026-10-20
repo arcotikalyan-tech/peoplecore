@@ -28,6 +28,27 @@ export async function createClaimAction(orgSlug: string, _prev: ActionState, for
   redirect(`/app/${orgSlug}/expenses/${data}`);
 }
 
+export async function logMileageAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  const parsed = z.object({
+    from: z.string().trim().min(2, 'Where from?').max(55), to: z.string().trim().min(2, 'Where to?').max(55),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose a date'),
+    km: z.coerce.number({ error: 'Enter the distance' }).positive('Enter the distance').max(5000, 'Up to 5,000 km'),
+    purpose: z.string().trim().max(500).optional(),
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    const fe = Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0]), i.message]));
+    return { ok: false, message: 'Please fix the highlighted fields.', fieldErrors: fe, values: formValues(formData) };
+  }
+  const v = parsed.data;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('log_mileage', { p_org: ctx.org.id, p_date: v.date, p_km: v.km, p_from: v.from, p_to: v.to, p_purpose: sqlNull(v.purpose || undefined) });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(`/app/${orgSlug}/expenses`, 'layout');
+  await flash('Trip added to this month’s mileage claim — submit it when you’re ready.');
+  redirect(`/app/${orgSlug}/expenses/${data}`);
+}
+
 const itemSchema = z.object({
   claimId: z.uuid(),
   categoryId: z.uuid({ error: 'Choose a category' }),

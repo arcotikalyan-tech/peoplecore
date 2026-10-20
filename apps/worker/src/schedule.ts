@@ -37,6 +37,8 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'ai.retention', key: `ai.retention:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // Scheduled reports: a reminder when one is due in its organization's time zone (each schedule once per period).
     { kind: 'reports.schedules', key: `reports.schedules:${hour}`, payload: { hour } },
+    // Attendance reminders: missing check-out (10 am), approvals digest (9 am), late alerts (11 am), local time.
+    { kind: 'attendance.reminders', key: `attendance.reminders:${hour}`, payload: { hour } },
     // Learning assignment rules (new joiners, yearly refreshers): once a day.
     { kind: 'learning.rules', key: `learning.rules:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // Timesheet reminders: missing hours at 6 pm on working days, the weekly reminder on Friday at 4 pm (local time).

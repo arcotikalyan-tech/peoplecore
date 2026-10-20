@@ -899,6 +899,8 @@ export type Database = {
           accuracy_m: number | null;
           received_at: string;
           created_by: string | null;
+          selfie_path: string | null;
+          ip: string | null;
         };
         Insert: {
           id?: string;
@@ -913,6 +915,8 @@ export type Database = {
           accuracy_m?: number | null;
           received_at?: string;
           created_by?: string | null;
+          selfie_path?: string | null;
+          ip?: string | null;
         };
         Update: {
           id?: string;
@@ -927,6 +931,8 @@ export type Database = {
           accuracy_m?: number | null;
           received_at?: string;
           created_by?: string | null;
+          selfie_path?: string | null;
+          ip?: string | null;
         };
         Relationships: [];
       };
@@ -986,6 +992,9 @@ export type Database = {
           allowed_ips: string[];
           updated_by: string | null;
           updated_at: string;
+          last_checkout_reminder: string | null;
+          last_digest: string | null;
+          last_late_alert: string | null;
         };
         Insert: {
           organization_id: string;
@@ -997,6 +1006,9 @@ export type Database = {
           allowed_ips?: string[];
           updated_by?: string | null;
           updated_at?: string;
+          last_checkout_reminder?: string | null;
+          last_digest?: string | null;
+          last_late_alert?: string | null;
         };
         Update: {
           organization_id?: string;
@@ -1008,6 +1020,9 @@ export type Database = {
           allowed_ips?: string[];
           updated_by?: string | null;
           updated_at?: string;
+          last_checkout_reminder?: string | null;
+          last_digest?: string | null;
+          last_late_alert?: string | null;
         };
         Relationships: [];
       };
@@ -1611,6 +1626,48 @@ export type Database = {
           status?: string;
           version?: number;
           points?: number;
+        };
+        Relationships: [];
+      };
+      data_deletion_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          scope: string[];
+          reason: string | null;
+          status: string;
+          decision_note: string | null;
+          requested_by: string | null;
+          decided_by: string | null;
+          decided_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          scope: string[];
+          reason?: string | null;
+          status?: string;
+          decision_note?: string | null;
+          requested_by?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          scope?: string[];
+          reason?: string | null;
+          status?: string;
+          decision_note?: string | null;
+          requested_by?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -2410,6 +2467,8 @@ export type Database = {
           duplicate_note: string | null;
           created_at: string;
           subcategory: string | null;
+          distance_km: number | null;
+          rate_per_km: number | null;
         };
         Insert: {
           id?: string;
@@ -2426,6 +2485,8 @@ export type Database = {
           duplicate_note?: string | null;
           created_at?: string;
           subcategory?: string | null;
+          distance_km?: number | null;
+          rate_per_km?: number | null;
         };
         Update: {
           id?: string;
@@ -2442,6 +2503,8 @@ export type Database = {
           duplicate_note?: string | null;
           created_at?: string;
           subcategory?: string | null;
+          distance_km?: number | null;
+          rate_per_km?: number | null;
         };
         Relationships: [];
       };
@@ -2456,6 +2519,8 @@ export type Database = {
           allow_skip: boolean;
           escalation_days: number;
           updated_at: string;
+          mileage_enabled: boolean;
+          mileage_rate: number;
         };
         Insert: {
           organization_id: string;
@@ -2467,6 +2532,8 @@ export type Database = {
           allow_skip?: boolean;
           escalation_days?: number;
           updated_at?: string;
+          mileage_enabled?: boolean;
+          mileage_rate?: number;
         };
         Update: {
           organization_id?: string;
@@ -2478,6 +2545,8 @@ export type Database = {
           allow_skip?: boolean;
           escalation_days?: number;
           updated_at?: string;
+          mileage_enabled?: boolean;
+          mileage_rate?: number;
         };
         Relationships: [];
       };
@@ -6276,6 +6345,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      rotation_assignments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          employee_id: string;
+          rotation_id: string;
+          effective_from: string;
+          effective_to: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          employee_id: string;
+          rotation_id: string;
+          effective_from: string;
+          effective_to?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          employee_id?: string;
+          rotation_id?: string;
+          effective_from?: string;
+          effective_to?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       salary_components: {
         Row: {
           id: string;
@@ -6573,6 +6675,36 @@ export type Database = {
           exit_interview?: Json | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      shift_rotations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          pattern: string[];
+          period_days: number;
+          start_date: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          pattern: string[];
+          period_days?: number;
+          start_date: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          pattern?: string[];
+          period_days?: number;
+          start_date?: string;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -8257,6 +8389,14 @@ export type Database = {
         };
         Returns: string;
       };
+      decide_data_deletion: {
+        Args: {
+          p_request: string;
+          p_approve: boolean;
+          p_note?: string;
+        };
+        Returns: undefined;
+      };
       decide_overtime: {
         Args: {
           p_employee: string;
@@ -8557,6 +8697,17 @@ export type Database = {
         };
         Returns: number;
       };
+      log_mileage: {
+        Args: {
+          p_org: string;
+          p_date: string;
+          p_km: number;
+          p_from: string;
+          p_to: string;
+          p_purpose?: string;
+        };
+        Returns: string;
+      };
       log_report_export: {
         Args: {
           p_org: string;
@@ -8721,6 +8872,12 @@ export type Database = {
         };
         Returns: { requisition_id: string; title: string; department: string; location: string; employment_type: Database['public']['Enums']['employment_type']; description: string; posted_at: string; organization_name: string }[];
       };
+      punch_selfie: {
+        Args: {
+          p_punch: string;
+        };
+        Returns: string;
+      };
       purge_demo_payroll_run: {
         Args: {
           p_run: string;
@@ -8847,6 +9004,8 @@ export type Database = {
           p_longitude?: number;
           p_accuracy_m?: number;
           p_org?: string;
+          p_ip?: string;
+          p_selfie_path?: string;
         };
         Returns: string;
       };
@@ -8903,6 +9062,14 @@ export type Database = {
           p_start: string;
           p_end: string;
           p_reason: string;
+        };
+        Returns: string;
+      };
+      request_data_deletion: {
+        Args: {
+          p_org: string;
+          p_scope: string[];
+          p_reason?: string;
         };
         Returns: string;
       };
@@ -9574,6 +9741,10 @@ export type Database = {
         Returns: Json;
       };
       worker_attendance_penalties: {
+        Args: never;
+        Returns: Json;
+      };
+      worker_attendance_reminders: {
         Args: never;
         Returns: Json;
       };

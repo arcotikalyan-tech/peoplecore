@@ -43,7 +43,7 @@ export default async function ExpensesPage({ params, searchParams }: { params: P
   const cats = new Map(categories.map((c) => [c.id, c.name]));
 
   if (!finance) {
-    const mine = me ? await claimRows(ctx.org.id, { employeeId: me.id }) : [];
+    const [mine, settings] = await Promise.all([me ? claimRows(ctx.org.id, { employeeId: me.id }) : Promise.resolve([]), expenseSettings(ctx.org.id)]);
     const tabs = [{ key: 'hub', label: '✦ Hub' }, { key: 'mine', label: 'My Claims' }, ...(approver ? [{ key: 'approvals', label: 'Approvals', count: pending.length }] : [])];
     const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : 'hub';
     return (
@@ -56,7 +56,7 @@ export default async function ExpensesPage({ params, searchParams }: { params: P
           <Link href={`${base}?tab=mine`} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-fg">+ New Claim</Link>
         </header>
         <HubTabs base={base} label="Expense sections" tabs={tabs} current={tab} />
-        {tab === 'hub' && <MyHub slug={slug} base={base} claims={mine} cats={cats} today={today} />}
+        {tab === 'hub' && <MyHub slug={slug} base={base} claims={mine} cats={cats} today={today} mileage={me && settings.mileage_enabled ? { rate: Number(settings.mileage_rate) } : null} />}
         {tab === 'mine' && <MyClaims slug={slug} base={base} claims={mine} cats={cats} sp={sp} />}
         {tab === 'approvals' && <ApprovalsTab ctx={ctx} slug={slug} items={pending} />}
       </>
@@ -102,7 +102,7 @@ export default async function ExpensesPage({ params, searchParams }: { params: P
       {tab === 'reimbursement' && <ReimbursementTab {...props} />}
       {tab === 'categories' && <CategoriesTab {...props} />}
       {tab === 'analytics' && <AnalyticsTab {...props} />}
-      {tab === 'settings' && <SettingsTab {...props} settings={{ ...settings, threshold: settings.threshold === null ? null : Number(settings.threshold) }} ai={ai} />}
+      {tab === 'settings' && <SettingsTab {...props} settings={{ ...settings, threshold: settings.threshold === null ? null : Number(settings.threshold), mileage_rate: Number(settings.mileage_rate) }} ai={ai} />}
       {tab === 'approvals' && <ApprovalsTab ctx={ctx} slug={slug} items={pending} />}
     </>
   );

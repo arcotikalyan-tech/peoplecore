@@ -30,6 +30,7 @@ export async function saveExpenseSettingsAction(slug: string, _prev: ActionState
   const parsed = z.object({
     threshold: z.preprocess(blank, z.coerce.number().positive('Enter an amount above 0').max(9_999_999).optional()),
     escalationDays: z.coerce.number().int().min(1, 'Between 1 and 90 days').max(90, 'Between 1 and 90 days'),
+    mileageRate: z.coerce.number({ error: 'Enter the rate' }).positive('Enter a rate above 0').max(1000),
   }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, message: 'Please fix the highlighted fields.', fieldErrors: errorsOf(parsed.error), values: formValues(formData) };
   const on = (k: string) => formData.get(k) === 'on';
@@ -37,6 +38,7 @@ export async function saveExpenseSettingsAction(slug: string, _prev: ActionState
   const { error } = await supabase.from('expense_settings').upsert({
     organization_id: ctx.org.id, receipt_reading: on('receiptReading'), multi_level: on('multiLevel'), threshold: on('multiLevel') ? (parsed.data.threshold ?? null) : null,
     auto_finalize: on('multiLevel') && on('autoFinalize'), finance_only: on('financeOnly'), allow_skip: on('allowSkip'), escalation_days: parsed.data.escalationDays,
+    mileage_enabled: on('mileageEnabled'), mileage_rate: parsed.data.mileageRate,
   }, { onConflict: 'organization_id' });
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   revalidatePath(base(slug));

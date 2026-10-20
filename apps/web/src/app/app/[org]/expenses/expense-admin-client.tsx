@@ -26,7 +26,7 @@ function Toggle({ name, label, note, defaultChecked, disabled, onChange }: { nam
 
 export function ExpenseSettingsForm({ action, s, ai }: {
   action: Action; ai: boolean;
-  s: { receipt_reading: boolean; multi_level: boolean; threshold: number | null; auto_finalize: boolean; finance_only: boolean; allow_skip: boolean; escalation_days: number };
+  s: { receipt_reading: boolean; multi_level: boolean; threshold: number | null; auto_finalize: boolean; finance_only: boolean; allow_skip: boolean; escalation_days: number; mileage_enabled: boolean; mileage_rate: number };
 }) {
   const [state, formAction] = useActionState(action, initialActionState);
   const [multi, setMulti] = useState(s.multi_level);
@@ -54,6 +54,11 @@ export function ExpenseSettingsForm({ action, s, ai }: {
             hint="A claim waiting longer goes to the approver’s manager (1–90)." error={e.escalationDays} />
           <div className="self-end"><Toggle name="rejectionComment" label="Mandatory rejection comment" note="Always on: employees always see why." defaultChecked disabled /></div>
         </div>
+      </fieldset>
+      <fieldset className="divide-y divide-line rounded-2xl border border-line px-4">
+        <legend className="px-1 text-xs font-bold uppercase tracking-wider text-muted">Mileage</legend>
+        <Toggle name="mileageEnabled" label="Mileage claims" note="Employees log trips in km; the amount is worked out at the rate below (no receipt needed)." defaultChecked={s.mileage_enabled} />
+        <div className="py-3"><TextField idPrefix="es" name="mileageRate" label="Rate per km (₹)" inputMode="decimal" defaultValue={s.mileage_rate} className="max-w-xs" error={e.mileageRate} /></div>
       </fieldset>
       <fieldset className="rounded-2xl border border-line px-4 py-3">
         <legend className="px-1 text-xs font-bold uppercase tracking-wider text-muted">Currency</legend>

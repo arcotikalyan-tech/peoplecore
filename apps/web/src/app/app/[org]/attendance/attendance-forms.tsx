@@ -14,10 +14,13 @@ type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
  * The location is sent when the browser allows it; without it the punch still counts (and may be flagged
  * for review where the workplace has a geofence).
  */
-export function PunchButton({ action, label }: { action: Action; label: string }) {
+export function PunchButton({ action, label, selfie: needsSelfie = false }: { action: Action; label: string; selfie?: boolean }) {
   const [state, formAction] = useActionState(action, initialActionState);
   const [pending, startTransition] = useTransition();
   const [locating, setLocating] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  // Show the camera when the rule asks for a selfie, or once a check-in was refused for lack of one.
+  const askSelfie = needsSelfie || (!state.ok && /selfie/i.test(state.message ?? ''));
 
   async function punch() {
     const fd = new FormData();
@@ -33,14 +36,59 @@ export function PunchButton({ action, label }: { action: Action; label: string }
       fd.set('longitude', pos.coords.longitude.toFixed(6));
       fd.set('accuracy', String(Math.round(pos.coords.accuracy)));
     }
+    if (photo) fd.set('selfie', photo);
     startTransition(() => formAction(fd));
   }
 
   return (
     <div className="space-y-2">
-      <Button onClick={punch} disabled={pending || locating}>{locating ? 'Getting location…' : pending ? 'Recording…' : label}</Button>
+      {askSelfie && (
+        <label className="block text-sm">📸 Selfie for check-in
+          <input type="file" accept="image/jpeg,image/png" capture="user" aria-label="Selfie" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="mt-1 block text-sm" />
+        </label>
+      )}
+      <Button onClick={punch} disabled={pending || locating || (askSelfie && !photo)}>{locating ? 'Getting location…' : pending ? 'Recording…' : label}</Button>
       <FormMessage state={state} />
     </div>
+  );
+}
+
+export function RotationForm({ action, shifts, today }: { action: Action; shifts: Option[]; today: string }) {
+  const [state, formAction] = useActionState(action, initialActionState);
+  const [steps, setSteps] = useState(2);
+  const v = state.ok ? {} : (state.values ?? {});
+  const e = state.fieldErrors ?? {};
+  return (
+    <form action={formAction} noValidate aria-label="New rotation" className="space-y-3 px-5 py-4">
+      <FormMessage state={state} />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <TextField idPrefix="rot" name="name" label="Rotation" required placeholder="Weekly day/late swap" defaultValue={v.name} error={e.name} />
+        <TextField idPrefix="rot" name="periodDays" label="Switch every (days)" inputMode="numeric" defaultValue={v.periodDays ?? '7'} error={e.periodDays} />
+        <TextField idPrefix="rot" name="startDate" label="First day" type="date" defaultValue={v.startDate ?? today} error={e.startDate} />
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {Array.from({ length: steps }, (_, i) => <SelectField key={i} idPrefix={`rot-${i}`} name="shiftId" label={`Shift ${i + 1}`} options={shifts} placeholder="Choose…" />)}
+      </div>
+      <div className="flex items-center gap-3">
+        {steps < 12 && <button type="button" onClick={() => setSteps((n) => n + 1)} className="text-xs text-primary">＋ Add shift</button>}
+        <SubmitButton size="sm">Create rotation</SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+export function AssignRotationForm({ action, rotations, employees, today }: { action: Action; rotations: Option[]; employees: Option[]; today: string }) {
+  const [state, formAction] = useActionState(action, initialActionState);
+  const v = state.ok ? {} : (state.values ?? {});
+  const e = state.fieldErrors ?? {};
+  return (
+    <form action={formAction} noValidate aria-label="Assign a rotation" className="grid items-end gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_auto]">
+      <div className="sm:col-span-4"><FormMessage state={state} /></div>
+      <SelectField idPrefix="ra" name="employeeId" label="Employee" options={employees} placeholder="Choose…" defaultValue={v.employeeId} error={e.employeeId} />
+      <SelectField idPrefix="ra" name="rotationId" label="Rotation" options={rotations} placeholder="Choose…" defaultValue={v.rotationId} error={e.rotationId} />
+      <TextField idPrefix="ra" name="effectiveFrom" label="From" type="date" defaultValue={v.effectiveFrom ?? today} error={e.effectiveFrom} />
+      <SubmitButton size="sm" variant="secondary">Assign</SubmitButton>
+    </form>
   );
 }
 

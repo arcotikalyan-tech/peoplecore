@@ -12,9 +12,10 @@ import { rulesSetup } from '@/server/attendance-ops';
 import { managerOptions } from '@/server/employees';
 import { namesFor } from '@/server/leave';
 import {
-  assignRosterAction, assignWorkWeekAction, saveRuleAction, saveWorkWeekAction, setDefaultRuleAction, setDefaultWorkWeekAction,
+  assignRosterAction, assignRotationAction, assignWorkWeekAction, saveRotationAction, saveRuleAction, saveWorkWeekAction, setDefaultRuleAction, setDefaultWorkWeekAction,
 } from '../actions';
-import { AssignWorkWeekForm, RosterForm, RuleEditor, WorkWeekGrid, type RuleValues } from '../attendance-forms';
+import { AssignRotationForm, AssignWorkWeekForm, RosterForm, RotationForm, RuleEditor, WorkWeekGrid, type RuleValues } from '../attendance-forms';
+import { createClient } from '@/server/supabase';
 import { hours } from './status';
 
 const NEW_RULE: RuleValues = {
@@ -142,6 +143,7 @@ async function Assigned({ ctx, slug, setup, employees, today }: {
         <RosterForm action={assignRosterAction.bind(null, slug)} employees={employees} today={today}
           shifts={setup.shifts.filter((s) => s.is_active).map((s) => ({ value: s.id, label: `${s.name} (${s.code})` }))} />
       </Panel>
+      <Rotations ctx={ctx} slug={slug} shifts={setup.shifts.filter((s) => s.is_active).map((s) => ({ value: s.id, label: `${s.name} (${s.code})` }))} employees={employees} today={today} ruleName={ruleName} />
       <Panel title="Work week assignments" flush>
         {setup.weekAssignments.length === 0 ? <p className="px-5 py-4 text-sm text-muted">No one has an assigned work week.</p> : (
           <Table caption="Work week assignments">
@@ -159,5 +161,32 @@ async function Assigned({ ctx, slug, setup, employees, today }: {
         )}
       </Panel>
     </div>
+  );
+}
+
+/** Rotating shifts: a pattern that advances every N days; people on a rotation get the shift for the day from it. */
+async function Rotations({ ctx, slug, shifts, employees, today, ruleName }: {
+  ctx: OrgContext; slug: string; shifts: Array<{ value: string; label: string }>; employees: Awaited<ReturnType<typeof managerOptions>>; today: string; ruleName: Map<string, string>;
+}) {
+  const supabase = await createClient();
+  const [rotations, assigned] = await Promise.all([
+    supabase.from('shift_rotations').select('id, name, pattern, period_days, start_date').eq('organization_id', ctx.org.id).order('name').then((r) => r.data ?? []),
+    supabase.from('rotation_assignments').select('id, employee_id, rotation_id, effective_from, effective_to').eq('organization_id', ctx.org.id).order('effective_from', { ascending: false }).then((r) => r.data ?? []),
+  ]);
+  const names = await namesFor(ctx.org.id, assigned.map((a) => a.employee_id));
+  return (
+    <Panel title="Rotating shifts" meta="an explicit rule assignment still wins for its dates" flush>
+      {rotations.length > 0 && (
+        <Table caption="Rotations">
+          <thead><tr><Th>Rotation</Th><Th>Pattern</Th><Th>Switches every</Th><Th>From</Th><Th>People</Th></tr></thead>
+          <tbody>{rotations.map((r) => (
+            <tr key={r.id}><Td className="font-medium">{r.name}</Td><Td>{r.pattern.map((id) => ruleName.get(id) ?? '—').join(' → ')}</Td><Td>{r.period_days} days</Td><Td>{formatDate(r.start_date)}</Td>
+              <Td className="text-xs">{assigned.filter((a) => a.rotation_id === r.id).map((a) => names.get(a.employee_id) ?? '—').join(', ') || '—'}</Td></tr>
+          ))}</tbody>
+        </Table>
+      )}
+      <RotationForm action={saveRotationAction.bind(null, slug)} shifts={shifts} today={today} />
+      {rotations.length > 0 && <AssignRotationForm action={assignRotationAction.bind(null, slug)} rotations={rotations.map((r) => ({ value: r.id, label: r.name }))} employees={employees} today={today} />}
+    </Panel>
   );
 }

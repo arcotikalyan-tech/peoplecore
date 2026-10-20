@@ -1,8 +1,9 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import {
-  attendanceRequestSchema, attendanceRuleSchema, attendanceSettingsSchema, deviceSchema, geofenceSchema, parseCsv, parseDeviceCsvRows,
+  attendanceRequestSchema, attendanceRuleSchema, checkDocumentFile, attendanceSettingsSchema, deviceSchema, geofenceSchema, parseCsv, parseDeviceCsvRows,
   punchSchema, regularizationSchema, rosterSchema, shiftSchema, weekPatternFromForm, workWeekSchema,
 } from '@peoplecore/shared';
 import { z } from 'zod';
@@ -11,21 +12,73 @@ import { toUserMessage } from '@/lib/db-errors';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
 import { createClient } from '@/server/supabase';
+import { removeDocumentFile, SELFIE_BUCKET, storeDocumentFile } from '@/server/document-storage';
+import { requestIp } from '@/server/timesheet';
 
 /** Attendance actions. record_punch, request_regularization and the settings writes are checked in the database. */
 
 export async function punchAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await getOrgContext(orgSlug);
-  const parsed = punchSchema.safeParse(Object.fromEntries([...formData.entries()].filter(([, v]) => v !== '')));
+  const parsed = punchSchema.safeParse(Object.fromEntries([...formData.entries()].filter(([k, v]) => v !== '' && k !== 'selfie')));
   if (!parsed.success) return { ok: false, message: 'Couldn’t record the punch. Reload and try again.' };
   const supabase = await createClient();
+  // A selfie (when the rule asks for one) is stored first under the employee's own folder; the database checks the path.
+  let selfie: string | null = null;
+  const file = formData.get('selfie');
+  if (file instanceof File && file.size > 0) {
+    const me = await getMyEmployee(ctx.org.id, ctx.user.id);
+    if (!me) return { ok: false, message: 'Your account isn’t linked to an employee record.' };
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const check = checkDocumentFile(bytes.byteLength, bytes.subarray(0, 16));
+    if (!check.ok || check.type === 'application/pdf' || bytes.byteLength > 2 * 1024 * 1024) return { ok: false, message: 'Take a photo (JPEG or PNG, up to 2 MB).' };
+    selfie = `${ctx.org.id}/${me.id}/${randomUUID()}`;
+    if (!(await storeDocumentFile(selfie, bytes, check.type, SELFIE_BUCKET))) return { ok: false, message: 'The selfie could not be stored. Please try again.' };
+  }
   const { error } = await supabase.rpc('record_punch', {
     p_client_id: parsed.data.clientId, p_method: 'web', p_latitude: parsed.data.latitude, p_longitude: parsed.data.longitude,
-    p_accuracy_m: parsed.data.accuracy, p_org: ctx.org.id,
+    p_accuracy_m: parsed.data.accuracy, p_org: ctx.org.id, p_ip: (await requestIp()) ?? undefined, p_selfie_path: selfie ?? undefined,
   });
-  if (error) return { ok: false, message: toUserMessage(error) };
+  if (error) {
+    if (selfie) await removeDocumentFile(selfie, SELFIE_BUCKET);
+    return { ok: false, message: toUserMessage(error) };
+  }
   revalidatePath(`/app/${orgSlug}/attendance`);
   return { ok: true, message: `Punch recorded at ${new Date().toLocaleTimeString('en-IN', { timeZone: ctx.org.timezone, hour: '2-digit', minute: '2-digit' })}.` };
+}
+
+const rotationSchema = z.object({
+  name: z.string().trim().min(2, 'Name the rotation').max(80),
+  periodDays: z.coerce.number().int().min(1, 'At least 1 day').max(31, 'At most 31 days'),
+  startDate: z.iso.date({ error: 'Choose the first day' }),
+});
+
+export async function saveRotationAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await manage(orgSlug);
+  if (!ctx) return DENIED;
+  const parsed = rotationSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const pattern = formData.getAll('shiftId').filter((x): x is string => typeof x === 'string' && z.uuid().safeParse(x).success);
+  if (pattern.length < 2) return { ok: false, message: 'Choose at least two shifts in the order they rotate.', values: formValues(formData) };
+  const supabase = await createClient();
+  const { error } = await supabase.from('shift_rotations').insert({
+    organization_id: ctx.org.id, name: parsed.data.name, pattern, period_days: parsed.data.periodDays, start_date: parsed.data.startDate,
+  });
+  if (error) return { ok: false, message: error.code === '23505' ? 'There is already a rotation with that name.' : toUserMessage(error), values: formValues(formData) };
+  return done(orgSlug, 'Rotation created.');
+}
+
+export async function assignRotationAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await manage(orgSlug);
+  if (!ctx) return DENIED;
+  const parsed = z.object({ employeeId: z.uuid({ error: 'Choose an employee' }), rotationId: z.uuid({ error: 'Choose a rotation' }), effectiveFrom: z.iso.date({ error: 'Choose a date' }) })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const supabase = await createClient();
+  const { error } = await supabase.from('rotation_assignments').insert({
+    organization_id: ctx.org.id, employee_id: parsed.data.employeeId, rotation_id: parsed.data.rotationId, effective_from: parsed.data.effectiveFrom,
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  return done(orgSlug, 'Rotation assigned.');
 }
 
 export async function regularizeAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

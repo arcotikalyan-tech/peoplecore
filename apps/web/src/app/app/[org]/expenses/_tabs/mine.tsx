@@ -5,14 +5,14 @@ import type { OrgContext } from '@/server/context';
 import type { ClaimRow } from '@/server/expenses';
 import { decideApprovalAction } from '../../inbox/actions';
 import { ApprovalsPanel } from '../../inbox/inbox-forms';
-import { createClaimAction } from '../actions';
+import { createClaimAction, logMileageAction } from '../actions';
 import { holdClaimAction } from '../admin-actions';
-import { NewClaimForm } from '../expense-forms';
+import { MileageForm, NewClaimForm } from '../expense-forms';
 import { HoldForm } from '../expense-admin-client';
 import { claimState, Figure, inr, Panel, STATE_FILTERS, STATE_TONE } from './shared';
 
 /** Employee: figures, recent claims and a new claim. */
-export function MyHub({ slug, base, claims, cats, today }: { slug: string; base: string; claims: ClaimRow[]; cats: Map<string, string>; today: string }) {
+export function MyHub({ slug, base, claims, cats, today, mileage }: { slug: string; base: string; claims: ClaimRow[]; cats: Map<string, string>; today: string; mileage?: { rate: number } | null }) {
   const fyStart = `${Number(today.slice(5, 7)) >= 4 ? today.slice(0, 4) : Number(today.slice(0, 4)) - 1}-04-01`;
   const pending = claims.filter((c) => c.status === 'pending');
   const approved = claims.filter((c) => c.status === 'approved');
@@ -35,7 +35,10 @@ export function MyHub({ slug, base, claims, cats, today }: { slug: string; base:
         <Panel title="Recent claims" actions={<Link className="text-sm text-primary hover:underline" href={`${base}?tab=mine`}>View all →</Link>}>
           <MyTable rows={claims.slice(0, 6)} cats={cats} base={base} caption="Recent claims" />
         </Panel>
-        <Panel title="＋ New Claim"><div className="pb-2"><NewClaimForm action={createClaimAction.bind(null, slug)} /></div></Panel>
+        <div className="space-y-5">
+          <Panel title="＋ New Claim"><div className="pb-2"><NewClaimForm action={createClaimAction.bind(null, slug)} /></div></Panel>
+          {mileage && <Panel title="🚗 Log mileage"><MileageForm action={logMileageAction.bind(null, slug)} rate={mileage.rate} today={today} /></Panel>}
+        </div>
       </div>
     </div>
   );

@@ -42,7 +42,7 @@ export async function allCategories(orgId: string) {
 export async function expenseSettings(orgId: string) {
   const supabase = await createClient();
   const { data } = await supabase.from('expense_settings').select('*').eq('organization_id', orgId).maybeSingle();
-  return data ?? { organization_id: orgId, receipt_reading: true, multi_level: true, threshold: null, auto_finalize: false, finance_only: false, allow_skip: false, escalation_days: 3, updated_at: '' };
+  return data ?? { organization_id: orgId, receipt_reading: true, multi_level: true, threshold: null, auto_finalize: false, finance_only: false, allow_skip: false, escalation_days: 3, mileage_enabled: true, mileage_rate: 12, updated_at: '' };
 }
 
 /**
