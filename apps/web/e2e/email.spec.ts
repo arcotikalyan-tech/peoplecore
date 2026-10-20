@@ -12,17 +12,16 @@ test.skip(!mailpitUrl, 'Needs the local Supabase test inbox (MAILPIT_URL)');
 
 const run = Date.now().toString(36).slice(-5).toUpperCase();
 const invitee = `e2e.invitee.${run.toLowerCase()}@${domain}`;
+const plainInvitee = `e2e.plain.${run.toLowerCase()}@${domain}`;
 const admin = adminClient();
 
 test.afterAll(async () => {
   if (!mailpitUrl) return;
   for (let page = 1; page <= 5; page++) {
     const { data } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    const user = data.users.find((u) => u.email === invitee);
-    if (user) {
+    for (const user of data.users.filter((u) => u.email === invitee || u.email === plainInvitee)) {
       await admin.from('organization_members').delete().eq('user_id', user.id);
       await admin.auth.admin.deleteUser(user.id);
-      break;
     }
     if (data.users.length < 1000) break;
   }
@@ -78,4 +77,22 @@ test('HR invites a new person, who accepts from the email and lands in the organ
   const again = await (await browser.newContext()).newPage();
   await again.goto(link);
   await again.waitForURL(/\/login\?error=link/);
+});
+
+test("an invitation from Supabase's default template (session in the URL fragment) also signs the person in", async ({ browser, baseURL }) => {
+  const hr = await (await browser.newContext()).newPage();
+  await signIn(hr, 'demo.hr');
+  await open(hr, '/app/demo/members');
+  const invite = hr.locator('form').filter({ has: hr.getByRole('button', { name: 'Send invitation' }) });
+  await invite.getByLabel('Work email').fill(plainInvitee);
+  await invite.getByRole('button', { name: 'Send invitation' }).click();
+  await expect(hr.getByText(`Invitation emailed to ${plainInvitee}.`, { exact: false })).toBeVisible();
+
+  // The link the default template would contain: Supabase verifies it, then redirects with #access_token=….
+  const { data, error } = await admin.auth.admin.generateLink({ type: 'invite', email: plainInvitee, options: { redirectTo: `${baseURL}/auth/callback` } });
+  expect(error).toBeNull();
+  const guest = await (await browser.newContext()).newPage();
+  await guest.goto(data.properties!.action_link);
+  await guest.waitForURL(/\/app\/demo(\/|$|\?)/);
+  expect(guest.url()).not.toContain('access_token');
 });
