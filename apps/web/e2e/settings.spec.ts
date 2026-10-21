@@ -69,7 +69,9 @@ test('the owner creates a custom role, grants a permission, and opens and closes
   await role.getByLabel('Role name').fill(`Finance desk ${run}`);
   await role.getByRole('button', { name: '＋ Create role' }).click();
   await expect(role.getByText(`Role Finance desk ${run} created.`, { exact: false })).toBeVisible();
+  // The scope select saves on change, which needs the page hydrated after the reload.
   await page.reload();
+  await page.waitForLoadState('networkidle');
   await page.getByRole('combobox', { name: `Finance desk ${run}: expense.manage` }).selectOption('org');
   await expect.poll(async () => (await admin.from('role_permissions').select('scope, roles!inner(name)').eq('organization_id', orgId)
     .eq('permission_key', 'expense.manage').eq('roles.name', `Finance desk ${run}`)).data?.[0]?.scope).toBe('org');
