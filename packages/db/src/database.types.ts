@@ -1819,6 +1819,7 @@ export type Database = {
           access: string;
           show_birthday: boolean;
           show_marital_status: boolean;
+          show_social: boolean;
         };
         Insert: {
           organization_id: string;
@@ -1832,6 +1833,7 @@ export type Database = {
           access?: string;
           show_birthday?: boolean;
           show_marital_status?: boolean;
+          show_social?: boolean;
         };
         Update: {
           organization_id?: string;
@@ -1845,6 +1847,7 @@ export type Database = {
           access?: string;
           show_birthday?: boolean;
           show_marital_status?: boolean;
+          show_social?: boolean;
         };
         Relationships: [];
       };
@@ -2070,6 +2073,9 @@ export type Database = {
           perm_city: string | null;
           perm_state_code: string | null;
           perm_postal_code: string | null;
+          linkedin_url: string | null;
+          twitter_url: string | null;
+          website_url: string | null;
         };
         Insert: {
           id?: string;
@@ -2097,6 +2103,9 @@ export type Database = {
           perm_city?: string | null;
           perm_state_code?: string | null;
           perm_postal_code?: string | null;
+          linkedin_url?: string | null;
+          twitter_url?: string | null;
+          website_url?: string | null;
         };
         Update: {
           id?: string;
@@ -2124,6 +2133,9 @@ export type Database = {
           perm_city?: string | null;
           perm_state_code?: string | null;
           perm_postal_code?: string | null;
+          linkedin_url?: string | null;
+          twitter_url?: string | null;
+          website_url?: string | null;
         };
         Relationships: [];
       };
@@ -5271,6 +5283,7 @@ export type Database = {
           payslip_show_paise: boolean;
           show_tax_projection: boolean;
           show_tax_computation: boolean;
+          da_enabled: boolean;
         };
         Insert: {
           organization_id: string;
@@ -5298,6 +5311,7 @@ export type Database = {
           payslip_show_paise?: boolean;
           show_tax_projection?: boolean;
           show_tax_computation?: boolean;
+          da_enabled?: boolean;
         };
         Update: {
           organization_id?: string;
@@ -5325,6 +5339,7 @@ export type Database = {
           payslip_show_paise?: boolean;
           show_tax_projection?: boolean;
           show_tax_computation?: boolean;
+          da_enabled?: boolean;
         };
         Relationships: [];
       };
@@ -7773,6 +7788,138 @@ export type Database = {
         };
         Relationships: [];
       };
+      vendor_payments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          vendor_id: string;
+          invoice_number: string;
+          invoice_date: string;
+          description: string | null;
+          gross_amount: number;
+          tds_section: string;
+          tds_amount: number;
+          net_amount: number;
+          due_date: string | null;
+          status: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          decision_note: string | null;
+          reference: string | null;
+          paid_on: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          vendor_id: string;
+          invoice_number: string;
+          invoice_date: string;
+          description?: string | null;
+          gross_amount: number;
+          tds_section: string;
+          tds_amount: number;
+          net_amount: number;
+          due_date?: string | null;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          reference?: string | null;
+          paid_on?: string | null;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          vendor_id?: string;
+          invoice_number?: string;
+          invoice_date?: string;
+          description?: string | null;
+          gross_amount?: number;
+          tds_section?: string;
+          tds_amount?: number;
+          net_amount?: number;
+          due_date?: string | null;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          reference?: string | null;
+          paid_on?: string | null;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vendors: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          kind: string;
+          pan: string | null;
+          gstin: string | null;
+          email: string | null;
+          phone: string | null;
+          account_holder: string | null;
+          bank_name: string | null;
+          account_number: string | null;
+          ifsc: string | null;
+          tds_section: string;
+          tds_rate: number;
+          archived_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          kind?: string;
+          pan?: string | null;
+          gstin?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          account_holder?: string | null;
+          bank_name?: string | null;
+          account_number?: string | null;
+          ifsc?: string | null;
+          tds_section?: string;
+          tds_rate?: number;
+          archived_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          kind?: string;
+          pan?: string | null;
+          gstin?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          account_holder?: string | null;
+          bank_name?: string | null;
+          account_number?: string | null;
+          ifsc?: string | null;
+          tds_section?: string;
+          tds_rate?: number;
+          archived_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       work_week_assignments: {
         Row: {
           id: string;
@@ -8536,6 +8683,15 @@ export type Database = {
         };
         Returns: undefined;
       };
+      decide_vendor_payments: {
+        Args: {
+          p_org: string;
+          p_ids: string[];
+          p_approve: boolean;
+          p_note?: string;
+        };
+        Returns: number;
+      };
       delegate_approvals: {
         Args: {
           p_org: string;
@@ -8988,7 +9144,7 @@ export type Database = {
           p_query?: string;
           p_limit?: number;
         };
-        Returns: { id: string; name: string; department: string; designation: string; location: string; work_email: string; work_phone: string; tenure_years: number; manager_id: string; birthday: string; marital_status: string }[];
+        Returns: { id: string; name: string; department: string; designation: string; location: string; work_email: string; work_phone: string; tenure_years: number; manager_id: string; birthday: string; marital_status: string; linkedin_url: string; twitter_url: string; website_url: string }[];
       };
       people_profile_gaps: {
         Args: {
@@ -9142,6 +9298,19 @@ export type Database = {
           p_org?: string;
           p_ip?: string;
           p_selfie_path?: string;
+        };
+        Returns: string;
+      };
+      record_vendor_payment: {
+        Args: {
+          p_org: string;
+          p_vendor: string;
+          p_invoice_number: string;
+          p_invoice_date: string;
+          p_gross: number;
+          p_description?: string;
+          p_due_date?: string;
+          p_tds?: number;
         };
         Returns: string;
       };
@@ -9878,6 +10047,22 @@ export type Database = {
           p_priority?: Database['public']['Enums']['ticket_priority'];
         };
         Returns: undefined;
+      };
+      update_vendor_payments: {
+        Args: {
+          p_org: string;
+          p_ids: string[];
+          p_status: string;
+          p_reference?: string;
+          p_paid_on?: string;
+        };
+        Returns: number;
+      };
+      vendor_bank_advice: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { payment_id: string; vendor_name: string; account_holder: string; bank_name: string; account_number: string; ifsc: string; invoice_number: string; amount: number }[];
       };
       verify_employee_document: {
         Args: {

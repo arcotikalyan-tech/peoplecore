@@ -297,14 +297,14 @@ export async function saveSettingsAction(slug: string, _prev: ActionState, formD
       joinerCutoff: z.preprocess((v) => (v === '' || v === 'none' ? null : v), z.coerce.number().int().min(1).max(31).nullable()),
       payDaysBasis: z.enum(['calendar', 'working', 'fixed_30']).default('calendar'), holidaysPaid: yes,
       overtimeMultiplier: z.preprocess((v) => (v === '' || v === 'none' ? null : v), z.coerce.number().min(1).max(3).nullable()), overtimeInEsi: yes,
-      payslipShowPaise: yes, showTaxProjection: yes, showTaxComputation: yes,
+      payslipShowPaise: yes, showTaxProjection: yes, showTaxComputation: yes, daEnabled: yes,
     }).safeParse(Object.fromEntries(formData));
     if (!p.success) return invalid(p.error, formData);
     patch = {
       pay_day: p.data.payDay, lop_from_absence: p.data.lopFromAbsence, payslip_template: p.data.payslipTemplate, payslip_show_ytd: p.data.payslipShowYtd,
       input_cycle_start_day: p.data.inputCycleStart, joiner_cutoff_day: p.data.joinerCutoff, pay_days_basis: p.data.payDaysBasis, holidays_paid: p.data.holidaysPaid,
       overtime_multiplier: p.data.overtimeMultiplier, overtime_in_esi: p.data.overtimeInEsi, payslip_show_paise: p.data.payslipShowPaise,
-      show_tax_projection: p.data.showTaxProjection, show_tax_computation: p.data.showTaxComputation,
+      show_tax_projection: p.data.showTaxProjection, show_tax_computation: p.data.showTaxComputation, da_enabled: p.data.daEnabled,
     };
   } else if (section === 'statutory') {
     const p = z.object({ pf: yes, esi: yes, pt: yes, defaultRegime: z.enum(['old', 'new']) }).safeParse(Object.fromEntries(formData));

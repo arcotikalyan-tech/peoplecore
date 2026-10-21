@@ -242,6 +242,7 @@ export interface PaySettings {
   pay_day: number | null; lop_from_absence: boolean; payslip_template: string; payslip_show_ytd: boolean;
   pay_days_basis: string; holidays_paid: boolean; input_cycle_start_day: number; joiner_cutoff_day: number | null;
   overtime_multiplier: number | null; overtime_in_esi: boolean; payslip_show_paise: boolean; show_tax_projection: boolean; show_tax_computation: boolean;
+  da_enabled: boolean;
 }
 
 /** Kredily's Pay Settings: cycle, payout date, joiner cut-off, pay days, overtime, payslip decimals and employee access. */
@@ -267,6 +268,7 @@ export function PaySettingsForm({ action, s }: { action: Action; s: PaySettings 
               options={[{ value: 'calendar', label: 'Calendar days (weekly offs and holidays are paid)' }, { value: 'working', label: 'Working days only (weekly offs aren’t pay days)' }, { value: 'fixed_30', label: 'A fixed 30 days, whatever the month' }]} />
             {check('holidaysPaid', 'With working days: count declared holidays as paid days', s.holidays_paid)}
             {check('lopFromAbsence', 'Treat absences (no punches, no leave) as loss of pay', s.lop_from_absence, 'Off: only unpaid leave and penalties reduce pay.')}
+            {check('daEnabled', 'Use Dearness Allowance (DA) in salaries', s.da_enabled, 'Adds a DA component that counts as a PF wage; add it to salary structures, e.g. as a percentage of basic.')}
           </fieldset>
           <fieldset className="space-y-3"><legend className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">Overtime</legend>
             <SelectField idPrefix="pay" name="overtimeMultiplier" label="Pay approved overtime" defaultValue={v.overtimeMultiplier ?? (s.overtime_multiplier ? String(Number(s.overtime_multiplier)) : 'none')}

@@ -60,6 +60,23 @@ export async function setPayrollShortcutAction(slug: string, key: 'hr_payroll_lo
   return done(slug, on ? 'Switched on.' : 'Switched off.');
 }
 
+/** Owners: give or take an HR administrator's vendor payout access (the Vendor payout admin role). */
+export async function setVendorAccessAction(slug: string, memberId: string, on: boolean): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('role.manage', 'org') || !z.uuid().safeParse(memberId).success) return DENIED;
+  const supabase = await createClient();
+  const [{ data: members, error }, { data: role }] = await Promise.all([
+    supabase.rpc('org_members', { p_org: ctx.org.id }),
+    supabase.from('roles').select('id').eq('organization_id', ctx.org.id).eq('key', 'vendor_admin').maybeSingle(),
+  ]);
+  const member = members?.find((m) => m.member_id === memberId);
+  if (error || !member || !role) return { ok: false, message: 'That member or role no longer exists.' };
+  const roles = on ? [...new Set([...member.role_ids, role.id])] : member.role_ids.filter((r) => r !== role.id);
+  const { error: e2 } = await supabase.rpc('set_member_roles', { p_member: memberId, p_role_ids: roles });
+  if (e2) return { ok: false, message: toUserMessage(e2) };
+  return done(slug, on ? 'Vendor payout access given.' : 'Vendor payout access removed.');
+}
+
 /** Owners: close the company 30 days from today (typing its name), or cancel that. */
 export async function requestClosureAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await getOrgContext(slug);

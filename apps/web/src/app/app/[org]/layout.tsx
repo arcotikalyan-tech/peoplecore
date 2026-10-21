@@ -56,6 +56,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       { href: `${base}/payslips`, label: 'My Pay', icon: 'receipt' },
       { href: `${base}/expenses`, label: 'Expenses', icon: 'card' },
       { href: `${base}/loans`, label: 'Loans', icon: 'coins' },
+      ...when(ctx.can('vendor.manage', 'org'), { href: `${base}/vendors`, label: 'Vendor payouts', icon: 'wallet' }),
       ...when(reports, { href: `${base}/reports`, label: 'Reports', icon: 'sheet' }),
     ] },
     { label: 'Grow', items: [

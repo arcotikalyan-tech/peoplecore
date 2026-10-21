@@ -24,6 +24,7 @@ export async function PersonalTab(p: ProfileProps & { personal: Personal }) {
   const defaults = Object.fromEntries(Object.entries({
     dateOfBirth: v.date_of_birth, gender: v.gender, bloodGroup: v.blood_group, maritalStatus: v.marital_status, isDisabled: v.is_disabled,
     personalEmail: v.personal_email, personalPhone: v.personal_phone, alternatePhone: v.alternate_phone,
+    linkedinUrl: v.linkedin_url, twitterUrl: v.twitter_url, websiteUrl: v.website_url,
     addressLine1: v.address_line1, addressLine2: v.address_line2, city: v.city, stateCode: v.state_code, postalCode: v.postal_code,
     permSameAsCurrent: v.perm_same_as_current, permAddressLine1: v.perm_address_line1, permAddressLine2: v.perm_address_line2,
     permCity: v.perm_city, permStateCode: v.perm_state_code, permPostalCode: v.perm_postal_code,
@@ -64,6 +65,9 @@ export async function PersonalTab(p: ProfileProps & { personal: Personal }) {
               { label: 'Phone number', value: (v.personal_phone as string) ?? employee.work_phone },
               { label: 'Work phone', value: employee.work_phone },
               { label: 'Alternate phone number', value: v.alternate_phone as string },
+              { label: 'LinkedIn', value: v.linkedin_url as string },
+              { label: 'X / Twitter', value: v.twitter_url as string },
+              { label: 'Website', value: v.website_url as string },
             ]} />}>
             <ContactInfoForm action={action} defaults={defaults} />
           </EditableSection>

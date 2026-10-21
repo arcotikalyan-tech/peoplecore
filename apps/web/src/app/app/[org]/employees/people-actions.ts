@@ -18,7 +18,7 @@ export async function saveDirectorySettingsAction(slug: string, _prev: ActionSta
   const { data, error } = await supabase.from('directory_settings').update({
     show_department: on(formData, 'department'), show_designation: on(formData, 'designation'), show_email: on(formData, 'email'),
     show_phone: on(formData, 'phone'), show_location: on(formData, 'location'),
-    show_birthday: on(formData, 'birthday'), show_marital_status: on(formData, 'marital'),
+    show_birthday: on(formData, 'birthday'), show_marital_status: on(formData, 'marital'), show_social: on(formData, 'social'),
     access: z.enum(['everyone', 'managers', 'hr']).catch('everyone').parse(formData.get('access')),
   }).eq('organization_id', ctx.org.id).select('organization_id');
   if (error) return { ok: false, message: toUserMessage(error) };

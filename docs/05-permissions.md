@@ -58,6 +58,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | letter.manage † | O | O | | | | | | |
 | insurance.manage † | O | O | | | | | | |
 | statutory.manage | O | O | | O | | | | |
+| vendor.manage | O | | | O | | | | |
 | timesheet.manage ¹¹ | O | O | | O | | | | |
 | peoplexp.manage ¹² | O | O | | | | | | |
 
@@ -81,7 +82,7 @@ Platform super-admins are **not** org members by default (tested). They manage t
 
 | Role | Can be granted or revoked by |
 |---|---|
-| Organization owner, HR administrator, Payroll / finance administrator, Auditor | `role.manage` only (owners) |
+| Organization owner, HR administrator, Payroll / finance administrator, Auditor, Vendor payout admin | `role.manage` only (owners) |
 | Employee, Reporting manager, Department head, Recruiter | `member.manage` (HR) or `role.manage` |
 
 - Each role stores its `assignment_permission`; custom roles default to owner-only.
@@ -92,7 +93,7 @@ Platform super-admins are **not** org members by default (tested). They manage t
 
 ## Two-step sign-in (enforced in the database)
 
-Organization owner, HR administrator, Payroll / finance administrator and Auditor roles, and platform-admin status, only take effect once the session has completed a second factor (TOTP, session `aal2`). With a password alone, a person keeps only their everyday roles (Employee, Manager, Department head, Recruiter). The app sends them to `/mfa` to set up or enter a code, but the database enforces the rule even for direct API calls.
+Organization owner, HR administrator, Payroll / finance administrator, Auditor and Vendor payout admin roles, and platform-admin status, only take effect once the session has completed a second factor (TOTP, session `aal2`). With a password alone, a person keeps only their everyday roles (Employee, Manager, Department head, Recruiter). The app sends them to `/mfa` to set up or enter a code, but the database enforces the rule even for direct API calls.
 
 **Since 2026-10-21 this is a setting (owner's decision).** Each organization's owner can make two-step optional for these roles in Settings › Controls (`org_controls.require_mfa`, changed only through `set_org_require_mfa`, which needs `role.manage` — so turning it off itself needs a two-step session while it is on). Platform admins can make it optional for platform admins in the platform console (`platform_settings.require_mfa_for_admins`, through `set_platform_require_mfa`, audited). Both default on. Anyone can turn two-step on for themselves under My preferences; a person with a verified authenticator is always asked for the code (enforced by the app, not the database).
 
@@ -101,3 +102,6 @@ Organization owner, HR administrator, Payroll / finance administrator and Audito
 - **Escalation:** each approval step escalates after a number of hours (72 by default, set per step by `org.manage` holders on Approval rules). A reporting-manager step then also goes to the manager's manager (or, without one, to the step's org-wide permission holders); permission steps remind their holders. Once per step.
 - `member_roles.valid_until` supports temporary role grants (time-boxed support access, cover for an absent HR admin), granted by those who could grant the role permanently.
 - A quarterly access-review job (Phase 5) lists sensitive grants per org for owner recertification.
+
+
+**Vendor payout admin** (2026-10-21): `org.read` and `vendor.manage` only. Owners give it to chosen HR administrators from Settings › Controls (Kredily's "Vendor payout for HR"). Vendor payments need a second person to approve (whoever records an invoice can't approve it).

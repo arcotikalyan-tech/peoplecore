@@ -69,6 +69,7 @@ export const PERMISSIONS = {
   'letter.manage': { module: 'core_hr', description: 'Generate and release employee letters; manage templates, signatories and letterhead', sensitive: true },
   'insurance.manage': { module: 'benefits', description: 'Manage the group health policy, coverage and insurer endorsements', sensitive: true },
   'statutory.manage': { module: 'payroll', description: 'Track statutory registers, returns and filings' },
+  'vendor.manage': { module: 'payroll', description: 'Manage vendors and pay them (TDS, approval, bank file)', sensitive: true },
   'timesheet.manage': { module: 'timesheet', description: 'Manage the timesheet workspace, approve any time logs and invoice clients' },
   'peoplexp.manage': { module: 'engagement', description: 'Manage PeopleXP: values, badges, rewards, approvals and culture analytics' },
   'ai.use': { module: 'ai', description: 'Use AI assistants' },
@@ -86,6 +87,7 @@ export const ROLE_KEYS = [
   'manager',
   'employee',
   'auditor',
+  'vendor_admin',
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
 
@@ -120,7 +122,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'grievance.read': 'org', 'ai.use': 'org', 'task.manage': 'org',
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
       'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org', 'expense.manage': 'org',
-      'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org', 'workflow.manage': 'org', 'separation.manage': 'org', 'letter.manage': 'org', 'insurance.manage': 'org', 'statutory.manage': 'org', 'timesheet.manage': 'org', 'peoplexp.manage': 'org',
+      'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org', 'workflow.manage': 'org', 'separation.manage': 'org', 'letter.manage': 'org', 'insurance.manage': 'org', 'statutory.manage': 'org', 'timesheet.manage': 'org', 'peoplexp.manage': 'org', 'vendor.manage': 'org',
     },
   },
   hr_admin: {
@@ -162,6 +164,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'compensation.read': 'org', 'compensation.update': 'org',
       'payroll.prepare': 'org', 'payroll.approve': 'org',
       'attendance.read': 'org', 'expense.approve': 'org', 'ai.use': 'org', 'leave.read': 'org', 'expense.manage': 'org', 'statutory.manage': 'org', 'timesheet.manage': 'org',
+      'vendor.manage': 'org',
     },
   },
   department_head: {
@@ -208,6 +211,13 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'org.read': 'org', 'audit.read': 'org', 'employee.read': 'org', 'employee.export': 'org',
       'compensation.read': 'org', 'recruitment.read': 'org', 'attendance.read': 'org', 'leave.read': 'org',
     },
+  },
+  vendor_admin: {
+    name: 'Vendor payout admin',
+    description: 'Adds vendors and contractors and pays them, with TDS and a bank file',
+    assignableWith: 'role.manage',
+    requiresMfa: true,
+    grants: { 'org.read': 'org', 'vendor.manage': 'org' },
   },
 };
 

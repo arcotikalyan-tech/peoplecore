@@ -11,11 +11,12 @@ import { setupChecks } from '@/server/setup';
 import { createClient } from '@/server/supabase';
 import {
   cancelClosureAction, createRoleAction, deleteRoleAction, grantSupportAction, requestClosureAction, revokeSupportAction, saveControlsAction, saveModulesAction,
-  setPayrollShortcutAction, setRequireMfaAction, saveNotificationsAction, setRolePermissionAction,
+  setPayrollShortcutAction, setRequireMfaAction, setVendorAccessAction, saveNotificationsAction, setRolePermissionAction,
 } from './actions';
 import { ButtonAction, ClosureForm, ControlsForm, RoleForm, ScopeCell, SupportForm, ToggleList } from './settings-client';
 import { saveDirectorySettingsAction } from '../employees/people-actions';
 import { DirectorySettingsForm } from '../employees/people-client';
+import { listMembers } from '@/server/members';
 import { directorySettings } from '@/server/people';
 
 export const metadata: Metadata = { title: 'Settings' };
@@ -228,6 +229,10 @@ async function ControlsTab({ slug, ctx, owner }: { slug: string; ctx: OrgContext
       .in('permission_key', ['payroll.approve', 'compensation.read']).in('roles.key', ['hr_admin', 'manager']),
     supabase.from('organizations').select('name, closes_on').eq('id', orgId).maybeSingle(),
   ]);
+  const [members, { data: keyedRoles }] = owner ? await Promise.all([listMembers(orgId), supabase.from('roles').select('id, key').eq('organization_id', orgId).in('key', ['hr_admin', 'vendor_admin'])])
+    : [[], { data: [] }];
+  const roleId = (key: string) => (keyedRoles ?? []).find((r) => r.key === key)?.id;
+  const hrMembers = members.filter((m) => m.status === 'active' && m.role_ids.includes(roleId('hr_admin') ?? ''));
   const has = (role: string, permission: string) => (grants.data ?? []).some((g) => g.permission_key === permission && (g.roles as unknown as { key: string }).key === role);
   const shortcut = (key: 'hr_payroll_lock' | 'manager_pay_view', on: boolean, title: string, note: string) => (
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line p-4 text-sm">
@@ -247,6 +252,24 @@ async function ControlsTab({ slug, ctx, owner }: { slug: string; ctx: OrgContext
             {shortcut('hr_payroll_lock', has('hr_admin', 'payroll.approve'), 'HR administrators can approve and lock payroll', 'Payroll staff prepare the run; with this on, HR can also be the second pair of eyes that approves and locks it.')}
             {shortcut('manager_pay_view', has('manager', 'compensation.read'), 'Reporting managers see their team’s salaries', 'Salaries are sensitive. Managers don’t need two-step sign-in by default, so turn this on only if your managers use it.')}
           </div>
+        </Panel>
+      )}
+      {owner && (
+        <Panel title="Vendor payout access for HR" meta="Owners and payroll administrators always have it. HR administrators you choose get the Vendor payout admin role.">
+          {hrMembers.length === 0 ? <p className="text-sm text-muted">No active HR administrators.</p> : (
+            <ul className="divide-y divide-line">
+              {hrMembers.map((m) => {
+                const on = m.role_ids.includes(roleId('vendor_admin') ?? '');
+                const who = m.employee_name ?? m.email;
+                return (
+                  <li key={m.member_id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+                    <span><span className="font-medium">{who}</span> <span className="text-xs text-muted">{m.email}</span> <Badge tone={on ? 'success' : 'neutral'}>{on ? 'Has access' : 'No access'}</Badge></span>
+                    <ButtonAction action={setVendorAccessAction.bind(null, slug, m.member_id, !on)} aria={`Vendor payout access for ${who}`} label={on ? 'Remove access' : 'Give access'} />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Panel>
       )}
       {owner && (

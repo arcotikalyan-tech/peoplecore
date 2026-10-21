@@ -220,7 +220,7 @@ async function PeopleTab({ ctx, slug, base, today, people, hr, manage, sp, stats
   };
   const cards: PersonCard[] = shown.map((p) => ({
     id: p.id, name: p.name, code: p.code, designation: p.designation, department: p.department, location: p.location, email: p.email, phone: p.phone,
-    tenureYears: p.tenureYears, status: p.status, href: hr ? `${base}/${p.id}` : null, birthday: p.birthday, maritalStatus: p.maritalStatus,
+    tenureYears: p.tenureYears, status: p.status, href: hr ? `${base}/${p.id}` : null, birthday: p.birthday, maritalStatus: p.maritalStatus, social: p.social,
     badge: p.status === 'on_notice' ? 'Notice' : p.probationEnd && !p.confirmedOn && CURRENT.has(p.status) ? (p.probationEnd <= today ? 'Confirm' : 'Probation') : null,
   }));
   const opt = (pairs: Array<[string | null, string | null]>) => [...new Map(pairs.filter(([id, n]) => id && n) as Array<[string, string]>).entries()].map(([value, label]) => ({ value, label }))

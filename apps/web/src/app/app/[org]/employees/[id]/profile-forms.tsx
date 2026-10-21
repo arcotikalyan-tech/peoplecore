@@ -87,7 +87,11 @@ export function ContactInfoForm({ action, defaults }: { action: Action; defaults
         <TextField idPrefix="ci" name="personalEmail" label="Personal email" type="email" defaultValue={val('personalEmail')} error={e.personalEmail} />
         <TextField idPrefix="ci" name="personalPhone" label="Personal phone" type="tel" defaultValue={val('personalPhone')} error={e.personalPhone} />
         <TextField idPrefix="ci" name="alternatePhone" label="Alternate phone" type="tel" defaultValue={val('alternatePhone')} error={e.alternatePhone} />
+        <TextField idPrefix="ci" name="linkedinUrl" label="LinkedIn" type="url" placeholder="https://www.linkedin.com/in/…" defaultValue={val('linkedinUrl')} error={e.linkedinUrl} />
+        <TextField idPrefix="ci" name="twitterUrl" label="X / Twitter" type="url" placeholder="https://x.com/…" defaultValue={val('twitterUrl')} error={e.twitterUrl} />
+        <TextField idPrefix="ci" name="websiteUrl" label="Website" type="url" placeholder="https://…" defaultValue={val('websiteUrl')} error={e.websiteUrl} />
       </div>
+      <p className="text-xs text-muted">Social links show in the directory only if your organization switches social info on.</p>
       <SaveRow label="Save contact info" />
     </form>
   );

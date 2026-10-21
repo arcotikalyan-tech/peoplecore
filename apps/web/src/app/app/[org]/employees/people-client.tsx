@@ -13,7 +13,7 @@ type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 export interface Card {
   id: string; name: string; code: string | null; designation: string | null; department: string | null; location: string | null;
   email: string | null; phone: string | null; tenureYears: number; status: string; href: string | null; badge?: string | null;
-  birthday?: string | null; maritalStatus?: string | null;
+  birthday?: string | null; maritalStatus?: string | null; social?: Array<[string, string]>;
 }
 export interface Option { value: string; label: string }
 
@@ -68,6 +68,9 @@ export function PeopleBoard({ cards, view, bulk, options, today }: {
                 <p className="truncate font-semibold">{c.href ? <Link href={c.href} className="hover:text-primary">{c.name}</Link> : c.name}</p>
                 <p className="truncate text-xs text-muted">{[c.designation, c.department].filter(Boolean).join(' · ') || '—'}</p>
                 <p className="mt-1 truncate text-xs text-muted">{[c.location, `${c.tenureYears.toFixed(1)}y`, c.birthday && `🎂 ${c.birthday}`, c.maritalStatus && c.maritalStatus[0]!.toUpperCase() + c.maritalStatus.slice(1)].filter(Boolean).join(' • ')}</p>
+                {c.social && c.social.length > 0 && (
+                  <p className="mt-1 flex justify-center gap-2 text-xs">{c.social.map(([label, url]) => <a key={label} href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{label}</a>)}</p>
+                )}
                 <div className="mt-3">{actions(c)}</div>
               </div>
             </li>
@@ -105,7 +108,7 @@ export function PeopleBoard({ cards, view, bulk, options, today }: {
 
 export interface DirectorySettings {
   access: string; show_department: boolean; show_designation: boolean; show_email: boolean; show_phone: boolean; show_location: boolean;
-  show_birthday: boolean; show_marital_status: boolean;
+  show_birthday: boolean; show_marital_status: boolean; show_social: boolean;
 }
 
 /** Kredily's privacy switches for the directory: who can browse it, and which fields colleagues see. */
@@ -119,6 +122,7 @@ export function DirectorySettingsForm({ action, s, canEdit }: { action: Action; 
     ['location', 'Work location', 'Show office / location in the directory', s.show_location],
     ['birthday', 'Birthday', 'Show day and month of birth on colleagues’ cards, never the year', s.show_birthday],
     ['marital', 'Marital status', 'Show marital status to colleagues', s.show_marital_status],
+    ['social', 'Social info', 'Show the LinkedIn, X and website links people add to their profile', s.show_social],
   ];
   return (
     <form action={formAction} aria-label="Privacy & Visibility" className="space-y-1">

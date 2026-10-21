@@ -71,6 +71,7 @@ const PERSONAL_COLUMNS = {
   bloodGroup: 'blood_group', maritalStatus: 'marital_status', isDisabled: 'is_disabled', alternatePhone: 'alternate_phone',
   permSameAsCurrent: 'perm_same_as_current', permAddressLine1: 'perm_address_line1', permAddressLine2: 'perm_address_line2',
   permCity: 'perm_city', permStateCode: 'perm_state_code', permPostalCode: 'perm_postal_code',
+  linkedinUrl: 'linkedin_url', twitterUrl: 'twitter_url', websiteUrl: 'website_url',
 } as const;
 const PERSONAL_FLAGS = new Set(['isDisabled', 'permSameAsCurrent']);
 
