@@ -10,9 +10,13 @@ import { disabledModules, orgControls } from '@/server/modules';
 import { setupChecks } from '@/server/setup';
 import { createClient } from '@/server/supabase';
 import {
-  createRoleAction, deleteRoleAction, grantSupportAction, revokeSupportAction, saveControlsAction, saveModulesAction, setRequireMfaAction, saveNotificationsAction, setRolePermissionAction,
+  cancelClosureAction, createRoleAction, deleteRoleAction, grantSupportAction, requestClosureAction, revokeSupportAction, saveControlsAction, saveModulesAction,
+  setPayrollShortcutAction, setRequireMfaAction, saveNotificationsAction, setRolePermissionAction,
 } from './actions';
-import { ButtonAction, ControlsForm, RoleForm, ScopeCell, SupportForm, ToggleList } from './settings-client';
+import { ButtonAction, ClosureForm, ControlsForm, RoleForm, ScopeCell, SupportForm, ToggleList } from './settings-client';
+import { saveDirectorySettingsAction } from '../employees/people-actions';
+import { DirectorySettingsForm } from '../employees/people-client';
+import { directorySettings } from '@/server/people';
 
 export const metadata: Metadata = { title: 'Settings' };
 
@@ -50,7 +54,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
           })()}
         </Panel>
       )}
-      {tab === 'controls' && <ControlsTab slug={slug} orgId={ctx.org.id} owner={ctx.can('role.manage', 'org')} />}
+      {tab === 'controls' && <ControlsTab slug={slug} ctx={ctx} owner={ctx.can('role.manage', 'org')} />}
       {tab === 'notifications' && (
         <Panel title="Notifications" meta="Switch a category off to stop those notifications for everyone in the organization.">
           {await (async () => {
@@ -215,11 +219,36 @@ async function Support({ ctx, slug }: { ctx: OrgContext; slug: string }) {
   );
 }
 
-async function ControlsTab({ slug, orgId, owner }: { slug: string; orgId: string; owner: boolean }) {
-  const c = await orgControls(orgId);
+async function ControlsTab({ slug, ctx, owner }: { slug: string; ctx: OrgContext; owner: boolean }) {
+  const orgId = ctx.org.id;
+  const supabase = await createClient();
+  const [c, dir, grants, { data: org }] = await Promise.all([
+    orgControls(orgId), directorySettings(orgId),
+    supabase.from('role_permissions').select('permission_key, scope, roles!inner(key)').eq('organization_id', orgId)
+      .in('permission_key', ['payroll.approve', 'compensation.read']).in('roles.key', ['hr_admin', 'manager']),
+    supabase.from('organizations').select('name, closes_on').eq('id', orgId).maybeSingle(),
+  ]);
+  const has = (role: string, permission: string) => (grants.data ?? []).some((g) => g.permission_key === permission && (g.roles as unknown as { key: string }).key === role);
+  const shortcut = (key: 'hr_payroll_lock' | 'manager_pay_view', on: boolean, title: string, note: string) => (
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line p-4 text-sm">
+      <p className="max-w-xl"><span className="block font-medium">{title} <Badge tone={on ? 'success' : 'neutral'}>{on ? 'On' : 'Off'}</Badge></span><span className="block text-xs text-muted">{note}</span></p>
+      <ButtonAction action={setPayrollShortcutAction.bind(null, slug, key, !on)} aria={title} label={on ? 'Switch off' : 'Switch on'} />
+    </div>
+  );
   return (
     <div className="space-y-5">
       <Panel title="Controls"><ControlsForm action={saveControlsAction.bind(null, slug)} c={c} /></Panel>
+      <Panel title="Directory" meta="Who can browse the directory and what colleagues see. The same settings are under People › Settings.">
+        <DirectorySettingsForm action={saveDirectorySettingsAction.bind(null, slug)} s={dir} canEdit={ctx.can('org.manage', 'org')} />
+      </Panel>
+      {owner && (
+        <Panel title="Payroll access" meta="Shortcuts for the role matrix under Roles & permissions.">
+          <div className="space-y-3">
+            {shortcut('hr_payroll_lock', has('hr_admin', 'payroll.approve'), 'HR administrators can approve and lock payroll', 'Payroll staff prepare the run; with this on, HR can also be the second pair of eyes that approves and locks it.')}
+            {shortcut('manager_pay_view', has('manager', 'compensation.read'), 'Reporting managers see their team’s salaries', 'Salaries are sensitive. Managers don’t need two-step sign-in by default, so turn this on only if your managers use it.')}
+          </div>
+        </Panel>
+      )}
       {owner && (
         <Panel title="Two-step sign-in">
           <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
@@ -231,6 +260,21 @@ async function ControlsTab({ slug, orgId, owner }: { slug: string; orgId: string
             </p>
             <ButtonAction action={setRequireMfaAction.bind(null, slug, !c.require_mfa)} aria="Two-step sign-in requirement" label={c.require_mfa ? 'Make optional' : 'Require it'} variant={c.require_mfa ? 'danger' : 'secondary'} />
           </div>
+        </Panel>
+      )}
+      {owner && !ctx.org.is_demo && org && (
+        <Panel title="Close the company" meta="Everyone loses access on the closing day. You can cancel until then.">
+          {org.closes_on ? (
+            <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
+              <p role="status"><b>{ctx.org.name}</b> closes on <b>{org.closes_on}</b>. Payroll and statutory records are kept for their legal retention period, then erased.</p>
+              <ButtonAction action={cancelClosureAction.bind(null, slug)} aria="Cancel closing the company" label="Cancel closing" />
+            </div>
+          ) : (
+            <div className="space-y-3 text-sm">
+              <p className="max-w-2xl text-muted">Closing stops all access for everyone 30 days from today. Payroll, tax and statutory records are kept for the period the law requires and then erased; ask support if you need them sooner.</p>
+              <ClosureForm action={requestClosureAction.bind(null, slug)} name={org.name} />
+            </div>
+          )}
         </Panel>
       )}
     </div>

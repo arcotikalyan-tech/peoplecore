@@ -95,7 +95,7 @@ test('the owner approves and locks; the payout is marked paid; bank advice and j
   expect(run.approved_by).not.toBe(run.prepared_by);
 
   await open(page, `/app/demo/payroll?tab=payout&month=${MONTH}`);
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: /Bank advice/ }).click()]);
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('group', { name: 'Bank advice' }).getByRole('link', { name: '⬇ NEFT' }).click()]);
   const csv = (await readFile(await download.path())).toString('utf8');
   expect(csv).toContain(`${devCode},Dev Nair,`);
   expect(csv).toContain(',54000.00,');

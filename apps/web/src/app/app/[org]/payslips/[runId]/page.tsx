@@ -7,7 +7,10 @@ import { Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surfac
 import { getOrgContext } from '@/server/context';
 import { getEmployee, getMyEmployee } from '@/server/employees';
 import { getPayslip } from '@/server/payroll';
-import { inr, monthLabel } from '../../payroll/format';
+import { payrollSettings } from '@/server/payroll-suite';
+import { inr as inrWhole, monthLabel } from '../../payroll/format';
+
+const inrPaise = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const metadata: Metadata = { title: 'Payslip' };
 
@@ -19,8 +22,9 @@ export default async function PayslipPage({ params, searchParams }: { params: Pr
   const ctx = await getOrgContext(slug);
   const employeeId = requested ?? (await getMyEmployee(ctx.org.id, ctx.user.id))?.id;
   if (!employeeId) notFound();
-  const [slip, employee] = await Promise.all([getPayslip(ctx.org.id, runId, employeeId), getEmployee(ctx.org.id, employeeId)]);
+  const [slip, employee, settings] = await Promise.all([getPayslip(ctx.org.id, runId, employeeId), getEmployee(ctx.org.id, employeeId), payrollSettings(ctx.org.id)]);
   if (!slip) notFound();
+  const inr = settings?.payslip_show_paise ?? true ? inrPaise : inrWhole;
   const group = (kind: string) => slip.lines.filter((l) => l.kind === kind);
   const section = (title: string, kind: string) => (
     <Card>

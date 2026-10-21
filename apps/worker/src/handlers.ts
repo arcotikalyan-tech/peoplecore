@@ -17,6 +17,11 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       if (error) throw new Error(error.message);
       log('core_hr.daily', data as Record<string, unknown>);
     },
+    'org.closures': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_close_organizations');
+      if (error) throw new Error(error.message);
+      if ((data as { closed?: number } | null)?.closed) log('org.closures', data as Record<string, unknown>);
+    },
     'leave.accrual': async (_job, log) => {
       const { data, error } = await db.rpc('worker_leave_accrual');
       if (error) throw new Error(error.message);

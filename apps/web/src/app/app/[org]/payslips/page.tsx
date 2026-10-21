@@ -88,7 +88,12 @@ export default async function MyPayPage({ params, searchParams }: { params: Prom
       )}
 
       {tab === 'tax' && await (async () => {
-        const view = ['summary', 'computation', 'declarations', 'projection'].includes(sp.view ?? '') ? sp.view! : 'summary';
+        // Payroll › Settings decides whether employees see their tax projection and computation.
+        const showProjection = settings?.show_tax_projection ?? true;
+        const showComputation = settings?.show_tax_computation ?? true;
+        const taxTabs = [{ key: 'summary', label: 'Tax Summary' }, ...(showComputation ? [{ key: 'computation', label: 'Tax Computation' }] : []),
+          { key: 'declarations', label: 'Declarations' }, ...(showProjection ? [{ key: 'projection', label: 'Tax Projection Sheet' }] : [])];
+        const view = taxTabs.some((t) => t.key === sp.view) ? sp.view! : 'summary';
         // Engine projection for the year from the current salary, locked YTD figures and the declaration.
         const end = `${today.slice(0, 7)}-01`;
         const [{ data: rec }, { data: sets }] = await Promise.all([
@@ -125,12 +130,12 @@ export default async function MyPayPage({ params, searchParams }: { params: Prom
         };
         return (
           <div className="space-y-4">
-            <SubTabs base={base} label="Tax center" current={view} extra={{ tab: 'tax' }} tabs={[{ key: 'summary', label: 'Tax Summary' }, { key: 'computation', label: 'Tax Computation' }, { key: 'declarations', label: 'Declarations' }, { key: 'projection', label: 'Tax Projection Sheet' }]} />
+            <SubTabs base={base} label="Tax center" current={view} extra={{ tab: 'tax' }} tabs={taxTabs} />
             {view === 'summary' && (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Figure label="Regime" value={declaration.regime === 'old' ? 'Old regime' : 'New regime'} tone="primary" note={decl ? `Declaration ${decl.status}` : 'Not declared'} />
-                <Figure label="Projected taxable income" value={projection?.tax ? lakhs(projection.tax.projectedAnnualTaxable) : '—'} note={`FY ${currentFy}`} />
-                <Figure label="Tax for the year" value={projection?.tax ? inr.format(projection.tax.annualTax) : '—'} tone="warning" note="With rebate, relief and 4% cess" />
+                {showProjection && <Figure label="Projected taxable income" value={projection?.tax ? lakhs(projection.tax.projectedAnnualTaxable) : '—'} note={`FY ${currentFy}`} />}
+                {showProjection && <Figure label="Tax for the year" value={projection?.tax ? inr.format(projection.tax.annualTax) : '—'} tone="warning" note="With rebate, relief and 4% cess" />}
                 <Figure label="TDS paid so far" value={inr.format(paidTds)} tone="success" note={`About ${inr.format(tdsThisMonth)} a month from now`} />
               </div>
             )}

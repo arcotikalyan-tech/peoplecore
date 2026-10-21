@@ -36,7 +36,7 @@ export function ToggleList({ action, label, name, items, submit }: {
   );
 }
 
-export function ControlsForm({ action, c }: { action: Action; c: { block_self_edit: boolean; salary_history_visible: boolean; birthdays_visible: boolean } }) {
+export function ControlsForm({ action, c }: { action: Action; c: { block_self_edit: boolean; salary_history_visible: boolean; birthdays_visible: boolean; notify_data_changes: boolean } }) {
   const [state, formAction] = useActionState(action, initialActionState);
   const row = (name: string, on: boolean, title: string, note: string) => (
     <label className="flex items-start gap-3 rounded-xl border border-line p-4 text-sm">
@@ -50,7 +50,23 @@ export function ControlsForm({ action, c }: { action: Action; c: { block_self_ed
       {row('blockSelfEdit', c.block_self_edit, 'Nobody edits their own HR record', 'HR and managers can’t change their own employee record or pay. Owners are exempt.')}
       {row('salaryHistory', c.salary_history_visible, 'Employees see their salary revision history', 'Shown under My Pay › Salary structure.')}
       {row('birthdays', c.birthdays_visible, 'Show upcoming birthdays on the dashboard', 'Only names and days, never the year.')}
+      {row('notifyChanges', c.notify_data_changes, 'Tell admins when company data changes', 'Owners and HR get a notification when someone edits the company profile, an address or the salary bank account.')}
       <SubmitButton>Save controls</SubmitButton>
+    </form>
+  );
+}
+
+/** Owners: close the company after typing its name. */
+export function ClosureForm({ action, name }: { action: Action; name: string }) {
+  const [state, formAction] = useActionState(action, initialActionState);
+  return (
+    <form action={formAction} aria-label="Close the company" className="space-y-3">
+      <FormMessage state={state} />
+      <label className="block text-sm"><span className="mb-1 block font-medium">Type <b>{name}</b> to confirm</span>
+        <input name="confirmName" required autoComplete="off" aria-label="Company name to confirm" aria-invalid={Boolean(state.fieldErrors?.confirmName)}
+          className="h-10 w-full max-w-md rounded-md border border-line-strong bg-surface px-3 text-sm" /></label>
+      {state.fieldErrors?.confirmName && <p className="text-xs text-danger">{state.fieldErrors.confirmName}</p>}
+      <SubmitButton variant="danger">Close the company in 30 days</SubmitButton>
     </form>
   );
 }

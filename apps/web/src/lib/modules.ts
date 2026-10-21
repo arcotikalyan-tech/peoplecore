@@ -40,4 +40,5 @@ export const NOTIFICATION_CATEGORIES = [
   ['letter', 'Letters', 'Letters released and requested'],
   ['separation', 'Exits', 'Resignations and clearance'],
   ['report', 'Reports', 'Scheduled report reminders'],
+  ['company', 'Company', 'Company profile changes and closing'],
 ] as const;

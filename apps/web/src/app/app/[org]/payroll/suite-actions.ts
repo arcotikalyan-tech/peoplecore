@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { structureBreakup, type StructureLine } from '@peoplecore/payroll';
+import { parseCsv } from '@peoplecore/shared';
 import { z } from 'zod';
 import { formValues, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
@@ -292,9 +293,19 @@ export async function saveSettingsAction(slug: string, _prev: ActionState, formD
     const p = z.object({
       payDay: z.preprocess((v) => (v === '' || v === 'last' ? null : v), z.coerce.number().int().min(1).max(31).nullable()),
       lopFromAbsence: yes, payslipTemplate: z.enum(['modern', 'classic', 'compact']), payslipShowYtd: yes,
+      inputCycleStart: z.coerce.number().int().min(1).max(28).default(1),
+      joinerCutoff: z.preprocess((v) => (v === '' || v === 'none' ? null : v), z.coerce.number().int().min(1).max(31).nullable()),
+      payDaysBasis: z.enum(['calendar', 'working', 'fixed_30']).default('calendar'), holidaysPaid: yes,
+      overtimeMultiplier: z.preprocess((v) => (v === '' || v === 'none' ? null : v), z.coerce.number().min(1).max(3).nullable()), overtimeInEsi: yes,
+      payslipShowPaise: yes, showTaxProjection: yes, showTaxComputation: yes,
     }).safeParse(Object.fromEntries(formData));
     if (!p.success) return invalid(p.error, formData);
-    patch = { pay_day: p.data.payDay, lop_from_absence: p.data.lopFromAbsence, payslip_template: p.data.payslipTemplate, payslip_show_ytd: p.data.payslipShowYtd };
+    patch = {
+      pay_day: p.data.payDay, lop_from_absence: p.data.lopFromAbsence, payslip_template: p.data.payslipTemplate, payslip_show_ytd: p.data.payslipShowYtd,
+      input_cycle_start_day: p.data.inputCycleStart, joiner_cutoff_day: p.data.joinerCutoff, pay_days_basis: p.data.payDaysBasis, holidays_paid: p.data.holidaysPaid,
+      overtime_multiplier: p.data.overtimeMultiplier, overtime_in_esi: p.data.overtimeInEsi, payslip_show_paise: p.data.payslipShowPaise,
+      show_tax_projection: p.data.showTaxProjection, show_tax_computation: p.data.showTaxComputation,
+    };
   } else if (section === 'statutory') {
     const p = z.object({ pf: yes, esi: yes, pt: yes, defaultRegime: z.enum(['old', 'new']) }).safeParse(Object.fromEntries(formData));
     if (!p.success) return invalid(p.error, formData);
@@ -311,7 +322,7 @@ export async function saveSettingsAction(slug: string, _prev: ActionState, formD
       bankName: z.string().trim().max(120).optional(),
       accountNumber: z.preprocess((v) => (v === '' ? undefined : v), z.string().regex(/^[0-9]{6,18}$/, '6–18 digits').optional()),
       ifsc: z.preprocess((v) => (v === '' ? undefined : String(v).toUpperCase()), z.string().regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, 'Like HDFC0001234').optional()),
-      fileFormat: z.enum(['generic', 'hdfc', 'icici', 'sbi']),
+      fileFormat: z.enum(['generic', 'hdfc', 'icici', 'sbi', 'axis', 'bob']),
     }).safeParse(Object.fromEntries(formData));
     if (!p.success) return invalid(p.error, formData);
     const { error } = await supabase.from('payroll_bank_settings').update({
@@ -340,11 +351,37 @@ export async function payoutAction(slug: string, _prev: ActionState, formData: F
   if (!p.success) return invalid(p.error, formData);
   if (ids.length === 0) return { ok: false, message: 'Select at least one employee.' };
   const supabase = await createClient();
+  if (formData.get('op') === 'mode') {
+    const mode = z.enum(['bank_transfer', 'cheque', 'cash']).safeParse(formData.get('mode'));
+    if (!mode.success) return { ok: false, message: 'Choose a payment mode.' };
+    const { data, error } = await supabase.rpc('set_payout_mode', { p_run: p.data.runId, p_employees: ids, p_mode: mode.data });
+    if (error) return failed(error, formData);
+    return done(slug, `Payment mode set for ${data} payout${data === 1 ? '' : 's'}.`);
+  }
   const { data, error } = await supabase.rpc('update_payouts', {
     p_run: p.data.runId, p_employees: ids, p_status: p.data.status, p_reference: p.data.reference || undefined, p_paid_on: p.data.paidOn, p_note: p.data.note || undefined,
   });
   if (error) return failed(error, formData);
   return done(slug, `Updated ${data} payout${data === 1 ? '' : 's'}.`);
+}
+
+/** Bulk status update from the bank's report: employee code, status, UTR, paid on (YYYY-MM-DD), note. */
+export async function payoutImportAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await getOrgContext(slug);
+  const runId = z.uuid().safeParse(formData.get('runId'));
+  const file = formData.get('file');
+  if (!runId.success || !(file instanceof File) || file.size === 0) return { ok: false, message: 'Choose a CSV file.' };
+  if (file.size > 512 * 1024) return { ok: false, message: 'The file is too large (512 KB at most).' };
+  const rows = parseCsv(await file.text())
+    .filter((r, i) => r.some((c) => c.trim()) && !(i === 0 && /code/i.test(r[0] ?? '')))
+    .map(([code = '', status = '', reference = '', paidOn = '', note = '']) => ({ code: code.trim(), status: status.trim().toLowerCase().replace(/\s+/g, '_'), reference, paid_on: paidOn.trim(), note }));
+  if (rows.length === 0) return { ok: false, message: 'The file has no rows. Use: employee code, status, UTR, paid on, note.' };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('import_payout_statuses', { p_run: runId.data, p_rows: rows });
+  if (error) return failed(error);
+  const r = data as { updated: number; skipped: string[] };
+  const skipped = r.skipped.length ? ` Skipped ${r.skipped.length}: ${r.skipped.slice(0, 6).join(', ')}${r.skipped.length > 6 ? '…' : ''} (unknown code, already paid, or missing date/reason).` : '';
+  return done(slug, `Updated ${r.updated} payout${r.updated === 1 ? '' : 's'}.${skipped}`);
 }
 
 // ─── Declarations ──────────────────────────────────────────────────────────

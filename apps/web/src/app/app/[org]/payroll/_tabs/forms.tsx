@@ -238,19 +238,49 @@ const check = (name: string, label: string, on: boolean, hint?: string) => (
   </label>
 );
 
-export function PaySettingsForm({ action, s }: { action: Action; s: { pay_day: number | null; lop_from_absence: boolean; payslip_template: string; payslip_show_ytd: boolean } }) {
+export interface PaySettings {
+  pay_day: number | null; lop_from_absence: boolean; payslip_template: string; payslip_show_ytd: boolean;
+  pay_days_basis: string; holidays_paid: boolean; input_cycle_start_day: number; joiner_cutoff_day: number | null;
+  overtime_multiplier: number | null; overtime_in_esi: boolean; payslip_show_paise: boolean; show_tax_projection: boolean; show_tax_computation: boolean;
+}
+
+/** Kredily's Pay Settings: cycle, payout date, joiner cut-off, pay days, overtime, payslip decimals and employee access. */
+export function PaySettingsForm({ action, s }: { action: Action; s: PaySettings }) {
+  const days = Array.from({ length: 28 }, (_, i) => ({ value: String(i + 1), label: i === 0 ? 'Day 1 (the calendar month)' : `Day ${i + 1} of the previous month` }));
   return (
-    <ActionForm action={action} label="Pay settings" submit="Save" size="sm" hidden={{ section: 'pay' }} className="space-y-4">
+    <ActionForm action={action} label="Pay settings" submit="Save" size="sm" hidden={{ section: 'pay' }} className="space-y-5">
       {(v, e) => (
         <>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <SelectField idPrefix="pay" name="payDay" label="Payout date" defaultValue={v.payDay ?? (s.pay_day ? String(s.pay_day) : 'last')} error={e.payDay}
-              options={[{ value: 'last', label: 'Last day of the month' }, ...Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: `Day ${i + 1}` }))]} />
+          <fieldset className="space-y-3"><legend className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">Cycle</legend>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SelectField idPrefix="pay" name="payDay" label="Payout date" defaultValue={v.payDay ?? (s.pay_day ? String(s.pay_day) : 'last')} error={e.payDay}
+                options={[{ value: 'last', label: 'Last day of the month' }, ...Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: `Day ${i + 1}` }))]} />
+              <SelectField idPrefix="pay" name="inputCycleStart" label="Attendance & leave cycle starts" defaultValue={v.inputCycleStart ?? String(s.input_cycle_start_day)} error={e.inputCycleStart}
+                options={days} />
+              <SelectField idPrefix="pay" name="joinerCutoff" label="Joiner cut-off" defaultValue={v.joinerCutoff ?? (s.joiner_cutoff_day ? String(s.joiner_cutoff_day) : 'none')} error={e.joinerCutoff}
+                options={[{ value: 'none', label: 'None: everyone joins this month’s run' }, ...Array.from({ length: 30 }, (_, i) => ({ value: String(i + 1), label: `After day ${i + 1}: paid next month` }))]} />
+            </div>
+            <p className="text-xs text-muted">With a later cycle start, loss of pay and overtime are counted from that day of the previous month to the day before it this month.</p>
+          </fieldset>
+          <fieldset className="space-y-3"><legend className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">Pay days</legend>
+            <SelectField idPrefix="pay" name="payDaysBasis" label="A month’s pay is spread over" defaultValue={v.payDaysBasis ?? s.pay_days_basis}
+              options={[{ value: 'calendar', label: 'Calendar days (weekly offs and holidays are paid)' }, { value: 'working', label: 'Working days only (weekly offs aren’t pay days)' }, { value: 'fixed_30', label: 'A fixed 30 days, whatever the month' }]} />
+            {check('holidaysPaid', 'With working days: count declared holidays as paid days', s.holidays_paid)}
+            {check('lopFromAbsence', 'Treat absences (no punches, no leave) as loss of pay', s.lop_from_absence, 'Off: only unpaid leave and penalties reduce pay.')}
+          </fieldset>
+          <fieldset className="space-y-3"><legend className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">Overtime</legend>
+            <SelectField idPrefix="pay" name="overtimeMultiplier" label="Pay approved overtime" defaultValue={v.overtimeMultiplier ?? (s.overtime_multiplier ? String(Number(s.overtime_multiplier)) : 'none')}
+              options={[{ value: 'none', label: 'Don’t pay overtime through payroll' }, { value: '1', label: 'At the hourly rate (1×)' }, { value: '1.5', label: 'At 1.5× the hourly rate' }, { value: '2', label: 'At twice the hourly rate (Factories Act)' }]} />
+            {check('overtimeInEsi', 'Include overtime in ESI and professional-tax wages', s.overtime_in_esi, 'The hourly rate is the month’s earnings ÷ pay days ÷ 8 hours.')}
+          </fieldset>
+          <fieldset className="space-y-3"><legend className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">Payslips and employee access</legend>
             <SelectField idPrefix="pay" name="payslipTemplate" label="Payslip format" defaultValue={v.payslipTemplate ?? s.payslip_template}
               options={[{ value: 'modern', label: 'Modern' }, { value: 'classic', label: 'Classic' }, { value: 'compact', label: 'Compact' }]} />
-          </div>
-          {check('lopFromAbsence', 'Treat absences (no punches, no leave) as loss of pay', s.lop_from_absence, 'Off: only unpaid leave and penalties reduce pay.')}
-          {check('payslipShowYtd', 'Show year-to-date totals on payslips', s.payslip_show_ytd)}
+            {check('payslipShowYtd', 'Show year-to-date totals on payslips', s.payslip_show_ytd)}
+            {check('payslipShowPaise', 'Show paise on payslips', s.payslip_show_paise, 'Amounts are calculated in whole rupees; this shows them as ₹12,345.00.')}
+            {check('showTaxProjection', 'Employees see their tax projection', s.show_tax_projection)}
+            {check('showTaxComputation', 'Employees see their tax computation', s.show_tax_computation)}
+          </fieldset>
         </>
       )}
     </ActionForm>
@@ -301,7 +331,7 @@ export function BankSettingsForm({ action, s }: { action: Action; s: { bank_name
           <TextField idPrefix="bk" name="accountNumber" label="Debit account number" inputMode="numeric" defaultValue={v.accountNumber ?? s?.account_number ?? ''} error={e.accountNumber} />
           <TextField idPrefix="bk" name="ifsc" label="IFSC" defaultValue={v.ifsc ?? s?.ifsc ?? ''} error={e.ifsc} />
           <SelectField idPrefix="bk" name="fileFormat" label="Bank advice format" defaultValue={v.fileFormat ?? s?.file_format ?? 'generic'}
-            options={[{ value: 'generic', label: 'Generic NEFT (CSV)' }, { value: 'hdfc', label: 'HDFC bulk upload' }, { value: 'icici', label: 'ICICI bulk upload' }, { value: 'sbi', label: 'SBI CMP' }]} />
+            options={[{ value: 'generic', label: 'Generic NEFT (CSV)' }, { value: 'hdfc', label: 'HDFC bulk upload' }, { value: 'icici', label: 'ICICI bulk upload' }, { value: 'axis', label: 'Axis bulk upload' }, { value: 'bob', label: 'Bank of Baroda bulk upload' }, { value: 'sbi', label: 'SBI CMP' }]} />
         </div>
       )}
     </ActionForm>
@@ -311,8 +341,9 @@ export function BankSettingsForm({ action, s }: { action: Action; s: { bank_name
 /** Mark selected payouts paid / failed / on hold / pending, with the UTR reference and date. */
 export function PayoutBoard({ action, runId, rows, today, canEdit }: {
   action: Action; runId: string; today: string; canEdit: boolean;
-  rows: Array<{ employeeId: string; code: string; name: string; bank: string; amount: number; status: string; reference: string | null; paidOn: string | null; note: string | null }>;
+  rows: Array<{ employeeId: string; code: string; name: string; bank: string; amount: number; status: string; reference: string | null; paidOn: string | null; note: string | null; mode: string }>;
 }) {
+  const modes: Record<string, string> = { bank_transfer: 'Bank transfer', cheque: 'Cheque', cash: 'Cash' };
   const [state, formAction] = useActionState(action, initialActionState);
   const [picked, setPicked] = useState<string[]>([]);
   const tone: Record<string, string> = { paid: 'bg-success-soft text-success', pending: 'bg-warning-soft text-warning', failed: 'bg-danger-soft text-danger', on_hold: 'bg-subtle text-muted' };
@@ -326,7 +357,7 @@ export function PayoutBoard({ action, runId, rows, today, canEdit }: {
           <thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted">
             {canEdit && <th className="w-8 py-2"><input type="checkbox" aria-label="Select all" className="accent-primary" checked={picked.length === rows.length && rows.length > 0}
               onChange={(e) => setPicked(e.target.checked ? rows.map((r) => r.employeeId) : [])} /></th>}
-            <th className="py-2 font-semibold">Employee</th><th className="font-semibold">Bank</th><th className="text-right font-semibold">Net pay</th><th className="pl-4 font-semibold">Status</th><th className="font-semibold">Reference</th><th className="font-semibold">Paid on</th>
+            <th className="py-2 font-semibold">Employee</th><th className="font-semibold">Mode</th><th className="font-semibold">Bank</th><th className="text-right font-semibold">Net pay</th><th className="pl-4 font-semibold">Status</th><th className="font-semibold">Reference</th><th className="font-semibold">Paid on</th>
           </tr></thead>
           <tbody className="divide-y divide-line">
             {rows.map((r) => (
@@ -334,6 +365,7 @@ export function PayoutBoard({ action, runId, rows, today, canEdit }: {
                 {canEdit && <td className="py-2"><input type="checkbox" name="employeeId" value={r.employeeId} aria-label={`Select ${r.name}`} className="accent-primary"
                   checked={picked.includes(r.employeeId)} onChange={(e) => setPicked(e.target.checked ? [...picked, r.employeeId] : picked.filter((x) => x !== r.employeeId))} /></td>}
                 <td className="py-2"><span className="font-medium">{r.name}</span> <span className="text-xs text-muted">{r.code}</span></td>
+                <td className="text-muted">{modes[r.mode] ?? r.mode}</td>
                 <td className="text-muted">{r.bank}</td>
                 <td className="text-right tabular-nums font-medium">{inr.format(r.amount)}</td>
                 <td className="pl-4"><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${tone[r.status] ?? ''}`}>{r.status.replace('_', ' ')}</span>{r.note && <span className="ml-2 text-xs text-muted">{r.note}</span>}</td>
@@ -352,9 +384,27 @@ export function PayoutBoard({ action, runId, rows, today, canEdit }: {
           <TextField idPrefix="po" name="paidOn" label="Paid on" type="date" defaultValue={today} />
           <TextField idPrefix="po" name="note" label="Note" placeholder="Needed for a hold" />
           <SubmitButton size="sm">Update {picked.length || ''} selected</SubmitButton>
+          <span className="mx-1 h-8 w-px bg-line" aria-hidden="true" />
+          <SelectField idPrefix="po" name="mode" label="Payment mode" defaultValue="bank_transfer"
+            options={[{ value: 'bank_transfer', label: 'Bank transfer' }, { value: 'cheque', label: 'Cheque' }, { value: 'cash', label: 'Cash' }]} />
+          <SubmitButton size="sm" variant="secondary" name="op" value="mode">Set mode</SubmitButton>
         </div>
       )}
     </form>
+  );
+}
+
+/** Bulk status update from a CSV (employee code, status, UTR, paid on, note). */
+export function PayoutImportForm({ action, runId }: { action: Action; runId: string }) {
+  return (
+    <ActionForm action={action} label="Import payout statuses" submit="⬆ Import statuses" size="sm" variant="secondary" hidden={{ runId }} className="flex flex-wrap items-end gap-2">
+      {() => (
+        <label className="text-xs text-muted">
+          <span className="mb-1 block">CSV: employee code, status (paid / failed / on hold / pending), UTR, paid on (YYYY-MM-DD), note</span>
+          <input type="file" name="file" accept=".csv,text/csv" aria-label="Payout statuses CSV" className="text-sm" />
+        </label>
+      )}
+    </ActionForm>
   );
 }
 

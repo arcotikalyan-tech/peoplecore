@@ -130,6 +130,17 @@ describe('payslips', () => {
     expect(slip.net).toBe(15000 - 600 - 68 - 500);
   });
 
+  it('H: overtime marked as an ESI wage counts in ESI and PT wages; without the mark it is kept out like arrears', () => {
+    // 18,000 a month, full month; overtime 2,000.
+    const base = { components: salary(10000, 4000, 4000), daysInPeriod: 30, payableDays: 30 };
+    const inEsi = computePayslip(employee({ ...base, adjustments: [{ code: 'OT', name: 'Overtime', kind: 'earning', amount: 2000, taxable: true, esiWage: true }] }), rules, { month: '2026-11' });
+    const outEsi = computePayslip(employee({ ...base, adjustments: [{ code: 'OT', name: 'Overtime', kind: 'earning', amount: 2000, taxable: true }] }), rules, { month: '2026-11' });
+    expect(inEsi.gross).toBe(20000);
+    expect(amount(inEsi, 'ESI')).toBe(150);   // 0.75% of 20,000
+    expect(amount(outEsi, 'ESI')).toBe(135);  // 0.75% of 18,000
+    expect(amount(inEsi, 'PF')).toBe(amount(outEsi, 'PF')); // overtime is never a PF wage
+  });
+
   it('is deterministic: the same input gives the same payslip, and the input fingerprint ignores key order', () => {
     const input = employee({ ytd: { taxableIncome: 300000, tds: 1000 } });
     expect(computePayslip(input, rules, { month: '2026-10' })).toEqual(computePayslip(structuredClone(input), rules, { month: '2026-10' }));

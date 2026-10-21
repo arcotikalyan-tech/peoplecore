@@ -5,7 +5,7 @@ import type { RuleSet } from './rules.ts';
  * rule set always produce the same payslip. Every amount is rounded to whole rupees, line by line, so totals
  * are exact sums of the lines.
  */
-export const ENGINE_VERSION = 'payroll-engine/1.2.0'; // 1.1: one-off adjustments; 1.2: old regime and declarations, wage-based pay, TDS override
+export const ENGINE_VERSION = 'payroll-engine/1.3.0'; // 1.1: one-off adjustments; 1.2: old regime and declarations, wage-based pay, TDS override; 1.3: adjustments that are ESI/PT wages (overtime)
 
 export interface ComponentInput {
   code: string;
@@ -29,8 +29,9 @@ export interface EmployeeInput {
   /**
    * One-off corrections for earlier months (arrears) or recoveries, paid in full this month: never prorated
    * for loss of pay. Taxable arrears count towards this month's taxable pay but aren't projected forward.
+   * `esiWage`: wages for this month (overtime), so part of ESI and professional-tax wages; arrears are not.
    */
-  adjustments?: Array<{ code: string; name: string; kind: 'earning' | 'deduction'; amount: number; taxable: boolean }>;
+  adjustments?: Array<{ code: string; name: string; kind: 'earning' | 'deduction'; amount: number; taxable: boolean; esiWage?: boolean }>;
   /**
    * Wage-based pay: each earning's `monthly` is a rate per day or per hour, paid for `units` worked (no proration
    * for loss of pay). Monthly (the default) prorates contracted amounts by payable days.
@@ -185,7 +186,7 @@ export function computePayslip(input: EmployeeInput, rules: RuleSet, period: Per
     const amount = rupees(a.amount);
     lines.push({ code: a.code, name: a.name, kind: 'earning', amount });
     gross += amount;
-    nonWageEarnings += amount; // arrears belong to earlier months' wages: no ESI or PT on them here
+    if (!a.esiWage) nonWageEarnings += amount; // arrears belong to earlier months' wages: no ESI or PT on them here
     if (a.taxable) oneOffTaxable += amount;
   }
 

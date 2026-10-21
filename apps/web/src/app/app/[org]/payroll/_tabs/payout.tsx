@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { buttonClass } from '@/components/ui/button';
 import { formatDate } from '@/lib/format';
 import { bankSettings, payouts, payrollPeople, payrollSettings, readiness } from '@/server/payroll-suite';
-import { payoutAction } from '../suite-actions';
-import { PayoutBoard } from './forms';
+import { payoutAction, payoutImportAction } from '../suite-actions';
+import { PayoutBoard, PayoutImportForm } from './forms';
 import { Card, Figure, lakhs, qs, type TabProps } from './shared';
 
 export async function PayoutTab({ ctx, slug, base, month, today, run, approves }: TabProps) {
@@ -34,7 +34,7 @@ export async function PayoutTab({ ctx, slug, base, month, today, run, approves }
   const list = people.filter((p) => rows.has(p.id)).map((p) => {
     const po = rows.get(p.id)!;
     const r = ready.get(p.id);
-    return { employeeId: p.id, code: p.code, name: p.name, bank: r?.bank ? `${r.bank} ••${r.last4}` : 'No bank details', amount: Number(po.amount), status: po.status, reference: po.reference, paidOn: po.paid_on, note: po.note };
+    return { employeeId: p.id, code: p.code, name: p.name, bank: r?.bank ? `${r.bank} ••${r.last4}` : 'No bank details', amount: Number(po.amount), status: po.status, reference: po.reference, paidOn: po.paid_on, note: po.note, mode: po.mode };
   });
   const sum = (s: string) => list.filter((x) => x.status === s).reduce((a, x) => a + x.amount, 0);
   const count = (s: string) => list.filter((x) => x.status === s).length;
@@ -50,10 +50,16 @@ export async function PayoutTab({ ctx, slug, base, month, today, run, approves }
         <Figure label="Failed" value={lakhs(sum('failed'))} tone={count('failed') ? 'danger' : 'fg'} note={`${count('failed')} employees`} />
       </div>
       <Card title="Payouts" action={approves && ctx.can('employee.bank.read', 'org') && (
-        <a href={`/app/${slug}/payroll/${run.id}/bank-advice`} className={buttonClass('primary', 'sm')} download>⬇ Bank advice ({bank?.file_format?.toUpperCase() ?? 'GENERIC'})</a>
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Bank advice">
+          <span className="text-xs text-muted">Bank advice:</span>
+          {[['icici', 'ICICI'], ['axis', 'AXIS'], ['hdfc', 'HDFC'], ['bob', 'BOB'], ['sbi', 'SBI'], ['generic', 'NEFT']].map(([f, l]) => (
+            <a key={f} href={`/app/${slug}/payroll/${run.id}/bank-advice?format=${f}`} className={buttonClass(bank?.file_format === f ? 'primary' : 'secondary', 'sm')} download>⬇ {l}</a>
+          ))}
+        </div>
       )}>
-        <p className="mb-3 text-xs text-muted">The bank advice includes pending and failed payouts only. Upload it to your bank, then mark the payouts paid with the UTR reference. Held salaries stay out until released.</p>
+        <p className="mb-3 text-xs text-muted">The bank advice includes pending and failed bank transfers only; cheque and cash payouts stay out. Upload it to your bank, then mark the payouts paid with the UTR reference, or import the bank’s report. Held salaries stay out until released.</p>
         <PayoutBoard action={payoutAction.bind(null, slug)} runId={run.id} rows={list} today={today} canEdit={approves} />
+        {approves && <div className="mt-4 border-t border-line pt-4"><PayoutImportForm action={payoutImportAction.bind(null, slug)} runId={run.id} /></div>}
       </Card>
     </div>
   );

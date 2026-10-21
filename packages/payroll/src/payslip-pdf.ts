@@ -18,6 +18,8 @@ export interface PayslipDocument {
   earnings: PayslipLine[];
   deductions: PayslipLine[];
   totals: { gross: number; deductions: number; net: number };
+  /** Two decimals (₹1,234.00, the default) or whole rupees (Payroll › Settings › Show paise). */
+  showPaise?: boolean;
 }
 
 const PAGE = { width: 595, height: 842, left: 56, right: 539, top: 786, bottom: 72 };
@@ -25,6 +27,7 @@ const amountFormat = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, 
 
 /** Amounts in Indian grouping with two decimals, e.g. 1,23,456.00. */
 export const payslipAmount = (n: number) => amountFormat.format(n);
+const wholeFormat = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 
 export const payslipMonth = (iso: string) =>
   new Date(`${iso.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -49,6 +52,7 @@ function pdfText(s: string) {
 class Pages {
   pages: string[][] = [[]];
   y = PAGE.top;
+  constructor(private readonly format: (n: number) => string = payslipAmount) {}
   private get ops() { return this.pages[this.pages.length - 1]!; }
 
   /** Moves down by `dy`, starting a new page when there's no room. */
@@ -63,7 +67,7 @@ class Pages {
     this.ops.push(`BT /${bold ? 'F2' : 'F1'} ${size} Tf ${x.toFixed(2)} ${this.y.toFixed(2)} Td (${pdfText(s)}) Tj ET`);
   }
   amount(n: number, size = 10, bold = false) {
-    const s = payslipAmount(n);
+    const s = this.format(n);
     this.text(PAGE.right - numberWidth(s, size), s, size, bold);
   }
   rule(weight = 0.5) {
@@ -72,7 +76,7 @@ class Pages {
 }
 
 export function payslipPdf(doc: PayslipDocument): Uint8Array {
-  const p = new Pages();
+  const p = new Pages(doc.showPaise === false ? (n) => wholeFormat.format(n) : payslipAmount);
   p.text(PAGE.left, doc.organization, 16, true);
   p.down(22);
   p.text(PAGE.left, `Payslip for ${payslipMonth(doc.periodMonth)}`, 12);

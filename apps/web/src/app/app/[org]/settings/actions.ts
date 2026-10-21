@@ -31,9 +31,53 @@ export async function saveControlsAction(slug: string, _prev: ActionState, formD
   const supabase = await createClient();
   const { error } = await supabase.from('org_controls').update({
     block_self_edit: formData.get('blockSelfEdit') === 'on', salary_history_visible: formData.get('salaryHistory') === 'on', birthdays_visible: formData.get('birthdays') === 'on',
+    notify_data_changes: formData.get('notifyChanges') === 'on',
   }).eq('organization_id', ctx.org.id);
   if (error) return { ok: false, message: toUserMessage(error) };
   return done(slug, 'Controls saved.');
+}
+
+/**
+ * Kredily's payroll access switches, as shortcuts over the role matrix (owners only): HR administrators approve and
+ * lock payroll runs (payroll.approve), reporting managers see their team's salaries (compensation.read, team).
+ */
+const PAYROLL_SHORTCUTS = {
+  hr_payroll_lock: { role: 'hr_admin', permission: 'payroll.approve', scope: 'org' },
+  manager_pay_view: { role: 'manager', permission: 'compensation.read', scope: 'team' },
+} as const;
+
+export async function setPayrollShortcutAction(slug: string, key: 'hr_payroll_lock' | 'manager_pay_view', on: boolean): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('role.manage', 'org')) return DENIED;
+  const s = PAYROLL_SHORTCUTS[key];
+  const supabase = await createClient();
+  const { data: role } = await supabase.from('roles').select('id').eq('organization_id', ctx.org.id).eq('key', s.role).maybeSingle();
+  if (!role) return { ok: false, message: 'That role no longer exists.' };
+  const { error } = on
+    ? await supabase.from('role_permissions').upsert({ organization_id: ctx.org.id, role_id: role.id, permission_key: s.permission, scope: s.scope })
+    : await supabase.from('role_permissions').delete().eq('role_id', role.id).eq('permission_key', s.permission);
+  if (error) return { ok: false, message: toUserMessage(error) };
+  return done(slug, on ? 'Switched on.' : 'Switched off.');
+}
+
+/** Owners: close the company 30 days from today (typing its name), or cancel that. */
+export async function requestClosureAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('role.manage', 'org')) return DENIED;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('request_org_closure', { p_org: ctx.org.id, p_confirm_name: String(formData.get('confirmName') ?? '') });
+  if (error) return { ok: false, message: toUserMessage(error), fieldErrors: error.code === '22023' ? { confirmName: error.message } : undefined };
+  return done(slug, `The company will close on ${data}. You can cancel until then.`);
+}
+
+export async function cancelClosureAction(slug: string, _prev: ActionState): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('role.manage', 'org')) return DENIED;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('cancel_org_closure', { p_org: ctx.org.id });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  await flash('Closing the company is cancelled.');
+  return done(slug, 'Closing the company is cancelled.');
 }
 
 /** Owners only: whether owner, HR, payroll and auditor roles need two-step sign-in in this organization. */

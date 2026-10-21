@@ -11,14 +11,14 @@ Priority: **P1** affects payroll correctness or everyday admin control; **P2** c
 
 | Area | Gap | Status |
 |---|---|---|
-| Settings › Controls | Directory: on for everyone / managers only; show or hide email, mobile, social, work location, department, designation in the directory; date of birth and marital status on profiles | ☐ |
-| Settings › Controls | Payroll lock for HR; payroll view for managers; vendor payout access for chosen HR staff; notify admins when company data changes | ☐ |
-| Settings › Controls | Delete company (owner only, typed confirmation, grace period) | ☐ |
-| Payroll › Settings › Pay settings | Attendance & leave input cycle separate from the pay cycle; payout day; joiner cut-off day | ☐ |
-| Payroll › Settings › Pay settings | Show paise on payslips; overtime in the ESI wage; Dearness Allowance; weekly offs and holidays as paid days; fixed 30 pay days | ☐ |
-| Payroll › Settings › Access | Show tax projection / tax computation to employees | ☐ |
-| Payroll › Settings › Declaration window | Monthly / yearly window, proof deadline | ☐ |
-| Payroll › Payout | Cheque payment mode; Axis and Bank of Baroda bank advice; bulk status update with UTR | ☐ |
+| Settings › Controls | Directory: on for everyone / managers only; show or hide email, mobile, social, work location, department, designation in the directory; date of birth and marital status on profiles | ☑ built (directory access everyone / managers / HR; birthday as day and month; marital status). Social links: no employee social fields yet |
+| Settings › Controls | Payroll lock for HR; payroll view for managers; vendor payout access for chosen HR staff; notify admins when company data changes | ☑ built (HR approve/lock and managers' team salaries as role-matrix shortcuts; company-change notices). Vendor payout: needs a vendor payouts module — later |
+| Settings › Controls | Delete company (owner only, typed confirmation, grace period) | ☑ built as closing: 30 days to cancel, then archived; statutory records kept for their retention period |
+| Payroll › Settings › Pay settings | Attendance & leave input cycle separate from the pay cycle; payout day; joiner cut-off day | ☑ built (joiners after the cut-off are paid next month as joining arrears) |
+| Payroll › Settings › Pay settings | Show paise on payslips; overtime in the ESI wage; Dearness Allowance; weekly offs and holidays as paid days; fixed 30 pay days | ☑ built (approved overtime now paid at 1×/1.5×/2×). DA: add a DA component (PF wage) under Components; no separate switch |
+| Payroll › Settings › Access | Show tax projection / tax computation to employees | ☑ built |
+| Payroll › Settings › Declaration window | Monthly / yearly window, proof deadline | ☑ already built (2026-10-19) |
+| Payroll › Payout | Cheque payment mode; Axis and Bank of Baroda bank advice; bulk status update with UTR | ☑ built (bank / cheque / cash; per-bank download buttons; CSV import of status and UTR per employee) |
 
 ## Batch 2 — P1/P2: attendance rules and automation
 

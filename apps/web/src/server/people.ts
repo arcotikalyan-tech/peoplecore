@@ -14,6 +14,8 @@ export interface Person {
   location: string | null; locationId: string | null; email: string | null; phone: string | null;
   joined: string | null; exited: string | null; probationEnd: string | null; confirmedOn: string | null;
   managerId: string | null; userId: string | null; employmentType: string | null; tenureYears: number;
+  /** From the colleague directory, when the organization shows them: day and month only. */
+  birthday?: string | null; maritalStatus?: string | null;
 }
 
 const years = (from: string | null, today: string) => from ? Math.max(0, (Date.parse(today) - Date.parse(from)) / (365.25 * 864e5)) : 0;
@@ -52,13 +54,14 @@ export async function directory(orgId: string, q?: string): Promise<Person[]> {
     id: r.id, code: null, name: r.name, status: 'active', department: r.department, departmentId: null, designation: r.designation, designationId: null,
     location: r.location, locationId: null, email: r.work_email, phone: r.work_phone, joined: null, exited: null, probationEnd: null, confirmedOn: null,
     managerId: r.manager_id, userId: null, employmentType: null, tenureYears: Number(r.tenure_years),
+    birthday: r.birthday, maritalStatus: r.marital_status,
   }));
 }
 
 export async function directorySettings(orgId: string) {
   const supabase = await createClient();
   const { data } = await supabase.from('directory_settings').select('*').eq('organization_id', orgId).maybeSingle();
-  return data ?? { show_department: true, show_designation: true, show_email: false, show_phone: false, show_location: true };
+  return data ?? { access: 'everyone', show_department: true, show_designation: true, show_email: false, show_phone: false, show_location: true, show_birthday: false, show_marital_status: false };
 }
 
 /** Sign-in status of linked accounts (member.manage holders see members; others get nulls). */

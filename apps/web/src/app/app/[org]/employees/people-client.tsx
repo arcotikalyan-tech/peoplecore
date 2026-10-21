@@ -13,6 +13,7 @@ type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 export interface Card {
   id: string; name: string; code: string | null; designation: string | null; department: string | null; location: string | null;
   email: string | null; phone: string | null; tenureYears: number; status: string; href: string | null; badge?: string | null;
+  birthday?: string | null; maritalStatus?: string | null;
 }
 export interface Option { value: string; label: string }
 
@@ -66,7 +67,7 @@ export function PeopleBoard({ cards, view, bulk, options, today }: {
               <div className="px-4 pb-4 pt-2">
                 <p className="truncate font-semibold">{c.href ? <Link href={c.href} className="hover:text-primary">{c.name}</Link> : c.name}</p>
                 <p className="truncate text-xs text-muted">{[c.designation, c.department].filter(Boolean).join(' · ') || '—'}</p>
-                <p className="mt-1 truncate text-xs text-muted">{[c.location, `${c.tenureYears.toFixed(1)}y`].filter(Boolean).join(' • ')}</p>
+                <p className="mt-1 truncate text-xs text-muted">{[c.location, `${c.tenureYears.toFixed(1)}y`, c.birthday && `🎂 ${c.birthday}`, c.maritalStatus && c.maritalStatus[0]!.toUpperCase() + c.maritalStatus.slice(1)].filter(Boolean).join(' • ')}</p>
                 <div className="mt-3">{actions(c)}</div>
               </div>
             </li>
@@ -102,8 +103,13 @@ export function PeopleBoard({ cards, view, bulk, options, today }: {
   );
 }
 
-/** Kredily's privacy switches for the directory. */
-export function DirectorySettingsForm({ action, s, canEdit }: { action: Action; canEdit: boolean; s: { show_department: boolean; show_designation: boolean; show_email: boolean; show_phone: boolean; show_location: boolean } }) {
+export interface DirectorySettings {
+  access: string; show_department: boolean; show_designation: boolean; show_email: boolean; show_phone: boolean; show_location: boolean;
+  show_birthday: boolean; show_marital_status: boolean;
+}
+
+/** Kredily's privacy switches for the directory: who can browse it, and which fields colleagues see. */
+export function DirectorySettingsForm({ action, s, canEdit }: { action: Action; canEdit: boolean; s: DirectorySettings }) {
   const [state, formAction] = useActionState(action, initialActionState);
   const rows: Array<[string, string, string, boolean]> = [
     ['department', 'Department', 'Show department in the directory', s.show_department],
@@ -111,11 +117,19 @@ export function DirectorySettingsForm({ action, s, canEdit }: { action: Action; 
     ['email', 'Work email', 'Show official email to employees', s.show_email],
     ['phone', 'Phone number', 'Show phone number to employees', s.show_phone],
     ['location', 'Work location', 'Show office / location in the directory', s.show_location],
+    ['birthday', 'Birthday', 'Show day and month of birth on colleagues’ cards, never the year', s.show_birthday],
+    ['marital', 'Marital status', 'Show marital status to colleagues', s.show_marital_status],
   ];
   return (
     <form action={formAction} aria-label="Privacy & Visibility" className="space-y-1">
       <FormMessage state={state} />
       <fieldset disabled={!canEdit} className="divide-y divide-line">
+        <label className="flex items-center justify-between gap-4 py-3">
+          <span><span className="block text-sm font-medium">Who can browse the directory</span><span className="block text-xs text-muted">Others see only their own card. HR always sees everyone.</span></span>
+          <select name="access" defaultValue={s.access} aria-label="Who can browse the directory" className="h-9 rounded-md border border-line-strong bg-surface px-2 text-sm">
+            <option value="everyone">Everyone</option><option value="managers">Managers and HR</option><option value="hr">HR only</option>
+          </select>
+        </label>
         {rows.map(([name, label, hint, value]) => (
           <label key={name} className="flex cursor-pointer items-center justify-between gap-4 py-3">
             <span><span className="block text-sm font-medium">{label}</span><span className="block text-xs text-muted">{hint}</span></span>

@@ -1816,6 +1816,9 @@ export type Database = {
           show_location: boolean;
           updated_by: string | null;
           updated_at: string;
+          access: string;
+          show_birthday: boolean;
+          show_marital_status: boolean;
         };
         Insert: {
           organization_id: string;
@@ -1826,6 +1829,9 @@ export type Database = {
           show_location?: boolean;
           updated_by?: string | null;
           updated_at?: string;
+          access?: string;
+          show_birthday?: boolean;
+          show_marital_status?: boolean;
         };
         Update: {
           organization_id?: string;
@@ -1836,6 +1842,9 @@ export type Database = {
           show_location?: boolean;
           updated_by?: string | null;
           updated_at?: string;
+          access?: string;
+          show_birthday?: boolean;
+          show_marital_status?: boolean;
         };
         Relationships: [];
       };
@@ -4748,6 +4757,7 @@ export type Database = {
           birthdays_visible: boolean;
           updated_at: string;
           require_mfa: boolean;
+          notify_data_changes: boolean;
         };
         Insert: {
           organization_id: string;
@@ -4756,6 +4766,7 @@ export type Database = {
           birthdays_visible?: boolean;
           updated_at?: string;
           require_mfa?: boolean;
+          notify_data_changes?: boolean;
         };
         Update: {
           organization_id?: string;
@@ -4764,6 +4775,7 @@ export type Database = {
           birthdays_visible?: boolean;
           updated_at?: string;
           require_mfa?: boolean;
+          notify_data_changes?: boolean;
         };
         Relationships: [];
       };
@@ -4853,6 +4865,9 @@ export type Database = {
           is_demo: boolean;
           created_at: string;
           updated_at: string;
+          closure_requested_at: string | null;
+          closure_requested_by: string | null;
+          closes_on: string | null;
         };
         Insert: {
           id?: string;
@@ -4864,6 +4879,9 @@ export type Database = {
           is_demo?: boolean;
           created_at?: string;
           updated_at?: string;
+          closure_requested_at?: string | null;
+          closure_requested_by?: string | null;
+          closes_on?: string | null;
         };
         Update: {
           id?: string;
@@ -4875,6 +4893,9 @@ export type Database = {
           is_demo?: boolean;
           created_at?: string;
           updated_at?: string;
+          closure_requested_at?: string | null;
+          closure_requested_by?: string | null;
+          closes_on?: string | null;
         };
         Relationships: [];
       };
@@ -5073,6 +5094,7 @@ export type Database = {
           note: string | null;
           updated_by: string | null;
           updated_at: string;
+          mode: Database['public']['Enums']['payout_mode'];
         };
         Insert: {
           organization_id: string;
@@ -5085,6 +5107,7 @@ export type Database = {
           note?: string | null;
           updated_by?: string | null;
           updated_at?: string;
+          mode?: Database['public']['Enums']['payout_mode'];
         };
         Update: {
           organization_id?: string;
@@ -5097,6 +5120,7 @@ export type Database = {
           note?: string | null;
           updated_by?: string | null;
           updated_at?: string;
+          mode?: Database['public']['Enums']['payout_mode'];
         };
         Relationships: [];
       };
@@ -5238,6 +5262,15 @@ export type Database = {
           payslip_show_ytd: boolean;
           updated_by: string | null;
           updated_at: string;
+          pay_days_basis: string;
+          holidays_paid: boolean;
+          input_cycle_start_day: number;
+          joiner_cutoff_day: number | null;
+          overtime_multiplier: number | null;
+          overtime_in_esi: boolean;
+          payslip_show_paise: boolean;
+          show_tax_projection: boolean;
+          show_tax_computation: boolean;
         };
         Insert: {
           organization_id: string;
@@ -5256,6 +5289,15 @@ export type Database = {
           payslip_show_ytd?: boolean;
           updated_by?: string | null;
           updated_at?: string;
+          pay_days_basis?: string;
+          holidays_paid?: boolean;
+          input_cycle_start_day?: number;
+          joiner_cutoff_day?: number | null;
+          overtime_multiplier?: number | null;
+          overtime_in_esi?: boolean;
+          payslip_show_paise?: boolean;
+          show_tax_projection?: boolean;
+          show_tax_computation?: boolean;
         };
         Update: {
           organization_id?: string;
@@ -5274,6 +5316,15 @@ export type Database = {
           payslip_show_ytd?: boolean;
           updated_by?: string | null;
           updated_at?: string;
+          pay_days_basis?: string;
+          holidays_paid?: boolean;
+          input_cycle_start_day?: number;
+          joiner_cutoff_day?: number | null;
+          overtime_multiplier?: number | null;
+          overtime_in_esi?: boolean;
+          payslip_show_paise?: boolean;
+          show_tax_projection?: boolean;
+          show_tax_computation?: boolean;
         };
         Relationships: [];
       };
@@ -8279,6 +8330,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      cancel_org_closure: {
+        Args: {
+          p_org: string;
+        };
+        Returns: undefined;
+      };
       cancel_payroll_run: {
         Args: {
           p_run: string;
@@ -8685,6 +8742,13 @@ export type Database = {
         };
         Returns: Json;
       };
+      import_payout_statuses: {
+        Args: {
+          p_run: string;
+          p_rows: Json;
+        };
+        Returns: Json;
+      };
       initiate_separation: {
         Args: {
           p_employee: string;
@@ -8924,7 +8988,7 @@ export type Database = {
           p_query?: string;
           p_limit?: number;
         };
-        Returns: { id: string; name: string; department: string; designation: string; location: string; work_email: string; work_phone: string; tenure_years: number; manager_id: string }[];
+        Returns: { id: string; name: string; department: string; designation: string; location: string; work_email: string; work_phone: string; tenure_years: number; manager_id: string; birthday: string; marital_status: string }[];
       };
       people_profile_gaps: {
         Args: {
@@ -9178,6 +9242,13 @@ export type Database = {
           p_org: string;
           p_template: string;
           p_reason?: string;
+        };
+        Returns: string;
+      };
+      request_org_closure: {
+        Args: {
+          p_org: string;
+          p_confirm_name: string;
         };
         Returns: string;
       };
@@ -9501,6 +9572,14 @@ export type Database = {
           p_status: Database['public']['Enums']['org_status'];
         };
         Returns: undefined;
+      };
+      set_payout_mode: {
+        Args: {
+          p_run: string;
+          p_employees: string[];
+          p_mode: Database['public']['Enums']['payout_mode'];
+        };
+        Returns: number;
       };
       set_platform_require_mfa: {
         Args: {
@@ -9856,6 +9935,10 @@ export type Database = {
         };
         Returns: { id: number; organization_id: string; kind: string; payload: Json; attempts: number }[];
       };
+      worker_close_organizations: {
+        Args: never;
+        Returns: Json;
+      };
       worker_complete_job: {
         Args: {
           p_id: number;
@@ -9974,6 +10057,7 @@ export type Database = {
       onboarding_status: 'in_progress' | 'completed' | 'cancelled';
       org_status: 'active' | 'suspended' | 'archived';
       pay_basis: 'monthly' | 'daily' | 'hourly';
+      payout_mode: 'bank_transfer' | 'cheque' | 'cash';
       payout_status: 'pending' | 'paid' | 'failed' | 'on_hold';
       payroll_status: 'draft' | 'computed' | 'approved' | 'locked' | 'cancelled';
       permission_scope: 'org' | 'team' | 'self';

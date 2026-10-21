@@ -18,9 +18,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ org:
   if (!slip || !employee) return new NextResponse('Not found', { status: 404 });
 
   const supabase = await createClient();
-  const [department, designation] = await Promise.all([
+  const [department, designation, settings] = await Promise.all([
     employee.department_id ? supabase.from('departments').select('name').eq('organization_id', ctx.org.id).eq('id', employee.department_id).maybeSingle() : null,
     employee.designation_id ? supabase.from('designations').select('title').eq('organization_id', ctx.org.id).eq('id', employee.designation_id).maybeSingle() : null,
+    supabase.from('payroll_settings').select('payslip_show_paise').eq('organization_id', ctx.org.id).maybeSingle(),
   ]);
   const lines = (kind: string) => slip.lines.filter((l) => l.kind === kind).map((l) => ({ name: l.name, amount: Number(l.amount) }));
   const pdf = payslipPdf({
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ org:
     earnings: lines('earning'),
     deductions: lines('deduction'),
     totals: { gross: Number(slip.gross), deductions: Number(slip.deductions), net: Number(slip.net) },
+    showPaise: settings.data?.payslip_show_paise ?? true,
   });
   return new NextResponse(Buffer.from(pdf), {
     headers: {

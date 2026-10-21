@@ -9,7 +9,7 @@ import { createClient } from '@/server/supabase';
  * pending and failed payouts; payroll_bank_advice checks payroll.approve + bank access and audits the download.
  * The bank layouts follow each bank's common bulk-upload columns; confirm with the bank before the first upload.
  */
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ org: string; runId: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ org: string; runId: string }> }) {
   const { org, runId } = await params;
   if (!z.uuid().safeParse(runId).success) return new NextResponse('Not found', { status: 404 });
   const ctx = await getOrgContext(org);
@@ -20,7 +20,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ org
     supabase.from('payroll_runs').select('period_month').eq('id', runId).maybeSingle(),
   ]);
   if (error) return new NextResponse(error.code === '22023' ? error.message : 'Not found', { status: error.code === '22023' ? 409 : 404 });
-  const format = bank?.file_format ?? 'generic';
+  // ?format= picks another bank's layout for this download (Payout › Bank advice buttons); else the saved one.
+  const asked = req.nextUrl.searchParams.get('format');
+  const format = asked && ['generic', 'hdfc', 'icici', 'sbi', 'axis', 'bob'].includes(asked) ? asked : bank?.file_format ?? 'generic';
   const day = new Date().toISOString().slice(0, 10).split('-').reverse().join('/');
   const amount = (n: number | string) => Number(n).toFixed(2);
   const sameBank = (ifsc: string | null) => Boolean(ifsc && bank?.ifsc && ifsc.slice(0, 4) === bank.ifsc.slice(0, 4));
@@ -32,6 +34,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ org
   } else if (format === 'icici') {
     csv = toCsv(['Debit Ac No', 'Beneficiary Ac No', 'Beneficiary Name', 'Amt', 'Pay Mod', 'Date', 'IFSC', 'Remarks'],
       data.map((r) => [bank?.account_number ?? '', r.account_number ?? 'MISSING', r.account_holder ?? r.employee_name, amount(r.amount), sameBank(r.ifsc) ? 'I' : 'N', day, r.ifsc ?? 'MISSING', narration]));
+  } else if (format === 'axis') {
+    csv = toCsv(['Payment Method Name', 'Payment Amount', 'Activation Date', 'Beneficiary Name', 'Beneficiary Account No', 'Debit Account No', 'Beneficiary IFSC', 'Remarks'],
+      data.map((r) => [sameBank(r.ifsc) ? 'FT' : 'NEFT', amount(r.amount), day, r.account_holder ?? r.employee_name, r.account_number ?? 'MISSING', bank?.account_number ?? '', r.ifsc ?? 'MISSING', narration]));
+  } else if (format === 'bob') {
+    csv = toCsv(['Beneficiary Name', 'Beneficiary Account No', 'IFSC Code', 'Amount', 'Transaction Type', 'Debit Account No', 'Narration'],
+      data.map((r) => [r.account_holder ?? r.employee_name, r.account_number ?? 'MISSING', r.ifsc ?? 'MISSING', amount(r.amount), sameBank(r.ifsc) ? 'TRF' : 'NEFT', bank?.account_number ?? '', narration]));
   } else if (format === 'sbi') {
     csv = toCsv(['Beneficiary Name', 'Beneficiary Account Number', 'IFSC', 'Amount', 'Remarks'],
       data.map((r) => [r.account_holder ?? r.employee_name, r.account_number ?? 'MISSING', r.ifsc ?? 'MISSING', amount(r.amount), narration]));
