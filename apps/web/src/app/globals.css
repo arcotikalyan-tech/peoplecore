@@ -32,10 +32,12 @@
   --ai-soft: #251f45;
   --ring: #f26b55;
   --sidebar: #0c0c0f;
+  --brand: #4c94ff;
   color-scheme: dark;
 }
 
 [data-theme='light'] {
+  --brand: #0a66f0;
   --canvas: #f7f6fb;
   --surface: #ffffff;
   --subtle: #f3f2f8;
@@ -90,6 +92,7 @@
   --color-ai-soft: var(--ai-soft);
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar);
+  --color-brand: var(--brand);
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -323,4 +326,50 @@ body::after {
 .scroll-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
+}
+
+/* ─── Public website (home, sign in, sign up) ─────────────────────────────────────────────────────────────── */
+@keyframes pc-float { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(3%, -4%, 0) scale(1.08); } }
+@keyframes pc-drift { 0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); } 50% { transform: translate3d(-4%, 3%, 0) rotate(8deg); } }
+@keyframes pc-rise { from { opacity: 0; transform: translate3d(0, 24px, 0); } to { opacity: 1; transform: none; } }
+@keyframes pc-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes pc-shine { from { background-position: 0% 50%; } to { background-position: 200% 50%; } }
+@keyframes pc-pulse-ring { 0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
+@keyframes pc-bar { from { transform: scaleY(0.15); } to { transform: scaleY(1); } }
+@keyframes pc-tick { 0%, 30% { transform: translateY(0); } 33.3%, 63.3% { transform: translateY(-100%); } 66.6%, 96.6% { transform: translateY(-200%); } 100% { transform: translateY(-300%); } }
+
+.pc-blob { position: absolute; border-radius: 9999px; filter: blur(70px); opacity: 0.55; pointer-events: none; }
+.pc-blob-a { background: var(--primary); animation: pc-float 14s ease-in-out infinite; }
+.pc-blob-b { background: var(--accent); animation: pc-drift 18s ease-in-out infinite; }
+.pc-blob-c { background: var(--info); animation: pc-float 22s ease-in-out infinite reverse; opacity: 0.3; }
+.pc-grid-bg {
+  background-image: linear-gradient(to right, color-mix(in oklab, var(--line) 70%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--line) 70%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 0%, black 30%, transparent 75%);
+}
+.pc-gradient-text {
+  background: linear-gradient(90deg, var(--primary), var(--accent), var(--info), var(--primary));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: pc-shine 8s linear infinite;
+}
+.pc-floaty { animation: pc-float 9s ease-in-out infinite; }
+.pc-floaty-alt { animation: pc-drift 11s ease-in-out infinite; }
+.pc-rise { animation: pc-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.pc-reveal { opacity: 0; transform: translate3d(0, 28px, 0); transition: opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.pc-reveal[data-shown='true'] { opacity: 1; transform: none; }
+.pc-marquee { animation: pc-marquee 40s linear infinite; }
+.pc-live-dot { animation: pc-pulse-ring 1.8s ease-out infinite; }
+.pc-bar { transform-origin: bottom; animation: pc-bar 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.pc-ticker > * { animation: pc-tick 9s ease-in-out infinite; }
+.pc-card-hover { transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease; }
+.pc-card-hover:hover { transform: translateY(-4px); border-color: var(--line-strong); box-shadow: 0 18px 40px -20px color-mix(in oklab, var(--primary) 40%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-blob, .pc-floaty, .pc-gradient-text, .pc-rise, .pc-marquee, .pc-live-dot, .pc-bar, .pc-ticker > * { animation: none !important; }
+  .pc-reveal { opacity: 1; transform: none; transition: none; }
+  .pc-card-hover:hover { transform: none; }
 }

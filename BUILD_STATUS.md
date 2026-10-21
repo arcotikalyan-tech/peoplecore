@@ -91,6 +91,8 @@ The database tests apply every migration to PGlite (Postgres 17 in WASM) with a 
 - `@peoplecore/shared`: zod schemas, permission catalog, date and pagination helpers.
 - `@peoplecore/db`: PGlite test harness, generated `Database` types plus a drift test.
 
+**Public website** (2026-10-21): hrms.tazq.io now opens a website instead of the sign-in page. It has a home page with an animated hero, live product preview, module marquee, counters and scroll-in sections, plus Features (every module, for HR and for employees), Compliance, Security and About pages. Sign in and Sign up sit at the top right. The login page has a split layout. Sign up records a request for a workspace through the reviewed public RPC `request_access` (migration 20261021000100, threat T18; public self-sign-up stays off), and platform admins see and mark requests in the platform console. The PeopleCore logo (people mark) replaces the PC badge and is the favicon. `e2e/website.spec.ts` covers the header, the pages and a sign-up.
+
 ## Module status
 
 | Module | Schema | RLS / authz | Logic | Validation | UI | Tests | Status |

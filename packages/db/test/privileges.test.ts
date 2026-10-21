@@ -55,14 +55,15 @@ describe('table privileges (least privilege, independent of Supabase defaults)',
     expect(rows).toEqual([{ col: 'request', ok: false }, { col: 'response', ok: false }, { col: 'input_tokens', ok: true }]);
   });
 
-  it('anonymous users can execute only the reviewed careers-page functions', async () => {
-    // The one public use case (migration 20261018001400, docs/07-threat-model.md T17): list published
-    // openings and apply with consent. Adding anything here needs the same review.
+  it('anonymous users can execute only the reviewed public functions', async () => {
+    // The public use cases: the careers page (migration 20261018001400, docs/07-threat-model.md T17: list published
+    // openings and apply with consent) and the website's sign-up form (20261021000100, T18: request access).
+    // Adding anything here needs the same review.
     const { rows } = await ctx.t.db.query<{ proname: string }>(
       `select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1`,
     );
-    expect(rows.map((r) => r.proname)).toEqual(['public_job_postings', 'submit_public_application']);
+    expect(rows.map((r) => r.proname)).toEqual(['public_job_postings', 'request_access', 'submit_public_application']);
   });
 
   it('anonymous users can read or write no table', async () => {

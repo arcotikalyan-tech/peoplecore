@@ -9,6 +9,7 @@ import { isPlatformAdmin, requireMfaIfNeeded, requireUser } from '@/server/conte
 import { createClient } from '@/server/supabase';
 import { CreateOrgForm } from './create-org-form';
 import { OrgStatusControl } from './org-status-control';
+import { setAccessRequestStatusAction } from './actions';
 
 export const metadata: Metadata = { title: 'Platform console' };
 
@@ -31,6 +32,9 @@ export default async function PlatformPage({ searchParams }: { searchParams: Pro
   // Support windows tenants have opened (Settings › Support access); a summary is read only on request, and audited.
   const now = new Date().toISOString();
   const { data: windows } = await supabase.from('support_access_windows').select('organization_id, reason, expires_at, revoked_at').is('revoked_at', null).gt('expires_at', now);
+  const { data: requests } = await supabase.from('access_requests')
+    .select('id, company, contact_name, work_email, phone, headcount, message, status, created_at')
+    .order('created_at', { ascending: false }).limit(100);
   const summary = support && (windows ?? []).some((w) => w.organization_id === support)
     ? ((await supabase.rpc('support_overview', { p_org: support })).data as Record<string, unknown> | null) : null;
 
@@ -102,6 +106,37 @@ export default async function PlatformPage({ searchParams }: { searchParams: Pro
               </ul>
             </Card>
           )}
+          <Card className="lg:col-span-2">
+            <CardHeader title="Sign-up requests" description="Companies that signed up on the website. Create their organization with the form, then mark them onboarded." />
+            {(requests ?? []).length === 0 ? (
+              <EmptyState title="No sign-up requests yet" description="Requests from hrms.tazq.io/signup appear here." />
+            ) : (
+              <Table caption="Sign-up requests">
+                <thead>
+                  <tr><Th>Company</Th><Th>Contact</Th><Th>Team</Th><Th>Received</Th><Th>Status</Th></tr>
+                </thead>
+                <tbody>
+                  {(requests ?? []).map((r) => (
+                    <tr key={r.id}>
+                      <Td><span className="font-medium">{r.company}</span>{r.message && <p className="mt-1 max-w-xs text-xs text-muted">{r.message}</p>}</Td>
+                      <Td>{r.contact_name}<p className="text-xs text-muted">{r.work_email}{r.phone ? ` · ${r.phone}` : ''}</p></Td>
+                      <Td className="text-muted">{r.headcount ?? '—'}</Td>
+                      <Td className="text-muted">{formatDate(r.created_at)}</Td>
+                      <Td>
+                        <form action={setAccessRequestStatusAction} className="flex items-center gap-2">
+                          <input type="hidden" name="id" value={r.id} />
+                          <select name="status" defaultValue={r.status} aria-label={`Status of ${r.company}`} className="h-8 rounded-md border border-line bg-surface px-2 text-sm">
+                            {['new', 'contacted', 'onboarded', 'declined'].map((s) => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                          <button className="text-sm text-primary hover:underline">Save</button>
+                        </form>
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+          </Card>
           <Card className="self-start">
             <CardHeader title="New organization" description="Seeds the standard roles. The owner manages everything else." />
             <CreateOrgForm />

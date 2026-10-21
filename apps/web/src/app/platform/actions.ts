@@ -57,3 +57,17 @@ export async function setOrganizationStatusAction(_prev: ActionState, formData: 
   revalidatePath('/platform');
   return { ok: true, message: parsed.data.status === 'suspended' ? 'Organization suspended.' : 'Organization reactivated.' };
 }
+
+const accessRequestSchema = z.object({ id: z.uuid(), status: z.enum(['new', 'contacted', 'onboarded', 'declined']) });
+
+/** Marks a website sign-up request as contacted, onboarded or declined (platform admins only, through RLS). */
+export async function setAccessRequestStatusAction(formData: FormData): Promise<void> {
+  const parsed = accessRequestSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success || !(await isVerifiedPlatformAdmin())) return;
+  const supabase = await createClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  await supabase.from('access_requests')
+    .update({ status: parsed.data.status, reviewed_by: claims?.claims.sub ?? null, reviewed_at: new Date().toISOString() })
+    .eq('id', parsed.data.id);
+  revalidatePath('/platform');
+}

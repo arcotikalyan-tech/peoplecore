@@ -48,6 +48,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      access_requests: {
+        Row: {
+          id: string;
+          company: string;
+          contact_name: string;
+          work_email: string;
+          phone: string | null;
+          headcount: string | null;
+          message: string | null;
+          status: string;
+          created_at: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          company: string;
+          contact_name: string;
+          work_email: string;
+          phone?: string | null;
+          headcount?: string | null;
+          message?: string | null;
+          status?: string;
+          created_at?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          company?: string;
+          contact_name?: string;
+          work_email?: string;
+          phone?: string | null;
+          headcount?: string | null;
+          message?: string | null;
+          status?: string;
+          created_at?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+        };
+        Relationships: [];
+      };
       access_systems: {
         Row: {
           id: string;
@@ -9050,6 +9092,17 @@ export type Database = {
         Args: {
           p_claim: string;
           p_reply: string;
+        };
+        Returns: undefined;
+      };
+      request_access: {
+        Args: {
+          p_company: string;
+          p_name: string;
+          p_email: string;
+          p_phone?: string;
+          p_headcount?: string;
+          p_message?: string;
         };
         Returns: undefined;
       };

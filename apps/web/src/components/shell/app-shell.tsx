@@ -1,5 +1,6 @@
 'use client';
 
+import { BrandMark } from '@/components/brand';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
@@ -127,10 +128,10 @@ function Sidebar({ base, nav, rail, org, user, platformAdmin, onToggleRail }: {
   return (
     <>
       <div className={cn('flex h-14 shrink-0 items-center gap-2 border-b border-line', rail ? 'justify-center px-2' : 'px-4')}>
-        <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-xs font-bold text-primary-fg">PC</span>
+        <BrandMark />
         {!rail && (
           <div className="min-w-0 flex-1 leading-tight">
-            <p className="truncate text-sm font-semibold">PeopleCore</p>
+            <p className="truncate text-sm font-semibold">People<span className="text-brand">Core</span></p>
             <p className="truncate text-xs text-muted" title={org.name}>{org.name}</p>
           </div>
         )}
