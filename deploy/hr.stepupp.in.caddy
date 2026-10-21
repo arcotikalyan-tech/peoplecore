@@ -1,5 +1,0 @@
-# PeopleCore (deployed from github.com/…/peoplecore, deploy/). Proxies to the web container on the bridge gateway.
-hr.stepupp.in {
-	encode zstd gzip
-	reverse_proxy 172.18.0.1:3200
-}

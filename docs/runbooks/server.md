@@ -14,7 +14,7 @@ The machine is shared. EasyBooks owns the stack in `/opt/easybooks`, including t
 | `/opt/peoplecore/.env` | Runtime settings, mode 600: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (and `ANTHROPIC_API_KEY` once AI is on). |
 | `/opt/peoplecore/src` | The source of the deployed commit (replaced on each deploy). |
 | `/opt/peoplecore/docker-compose.yml` | Copied from `deploy/docker-compose.yml`. It defines the `web` and `worker` services. |
-| `/srv/caddy/sites/hr.stepupp.in.caddy` | Copy of `deploy/hr.stepupp.in.caddy`. |
+| `/srv/caddy/sites/peoplecore.caddy` | Copy of `deploy/peoplecore.caddy`: hrms.tazq.io, and hr.stepupp.in redirecting to it. |
 
 The web container publishes `172.18.0.1:3200`. That address is the bridge gateway of the `easybooks_default`
 network, so the Caddy container can reach it and the internet cannot. Never publish on `0.0.0.0`: Docker-published

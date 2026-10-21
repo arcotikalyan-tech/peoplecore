@@ -21,4 +21,4 @@ fi
 
 echo "Shipping ${SHA:0:7} to ${HOST}..."
 git archive --format=tar.gz HEAD | ssh "$HOST" "set -e; cd /opt/peoplecore; rm -rf src.new && mkdir src.new && tar -xzf - -C src.new; rm -rf src.old; [ -d src ] && mv src src.old; mv src.new src; bash src/deploy/deploy.sh ${SHA:0:12}"
-curl -fsS -o /dev/null -w "https://hr.stepupp.in/login → %{http_code}\n" https://hr.stepupp.in/login || true
+curl -fsS -o /dev/null -w "https://hrms.tazq.io/login → %{http_code}\n" https://hrms.tazq.io/login || true

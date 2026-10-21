@@ -1,0 +1,10 @@
+# PeopleCore. Proxies to the web container on the bridge gateway (docs/runbooks/server.md).
+hrms.tazq.io {
+	encode zstd gzip
+	reverse_proxy 172.18.0.1:3200
+}
+
+# The previous address: keep old links and bookmarks working.
+hr.stepupp.in {
+	redir https://hrms.tazq.io{uri} permanent
+}
