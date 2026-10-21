@@ -1,5 +1,6 @@
 import type { EmailOtpType } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
+import { publicOrigin } from '@/lib/public-origin';
 import { safeNextPath } from '@/lib/safe-redirect';
 import { createClient } from '@/server/supabase';
 
@@ -7,6 +8,7 @@ import { createClient } from '@/server/supabase';
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
   const next = safeNextPath(url.searchParams.get('next'));
+  const origin = publicOrigin(request);
   const supabase = await createClient();
 
   const code = url.searchParams.get('code');
@@ -16,8 +18,8 @@ export async function GET(request: NextRequest) {
   // Neither a PKCE code nor a token hash: the session (or Supabase's error) is in the URL fragment, which only the
   // browser can read. Browsers keep the fragment across this redirect.
   if (!code && !tokenHash) {
-    if (url.searchParams.get('error')) return NextResponse.redirect(new URL('/login?error=link', url.origin));
-    return NextResponse.redirect(new URL(`/auth/confirm?next=${encodeURIComponent(next)}`, url.origin));
+    if (url.searchParams.get('error')) return NextResponse.redirect(new URL('/login?error=link', origin));
+    return NextResponse.redirect(new URL(`/auth/confirm?next=${encodeURIComponent(next)}`, origin));
   }
 
   const { error } = code
@@ -26,5 +28,5 @@ export async function GET(request: NextRequest) {
       ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
       : { error: new Error('missing type') };
 
-  return NextResponse.redirect(new URL(error ? '/login?error=link' : next, url.origin));
+  return NextResponse.redirect(new URL(error ? '/login?error=link' : next, origin));
 }
