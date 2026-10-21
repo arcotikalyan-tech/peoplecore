@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { adminClient, completeMfa, domain, expectNotFound, open, signIn, test } from './helpers';
+import { adminClient, completeMfa, domain, expectNotFound, liveEnv, open, signIn, test } from './helpers';
 
 /**
  * Core journeys on the live demo tenant, in order. Every step goes through the real UI; the database is
@@ -193,24 +193,60 @@ test('suspending an organization locks its members out until it is reactivated',
   await demoRow.getByRole('button', { name: 'Confirm suspension' }).click();
   await expect(demoRow.getByText('suspended', { exact: true })).toBeVisible();
 
+  // demo.hr has its own authenticator, so the code is asked at sign-in even while no privileged role applies.
   const hr = await (await browser.newContext()).newPage();
-  await signIn(hr, 'demo.hr');
+  await hr.goto('/login');
+  await hr.getByLabel('Work email').fill(`demo.hr@${domain}`);
+  await hr.locator('input[name="password"]').fill(liveEnv().password);
+  await hr.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await hr.waitForURL(/\/mfa(\?|$)/);
+  await completeMfa(hr, 'demo.hr');
   await hr.goto('/app/demo/employees');
   await expect(hr).toHaveURL(/\/app\?suspended=demo$/);
   await expect(hr.getByText('Access to PeopleCore Demo (synthetic data) is suspended')).toBeVisible();
   await expect(hr.getByText('Suspended', { exact: true })).toBeVisible();
 
-  await demoRow.getByRole('button', { name: 'Reactivate' }).click();
-  await demoRow.getByRole('button', { name: 'Confirm reactivation' }).click();
-  await expect(demoRow.getByText('active', { exact: true })).toBeVisible();
+  // A second HR admin with no authenticator signs in password-only while suspended: nothing privileged
+  // applies yet, so no second step is asked.
+  const fresh = await newHrAdmin();
+  try {
+    const other = await (await browser.newContext()).newPage();
+    await other.goto('/login');
+    await other.getByLabel('Work email').fill(fresh.email);
+    await other.locator('input[name="password"]').fill(liveEnv().password);
+    await other.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await other.waitForURL(/\/app(\/|$|\?)/);
 
-  // HR signed in while the organization was suspended, so no privileged role applied and no second step
-  // was asked. Now that the HR-admin role applies again, two-step verification comes first.
-  await hr.goto('/app/demo');
-  await expect(hr).toHaveURL(/\/mfa\?next=%2Fapp%2Fdemo$/);
-  await completeMfa(hr, 'demo.hr');
-  await expect(hr.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening)/ })).toBeVisible();
+    await demoRow.getByRole('button', { name: 'Reactivate' }).click();
+    await demoRow.getByRole('button', { name: 'Confirm reactivation' }).click();
+    await expect(demoRow.getByText('active', { exact: true })).toBeVisible();
+
+    // The HR-admin role applies again, so the password-only session must set up two-step before any HR data.
+    await other.goto('/app/demo/employees');
+    await expect(other).toHaveURL(/\/mfa\?next=%2Fapp%2Fdemo$/);
+    await expect(other.getByRole('heading', { name: 'Set up two-step verification' })).toBeVisible();
+  } finally {
+    await adminClient().auth.admin.deleteUser(fresh.userId);
+  }
+
+  // demo.hr's session already passed two-step, so it reaches HR data without a second prompt.
+  await open(hr, '/app/demo/employees');
+  await expect(hr).toHaveURL(/\/app\/demo\/employees$/);
+  await expect(hr.getByRole('heading', { level: 1, name: 'People' })).toBeVisible();
 });
+
+/** A throwaway HR admin in the demo tenant with no authenticator (delete with auth.admin.deleteUser). */
+async function newHrAdmin() {
+  const admin = adminClient();
+  const email = `e2e.hr.${run.toLowerCase()}@${domain}`;
+  const orgId = (await admin.from('organizations').select('id').eq('slug', 'demo').eq('is_demo', true).single()).data!.id;
+  const { data, error } = await admin.auth.admin.createUser({ email, password: liveEnv().password, email_confirm: true });
+  if (error || !data.user) throw new Error(`could not create the test account: ${error?.message}`);
+  const member = await admin.from('organization_members').insert({ organization_id: orgId, user_id: data.user.id, status: 'active' }).select('id').single();
+  const role = await admin.from('roles').select('id').eq('organization_id', orgId).eq('key', 'hr_admin').single();
+  await admin.from('member_roles').insert({ organization_id: orgId, member_id: member.data!.id, role_id: role.data!.id });
+  return { email, userId: data.user.id };
+}
 
 test('signing out ends the session', async ({ page }) => {
   await signIn(page, 'demo.hr');
