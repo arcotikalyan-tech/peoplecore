@@ -4747,6 +4747,7 @@ export type Database = {
           salary_history_visible: boolean;
           birthdays_visible: boolean;
           updated_at: string;
+          require_mfa: boolean;
         };
         Insert: {
           organization_id: string;
@@ -4754,6 +4755,7 @@ export type Database = {
           salary_history_visible?: boolean;
           birthdays_visible?: boolean;
           updated_at?: string;
+          require_mfa?: boolean;
         };
         Update: {
           organization_id?: string;
@@ -4761,6 +4763,7 @@ export type Database = {
           salary_history_visible?: boolean;
           birthdays_visible?: boolean;
           updated_at?: string;
+          require_mfa?: boolean;
         };
         Relationships: [];
       };
@@ -5307,6 +5310,27 @@ export type Database = {
         Update: {
           user_id?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      platform_settings: {
+        Row: {
+          id: boolean;
+          require_mfa_for_admins: boolean;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          require_mfa_for_admins?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          require_mfa_for_admins?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
         };
         Relationships: [];
       };
@@ -9464,10 +9488,23 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_org_require_mfa: {
+        Args: {
+          p_org: string;
+          p_on: boolean;
+        };
+        Returns: undefined;
+      };
       set_organization_status: {
         Args: {
           p_org: string;
           p_status: Database['public']['Enums']['org_status'];
+        };
+        Returns: undefined;
+      };
+      set_platform_require_mfa: {
+        Args: {
+          p_on: boolean;
         };
         Returns: undefined;
       };

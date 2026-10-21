@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { buttonClass } from '@/components/ui/button';
 import { cookies } from 'next/headers';
 import { AppearanceSettings } from '@/components/shell/theme-menu';
 import { Panel } from '@/components/ui/hub';
@@ -23,6 +24,8 @@ export default async function PreferencesPage({ params }: { params: Promise<{ or
   const supabase = await createClient();
   const requests = me ? (await supabase.from('data_deletion_requests').select('id, scope, status, decision_note, created_at, decided_at').eq('employee_id', me.id).order('created_at', { ascending: false })).data ?? [] : [];
   const pending = requests.some((r) => r.status === 'pending');
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const twoStepOn = aal?.nextLevel === 'aal2';
   return (
     <>
       <PageHeader title="My preferences" description="How PeopleCore looks for you, and your personal data." />
@@ -31,6 +34,16 @@ export default async function PreferencesPage({ params }: { params: Promise<{ or
           <AppearanceSettings initial={{
             theme: asTheme(jar.get(COOKIE.theme)?.value), scene: asScene(jar.get(COOKIE.scene)?.value), weather: asWeather(jar.get(COOKIE.weather)?.value),
           }} />
+        </Panel>
+        <Panel title="Two-step sign-in" meta={twoStepOn ? 'On' : 'Off'}>
+          {twoStepOn ? (
+            <p className="text-sm">✓ Your sign-in asks for a code from your authenticator app.</p>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <p className="max-w-sm text-muted">Add a code from an authenticator app (Google Authenticator, Microsoft Authenticator) so a leaked password alone can’t open your account.</p>
+              <a href={`/mfa?next=${encodeURIComponent(`/app/${slug}/preferences`)}`} className={buttonClass('secondary', 'sm')}>Turn on</a>
+            </div>
+          )}
         </Panel>
         {me && (
           <Panel title="Your personal data" meta="ask HR to erase optional details">

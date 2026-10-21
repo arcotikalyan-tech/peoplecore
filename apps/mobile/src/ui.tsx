@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 /** A few accessible building blocks, matching the web app's tokens (primary, muted, danger). */
@@ -32,6 +33,25 @@ export function Field({ label, error, ...input }: TextInputProps & { label: stri
     <View style={{ marginBottom: 12 }}>
       <Text style={s.label}>{label}</Text>
       <TextInput accessibilityLabel={label} placeholderTextColor={colors.muted} style={[s.input, error ? { borderColor: colors.danger } : null]} {...input} />
+      {error ? <Text style={s.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+    </View>
+  );
+}
+
+/** A password input with a show / hide button. */
+export function PasswordField({ label, error, ...input }: Omit<TextInputProps, 'secureTextEntry'> & { label: string; error?: string | null }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <Text style={s.label}>{label}</Text>
+      <View style={{ justifyContent: 'center' }}>
+        <TextInput accessibilityLabel={label} secureTextEntry={!visible} autoCapitalize="none" autoCorrect={false} placeholderTextColor={colors.muted}
+          style={[s.input, { paddingRight: 44 }, error ? { borderColor: colors.danger } : null]} {...input} />
+        <Pressable accessibilityRole="button" accessibilityLabel={visible ? 'Hide password' : 'Show password'} onPress={() => setVisible((v) => !v)}
+          hitSlop={8} style={{ position: 'absolute', right: 10, padding: 4 }}>
+          <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />
+        </Pressable>
+      </View>
       {error ? <Text style={s.error} accessibilityLiveRegion="polite">{error}</Text> : null}
     </View>
   );

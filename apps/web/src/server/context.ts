@@ -46,8 +46,18 @@ export const needsMfa = cache(async (): Promise<boolean> => {
  * the database already withholds those roles' permissions from password-only (aal1) sessions.
  */
 export async function requireMfaIfNeeded(user: SessionUser, nextPath: string) {
-  if (user.aal !== 'aal2' && (await needsMfa())) redirect(`/mfa?next=${encodeURIComponent(nextPath)}`);
+  if (user.aal !== 'aal2' && ((await needsMfa()) || (await hasOwnAuthenticator()))) redirect(`/mfa?next=${encodeURIComponent(nextPath)}`);
 }
+
+/**
+ * The person turned two-step on for themselves (a verified authenticator), even where their roles don't require it:
+ * then we always ask for the code. Read from the session (no network call).
+ */
+export const hasOwnAuthenticator = cache(async (): Promise<boolean> => {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  return data?.nextLevel === 'aal2' && data.currentLevel !== 'aal2';
+});
 
 export type Organization = Pick<Tables<'organizations'>, 'id' | 'name' | 'slug' | 'is_demo' | 'timezone' | 'status'>;
 
@@ -110,12 +120,17 @@ export async function requirePermission(slug: string, key: PermissionKey, scope?
 }
 
 /**
- * Platform admin with two-factor completed: the same rule the database applies (app.is_platform_admin).
+ * Platform admin whose powers apply in this session (two-step done, or not required): the database's rule (app.is_platform_admin).
  * Use this before any secret-key operation; isPlatformAdmin alone is for navigation.
  */
 export async function isVerifiedPlatformAdmin(): Promise<boolean> {
   const user = await getSessionUser();
-  return Boolean(user && user.aal === 'aal2' && (await isPlatformAdmin()));
+  if (!user || !(await isPlatformAdmin())) return false;
+  if (user.aal === 'aal2') return true;
+  // Two-step is a platform setting (on by default); the database applies the same rule (app.platform_mfa_ok).
+  const supabase = await createClient();
+  const { data } = await supabase.from('platform_settings').select('require_mfa_for_admins').maybeSingle();
+  return data?.require_mfa_for_admins === false;
 }
 
 /** Listed as a platform admin (UI/navigation only; powers additionally need two-factor). */

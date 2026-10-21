@@ -4,7 +4,7 @@ import { Brand } from '@/components/brand';
 import { buttonClass } from '@/components/ui/button';
 import { Card } from '@/components/ui/surface';
 import { safeNextPath } from '@/lib/safe-redirect';
-import { requireUser } from '@/server/context';
+import { needsMfa, requireUser } from '@/server/context';
 import { createClient } from '@/server/supabase';
 import { EnrollPanel, VerifyForm } from './mfa-forms';
 
@@ -12,6 +12,7 @@ export const metadata: Metadata = { title: 'Two-step verification' };
 
 export default async function MfaPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const user = await requireUser();
+  const required = await needsMfa();
   const nextPath = safeNextPath((await searchParams).next);
   if (user.aal === 'aal2') redirect(nextPath);
 
@@ -39,10 +40,15 @@ export default async function MfaPage({ searchParams }: { searchParams: Promise<
               ? 'Please sign in again.'
               : factor
                 ? 'Enter the 6-digit code from your authenticator app.'
-                : 'Your role in PeopleCore can see sensitive records, so it needs a second sign-in step. Setup takes a minute.'}
+                : required
+                  ? 'Your role in PeopleCore can see sensitive records, so it needs a second sign-in step. Setup takes a minute.'
+                  : 'Add a code from an authenticator app to your sign-in, so a leaked password alone can’t open your account.'}
           </p>
         </div>
         {!ended && <Card className="p-6">{factor ? <VerifyForm factorId={factor.id} next={nextPath} /> : <EnrollPanel next={nextPath} />}</Card>}
+        {!ended && !factor && !required && (
+          <p className="mt-4 text-center text-sm"><a href={nextPath} className="text-muted hover:text-fg">Not now</a></p>
+        )}
         <form action="/auth/signout" method="post" className="mt-6 text-center">
           <button className={ended ? buttonClass('primary') : 'text-sm text-muted hover:text-fg'}>{ended ? 'Sign in again' : 'Sign out'}</button>
         </form>

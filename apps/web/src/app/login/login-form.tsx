@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { TextField } from '@/components/ui/fields';
+import { PasswordField } from '@/components/ui/password-field';
 import { initialActionState } from '@/lib/action-state';
 import { sendMagicLink, signInWithPassword } from './actions';
 
@@ -19,7 +20,7 @@ export function LoginForm({ next }: { next: string }) {
           <input type="hidden" name="next" value={next} />
           <FormMessage state={pwState} />
           <TextField name="email" label="Work email" type="email" autoComplete="username" required defaultValue={pwState.values?.email} />
-          <TextField name="password" label="Password" type="password" autoComplete="current-password" required />
+          <PasswordField name="password" label="Password" autoComplete="current-password" required />
           <SubmitButton pendingLabel="Signing in…">Sign in</SubmitButton>
         </form>
       ) : (

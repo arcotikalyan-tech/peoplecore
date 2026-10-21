@@ -10,7 +10,7 @@ import { disabledModules, orgControls } from '@/server/modules';
 import { setupChecks } from '@/server/setup';
 import { createClient } from '@/server/supabase';
 import {
-  createRoleAction, deleteRoleAction, grantSupportAction, revokeSupportAction, saveControlsAction, saveModulesAction, saveNotificationsAction, setRolePermissionAction,
+  createRoleAction, deleteRoleAction, grantSupportAction, revokeSupportAction, saveControlsAction, saveModulesAction, setRequireMfaAction, saveNotificationsAction, setRolePermissionAction,
 } from './actions';
 import { ButtonAction, ControlsForm, RoleForm, ScopeCell, SupportForm, ToggleList } from './settings-client';
 
@@ -50,7 +50,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
           })()}
         </Panel>
       )}
-      {tab === 'controls' && <Panel title="Controls"><ControlsForm action={saveControlsAction.bind(null, slug)} c={await orgControls(ctx.org.id)} /></Panel>}
+      {tab === 'controls' && <ControlsTab slug={slug} orgId={ctx.org.id} owner={ctx.can('role.manage', 'org')} />}
       {tab === 'notifications' && (
         <Panel title="Notifications" meta="Switch a category off to stop those notifications for everyone in the organization.">
           {await (async () => {
@@ -211,6 +211,28 @@ async function Support({ ctx, slug }: { ctx: OrgContext; slug: string }) {
           ))}
         </ul>
       </Panel>
+    </div>
+  );
+}
+
+async function ControlsTab({ slug, orgId, owner }: { slug: string; orgId: string; owner: boolean }) {
+  const c = await orgControls(orgId);
+  return (
+    <div className="space-y-5">
+      <Panel title="Controls"><ControlsForm action={saveControlsAction.bind(null, slug)} c={c} /></Panel>
+      {owner && (
+        <Panel title="Two-step sign-in">
+          <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
+            <p className="max-w-xl">
+              {c.require_mfa
+                ? 'Required for owners, HR, payroll and auditors: they enter a code from an authenticator app before they see sensitive records.'
+                : 'Optional: owners, HR, payroll and auditors sign in with their password alone. Anyone can still turn it on for themselves under My preferences.'}
+              <span className="mt-1 block text-xs text-muted">Recommended on. These roles can see every salary, bank account and ID number.</span>
+            </p>
+            <ButtonAction action={setRequireMfaAction.bind(null, slug, !c.require_mfa)} aria="Two-step sign-in requirement" label={c.require_mfa ? 'Make optional' : 'Require it'} variant={c.require_mfa ? 'danger' : 'secondary'} />
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }

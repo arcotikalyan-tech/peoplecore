@@ -3,7 +3,7 @@ import { cn } from './cn';
 
 /** Label + control + hint + error with aria wiring done once, so every form is accessible by default. */
 
-interface FieldProps {
+export interface FieldProps {
   name: string;
   label: string;
   error?: string;
@@ -14,7 +14,7 @@ interface FieldProps {
   idPrefix?: string;
 }
 
-const controlClass = (invalid: boolean) =>
+export const controlClass = (invalid: boolean) =>
   cn(
     'block w-full rounded-md border bg-surface px-3 text-sm text-fg shadow-xs placeholder:text-muted/70',
     'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25',
@@ -22,9 +22,9 @@ const controlClass = (invalid: boolean) =>
     invalid ? 'border-danger' : 'border-line-strong',
   );
 
-const fieldId = (name: string, idPrefix?: string) => `f-${idPrefix ? `${idPrefix}-` : ''}${name}`;
+export const fieldId = (name: string, idPrefix?: string) => `f-${idPrefix ? `${idPrefix}-` : ''}${name}`;
 
-function FieldShell({ id, label, error, hint, required, className, children }: Omit<FieldProps, 'name'> & { id: string; children: ReactNode }) {
+export function FieldShell({ id, label, error, hint, required, className, children }: Omit<FieldProps, 'name'> & { id: string; children: ReactNode }) {
   return (
     <div className={className}>
       <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-fg">
@@ -50,7 +50,7 @@ function FieldShell({ id, label, error, hint, required, className, children }: O
   );
 }
 
-function aria(id: string, error?: string, hint?: string) {
+export function aria(id: string, error?: string, hint?: string) {
   const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ');
   return { id, 'aria-invalid': error ? true : undefined, 'aria-describedby': describedBy || undefined };
 }

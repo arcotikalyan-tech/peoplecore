@@ -4,7 +4,7 @@ import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, 
 import { isConfigured } from '@/lib/supabase';
 import logoMark from '../assets/logo-mark.png';
 import { useSession } from '@/lib/session';
-import { Button, Card, colors, Field, Message, s } from '@/ui';
+import { Button, Card, colors, Field, Message, PasswordField, s } from '@/ui';
 
 /** The website, for sign-up (accounts are created by the company, so new companies ask there). */
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://hrms.tazq.io';
@@ -48,7 +48,7 @@ export default function SignIn() {
         ) : (
           <Card>
             <Field label="Work email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="you@company.com" />
-            <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" error={error} />
+            <PasswordField label="Password" value={password} onChangeText={setPassword} autoComplete="password" error={error} />
             <Button label="Sign in" busy={busy} disabled={!email || !password} onPress={() => run(() => signIn(email, password))} />
           </Card>
         )}

@@ -38,7 +38,7 @@ export function adminClient() {
 export async function signIn(page: Page, local: string) {
   await page.goto('/login');
   await page.getByLabel('Work email').fill(`${local}@${domain}`);
-  await page.getByLabel('Password').fill(liveEnv().password);
+  await page.getByLabel('Password', { exact: true }).fill(liveEnv().password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.waitForURL(/\/(app|mfa)(\/|$|\?)/);
   if (new URL(page.url()).pathname === '/mfa') await completeMfa(page, local);

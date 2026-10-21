@@ -36,6 +36,16 @@ export async function saveControlsAction(slug: string, _prev: ActionState, formD
   return done(slug, 'Controls saved.');
 }
 
+/** Owners only: whether owner, HR, payroll and auditor roles need two-step sign-in in this organization. */
+export async function setRequireMfaAction(slug: string, on: boolean): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('role.manage', 'org')) return DENIED;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_org_require_mfa', { p_org: ctx.org.id, p_on: on });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  return done(slug, on ? 'Two-step sign-in is required again.' : 'Two-step sign-in is now optional.');
+}
+
 export async function saveNotificationsAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await getOrgContext(slug);
   if (!ctx.can('org.manage', 'org')) return DENIED;

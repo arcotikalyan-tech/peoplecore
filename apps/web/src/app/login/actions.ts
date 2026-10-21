@@ -21,8 +21,9 @@ export async function signInWithPassword(_prev: ActionState, formData: FormData)
   }
   const next = safeNextPath(parsed.data.next);
   // Roles that need two-factor go straight to the second step.
-  const { data: needsMfa } = await supabase.rpc('my_mfa_requirement');
-  redirect(needsMfa ? `/mfa?next=${encodeURIComponent(next)}` : next);
+  const [{ data: needsMfa }, { data: aal }] = await Promise.all([supabase.rpc('my_mfa_requirement'), supabase.auth.mfa.getAuthenticatorAssuranceLevel()]);
+  // Required by a role, or turned on by the person themselves (a verified authenticator).
+  redirect(needsMfa || aal?.nextLevel === 'aal2' ? `/mfa?next=${encodeURIComponent(next)}` : next);
 }
 
 const linkSchema = z.object({ email: z.email(), next: z.string().optional() });

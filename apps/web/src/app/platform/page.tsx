@@ -9,7 +9,7 @@ import { isPlatformAdmin, requireMfaIfNeeded, requireUser } from '@/server/conte
 import { createClient } from '@/server/supabase';
 import { CreateOrgForm } from './create-org-form';
 import { OrgStatusControl } from './org-status-control';
-import { setAccessRequestStatusAction } from './actions';
+import { setAccessRequestStatusAction, setPlatformRequireMfaAction } from './actions';
 
 export const metadata: Metadata = { title: 'Platform console' };
 
@@ -35,6 +35,8 @@ export default async function PlatformPage({ searchParams }: { searchParams: Pro
   const { data: requests } = await supabase.from('access_requests')
     .select('id, company, contact_name, work_email, phone, headcount, message, status, created_at')
     .order('created_at', { ascending: false }).limit(100);
+  const { data: platformSettings } = await supabase.from('platform_settings').select('require_mfa_for_admins').maybeSingle();
+  const requireMfa = platformSettings?.require_mfa_for_admins ?? true;
   const summary = support && (windows ?? []).some((w) => w.organization_id === support)
     ? ((await supabase.rpc('support_overview', { p_org: support })).data as Record<string, unknown> | null) : null;
 
@@ -136,6 +138,16 @@ export default async function PlatformPage({ searchParams }: { searchParams: Pro
                 </tbody>
               </Table>
             )}
+          </Card>
+          <Card className="lg:col-span-2">
+            <CardHeader title="Two-step sign-in for platform administrators" description={requireMfa
+              ? 'Required: platform administrators enter an authenticator code before any platform power works.'
+              : 'Optional: platform administrators sign in with a password alone. Anyone can still turn it on for themselves.'} />
+            <form action={setPlatformRequireMfaAction} className="flex flex-wrap items-center justify-between gap-3 px-5 pb-5 text-sm">
+              <input type="hidden" name="on" value={String(!requireMfa)} />
+              <span className="text-xs text-muted">Recommended on: this account can create and suspend every organization.</span>
+              <button className={requireMfa ? 'rounded-md bg-danger px-3 py-1.5 text-white' : 'rounded-md border border-line px-3 py-1.5'}>{requireMfa ? 'Make optional' : 'Require it'}</button>
+            </form>
           </Card>
           <Card className="self-start">
             <CardHeader title="New organization" description="Seeds the standard roles. The owner manages everything else." />

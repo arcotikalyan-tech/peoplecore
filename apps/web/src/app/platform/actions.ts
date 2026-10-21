@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { findOrInviteUser } from '@/server/admin-users';
-import { isVerifiedPlatformAdmin } from '@/server/context';
+import { isPlatformAdmin, isVerifiedPlatformAdmin } from '@/server/context';
 import { createClient } from '@/server/supabase';
 
 export async function createOrganizationAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -69,5 +69,13 @@ export async function setAccessRequestStatusAction(formData: FormData): Promise<
   await supabase.from('access_requests')
     .update({ status: parsed.data.status, reviewed_by: claims?.claims.sub ?? null, reviewed_at: new Date().toISOString() })
     .eq('id', parsed.data.id);
+  revalidatePath('/platform');
+}
+
+/** Platform admins: whether platform administrators need two-step sign-in (default on). */
+export async function setPlatformRequireMfaAction(formData: FormData): Promise<void> {
+  if (!(await isPlatformAdmin())) return;
+  const supabase = await createClient();
+  await supabase.rpc('set_platform_require_mfa', { p_on: formData.get('on') === 'true' });
   revalidatePath('/platform');
 }
