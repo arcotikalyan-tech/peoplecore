@@ -31,7 +31,7 @@ test.afterAll(async () => {
 test('a new HR admin sets up two-step verification before seeing any HR data', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Work email').fill(email);
-  await page.getByLabel('Password', { exact: true }).fill(liveEnv().password);
+  await page.locator('input[name="password"]').fill(liveEnv().password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.waitForURL(/\/mfa\?next=/);
   await expect(page.getByRole('heading', { name: 'Set up two-step verification' })).toBeVisible();
@@ -64,7 +64,7 @@ test('a new HR admin sets up two-step verification before seeing any HR data', a
 test('a sign-in ended elsewhere gets a clean "sign in again" instead of an error', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Work email').fill(email);
-  await page.getByLabel('Password', { exact: true }).fill(liveEnv().password);
+  await page.locator('input[name="password"]').fill(liveEnv().password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.waitForURL(/\/mfa(\?|$)/);
 
