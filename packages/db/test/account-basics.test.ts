@@ -18,9 +18,12 @@ describe('account basics', () => {
     await ctx.t.asUser(f.users.icA, async (tx) => {
       expect((await tx.query<{ n: boolean }>('select my_needs_password() as n')).rows[0]!.n).toBe(true);
       expect((await tx.query<{ b: { needs_password: boolean } }>(`select my_org_context('org-a') as b`)).rows[0]!.b.needs_password).toBe(true);
+      // Invited: Supabase stores a random password nobody knows, so they still have to choose one.
       await tx.exec('reset role');
       await tx.query(`update auth.users set encrypted_password = '$2a$10$hash', invited_at = now() - interval '2 days' where id = $1`, [f.users.icA]);
       await as(tx, f.users.icA);
+      expect((await tx.query<{ n: boolean }>('select my_needs_password() as n')).rows[0]!.n).toBe(true);
+      await tx.query('select mark_password_chosen()');
       expect((await tx.query<{ n: boolean }>('select my_needs_password() as n')).rows[0]!.n).toBe(false);
       expect((await tx.query('select * from member_sign_in_status($1)', [f.orgA])).rows).toHaveLength(0); // not a member manager
 

@@ -9671,6 +9671,10 @@ export type Database = {
         };
         Returns: undefined;
       };
+      mark_password_chosen: {
+        Args: never;
+        Returns: undefined;
+      };
       member_directory: {
         Args: {
           p_org: string;

@@ -1,19 +1,46 @@
 -- PeopleCore · Account basics: every sign-in has a password, admins see who still has to set one, and employees see
 -- how complete their profile is.
 --
--- * my_needs_password(): the signed-in person has no password yet (invited, or only ever used email links). The app
---   asks them to choose one before anything else; my_org_context carries it so the shell needs no extra round trip.
+-- * my_needs_password(): the signed-in person hasn't chosen a password yet. Supabase gives invited accounts a random
+--   password nobody knows, so this can't be read from auth.users alone: app.password_choices records each person who
+--   chose one (set-password after an invitation, a reset link, or changing it), through mark_password_chosen(). The
+--   app asks for a password before anything else; my_org_context carries the flag so the shell needs no extra trip.
 -- * member_sign_in_status(org): for people with member.manage, each member's sign-in email, whether they have set a
 --   password, when they were invited and last signed in, and the employee record their sign-in is linked to.
 -- * my_profile_completeness(org): which parts of their own profile the signed-in employee has filled in (personal
 --   details, blood group, address, emergency contact, PAN, bank account). Yes or no only; never the values.
 
+create table app.password_choices (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  chosen_at  timestamptz not null default now()
+);
+grant all on app.password_choices to service_role;
+
+-- Accounts that have a password the person chose: not invited (created with a password, or signed up), or invited
+-- and chose one since.
+create function app.has_own_password(p_user uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select coalesce((select coalesce(u.encrypted_password, '') <> ''
+                          and (u.invited_at is null or exists (select 1 from app.password_choices c where c.user_id = u.id))
+                     from auth.users u where u.id = p_user), false);
+$$;
+revoke all on function app.has_own_password(uuid) from public;
+
 create function public.my_needs_password() returns boolean
 language sql stable security definer set search_path = '' as $$
-  select coalesce((select coalesce(u.encrypted_password, '') = '' from auth.users u where u.id = auth.uid()), false);
+  select auth.uid() is not null and not app.has_own_password(auth.uid());
 $$;
 revoke all on function public.my_needs_password() from public, anon;
 grant execute on function public.my_needs_password() to authenticated, service_role;
+
+-- Called by the app right after the person sets a password (it can only ever skip their own prompt).
+create function public.mark_password_chosen() returns void
+language sql volatile security definer set search_path = '' as $$
+  insert into app.password_choices (user_id) values (auth.uid())
+  on conflict (user_id) do update set chosen_at = now();
+$$;
+revoke all on function public.mark_password_chosen() from public, anon;
+grant execute on function public.mark_password_chosen() to authenticated, service_role;
 
 create or replace function public.my_org_context(p_slug text) returns jsonb
 language sql stable security invoker set search_path = '' as $$
@@ -36,7 +63,7 @@ create function public.member_sign_in_status(p_org uuid)
 returns table (member_id uuid, user_id uuid, email text, has_password boolean, invited_at timestamptz, last_sign_in_at timestamptz,
                employee_id uuid, employee_name text)
 language sql stable security definer set search_path = '' as $$
-  select om.id, om.user_id, u.email, coalesce(u.encrypted_password, '') <> '', u.invited_at, u.last_sign_in_at,
+  select om.id, om.user_id, u.email, app.has_own_password(u.id), u.invited_at, u.last_sign_in_at,
          e.id, nullif(trim(concat_ws(' ', e.first_name, e.last_name)), '')
     from public.organization_members om
     join auth.users u on u.id = om.user_id

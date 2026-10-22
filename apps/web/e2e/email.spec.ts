@@ -103,8 +103,8 @@ test("an invitation from Supabase's default template (session in the URL fragmen
 async function choosePassword(page: Page) {
   await page.waitForURL(/\/set-password\?next=/);
   await expect(page.getByRole('heading', { name: 'Welcome to PeopleCore' })).toBeVisible();
-  const password = `Invited-${run}-pass`;
-  await page.getByLabel('New password', { exact: true }).fill(password);
+  const password = `Invited-${run}-pass-7`;
+  await page.getByLabel(/^New password/).fill(password);
   await page.getByLabel('Confirm new password').fill(password);
   await page.getByRole('button', { name: 'Set password and continue' }).click();
 }

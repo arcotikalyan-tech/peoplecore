@@ -19,6 +19,7 @@ export async function setPasswordAction(_prev: ActionState, formData: FormData):
   if (!user.user) redirect('/login');
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { ok: false, message: passwordErrorMessage(error.code, error.message) };
+  await supabase.rpc('mark_password_chosen');
   await flash('Password saved. Use it with your email the next time you sign in.');
   redirect(safeNextPath(formData.get('next')));
 }

@@ -35,6 +35,7 @@ export async function changePasswordAction(slug: string, _prev: ActionState, for
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { ok: false, message: passwordErrorMessage(error.code, error.message) };
+  await supabase.rpc('mark_password_chosen');
   await supabase.auth.signOut({ scope: 'others' });
   return { ok: true, message: 'Password changed. You’ve been signed out on your other devices.' };
 }

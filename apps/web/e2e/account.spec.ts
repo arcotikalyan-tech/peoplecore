@@ -13,7 +13,7 @@ const run = Date.now().toString(36).slice(-5);
 const email = `e2e.account.${run}@${domain}`;
 const hire = { first: 'Nila', last: `Hire${run}`, email: `e2e.hire.${run}@${domain}` };
 const admin = adminClient();
-const passwords = { current: liveEnv().password, changed: `Changed-${run}-pass`, reset: `Reset-${run}-pass` };
+const passwords = { current: liveEnv().password, changed: `Changed-${run}-pass-7`, reset: `Reset-${run}-pass-8` };
 let orgId = '';
 let userId = '';
 const cleanup: { employees: string[]; users: string[] } = { employees: [], users: [] };
@@ -55,7 +55,7 @@ test('a person changes their password in Account settings; the old one stops wor
   const form = page.getByRole('form', { name: 'Change password' });
   const fill = async (current: string) => {
     await form.getByLabel('Current password').fill(current);
-    await form.getByLabel('New password', { exact: true }).fill(passwords.changed);
+    await form.getByLabel(/^New password/).fill(passwords.changed);
     await form.getByLabel('Confirm new password').fill(passwords.changed);
     await form.getByRole('button', { name: 'Change password' }).click();
   };
@@ -102,7 +102,7 @@ test('“Forgot password?” emails a link that works on another device', async 
   await phone.goto(link);
   await phone.waitForURL(/\/set-password\?/);
   await expect(phone.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
-  await phone.getByLabel('New password', { exact: true }).fill(passwords.reset);
+  await phone.getByLabel(/^New password/).fill(passwords.reset);
   await phone.getByLabel('Confirm new password').fill(passwords.reset);
   await phone.getByRole('button', { name: 'Save new password' }).click();
   await phone.waitForURL(/\/app\/demo$/);
@@ -137,7 +137,7 @@ test('HR adds an employee and invites them; they choose a password before anythi
   // Going around it leads straight back.
   await guest.goto('/app/demo/leave');
   await guest.waitForURL(/\/set-password\?next=/);
-  await guest.getByLabel('New password', { exact: true }).fill(passwords.reset);
+  await guest.getByLabel(/^New password/).fill(passwords.reset);
   await guest.getByLabel('Confirm new password').fill(passwords.reset);
   await guest.getByRole('button', { name: 'Set password and continue' }).click();
   await guest.waitForURL(/\/app\/demo(\/|$|\?)/);
