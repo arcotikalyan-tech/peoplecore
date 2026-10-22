@@ -15,6 +15,7 @@ const todayIn = (tz: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz 
 export default function Today() {
   const { workplace } = useSession();
   const [setup, setSetup] = useState<SetupProgress | null>(null);
+  const [holidays, setHolidays] = useState<Array<{ holiday_date: string; name: string; is_optional: boolean }>>([]);
   const [punches, setPunches] = useState<Array<{ id: string; punched_at: string; method: string }>>([]);
   const [queued, setQueued] = useState<QueuedPunch[]>([]);
   const [busy, setBusy] = useState(false);
@@ -45,6 +46,10 @@ export default function Today() {
         supabase.rpc('org_setup_status', { p_org: workplace.orgId }),
         supabase.from('org_modules').select('module, enabled').eq('organization_id', workplace.orgId),
       ]);
+      const { data: next } = await supabase.from('holidays').select('holiday_date, name, is_optional').eq('organization_id', workplace.orgId)
+        .gte('holiday_date', todayIn(workplace.timezone)).order('holiday_date').limit(8);
+      const seen = new Set<string>();
+      setHolidays(((next ?? []) as Array<{ holiday_date: string; name: string; is_optional: boolean }>).filter((h) => !seen.has(h.holiday_date + h.name) && seen.add(h.holiday_date + h.name)).slice(0, 4));
       const off = new Set(((modules ?? []) as Array<{ module: string; enabled: boolean }>).filter((m) => !m.enabled).map((m) => m.module));
       setSetup(facts ? evaluateSetup(facts as SetupFacts, off) : null);
     })();
@@ -111,6 +116,15 @@ export default function Today() {
             ))}
           </Card>
         )}
+        <Card title="Upcoming holidays">
+          {holidays.length === 0 && <Text style={s.muted}>No upcoming holidays.</Text>}
+          {holidays.map((h) => (
+            <View key={h.holiday_date + h.name} style={s.row}>
+              <Text>{h.name}{h.is_optional ? ' (optional)' : ''}</Text>
+              <Text style={s.muted}>{new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${h.holiday_date}T00:00:00Z`))}</Text>
+            </View>
+          ))}
+        </Card>
       </Screen>
     </ScrollView>
   );
