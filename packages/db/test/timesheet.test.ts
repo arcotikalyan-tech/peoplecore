@@ -150,4 +150,26 @@ describe('timesheet', () => {
       expect(reminded).toHaveProperty('missing');
     });
   });
+
+  it('a timer that runs past midnight keeps all its time: before midnight on its day, the rest on the next', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      const { project, task } = await workspace(tx, f);
+      await as(tx, f.users.icA);
+      await tx.query(`select ts_start_timer($1, $2, 'Late release', false)`, [project, task]);
+      await tx.exec('reset role');
+      // Started at 23:30 yesterday, the organization's time; stopped now.
+      await tx.query(`update ts_timers set started_at = ((app.org_today($2) - 1) + time '23:30') at time zone 'Asia/Kolkata' where employee_id = $1`, [f.employees.icA, f.orgA]);
+      await as(tx, f.users.icA);
+      const stopped = (await tx.query<{ v: { minutes: number } }>('select ts_stop_timer($1) as v', [f.orgA])).rows[0]!.v;
+      await tx.exec('reset role');
+      const entries = (await tx.query<{ day: string; start: string; end: string; minutes: number }>(
+        `select (work_date - app.org_today($2))::int::text as day, start_time::text as start, end_time::text as end, minutes
+           from ts_entries where employee_id = $1 and description = 'Late release' order by work_date`, [f.employees.icA, f.orgA])).rows;
+      expect(entries[0]).toMatchObject({ day: '-1', start: '23:30:00', end: '23:59:00', minutes: 30 });
+      expect(entries[1]).toMatchObject({ day: '0', start: '00:00:00' });
+      expect(stopped.minutes).toBe(30 + entries[1]!.minutes);
+    });
+  });
 });
+

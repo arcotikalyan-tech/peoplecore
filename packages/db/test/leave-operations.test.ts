@@ -141,9 +141,12 @@ describe('rule limits on requests', () => {
       expect(await msg(day(7, mon), day(8, mon))).toMatch(/^At most 3 day\(s\) of Limited leave a month; \w+ already has 2\.$/);
       await tx.query('select apply_leave($1, $2, $3, $4)', [f.employees.icA, id, day(7, mon), day(7, mon)]);
 
-      // HR applying for icA isn't held to the notice period.
+      // HR applying for icA isn't held to the notice period: a working day within it (tomorrow, the day after, or
+      // today, whichever is first a weekday: on a Friday both of the next days are weekly offs).
       await as(tx, f.users.hrA);
-      await tx.query('select apply_leave($1, $2, $3, $4)', [f.employees.icA, id, day(1, today), day(1, today)]);
+      const soon = (await tx.query<{ d: string }>(`select to_char(d, 'YYYY-MM-DD') as d from unnest(array[$1::date + 1, $1::date + 2, $1::date]) d
+                                                   where extract(isodow from d) < 6 limit 1`, [today])).rows[0]!.d;
+      await tx.query('select apply_leave($1, $2, $3, $4)', [f.employees.icA, id, soon, soon]);
 
       // No future dates at all; then probation.
       await rule(tx, id, { name: 'Limited leave', annual_days: 0, allow_negative: true, allow_future: false, applies_during_probation: false, allowed_on_notice: false });

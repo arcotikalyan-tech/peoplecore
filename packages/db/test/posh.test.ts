@@ -91,6 +91,8 @@ describe('POSH Internal Committee', () => {
   it('the people handling a POSH case record its steps in order; HR gets the annual figures', async () => {
     const { f } = ctx;
     await ctx.t.asUser(f.users.hrA, async (tx) => {
+      // Steps are dated in the organization's own calendar (Asia/Kolkata); so is current_date here, whatever the hour.
+      await tx.exec(`set local timezone = 'Asia/Kolkata'`);
       await tx.query(...member(f.orgA, 'presiding_officer', f.employees.peerA, true));
       await as(tx, f.users.icA);
       const posh = (await tx.query<{ id: string }>(`select raise_grievance($1, 'posh', 'Unwelcome remarks', 'Repeated remarks about my appearance in the team channel.', current_date - 10) as id`, [f.orgA])).rows[0]!.id;
