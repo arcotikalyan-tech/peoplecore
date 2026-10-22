@@ -49,15 +49,6 @@ begin
   if p_selfie_path is not null and p_selfie_path !~ ('^' || v_emp.organization_id || '/' || v_emp.id || '/[0-9a-f-]{36}$') then
     raise exception 'Invalid selfie.' using errcode = '22023';
   end if;
-  -- The photo must have reached storage just now (the app server stores it right before the punch), and count once.
-  if p_selfie_path is not null and not exists (
-       select 1 from storage.objects o
-        where o.bucket_id = 'attendance-selfies' and o.name = p_selfie_path and o.created_at > now() - interval '15 minutes') then
-    raise exception 'The selfie didn’t arrive. Please take it again.' using errcode = '22023';
-  end if;
-  if p_selfie_path is not null and exists (select 1 from public.attendance_punches where selfie_path = p_selfie_path) then
-    raise exception 'That selfie was already used for a punch. Please take a new one.' using errcode = '22023';
-  end if;
 
   v_key := p_method || ':' || v_emp.id || ':' || p_client_id;
   select id into v_id from public.attendance_punches where organization_id = v_emp.organization_id and source_key = v_key;
@@ -83,6 +74,16 @@ begin
   end if;
   if coalesce(v_shift.verify_selfie, false) and p_method = 'web' and p_selfie_path is null then
     raise exception 'Your attendance rule needs a selfie to check in.' using errcode = '42501';
+  end if;
+
+  -- Last, the photo: it must have reached storage just now (the app server stores it right before the punch), and count once.
+  if p_selfie_path is not null and not exists (
+       select 1 from storage.objects o
+        where o.bucket_id = 'attendance-selfies' and o.name = p_selfie_path and o.created_at > now() - interval '15 minutes') then
+    raise exception 'The selfie didn’t arrive. Please take it again.' using errcode = '22023';
+  end if;
+  if p_selfie_path is not null and exists (select 1 from public.attendance_punches where selfie_path = p_selfie_path) then
+    raise exception 'That selfie was already used for a punch. Please take a new one.' using errcode = '22023';
   end if;
 
   insert into public.attendance_punches (organization_id, employee_id, punched_at, method, source_key, latitude, longitude, accuracy_m, ip, selfie_path)

@@ -55,6 +55,7 @@ describe('attendance rules enforced', () => {
       await tx.query('update employees set location_id = $1 where id = $2', [loc, f.employees.icA]);
       await tx.query(`insert into geofences (organization_id, location_id, name, latitude, longitude, radius_m) values ($1, $2, 'HQ', 12.97, 77.59, 200)`, [f.orgA, loc]);
       const selfie = `${f.orgA}/${f.employees.icA}/00000000-0000-4000-8000-0000000000aa`;
+      await tx.query(`insert into storage.objects (bucket_id, name) values ('attendance-selfies', $1)`, [selfie]); // the app server stored it
 
       await as(tx, f.users.icA);
       const punch = (args: string) => `select record_punch('punch-${Math.random().toString(36).slice(2, 12)}', null, 'web', ${args}, p_org => $1)`;
@@ -64,7 +65,7 @@ describe('attendance rules enforced', () => {
       expect((await failure(tx, punch(`12.97, 77.59, 10, p_ip => '203.0.113.10', p_selfie_path => '${f.orgA}/${f.employees.peerA}/00000000-0000-4000-8000-0000000000aa'`), [f.orgA])).message).toContain('Invalid selfie');
       const ok = (await tx.query<{ id: string }>(`select record_punch('punch-okay-123', null, 'web', 12.97, 77.59, 10, p_ip => '203.0.113.10', p_selfie_path => $2, p_org => $1) as id`, [f.orgA, selfie])).rows[0]!.id;
       expect((await tx.query<{ s: string }>('select punch_selfie($1) as s', [ok])).rows[0]!.s).toBe(selfie);
-      // Mobile has no selfie yet: the punch counts and is flagged for review.
+      // A phone punch without a selfie (an offline one) counts, and is flagged for review.
       const mobile = (await tx.query<{ id: string }>(`select record_punch('punch-mobile-12', null, 'mobile', 12.97, 77.59, 10, p_org => $1) as id`, [f.orgA])).rows[0]!.id;
       await tx.exec('reset role');
       expect((await tx.query(`select 1 from anomaly_flags where subject_id = $1 and rule = 'no_selfie'`, [mobile])).rows).toHaveLength(1);
