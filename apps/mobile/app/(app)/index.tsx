@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Linking, RefreshControl, ScrollView, Text, View } from 'react-native';
 import type { QueuedPunch } from '@/lib/punch-queue';
 import { currentPosition, newClientId, queue, sendPunch } from '@/lib/punches';
+import { takeSelfie } from '@/lib/selfie';
 import { useSession } from '@/lib/session';
 import { SITE_URL } from '@/lib/site';
 import { supabase } from '@/lib/supabase';
@@ -15,6 +16,7 @@ const todayIn = (tz: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz 
 export default function Today() {
   const { workplace } = useSession();
   const [setup, setSetup] = useState<SetupProgress | null>(null);
+  const [needsSelfie, setNeedsSelfie] = useState(false);
   const [holidays, setHolidays] = useState<Array<{ holiday_date: string; name: string; is_optional: boolean }>>([]);
   const [punches, setPunches] = useState<Array<{ id: string; punched_at: string; method: string }>>([]);
   const [queued, setQueued] = useState<QueuedPunch[]>([]);
@@ -46,6 +48,10 @@ export default function Today() {
         supabase.rpc('org_setup_status', { p_org: workplace.orgId }),
         supabase.from('org_modules').select('module, enabled').eq('organization_id', workplace.orgId),
       ]);
+      if (workplace.employeeId) {
+        const { data: rule } = await supabase.rpc('attendance_rule_for', { p_employee: workplace.employeeId, p_date: todayIn(workplace.timezone) });
+        setNeedsSelfie(Boolean((rule as Array<{ verify_selfie?: boolean }> | null)?.[0]?.verify_selfie));
+      }
       const { data: next } = await supabase.from('holidays').select('holiday_date, name, is_optional').eq('organization_id', workplace.orgId)
         .gte('holiday_date', todayIn(workplace.timezone)).order('holiday_date').limit(8);
       const seen = new Set<string>();
@@ -65,11 +71,22 @@ export default function Today() {
     setBusy(true);
     setMessage(null);
     const where = await currentPosition();
-    if ('error' in where) setMessage({ tone: 'danger', text: where.error });
-    else {
-      await queue.add({ clientId: newClientId(), orgId: workplace.orgId, ...where });
-      await sync();
+    if ('error' in where) {
+      setMessage({ tone: 'danger', text: where.error });
+      return setBusy(false);
     }
+    // The rule asks for a selfie with each check-in and check-out: the front camera first.
+    let photoUri: string | undefined;
+    if (needsSelfie) {
+      const shot = await takeSelfie();
+      if (!shot || 'error' in shot) {
+        setMessage(shot ? { tone: 'danger', text: shot.error } : { tone: 'muted', text: 'Take a selfie to check in.' });
+        return setBusy(false);
+      }
+      photoUri = shot.uri;
+    }
+    await queue.add({ clientId: newClientId(), orgId: workplace.orgId, ...where, ...(photoUri ? { photoUri } : {}) });
+    await sync();
     setBusy(false);
   };
 
@@ -98,6 +115,7 @@ export default function Today() {
         ) : (
           <Card title="Attendance">
             <Button label={checkedIn ? 'Check out' : 'Check in'} busy={busy} onPress={() => void punch()} />
+            {needsSelfie && <Text style={[s.muted, { marginTop: 6 }]}>📸 Your company asks for a selfie with each check-in and check-out.</Text>}
             {message && <Message tone={message.tone} text={message.text} />}
             <View accessibilityLabel="Today's punches" style={{ marginTop: 8 }}>
               {punches.map((p) => <View key={p.id} style={s.row}><Text>{time(p.punched_at, tz)}</Text><Text style={s.muted}>{p.method}</Text></View>)}

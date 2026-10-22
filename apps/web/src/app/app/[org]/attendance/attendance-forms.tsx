@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState, useTransition } from 'react';
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react';
 import { describePenalty, PENALTY_METHOD_LABELS, PENALTY_METHODS, SHORT_HOURS_METHODS, type PenaltyMethod } from '@peoplecore/shared';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
@@ -44,13 +44,73 @@ export function PunchButton({ action, label, selfie: needsSelfie = false }: { ac
 
   return (
     <div className="space-y-2">
-      {askSelfie && (
-        <label className="block text-sm">📸 Selfie for check-in
-          <input type="file" accept="image/jpeg,image/png" capture="user" aria-label="Selfie" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="mt-1 block text-sm" />
-        </label>
-      )}
+      {askSelfie && <SelfieCamera onPhoto={setPhoto} />}
       <Button onClick={punch} disabled={pending || locating || (askSelfie && !photo)}>{locating ? 'Getting location…' : pending ? 'Recording…' : label}</Button>
       <FormMessage state={state} />
+    </div>
+  );
+}
+
+/**
+ * The selfie for a check-in: the device's camera, live (front camera where there is one): open it, take the photo,
+ * retake if needed. A browser without a camera (or that refuses it) can choose a photo instead.
+ */
+function SelfieCamera({ onPhoto }: { onPhoto: (file: File | null) => void }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [noCamera, setNoCamera] = useState(false);
+  const [live, setLive] = useState(false); // the camera's picture is showing (only then can a photo be taken)
+
+  useEffect(() => {
+    if (stream && video.current) {
+      video.current.srcObject = stream;
+      void video.current.play().catch(() => undefined);
+    }
+    return () => stream?.getTracks().forEach((t) => t.stop());
+  }, [stream]);
+
+  async function open() {
+    setPreview(null);
+    setLive(false);
+    onPhoto(null);
+    try {
+      setStream(await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 } }, audio: false }));
+    } catch {
+      setNoCamera(true);
+    }
+  }
+
+  function take() {
+    const v = video.current;
+    if (!v || !v.videoWidth) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.min(720, v.videoWidth);
+    canvas.height = Math.round((v.videoHeight * canvas.width) / v.videoWidth);
+    canvas.getContext('2d')?.drawImage(v, 0, 0, canvas.width, canvas.height);
+    setPreview(canvas.toDataURL('image/jpeg', 0.8));
+    canvas.toBlob((blob) => { if (blob) onPhoto(new File([blob], 'selfie.jpg', { type: 'image/jpeg' })); }, 'image/jpeg', 0.8);
+    setStream(null);
+    setLive(false);
+  }
+
+  if (noCamera) {
+    return (
+      <label className="block text-sm">📸 Your attendance rule needs a selfie, and this browser can’t open the camera. Take or choose a photo:
+        <input type="file" accept="image/jpeg,image/png" capture="user" aria-label="Selfie" onChange={(e) => onPhoto(e.target.files?.[0] ?? null)} className="mt-1 block text-sm" />
+      </label>
+    );
+  }
+  return (
+    <div className="space-y-2 text-sm" aria-label="Selfie">
+      <p className="text-muted">📸 Your attendance rule needs a selfie with each check-in and check-out.</p>
+      {stream && <video ref={video} playsInline muted aria-label="Camera preview" onPlaying={() => setLive(true)} className="w-full max-w-xs -scale-x-100 rounded-lg bg-black" />}
+      {/* eslint-disable-next-line @next/next/no-img-element -- a photo just taken, as a data URL */}
+      {preview && <img src={preview} alt="Your selfie" className="w-full max-w-xs -scale-x-100 rounded-lg" />}
+      <div className="flex flex-wrap gap-2">
+        {stream ? <Button type="button" size="sm" onClick={take} disabled={!live}>{live ? 'Take photo' : 'Starting camera…'}</Button>
+          : <Button type="button" size="sm" variant="secondary" onClick={() => void open()}>{preview ? 'Retake' : 'Open camera'}</Button>}
+      </div>
     </div>
   );
 }

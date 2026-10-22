@@ -40,9 +40,10 @@ function monthFigures(month: Month, tz: string) {
 /** The employee's own hub: today, the month, and asking for corrections, work from home or on duty. */
 export async function MyHub({ ctx, slug, me, today }: { ctx: OrgContext; slug: string; me: Me; today: string }) {
   const tz = ctx.org.timezone;
-  const [month, punches, regs, requests, regWindow] = await Promise.all([
+  const [month, punches, regs, requests, regWindow, rule] = await Promise.all([
     getMyMonth(me.id, today), getPunches(ctx.org.id, me.id, 36), getRegularizations(ctx.org.id, me.id), attendanceRequests(ctx.org.id, { employeeId: me.id }),
     regularizationWindow(ctx.org.id),
+    myRule(ctx.org.id, me.id, today).catch(() => null),
   ]);
   const earliest = addDays(today, -regWindow.daysBack);
   const pendingDays = new Set(regs.filter((r) => r.status === 'pending').map((r) => r.work_date));
@@ -62,7 +63,7 @@ export async function MyHub({ ctx, slug, me, today }: { ctx: OrgContext; slug: s
             <p className="mt-1 text-lg font-semibold">{todayRow ? ATTENDANCE_STATUS_LABELS[todayRow.status as AttendanceStatus] : 'Not marked yet'}</p>
             <p className="text-sm text-muted">{todayPunches.length ? `Punches: ${todayPunches.map((p) => time(p.punched_at)).join(', ')}` : 'No punches yet today.'}</p>
           </div>
-          <PunchButton action={punchAction.bind(null, slug)} label={todayPunches.length % 2 === 0 ? 'Check in' : 'Check out'} />
+          <PunchButton action={punchAction.bind(null, slug)} label={todayPunches.length % 2 === 0 ? 'Check in' : 'Check out'} selfie={!!rule?.shift?.verify_selfie} />
         </section>
         <section aria-label="This month at a glance" className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard label="Days present" value={f.present} note="incl. WFH and on duty" tone="success" />

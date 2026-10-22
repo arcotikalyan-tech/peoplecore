@@ -47,3 +47,13 @@ create table storage.buckets (
   created_at         timestamptz default now(),
   updated_at         timestamptz default now()
 );
+-- Stored files, as far as the database sees them (Supabase keeps the bytes elsewhere): which bucket and path, and when.
+create table storage.objects (
+  id          uuid primary key default gen_random_uuid(),
+  bucket_id   text references storage.buckets (id),
+  name        text,
+  owner       uuid,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now(),
+  metadata    jsonb
+);

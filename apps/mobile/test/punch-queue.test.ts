@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chunkedStore, type SecureStore } from '../src/lib/chunked-store';
-import { classify, PunchQueue, type KeyValueStore, type QueuedPunch, type SendResult } from '../src/lib/punch-queue';
+import { classify, classifyHttp, PunchQueue, type KeyValueStore, type QueuedPunch, type SendResult } from '../src/lib/punch-queue';
 
 const memory = (): KeyValueStore & { data: Map<string, string> } => {
   const data = new Map<string, string>();
@@ -100,5 +100,16 @@ describe('chunked secure store', () => {
     const store = chunkedStore(fake());
     await store.setItem('sb:auth/token', 'v');
     expect(await store.getItem('sb:auth/token')).toBe('v');
+  });
+});
+
+describe('photo punches through the app server', () => {
+  it('keeps a refusal for good, and retries anything else', () => {
+    expect(classifyHttp(200, { ok: true })).toEqual({ ok: true });
+    expect(classifyHttp(400, { ok: false, message: 'Take a photo (JPEG or PNG).', permanent: true })).toEqual({ ok: false, permanent: true, message: 'Take a photo (JPEG or PNG).' });
+    expect(classifyHttp(403, { ok: false, message: 'Your account isn’t linked to an active employee record.' })).toMatchObject({ permanent: true });
+    expect(classifyHttp(503, { ok: false, message: 'The selfie couldn’t be stored. It will be sent again.', permanent: false })).toMatchObject({ permanent: false });
+    expect(classifyHttp(401, null)).toMatchObject({ permanent: false });
+    expect(classifyHttp(0, null)).toEqual({ ok: false, permanent: false, message: 'No connection.' });
   });
 });

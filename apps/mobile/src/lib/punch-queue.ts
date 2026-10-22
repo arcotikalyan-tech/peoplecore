@@ -13,6 +13,8 @@ export interface QueuedPunch {
   latitude: number | null;
   longitude: number | null;
   accuracyM: number | null;
+  /** A selfie taken with the punch (a file on this device), when the attendance rule asks for one. */
+  photoUri?: string;
   /** Set when the server refused it for good. */
   refused?: string;
 }
@@ -96,6 +98,14 @@ export class PunchQueue {
   async dismiss(clientId: string) {
     await this.save((await this.all()).filter((p) => p.clientId !== clientId));
   }
+}
+
+/** What the app server's photo endpoint (/api/mobile/punch) answered: its status and JSON body. */
+export function classifyHttp(status: number, body: { ok?: boolean; message?: string; permanent?: boolean } | null): SendResult {
+  if (status === 200 && body?.ok) return { ok: true };
+  // A refusal that won't change on retry (the rule, a bad photo, no employee record); anything else is tried again.
+  if (status === 400 || status === 403 || body?.permanent) return { ok: false, permanent: true, message: body?.message ?? 'Refused.' };
+  return { ok: false, permanent: false, message: body?.message ?? 'No connection.' };
 }
 
 /** Postgres/PostgREST errors with a message for people (22023) or a refusal (42501) won't change on retry. */

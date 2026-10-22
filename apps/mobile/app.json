@@ -36,6 +36,14 @@
         {
           "locationWhenInUsePermission": "PeopleCore records where you check in, so your office can confirm you were on site."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "PeopleCore takes a selfie at check-in when your company asks for one.",
+          "photosPermission": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

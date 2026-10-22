@@ -280,7 +280,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
             <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">⏱ Work hours</p>
             {todayPunches.length > 0 && <p className="mt-1 text-sm text-muted">Punches today: {todayPunches.map((p) => time(p.punched_at)).join(', ')}</p>}
             <div className="mt-3 [&_button]:h-11 [&_button]:w-full [&_button]:rounded-xl [&_button]:text-[15px]">
-              <PunchButton action={punchAction.bind(null, slug)} label={todayPunches.length % 2 === 0 ? '🕐 Clock In' : '🕐 Clock Out'} />
+              <PunchButton action={punchAction.bind(null, slug)} label={todayPunches.length % 2 === 0 ? '🕐 Clock In' : '🕐 Clock Out'} selfie={!!shift?.verify_selfie} />
             </div>
             <p className="mt-2 text-center text-xs text-muted">Office hours: {shift ? `${shift.start_time.slice(0, 5)} – ${shift.end_time.slice(0, 5)}` : '—'}</p>
           </section>
