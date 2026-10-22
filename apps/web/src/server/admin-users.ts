@@ -1,6 +1,9 @@
 import 'server-only';
 import { createAdminClient } from './admin';
 
+/** How long to wait for Supabase to send an invitation email before telling the person to try again. */
+const INVITE_WAIT_MS = 20_000;
+
 export type FindOrInviteResult = { ok: true; userId: string; invited: boolean } | { ok: false; message: string };
 
 /**
@@ -21,7 +24,15 @@ export async function findOrInviteUser(email: string, redirectTo: string): Promi
     if (data.users.length < 1000) break;
   }
 
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(target, { redirectTo });
+  // Supabase sends the invitation over SMTP before it answers, so a slow mail server would hold the page; give up
+  // waiting after a while. If the email does go out later, inviting again finds the new user and just adds them.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const slow = new Promise<'slow'>((resolve) => { timer = setTimeout(() => resolve('slow'), INVITE_WAIT_MS); });
+  const result = await Promise.race([admin.auth.admin.inviteUserByEmail(target, { redirectTo }), slow]).finally(() => clearTimeout(timer));
+  if (result === 'slow') {
+    return { ok: false, message: 'The email server is taking too long to answer. Wait a minute, then invite them again: if the first invitation went out, they’re simply added.' };
+  }
+  const { data, error } = result;
   if (error || !data.user) {
     return { ok: false, message: 'Could not send the invitation. Check the Supabase Auth email settings.' };
   }
