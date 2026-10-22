@@ -28,6 +28,14 @@ describe('emails', () => {
     expect(compose({ ...email, event: 'payslip' }, { from: 'a@example.test', appUrl: null }).text).toContain('because your payslip was published');
   });
 
+  it('sends sign-up emails without a workspace, linking into the console', () => {
+    const alert = compose({ ...email, org_slug: null, org_name: null, event: 'signup_alert', link: '/platform', body: 'Asha Rao asked for a workspace.' },
+      { from: 'a@example.test', appUrl: 'https://hrms.example.test' });
+    expect(alert.text).toContain('Open in PeopleCore: https://hrms.example.test/platform');
+    expect(alert.text).toContain('— PeopleCore. You get this email because you’re a PeopleCore platform administrator.');
+    expect(alert.html).not.toContain('null');
+  });
+
   it('reports each email as sent or failed', async () => {
     const outcomes: Array<[string, boolean, string | undefined]> = [];
     const transport = nodemailer.createTransport({ jsonTransport: true });

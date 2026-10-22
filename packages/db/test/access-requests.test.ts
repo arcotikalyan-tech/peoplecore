@@ -35,6 +35,50 @@ describe('access requests from the website sign-up form', () => {
     } finally {
       await t.db.query('delete from platform_admins where user_id = $1', [f.users.outsider]);
       await t.db.query('delete from access_requests');
+      await t.db.query(`delete from email_outbox where event like 'signup%'`);
+    }
+  });
+
+  it('emails the person who asked (once) and every platform admin; tenants never see these emails', async () => {
+    const { f, t } = ctx;
+    await t.db.query('insert into platform_admins (user_id) values ($1)', [f.users.outsider]);
+    try {
+      const rows = await t.asAnon(async (tx) => {
+        const ask = (email: string) => tx.query(`select request_access('Acme Pvt Ltd', 'Asha Rao', $1, '+91 90000 00000', '26-100', 'We have 60 people')`, [email]);
+        await ask('asha@acme.example.test');
+        await ask('asha@acme.example.test'); // again: nothing more is sent
+        await tx.exec('reset role');
+        return (await tx.query<{ organization_id: string | null; user_id: string | null; to_email: string; event: string; subject: string; body: string; link: string | null }>(
+          `select organization_id, user_id, to_email, event, subject, body, link from email_outbox where event like 'signup%' and created_at = now() order by event`)).rows;
+      });
+      const alert = rows.find((r) => r.event === 'signup_alert' && r.user_id === f.users.outsider)!;
+      const received = rows.filter((r) => r.event === 'signup_received');
+      expect(rows.filter((r) => r.event === 'signup_alert').length).toBe(Number((await t.db.query<{ n: string }>('select count(*) as n from platform_admins')).rows[0]!.n));
+      expect(alert).toMatchObject({ organization_id: null, subject: 'New sign-up: Acme Pvt Ltd (26-100 people)', link: '/platform' });
+      expect(alert.body).toContain('Email: asha@acme.example.test');
+      expect(alert.body).toContain('Message: We have 60 people');
+      expect(received).toHaveLength(1);
+      expect(received[0]).toMatchObject({ to_email: 'asha@acme.example.test', user_id: null, organization_id: null, subject: 'We’ve got your PeopleCore request', link: null });
+      expect(received[0]!.body).toMatch(/^Hi Asha,\n\nThanks for asking for a PeopleCore workspace for Acme Pvt Ltd\./);
+    } finally {
+      await t.db.query('delete from platform_admins where user_id = $1', [f.users.outsider]);
+    }
+  });
+
+  it('only sign-up emails may have no organization, and the worker sends them without a workspace', async () => {
+    const { f, t } = ctx;
+    await t.db.exec('begin');
+    try {
+      await expect(t.db.query(`insert into email_outbox (to_email, event, subject, body) values ('x@example.test', 'leave', 'S', 'B')`)).rejects.toMatchObject({ code: '23514' });
+      await t.db.exec('rollback');
+      await t.db.exec('begin');
+      const id = (await t.db.query<{ id: string }>(`insert into email_outbox (to_email, event, subject, body, link) values ('ops@example.test', 'signup_alert', 'New sign-up', 'Body', '/platform') returning id`)).rows[0]!.id;
+      const claimed = (await t.db.query<{ id: string; org_slug: string | null; org_name: string | null }>('select * from worker_claim_emails(10)')).rows;
+      expect(claimed.find((c) => c.id === id)).toMatchObject({ org_slug: null, org_name: null });
+      expect(await t.asUser(f.users.ownerA, async (tx) => (await tx.query('select 1 from email_outbox where organization_id is null')).rows)).toEqual([]);
+    } finally {
+      await t.db.exec('rollback');
     }
   });
 });
+

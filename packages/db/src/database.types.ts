@@ -1944,7 +1944,7 @@ export type Database = {
       email_outbox: {
         Row: {
           id: string;
-          organization_id: string;
+          organization_id: string | null;
           user_id: string | null;
           to_email: string;
           event: string;
@@ -1960,7 +1960,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          organization_id: string;
+          organization_id?: string | null;
           user_id?: string | null;
           to_email: string;
           event: string;
@@ -1976,7 +1976,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          organization_id?: string;
+          organization_id?: string | null;
           user_id?: string | null;
           to_email?: string;
           event?: string;
