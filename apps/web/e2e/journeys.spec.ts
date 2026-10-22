@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import { ROLE_KEYS } from '@peoplecore/shared';
 import { adminClient, completeMfa, domain, expectNotFound, liveEnv, open, signIn, test } from './helpers';
 
 /**
@@ -178,7 +179,7 @@ test('the platform admin creates a tenant and cannot see inside it', async ({ pa
     .from('roles')
     .select('key, organizations!inner(slug)')
     .eq('organizations.slug', tenant.slug);
-  expect(roles).toHaveLength(8); // standard roles seeded for the new tenant
+  expect(roles!.map((r) => r.key).sort()).toEqual([...ROLE_KEYS].sort()); // every standard role, seeded for the new tenant
 
   await open(page, `/app/${tenant.slug}`);
   await expectNotFound(page);
