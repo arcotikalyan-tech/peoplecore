@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { DateField } from '@/date-field';
+import { longDate } from '@/lib/calendar';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import { Button, Card, colors, Field, Message, s, Screen } from '@/ui';
@@ -8,7 +10,6 @@ interface Balance { leave_type_id: string; name: string; available: number; is_p
 interface Request { id: string; leave_type_id: string; start_date: string; end_date: string; days: number; status: string }
 
 const STATUS: Record<string, string> = { pending: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected', cancelled: 'Cancelled' };
-const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function Leave() {
   const { workplace } = useSession();
@@ -35,7 +36,8 @@ export default function Leave() {
 
   const submit = async () => {
     if (!emp || !type) return setMessage({ tone: 'danger', text: 'Choose a leave type.' });
-    if (!ISO.test(from) || !ISO.test(to || from)) return setMessage({ tone: 'danger', text: 'Enter dates as YYYY-MM-DD.' });
+    if (!from) return setMessage({ tone: 'danger', text: 'Choose the first day of your leave.' });
+    if (to && to < from) return setMessage({ tone: 'danger', text: 'The last day can’t be before the first.' });
     setBusy(true);
     const { error } = await supabase.rpc('apply_leave', { p_employee: emp, p_type: type, p_start: from, p_end: to || from, p_reason: reason || undefined } as never);
     setBusy(false);
@@ -71,8 +73,8 @@ export default function Leave() {
               </Pressable>
             ))}
           </View>
-          <Field label="From (YYYY-MM-DD)" value={from} onChangeText={setFrom} placeholder="2026-11-03" autoCapitalize="none" />
-          <Field label="To (YYYY-MM-DD, blank for one day)" value={to} onChangeText={setTo} placeholder="2026-11-04" autoCapitalize="none" />
+          <DateField label="From" value={from} onChange={(d) => { setFrom(d); if (to && to < d) setTo(''); }} />
+          <DateField label="To" value={to} onChange={setTo} min={from || undefined} placeholder="Same day" clearable />
           <Field label="Reason" value={reason} onChangeText={setReason} />
           <Button label="Request leave" busy={busy} onPress={() => void submit()} />
           {message && <Message tone={message.tone} text={message.text} />}
@@ -82,7 +84,7 @@ export default function Leave() {
           {requests.map((r) => (
             <View key={r.id} style={s.row}>
               <View style={{ flex: 1 }}>
-                <Text>{name(r.leave_type_id)} · {r.start_date === r.end_date ? r.start_date : `${r.start_date} – ${r.end_date}`}</Text>
+                <Text>{name(r.leave_type_id)} · {r.start_date === r.end_date ? longDate(r.start_date) : `${longDate(r.start_date)} – ${longDate(r.end_date)}`}</Text>
                 <Text style={s.muted}>{r.days} day{r.days === 1 ? '' : 's'} · {STATUS[r.status] ?? r.status}</Text>
               </View>
               {(r.status === 'pending' || r.status === 'approved') && <Pressable accessibilityRole="button" accessibilityLabel={`Cancel ${name(r.leave_type_id)} from ${r.start_date}`} onPress={() => void cancel(r.id)}><Text style={{ color: colors.primary }}>Cancel</Text></Pressable>}
