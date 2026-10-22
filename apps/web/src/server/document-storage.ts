@@ -29,12 +29,19 @@ export const SELFIE_BUCKET = 'attendance-selfies';
 export const COMPANY_BUCKET = 'company-documents';
 /** Files on helpdesk tickets: <org uuid>/<ticket uuid>/<file uuid>. Recorded with add_ticket_attachment, signed only for ticket_file. */
 export const HELPDESK_BUCKET = 'helpdesk-attachments';
+/**
+ * Profile photos (<org uuid>/<employee uuid>/<file uuid>, recorded with set_employee_photo) and company logos
+ * (<org uuid>/logo/<file uuid>, set_company_logo). Signed only for paths read through RLS (rows the viewer can see).
+ */
+export const IMAGE_BUCKET = 'profile-images';
+const LOGO_PATH = new RegExp(`^${UUID}/logo/${UUID}$`);
 /** Always named explicitly: a default bucket would silently put files in the wrong place. */
 type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET | typeof LETTER_BUCKET | typeof STATUTORY_BUCKET | typeof SELFIE_BUCKET | typeof COMPANY_BUCKET
-  | typeof HELPDESK_BUCKET;
+  | typeof HELPDESK_BUCKET | typeof IMAGE_BUCKET;
 
 function checkedPath(path: string, bucket?: Bucket) {
-  if (!(bucket === LETTER_BUCKET || bucket === STATUTORY_BUCKET || bucket === COMPANY_BUCKET ? LETTER_PATH : PATH).test(path)) throw new Error('Invalid document path');
+  const shape = bucket === LETTER_BUCKET || bucket === STATUTORY_BUCKET || bucket === COMPANY_BUCKET ? LETTER_PATH : bucket === IMAGE_BUCKET && path.includes('/logo/') ? LOGO_PATH : PATH;
+  if (!shape.test(path)) throw new Error('Invalid document path');
   return path;
 }
 
@@ -60,4 +67,13 @@ export async function signDocumentUrl(path: string, fileName: string, bucket: Bu
 export async function signImageUrl(path: string): Promise<string | null> {
   const { data, error } = await createAdminClient().storage.from(LETTER_BUCKET).createSignedUrl(checkedPath(path, LETTER_BUCKET), 300);
   return error ? null : data.signedUrl;
+}
+
+/** Links to show profile photos and logos (an hour), for paths the viewer read through RLS. */
+export async function signImageUrls(paths: Array<string | null | undefined>): Promise<Map<string, string>> {
+  const wanted = [...new Set(paths.filter((p): p is string => !!p))].map((p) => checkedPath(p, IMAGE_BUCKET));
+  if (wanted.length === 0) return new Map();
+  const { data, error } = await createAdminClient().storage.from(IMAGE_BUCKET).createSignedUrls(wanted, 3600);
+  if (error || !data) return new Map();
+  return new Map(data.flatMap((d) => (d.path && d.signedUrl ? [[d.path, d.signedUrl] as [string, string]] : [])));
 }

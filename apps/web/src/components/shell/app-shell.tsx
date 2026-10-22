@@ -20,8 +20,8 @@ const setCookie = (name: string, value: string) => {
 export interface ShellProps {
   base: string;
   nav: NavGroup[];
-  org: { name: string; isDemo: boolean };
-  user: { name: string; email: string | null; profileHref: string | null };
+  org: { name: string; isDemo: boolean; logo?: string | null };
+  user: { name: string; email: string | null; profileHref: string | null; photo?: string | null };
   unread: number;
   view: ViewMode;
   canSwitchView: boolean;
@@ -124,7 +124,8 @@ function Sidebar({ base, nav, rail, org, user, platformAdmin, onToggleRail }: {
   return (
     <>
       <div className={cn('flex h-14 shrink-0 items-center gap-2 border-b border-line', rail ? 'justify-center px-2' : 'px-4')}>
-        <BrandMark />
+        {/* eslint-disable-next-line @next/next/no-img-element -- a signed storage link that changes every request */}
+        {org.logo ? <img src={org.logo} alt={`${org.name} logo`} className="size-8 shrink-0 rounded-md object-contain" /> : <BrandMark />}
         {!rail && (
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-sm font-semibold">People<span className="text-brand">Core</span></p>
@@ -146,7 +147,7 @@ function Sidebar({ base, nav, rail, org, user, platformAdmin, onToggleRail }: {
       <div className={cn('shrink-0 space-y-1 border-t border-line p-2.5 text-sm', rail && 'flex flex-col items-center')}>
         {!rail && (
           <div className="flex items-center gap-2.5 px-2 py-1.5">
-            <Avatar name={user.name} size="sm" />
+            <Avatar name={user.name} src={user.photo} size="sm" />
             <div className="min-w-0 leading-tight">
               <p className="truncate font-medium">{user.name}</p>
               <p className="truncate text-xs text-muted" title={user.email ?? undefined}>{user.email}</p>
@@ -220,7 +221,7 @@ function AccountMenu({ base, user, platformAdmin }: { base: string; user: ShellP
   return (
     <div ref={ref} className="relative">
       <button aria-label="Account menu" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
-        <Avatar name={user.name} size="sm" />
+        <Avatar name={user.name} src={user.photo} size="sm" />
       </button>
       {open && (
         <div role="menu" aria-label="Account" className="absolute right-0 top-11 z-50 w-64 rounded-xl border border-line bg-surface p-1.5 shadow-lg">

@@ -1446,6 +1446,7 @@ export type Database = {
           esi_code: string | null;
           updated_by: string | null;
           updated_at: string;
+          logo_path: string | null;
         };
         Insert: {
           organization_id: string;
@@ -1467,6 +1468,7 @@ export type Database = {
           esi_code?: string | null;
           updated_by?: string | null;
           updated_at?: string;
+          logo_path?: string | null;
         };
         Update: {
           organization_id?: string;
@@ -1488,6 +1490,7 @@ export type Database = {
           esi_code?: string | null;
           updated_by?: string | null;
           updated_at?: string;
+          logo_path?: string | null;
         };
         Relationships: [];
       };
@@ -2403,6 +2406,7 @@ export type Database = {
           job_title: string | null;
           billable: boolean;
           prior_experience_months: number | null;
+          photo_path: string | null;
         };
         Insert: {
           id?: string;
@@ -2433,6 +2437,7 @@ export type Database = {
           job_title?: string | null;
           billable?: boolean;
           prior_experience_months?: number | null;
+          photo_path?: string | null;
         };
         Update: {
           id?: string;
@@ -2463,6 +2468,7 @@ export type Database = {
           job_title?: string | null;
           billable?: boolean;
           prior_experience_months?: number | null;
+          photo_path?: string | null;
         };
         Relationships: [];
       };
@@ -9390,6 +9396,13 @@ export type Database = {
         };
         Returns: { pan: string; aadhaar_last4: string; uan: string; esic_number: string; passport_number: string; passport_expiry: string; updated_at: string; can_edit: boolean }[];
       };
+      employee_photos: {
+        Args: {
+          p_org: string;
+          p_ids: string[];
+        };
+        Returns: { employee_id: string; photo_path: string }[];
+      };
       end_delegation: {
         Args: {
           p_delegation: string;
@@ -10418,6 +10431,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      set_company_logo: {
+        Args: {
+          p_org: string;
+          p_path: string;
+        };
+        Returns: string;
+      };
       set_compensation: {
         Args: {
           p_employee: string;
@@ -10463,6 +10483,13 @@ export type Database = {
           p_passport_expiry?: string;
         };
         Returns: undefined;
+      };
+      set_employee_photo: {
+        Args: {
+          p_employee: string;
+          p_path: string;
+        };
+        Returns: string;
       };
       set_grievance_access: {
         Args: {

@@ -17,13 +17,19 @@ function tone(name: string) {
   return TONES[h % TONES.length];
 }
 
-export function Avatar({ name, size = 'md', className }: { name: string; size?: 'sm' | 'md' | 'lg'; className?: string }) {
+/** A profile photo when there is one (a short-lived signed link), otherwise initials. */
+export function Avatar({ name, size = 'md', className, src }: { name: string; size?: 'sm' | 'md' | 'lg'; className?: string; src?: string | null }) {
+  const box = size === 'sm' ? 'size-7 text-[11px]' : size === 'lg' ? 'size-12 text-base' : 'size-9 text-xs';
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element -- signed storage links change every request; next/image would cache them
+    return <img src={src} alt="" aria-hidden="true" className={cn('inline-block shrink-0 rounded-full bg-subtle object-cover', box, className)} />;
+  }
   return (
     <span
       aria-hidden="true"
       className={cn(
         'inline-grid shrink-0 place-items-center rounded-full font-semibold',
-        size === 'sm' ? 'size-7 text-[11px]' : size === 'lg' ? 'size-12 text-base' : 'size-9 text-xs',
+        box,
         tone(name),
         className,
       )}

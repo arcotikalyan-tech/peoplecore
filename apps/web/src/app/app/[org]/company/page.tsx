@@ -1,4 +1,7 @@
 import type { Metadata } from 'next';
+import { signImageUrls } from '@/server/document-storage';
+import { removeLogoAction, setLogoAction } from '../employees/photo-actions';
+import { PictureForm } from '../employees/photo-form';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ActionForm } from '@/components/action-form';
@@ -47,6 +50,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   const manage = ctx.can('org.manage', 'org');
   const supabase = await createClient();
   const { data: row } = await supabase.from('company_profiles').select('*').eq('organization_id', ctx.org.id).maybeSingle();
+  const logo = row?.logo_path ? (await signImageUrls([row.logo_path])).get(row.logo_path) ?? null : null;
   const p: Profile = { legal_name: ctx.org.name, brand_name: null, email: null, phone: null, website: null, industry: null, social: {}, entity_type: null, cin: null, llpin: null,
     incorporated_on: null, pan: null, tan: null, gstin: null, pf_code: null, esi_code: null, ...(row ? { ...row, social: (row.social ?? {}) as Record<string, string> } : {}) };
   const save = saveCompanyAction.bind(null, slug);
@@ -102,6 +106,17 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
                 )}
               </Panel>
               <div className="space-y-5">
+                <Panel title="Logo">
+                  <div className="flex flex-wrap items-center gap-4">
+                    {logo
+                      // eslint-disable-next-line @next/next/no-img-element -- a signed storage link that changes every request
+                      ? <img src={logo} alt={`${ctx.org.name} logo`} className="size-16 rounded-lg border border-line bg-surface object-contain p-1" />
+                      : <span className="grid size-16 place-items-center rounded-lg border border-dashed border-line text-xs text-muted">No logo</span>}
+                    {manage && <PictureForm field="logo" label="Company logo" has={!!row?.logo_path}
+                      action={setLogoAction.bind(null, slug)} remove={removeLogoAction.bind(null, slug)} />}
+                  </div>
+                  {manage && <p className="mt-2 text-xs text-muted">A square JPEG or PNG under 2 MB works best.</p>}
+                </Panel>
                 <Panel title="Profile completeness">
                   <div className="h-2 rounded-full bg-subtle"><div className="h-2 rounded-full bg-success" style={{ width: `${complete}%` }} /></div>
                   <p className="mt-2 text-sm text-muted">{checks.filter((c) => !c).length} item{checks.filter((c) => !c).length === 1 ? '' : 's'} left to reach a complete profile.</p>

@@ -12,6 +12,8 @@ import { canRun } from '@/server/reports';
 import { readFlash } from '@/server/flash';
 import { aiAvailable } from '@/server/ai';
 import { unreadNotificationCount } from '@/server/inbox';
+import { signImageUrls } from '@/server/document-storage';
+import { createClient } from '@/server/supabase';
 import { disabledModules } from '@/server/modules';
 import { orgSetup } from '@/server/setup';
 import { hasAdminView, viewModeFor } from '@/server/view';
@@ -24,6 +26,9 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     isPlatformAdmin(), unreadNotificationCount(ctx.org.id), readFlash(), aiAvailable(ctx), getMyEmployee(ctx.org.id, ctx.user.id), viewModeFor(ctx), cookies(),
   ]);
   const base = `/app/${slug}`;
+  // The person's photo and the company logo: short-lived links, only when there is something to show.
+  const { data: company } = await (await createClient()).from('company_profiles').select('logo_path').eq('organization_id', ctx.org.id).maybeSingle();
+  const images = await signImageUrls([me?.photo_path, company?.logo_path]);
   const profileHref = me ? `${base}/employees/${me.id}` : null;
   const when = (ok: boolean, item: NavItem) => (ok ? [item] : []);
   const reports = REPORTS.some((r) => canRun(ctx, r.access));
@@ -133,8 +138,8 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     <AppShell
       base={base}
       nav={pruneEmpty(nav.map((g) => ({ ...g, items: g.items.filter((i) => !off.has(i.href.slice(base.length + 1).split(/[/?]/)[0] ?? '')) })))}
-      org={{ name: ctx.org.name, isDemo: ctx.org.is_demo }}
-      user={{ name: me ? legalName(me) : (ctx.user.email ?? 'You'), email: ctx.user.email, profileHref }}
+      org={{ name: ctx.org.name, isDemo: ctx.org.is_demo, logo: company?.logo_path ? images.get(company.logo_path) ?? null : null }}
+      user={{ name: me ? legalName(me) : (ctx.user.email ?? 'You'), email: ctx.user.email, profileHref, photo: me?.photo_path ? images.get(me.photo_path) ?? null : null }}
       unread={unread}
       view={view}
       canSwitchView={hasAdminView(ctx)}

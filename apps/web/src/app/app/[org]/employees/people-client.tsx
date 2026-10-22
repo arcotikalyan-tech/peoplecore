@@ -14,6 +14,8 @@ export interface Card {
   id: string; name: string; code: string | null; designation: string | null; department: string | null; location: string | null;
   email: string | null; phone: string | null; tenureYears: number; status: string; href: string | null; badge?: string | null;
   birthday?: string | null; maritalStatus?: string | null; social?: Array<[string, string]>;
+  /** A link to their profile photo, when they have one. */
+  photo?: string | null;
 }
 export interface Option { value: string; label: string }
 
@@ -63,7 +65,7 @@ export function PeopleBoard({ cards, view, bulk, options, today }: {
               <div className="h-12 bg-primary-soft/60" aria-hidden="true" />
               {bulk && <span className="absolute left-3 top-3">{check(c)}</span>}
               {c.badge && <span className="absolute right-3 top-3 rounded-full bg-warning-soft px-2 py-0.5 text-[10px] font-semibold text-warning">{c.badge}</span>}
-              <div className="-mt-8 flex justify-center"><Avatar name={c.name} size="lg" className="size-16 border-4 border-surface text-lg" /></div>
+              <div className="-mt-8 flex justify-center"><Avatar name={c.name} src={c.photo} size="lg" className="size-16 border-4 border-surface text-lg" /></div>
               <div className="px-4 pb-4 pt-2">
                 <p className="truncate font-semibold">{c.href ? <Link href={c.href} className="hover:text-primary">{c.name}</Link> : c.name}</p>
                 <p className="truncate text-xs text-muted">{[c.designation, c.department].filter(Boolean).join(' · ') || '—'}</p>
@@ -89,7 +91,7 @@ export function PeopleBoard({ cards, view, bulk, options, today }: {
               {cards.map((c) => (
                 <tr key={c.id} className="hover:bg-subtle/40">
                   {bulk && <td className="px-4">{check(c)}</td>}
-                  <td className="px-4 py-2"><span className="flex items-center gap-2.5"><Avatar name={c.name} size="sm" /><span><span className="block font-medium">{c.href ? <Link href={c.href} className="hover:text-primary">{c.name}</Link> : c.name}</span>{c.code && <span className="text-xs text-muted">{c.code}</span>}</span></span></td>
+                  <td className="px-4 py-2"><span className="flex items-center gap-2.5"><Avatar name={c.name} src={c.photo} size="sm" /><span><span className="block font-medium">{c.href ? <Link href={c.href} className="hover:text-primary">{c.name}</Link> : c.name}</span>{c.code && <span className="text-xs text-muted">{c.code}</span>}</span></span></td>
                   <td>{c.designation ?? '—'}</td><td>{c.department ?? '—'}</td><td>{c.location ?? '—'}</td>
                   <td className="tabular-nums">{c.tenureYears.toFixed(1)}y</td>
                   <td className="text-xs capitalize text-muted">{c.status.replace('_', ' ')}{c.badge ? ` · ${c.badge}` : ''}</td>

@@ -83,7 +83,7 @@ export const getMyEmployee = cache(async (orgId: string, userId: string) => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('employees')
-    .select('id, first_name, middle_name, last_name, employee_code, status, employment_type')
+    .select('id, first_name, middle_name, last_name, employee_code, status, employment_type, photo_path')
     .eq('organization_id', orgId)
     .eq('user_id', userId)
     .maybeSingle();

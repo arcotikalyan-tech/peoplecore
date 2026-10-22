@@ -18,6 +18,7 @@ import { directory, directorySettings, genderMix, peopleRecords, profileGaps, si
 import { viewModeFor } from '@/server/view';
 import { bulkPeopleAction, saveDirectorySettingsAction } from './people-actions';
 import { DirectorySettingsForm, PeopleBoard, ZoomFrame, type Card as PersonCard } from './people-client';
+import { photoUrls } from '@/server/photos';
 
 export const metadata: Metadata = { title: 'People' };
 
@@ -219,7 +220,9 @@ async function PeopleTab({ ctx, slug, base, today, people, hr, manage, sp, stats
     const merged = { tab: 'people', q: sp.q, status: sp.status, department: sp.department, flag: sp.flag, set: sp.set, view: sp.view, ...extra };
     return `${base}?${new URLSearchParams(Object.entries(merged).filter(([, v]) => v) as Array<[string, string]>).toString()}`;
   };
+  const photos = await photoUrls(ctx.org.id, shown.map((p) => p.id));
   const cards: PersonCard[] = shown.map((p) => ({
+    photo: photos.get(p.id) ?? null,
     id: p.id, name: p.name, code: p.code, designation: p.designation, department: p.department, location: p.location, email: p.email, phone: p.phone,
     tenureYears: p.tenureYears, status: p.status, href: hr ? `${base}/${p.id}` : null, birthday: p.birthday, maritalStatus: p.maritalStatus, social: p.social,
     badge: p.status === 'on_notice' ? 'Notice' : p.probationEnd && !p.confirmedOn && CURRENT.has(p.status) ? (p.probationEnd <= today ? 'Confirm' : 'Probation') : null,

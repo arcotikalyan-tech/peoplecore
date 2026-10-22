@@ -9,6 +9,9 @@ import { buttonClass } from '@/components/ui/button';
 import { HubTabs } from '@/components/ui/hub';
 import { Alert } from '@/components/ui/surface';
 import { getOrgContext } from '@/server/context';
+import { signImageUrls } from '@/server/document-storage';
+import { removePhotoAction, setPhotoAction } from '../photo-actions';
+import { PictureForm } from '../photo-form';
 import { employeeNames, getEmployee } from '@/server/employees';
 import { directoryName, familyMembers, noticeDaysFor, profileDocuments, qualifications } from '@/server/profile';
 import { getBankSummary, getIdentitySummary, getPersonalDetails } from '@/server/sensitive';
@@ -117,6 +120,8 @@ export default async function EmployeePage({ params, searchParams }: { params: P
   const canBrowse = ctx.can('employee.read', 'org') || ctx.can('employee.read', 'team');
   const chip = 'rounded-md bg-primary-soft px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary';
 
+  const photo = employee.photo_path ? (await signImageUrls([employee.photo_path])).get(employee.photo_path) ?? null : null;
+  const canPhoto = isSelf || ctx.can('employee.update');
   const props: ProfileProps = { ctx, slug, base, id, employee, isSelf, allowed, today, sp, href, structure, names };
   const needNotice = tab === 'pms' || tab === 'exit';
   const noticeDays = needNotice ? await noticeDaysFor(orgId, employee.employment_type) : 0;
@@ -127,7 +132,7 @@ export default async function EmployeePage({ params, searchParams }: { params: P
       {sp.created && <div className="mb-5"><Alert tone="success" title="Employee created." /></div>}
 
       <header className="lift-soft mb-5 flex flex-wrap items-center gap-5 rounded-2xl border border-line bg-surface p-5">
-        <Avatar name={legalName(employee)} className="size-20! text-2xl!" />
+        <Avatar name={legalName(employee)} src={photo} className="size-20! text-2xl!" />
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold tracking-tight">{legalName(employee)}</h1>
           <p className="mt-0.5 text-sm text-muted">
@@ -141,6 +146,10 @@ export default async function EmployeePage({ params, searchParams }: { params: P
             <span className={chip}>⏱ {t.years} yr {t.months} mo</span>
             <span className={chip}>↑ Reports to {managerName}</span>
           </p>
+          {canPhoto && (
+            <div className="mt-3"><PictureForm field="photo" label={isSelf ? 'Your profile photo' : `Profile photo for ${legalName(employee)}`} has={!!employee.photo_path}
+              action={setPhotoAction.bind(null, slug, id)} remove={removePhotoAction.bind(null, slug, id)} /></div>
+          )}
         </div>
         {readPersonal && allowed('employee.personal.update') && (
           <Link href={href('personal')} className={buttonClass('primary', 'sm')}>✎ Update info</Link>
