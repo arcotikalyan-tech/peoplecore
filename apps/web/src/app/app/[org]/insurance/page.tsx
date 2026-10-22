@@ -1,14 +1,21 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { todayIn } from '@peoplecore/shared';
 import { HubTabs, Panel, StatCard, SubTabs } from '@/components/ui/hub';
 import { Badge } from '@/components/ui/surface';
 import { formatDate, formatDateTime } from '@/lib/format';
+import { CD_KINDS, endorsementReason, type CdKind } from '@/lib/insurance';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
 import { createClient } from '@/server/supabase';
 import { viewModeFor } from '@/server/view';
-import { coverAllAction, importCoverageAction, lockEndorsementAction, reconcileAction, savePolicyAction, setCoverageAction } from './actions';
-import { ButtonAction, CoverageForm, MyCover, PolicyForm, ReconcileForm, SumInsuredForm, UploadForm, type Policy } from './insurance-client';
+import {
+  addCdEntryAction, coverAllAction, deleteCdEntryAction, importCoverageAction, lockEndorsementAction, reconcileAction, saveCdSettingsAction, savePolicyAction,
+  setCoverageAction,
+} from './actions';
+import {
+  ButtonAction, CdEntryForm, CdSettingsForm, CoverageForm, EndorsementPicker, MyCover, PolicyForm, ReconcileForm, SumInsuredForm, UploadForm, type PickRow, type Policy,
+} from './insurance-client';
 import { requireModule } from '@/server/modules';
 
 export const metadata: Metadata = { title: 'Insurance' };
@@ -69,6 +76,7 @@ export default async function InsurancePage({ params, searchParams }: { params: 
     ...policyRow, maternity_normal: num(policyRow.maternity_normal), maternity_csection: num(policyRow.maternity_csection), sum_insured: num(policyRow.sum_insured),
     ambulance_per_incident: num(policyRow.ambulance_per_incident),
   } : null;
+  const cd = { perLife: num(policyRow?.premium_per_life), lowBalance: num(policyRow?.cd_low_balance) };
 
   return (
     <>
@@ -76,25 +84,37 @@ export default async function InsurancePage({ params, searchParams }: { params: 
         action={<Link className="rounded-lg border border-line bg-surface px-3 py-2 text-sm hover:bg-subtle" href={`${base}?tab=management`}>Manage members →</Link>} />
       <HubTabs base={base} label="Insurance sections" current={tab} tabs={[{ key: 'details', label: 'Insurance Details' }, { key: 'management', label: 'Insurance Management' }]} />
       {tab === 'details' && <Panel title="Policy Details"><PolicyForm action={savePolicyAction.bind(null, slug)} policy={policy} /></Panel>}
-      {tab === 'management' && <Management slug={slug} base={base} sp={sp} policy={policy} tz={ctx.org.timezone} />}
+      {tab === 'management' && <Management slug={slug} base={base} sp={sp} policy={policy} cd={cd} tz={ctx.org.timezone} />}
     </>
   );
 }
 
-async function Management({ slug, base, sp, policy, tz }: { slug: string; base: string; sp: Search; policy: Policy | null; tz: string }) {
+type Cd = { perLife: number | null; lowBalance: number | null };
+
+async function Management({ slug, base, sp, policy, cd, tz }: { slug: string; base: string; sp: Search; policy: Policy | null; cd: Cd; tz: string }) {
   const ctx = await getOrgContext(slug);
   const supabase = await createClient();
-  const [roster, lastSync, emps, coverage, personal] = await Promise.all([
+  const [roster, syncs, emps, coverage, personal, entries] = await Promise.all([
     supabase.rpc('insurance_endorsement', { p_org: ctx.org.id }).then((r) => r.data ?? []),
-    supabase.from('insurance_syncs').select('synced_at, additions, deletions').eq('organization_id', ctx.org.id).order('synced_at', { ascending: false }).limit(1).then((r) => r.data?.[0] ?? null),
+    supabase.from('insurance_syncs').select('id, synced_at, additions, deletions').eq('organization_id', ctx.org.id).order('synced_at', { ascending: false }).limit(12).then((r) => r.data ?? []),
     supabase.from('employees').select('id, employee_code, first_name, last_name, employment_type, date_of_joining, status').eq('organization_id', ctx.org.id).neq('status', 'exited').order('employee_code').then((r) => r.data ?? []),
     supabase.from('insurance_coverage').select('employee_id, covered, sum_insured').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
     supabase.from('employee_personal').select('employee_id, gender').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
+    supabase.from('insurance_cd_entries').select('id, entry_date, kind, amount, lives, sync_id, reference, note, created_at').eq('organization_id', ctx.org.id)
+      .order('entry_date').order('created_at').limit(2000).then((r) => r.data ?? []),
   ]);
+  const lastSync = syncs[0] ?? null;
+  const balance = entries.reduce((sum, e) => sum + Number(e.amount), 0);
+  const low = cd.lowBalance !== null && balance < cd.lowBalance;
   const additions = roster.filter((r) => r.change === 'addition');
   const deletions = roster.filter((r) => r.change === 'deletion');
   const lives = roster.filter((r) => r.change !== 'deletion').length;
-  const view = ['endorsement', 'reconcile', 'members'].includes(sp.view ?? '') ? sp.view! : 'endorsement';
+  const view = ['endorsement', 'reconcile', 'members', 'cd'].includes(sp.view ?? '') ? sp.view! : 'endorsement';
+  const today = todayIn(tz);
+  const picks: PickRow[] = roster.filter((r) => r.change !== 'covered').map((r) => ({
+    key: r.key, change: r.change, member: r.member_name, employee: r.employee_name, code: r.employee_code, relationship: r.relationship,
+    reason: endorsementReason(r, !lastSync, today), dob: r.date_of_birth, gender: r.gender, sumInsured: num(r.sum_insured), effective: r.effective,
+  }));
 
   return (
     <div className="space-y-5">
@@ -105,25 +125,18 @@ async function Management({ slug, base, sp, policy, tz }: { slug: string; base: 
         <StatCard label="🗓️ Last synced to insurer" value={lastSync ? formatDate(lastSync.synced_at.slice(0, 10)) : 'Not synced'} note={`${additions.length + deletions.length} pending`} />
       </div>
       <SubTabs base={base} label="Insurance management" current={view} extra={{ tab: 'management' }}
-        tabs={[{ key: 'endorsement', label: 'Endorsement' }, { key: 'reconcile', label: 'Reconcile with insurer' }, { key: 'members', label: 'All Members' }]} />
+        tabs={[{ key: 'endorsement', label: 'Endorsement' }, { key: 'reconcile', label: 'Reconcile with insurer' }, { key: 'members', label: 'All Members' }, { key: 'cd', label: 'CD account' }]} />
+      {low && view !== 'cd' && (
+        <p role="alert" className="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">
+          ⚠️ The CD balance is {inr.format(balance)}, below your alert level of {inr.format(cd.lowBalance!)}. Top it up before the next endorsement. <Link className="text-primary hover:underline" href={`${base}?tab=management&view=cd`}>CD account →</Link>
+        </p>
+      )}
 
       {view === 'endorsement' && (
-        <>
-          <Panel title="Endorsement" meta={`${additions.length + deletions.length} pending changes`}
-            action={<span className="flex flex-wrap items-center gap-2">
-              <a className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-subtle" href={`${base}/export?kind=endorsement`} download>⬇ Export endorsement</a>
-              <ButtonAction action={lockEndorsementAction.bind(null, slug)} label="Lock & mark synced" aria="Lock endorsement" pending="Locking…" />
-            </span>}>
-            {!lastSync && <p className="rounded-xl bg-subtle p-3 text-sm">📋 Initial roster. Nothing has been synced with the insurer yet, so everyone covered is listed as an addition. Locking and syncing the first time takes this roster as the baseline; later endorsements show only real changes.</p>}
-            {lastSync && <p className="text-sm text-muted">Last synced {formatDateTime(lastSync.synced_at, tz)} ({lastSync.additions} additions, {lastSync.deletions} deletions).</p>}
-          </Panel>
-          <Panel title={`＋ Additions · ${additions.length}`} meta="new joiners, newborns, marriages, dependant adds — from employee records" flush>
-            <RosterTable rows={additions} label="Additions" empty="No additions pending." />
-          </Panel>
-          <Panel title={`－ Deletions · ${deletions.length}`} meta="exits and dependant removals" flush>
-            <RosterTable rows={deletions} label="Deletions" empty="No deletions pending — all synced." />
-          </Panel>
-        </>
+        <EndorsementPicker key={`${lastSync?.id ?? 'initial'}-${picks.length}`} rows={picks} action={lockEndorsementAction.bind(null, slug)} exportHref={`${base}/export?kind=endorsement`}>
+          {!lastSync && <p className="rounded-xl bg-subtle p-3 text-sm">📋 Initial roster. Nothing has been synced with the insurer yet, so everyone covered is listed as an addition. Locking and syncing the first time takes this roster as the baseline; later endorsements show only real changes.</p>}
+          {lastSync && <p className="text-sm text-muted">Last synced {formatDateTime(lastSync.synced_at, tz)} ({lastSync.additions} additions, {lastSync.deletions} deletions). Changes you leave out stay pending for the next endorsement.</p>}
+        </EndorsementPicker>
       )}
 
       {view === 'reconcile' && (
@@ -134,32 +147,13 @@ async function Management({ slug, base, sp, policy, tz }: { slug: string; base: 
       )}
 
       {view === 'members' && <Members slug={slug} base={base} sp={sp} policy={policy} roster={roster} emps={emps} coverage={coverage} personal={personal} />}
+
+      {view === 'cd' && <CdAccount slug={slug} policy={policy} cd={cd} entries={entries} syncs={syncs} lives={lives} balance={balance} low={low} today={today} tz={tz} />}
     </div>
   );
 }
 
 type RosterRow = { change: string; key: string; employee_code: string; employee_name: string; member_name: string; relationship: string; date_of_birth: string | null; gender: string | null; sum_insured: number | string | null; effective: string | null };
-
-function RosterTable({ rows, label, empty }: { rows: RosterRow[]; label: string; empty: string }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm" aria-label={label}>
-        <thead className="text-left text-[11px] uppercase tracking-wider text-muted"><tr><th className="px-5 py-2">Member</th><th className={th}>Employee</th><th className={th}>Relationship</th><th className={th}>Date of birth</th><th className={th}>Gender</th><th className={`${th} text-right`}>Sum insured</th><th className={th}>Effective</th></tr></thead>
-        <tbody className="divide-y divide-line">
-          {rows.length === 0 && <tr><td colSpan={7} className="px-5 py-6 text-center text-muted">{empty}</td></tr>}
-          {rows.map((r) => (
-            <tr key={`${r.change}-${r.key}`}>
-              <td className="px-5 py-2 font-medium">{r.member_name}</td><td className="px-3">{r.employee_name} <span className="text-xs text-muted">{r.employee_code}</span></td>
-              <td className="px-3 capitalize">{r.relationship}</td><td className="px-3">{r.date_of_birth ? formatDate(r.date_of_birth) : '—'}</td>
-              <td className="px-3 capitalize">{r.gender ?? '—'}</td><td className="px-3 text-right tabular-nums">{r.sum_insured ? inr.format(Number(r.sum_insured)) : '—'}</td>
-              <td className="px-3">{r.effective ? formatDate(r.effective) : '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 function Members({ slug, base, sp, policy, roster, emps, coverage, personal }: {
   slug: string; base: string; sp: Search; policy: Policy | null; roster: RosterRow[];
@@ -221,5 +215,73 @@ function Members({ slug, base, sp, policy, roster, emps, coverage, personal }: {
       </div>
       <div className="px-5 pt-4"><UploadForm action={importCoverageAction.bind(null, slug)} label="Upload active list" hint="employee_code, covered (yes/no), sum_insured, covered_from" /></div>
     </Panel>
+  );
+}
+
+type CdEntry = { id: string; entry_date: string; kind: string; amount: number | string; lives: number | null; sync_id: string | null; reference: string | null; note: string | null };
+type Sync = { id: string; synced_at: string; additions: number; deletions: number };
+
+/** Entries oldest first, each with the balance after it. */
+function withBalance(entries: CdEntry[]): Array<CdEntry & { balance: number }> {
+  const out: Array<CdEntry & { balance: number }> = [];
+  let balance = 0;
+  for (const e of entries) out.push({ ...e, balance: (balance += Number(e.amount)) });
+  return out;
+}
+
+/**
+ * The CD (cash deposit) account the insurer keeps for the group policy: deposits and refunds in, endorsement charges
+ * out, with a running balance, a low-balance warning and a guide to the next charge.
+ */
+function CdAccount({ slug, policy, cd, entries, syncs, lives, balance, low, today, tz }: {
+  slug: string; policy: Policy | null; cd: Cd; entries: CdEntry[]; syncs: Sync[]; lives: number; balance: number; low: boolean; today: string; tz: string;
+}) {
+  const rows = withBalance(entries).reverse();
+  const synced = new Map(syncs.map((s) => [s.id, s]));
+  const syncLabel = (s: Sync) => `${formatDateTime(s.synced_at, tz)} · ${s.additions} addition${s.additions === 1 ? '' : 's'}, ${s.deletions} deletion${s.deletions === 1 ? '' : 's'}`;
+  const deposits = entries.filter((e) => e.kind === 'deposit');
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="💰 CD balance" value={inr.format(balance)} note={cd.lowBalance !== null ? `alert below ${inr.format(cd.lowBalance)}` : 'no alert level set'} tone={low ? 'danger' : 'success'} />
+        <StatCard label="⬇ Last deposit" value={deposits.length ? inr.format(Number(deposits.at(-1)!.amount)) : '—'} note={deposits.length ? formatDate(deposits.at(-1)!.entry_date) : 'none yet'} />
+        <StatCard label="🧾 Premium per life" value={cd.perLife !== null ? inr.format(cd.perLife) : 'Not set'} note="annual, for estimates" />
+        <StatCard label="❤️ Annual premium" value={cd.perLife !== null ? inr.format(cd.perLife * lives) : '—'} note={`${lives} insured ${lives === 1 ? 'life' : 'lives'} × premium per life`} tone="primary" />
+      </div>
+      {low && <p role="alert" className="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">⚠️ The balance is below your alert level of {inr.format(cd.lowBalance!)}. Top up the CD account so the insurer can process the next endorsement.</p>}
+      <Panel title="Record an entry" meta="from the insurer’s statement or debit note">
+        <CdEntryForm action={addCdEntryAction.bind(null, slug)} today={today} syncs={syncs.map((s) => ({ id: s.id, label: syncLabel(s), lives: s.additions - s.deletions }))}
+          premium={{ perLife: cd.perLife, validFrom: policy?.valid_from ?? null, validTo: policy?.valid_to ?? null }} />
+      </Panel>
+      <Panel title="CD statement" meta={`${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}`} flush>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" aria-label="CD statement">
+            <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
+              <tr><th className="px-5 py-2">Date</th><th className={th}>Entry</th><th className={th}>Reference</th><th className={th}>Lives</th><th className={`${th} text-right`}>Amount</th><th className={`${th} text-right`}>Balance</th><th className={th} /></tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {rows.length === 0 && <tr><td colSpan={7} className="px-5 py-6 text-center text-muted">No entries yet. Record the deposit you made with the insurer to start the statement.</td></tr>}
+              {rows.map((e) => {
+                const amount = Number(e.amount);
+                const sync = e.sync_id ? synced.get(e.sync_id) : undefined;
+                return (
+                  <tr key={e.id}>
+                    <td className="px-5 py-2">{formatDate(e.entry_date)}</td>
+                    <td className="px-3"><span className="font-medium">{CD_KINDS[e.kind as CdKind] ?? e.kind}</span>
+                      {sync && <span className="block text-xs text-muted">Endorsement of {formatDate(sync.synced_at.slice(0, 10))}</span>}
+                      {e.note && <span className="block text-xs text-muted">{e.note}</span>}</td>
+                    <td className="px-3">{e.reference ?? '—'}</td><td className="px-3 tabular-nums">{e.lives ?? '—'}</td>
+                    <td className={`px-3 text-right tabular-nums ${amount < 0 ? 'text-danger' : 'text-success'}`}>{amount < 0 ? '−' : '+'}{inr.format(Math.abs(amount))}</td>
+                    <td className="px-3 text-right font-medium tabular-nums">{inr.format(e.balance)}</td>
+                    <td className="px-3"><ButtonAction action={deleteCdEntryAction.bind(null, slug, e.id)} label="Remove" aria={`Remove the ${formatDate(e.entry_date)} ${(CD_KINDS[e.kind as CdKind] ?? e.kind).toLowerCase()}`} variant="secondary" /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+      <Panel title="CD settings"><CdSettingsForm action={saveCdSettingsAction.bind(null, slug)} perLife={cd.perLife} lowBalance={cd.lowBalance} /></Panel>
+    </div>
   );
 }

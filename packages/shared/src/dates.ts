@@ -57,6 +57,16 @@ export function addDays(value: string, days: number): string {
   return formatIsoDate({ year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() });
 }
 
+/** A month (YYYY-MM) laid out in weeks from Monday: its dates, with null for the days before the 1st and after the end. */
+export function monthCells(month: string): Array<string | null> {
+  const { year, month: m } = mustParse(`${month}-01`);
+  const lead = (new Date(Date.UTC(year, m - 1, 1)).getUTCDay() + 6) % 7;
+  const cells: Array<string | null> = Array.from({ length: lead }, () => null);
+  for (let day = 1; day <= daysInMonth(year, m); day++) cells.push(formatIsoDate({ year, month: m, day }));
+  while (cells.length % 7) cells.push(null);
+  return cells;
+}
+
 /** Negative if a < b, 0 if equal, positive if a > b. ISO strings compare lexicographically. */
 export function compareIsoDates(a: string, b: string): number {
   mustParse(a);

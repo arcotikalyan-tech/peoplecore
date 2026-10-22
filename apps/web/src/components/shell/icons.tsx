@@ -2,7 +2,7 @@
 
 import {
   BarChart3, BookOpen, Bot, Briefcase, Building2, CalendarDays, Clock, CreditCard, FileSpreadsheet, FileText, GraduationCap, HandCoins,
-  Handshake, Heart, HeartPulse, House, IdCard, Inbox, Laptop, LifeBuoy, LogOut, Mail, Megaphone, Receipt, Scale, ScrollText, Settings,
+  Handshake, Heart, HeartPulse, House, IdCard, Inbox, Laptop, LifeBuoy, LogOut, Mail, Megaphone, MessagesSquare, Receipt, Scale, ScrollText, Settings,
   ShieldAlert, Sparkles, Timer, TreePalm, Trophy, User, UserCog, UserPlus, Users, Wallet, Workflow, type LucideIcon,
 } from 'lucide-react';
 import type { IconKey } from './nav-model';
@@ -14,4 +14,5 @@ export const NAV_ICONS: Record<IconKey, LucideIcon> = {
   shield: ShieldAlert, laptop: Laptop, sparkles: Sparkles, chart: BarChart3, 'user-cog': UserCog, workflow: Workflow,
   bot: Bot, scroll: ScrollText, user: User, mail: Mail, sheet: FileSpreadsheet, coins: HandCoins, 'heart-pulse': HeartPulse,
   timer: Timer, calendar: CalendarDays, 'id-card': IdCard, handshake: Handshake, scale: Scale, settings: Settings, heart: Heart,
+  messages: MessagesSquare,
 };

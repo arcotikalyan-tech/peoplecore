@@ -4,19 +4,12 @@ import { useActionState, useState, type ReactNode } from 'react';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { initialActionState, type ActionState } from '@/lib/action-state';
+import { formatDate } from '@/lib/format';
+import { CD_KINDS, endorsementEstimate, INSURERS } from '@/lib/insurance';
 import type { ReconcileState } from './actions';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 type NoInput = (prev: ActionState) => Promise<ActionState>;
-
-export const INSURERS = [
-  'Acko General Insurance', 'Aditya Birla Health Insurance', 'Bajaj Allianz General Insurance', 'Bharti AXA General Insurance', 'Care Health Insurance',
-  'Cholamandalam MS General Insurance', 'Edelweiss General Insurance', 'Future Generali India Insurance', 'Go Digit General Insurance', 'HDFC ERGO General Insurance',
-  'ICICI Lombard General Insurance', 'IFFCO Tokio General Insurance', 'Kotak Mahindra General Insurance', 'Liberty General Insurance', 'Magma HDI General Insurance',
-  'ManipalCigna Health Insurance', 'Niva Bupa Health Insurance', 'National Insurance', 'Navi General Insurance', 'Raheja QBE General Insurance',
-  'Reliance General Insurance', 'Royal Sundaram General Insurance', 'SBI General Insurance', 'Shriram General Insurance', 'Star Health and Allied Insurance',
-  'Tata AIG General Insurance', 'The New India Assurance', 'The Oriental Insurance', 'United India Insurance', 'Universal Sompo General Insurance',
-];
 
 export interface Policy {
   insurer: string | null; policy_number: string | null; valid_from: string | null; valid_to: string | null;
@@ -268,5 +261,175 @@ export function ReconcileForm({ action }: { action: (prev: ReconcileState, fd: F
       </form>
       {r && <div className="grid gap-4 sm:grid-cols-2">{list('Missing at the insurer', r.missing, 'text-warning')}{list('Only at the insurer', r.extra, 'text-danger')}</div>}
     </div>
+  );
+}
+
+export interface PickRow {
+  key: string; change: string; member: string; employee: string; code: string; relationship: string; reason: string;
+  dob: string | null; gender: string | null; sumInsured: number | null; effective: string | null;
+}
+
+/**
+ * The CD endorsement as HR sends it (Kredily's "Selected for this endorsement"): every pending addition and deletion,
+ * all chosen at first. Export and "Lock & mark synced" use the choice; what's left out stays pending for next time.
+ */
+export function EndorsementPicker({ rows, action, exportHref, children }: { rows: PickRow[]; action: Action; exportHref: string; children?: ReactNode }) {
+  const [picked, setPicked] = useState(() => new Set(rows.map((r) => r.key)));
+  const [state, formAction] = useActionState(action, initialActionState);
+  const additions = rows.filter((r) => r.change === 'addition');
+  const deletions = rows.filter((r) => r.change === 'deletion');
+  const chosen = (list: PickRow[]) => list.filter((r) => picked.has(r.key)).length;
+  const set = (keys: string[], on: boolean) => setPicked((prev) => {
+    const next = new Set(prev);
+    for (const k of keys) if (on) next.add(k); else next.delete(k);
+    return next;
+  });
+  const left = rows.filter((r) => !picked.has(r.key)).map((r) => r.key);
+  const href = left.length === 0 ? exportHref : left.length <= picked.size ? `${exportHref}&skip=${left.join(',')}` : `${exportHref}&only=${[...picked].join(',')}`;
+  const button = 'rounded-lg border border-line px-3 py-1.5 text-sm';
+  const table = (list: PickRow[], label: string) => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm" aria-label={label}>
+        <thead className="text-left text-[11px] uppercase tracking-wider text-muted">
+          <tr>
+            <th className="w-10 px-5 py-2"><input type="checkbox" aria-label={`Choose all ${label.toLowerCase()}`} disabled={list.length === 0} checked={list.length > 0 && list.every((r) => picked.has(r.key))}
+              onChange={(e) => set(list.map((r) => r.key), e.target.checked)} className="size-4 rounded border-line-strong accent-primary" /></th>
+            <th className="px-3 py-2 font-semibold">Member</th><th className="px-3 py-2 font-semibold">Employee</th><th className="px-3 py-2 font-semibold">Relationship</th>
+            <th className="px-3 py-2 font-semibold">Reason</th><th className="px-3 py-2 font-semibold">Date of birth</th><th className="px-3 py-2 font-semibold">Gender</th>
+            <th className="px-3 py-2 text-right font-semibold">Sum insured</th><th className="px-3 py-2 font-semibold">Effective</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {list.length === 0 && <tr><td colSpan={9} className="px-5 py-6 text-center text-muted">{label === 'Additions' ? 'No additions pending.' : 'No deletions pending — all synced.'}</td></tr>}
+          {list.map((r) => (
+            <tr key={r.key} className={picked.has(r.key) ? undefined : 'text-muted'}>
+              <td className="px-5 py-2"><input type="checkbox" checked={picked.has(r.key)} onChange={(e) => set([r.key], e.target.checked)} aria-label={`Include ${r.member} (${r.relationship})`} className="size-4 rounded border-line-strong accent-primary" /></td>
+              <td className="px-3 py-2 font-medium">{r.member}</td><td className="px-3">{r.employee} <span className="text-xs text-muted">{r.code}</span></td>
+              <td className="px-3 capitalize">{r.relationship}</td><td className="px-3"><span className="rounded-full bg-subtle px-2 py-0.5 text-xs">{r.reason}</span></td>
+              <td className="px-3">{r.dob ? formatDate(r.dob) : '—'}</td><td className="px-3 capitalize">{r.gender?.replace('_', '-') ?? '—'}</td>
+              <td className="px-3 text-right tabular-nums">{r.sumInsured ? inr.format(r.sumInsured) : '—'}</td><td className="px-3">{r.effective ? formatDate(r.effective) : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+  return (
+    <div className="space-y-5">
+      <section className="lift-soft rounded-xl border border-line bg-surface" aria-label="CD endorsement">
+        <header className="flex flex-wrap items-center justify-between gap-3 px-5 pb-1 pt-4">
+          <h2 className="text-sm font-semibold">CD endorsement<span className="ml-2 font-normal text-muted">{rows.length} pending change{rows.length === 1 ? '' : 's'}</span></h2>
+          <span className="flex flex-wrap items-center gap-2">
+            {picked.size > 0 ? <a className={`${button} hover:bg-subtle`} href={href} download>⬇ Export endorsement</a> : <span className={`${button} text-muted`} aria-disabled="true">⬇ Export endorsement</span>}
+            <form action={formAction} aria-label="Lock endorsement" className="inline-flex flex-wrap items-center gap-2">
+              <input type="hidden" name="key" value={[...picked].join(',')} />
+              <SubmitButton size="sm" pendingLabel="Locking…" disabled={picked.size === 0}>Lock & mark synced</SubmitButton>
+              {state.message && <span role={state.ok ? 'status' : 'alert'} className={`text-xs ${state.ok ? 'text-success' : 'text-danger'}`}>{state.message}</span>}
+            </form>
+          </span>
+        </header>
+        <div className="space-y-3 px-5 pb-5 pt-3">
+          {children}
+          {rows.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary-soft px-4 py-3 text-sm">
+              <p aria-live="polite">Selected for this endorsement: <strong>{chosen(additions)}</strong> of {additions.length} additions · <strong>{chosen(deletions)}</strong> of {deletions.length} deletions</p>
+              <span className="flex gap-3">
+                <button type="button" onClick={() => set(rows.map((r) => r.key), true)} className="font-medium text-primary hover:underline">Select all</button>
+                <button type="button" onClick={() => set(rows.map((r) => r.key), false)} className="font-medium text-primary hover:underline">Clear</button>
+              </span>
+            </div>
+          )}
+        </div>
+      </section>
+      <section className="lift-soft rounded-xl border border-line bg-surface" aria-label={`Additions · ${additions.length}`}>
+        <header className="flex flex-wrap items-center justify-between gap-3 px-5 pb-1 pt-4">
+          <h2 className="text-sm font-semibold">＋ Additions · {additions.length}</h2><p className="text-xs text-muted">new joiners, newborns, marriages, dependants added — from employee records</p>
+        </header>
+        <div className="pb-2 pt-2">{table(additions, 'Additions')}</div>
+      </section>
+      <section className="lift-soft rounded-xl border border-line bg-surface" aria-label={`Deletions · ${deletions.length}`}>
+        <header className="flex flex-wrap items-center justify-between gap-3 px-5 pb-1 pt-4">
+          <h2 className="text-sm font-semibold">－ Deletions · {deletions.length}</h2><p className="text-xs text-muted">exits and dependants removed</p>
+        </header>
+        <div className="pb-2 pt-2">{table(deletions, 'Deletions')}</div>
+      </section>
+    </div>
+  );
+}
+
+export interface SyncOption { id: string; label: string; lives: number }
+
+/** Records money in or out of the CD account; for an endorsement charge, a guide amount from the premium per life. */
+export function CdEntryForm({ action, today, syncs, premium }: {
+  action: Action; today: string; syncs: SyncOption[]; premium: { perLife: number | null; validFrom: string | null; validTo: string | null };
+}) {
+  const [state, formAction] = useActionState(action, initialActionState);
+  const v = state.ok ? {} : (state.values ?? {});
+  const e = state.fieldErrors ?? {};
+  const [kind, setKind] = useState(v.kind ?? 'deposit');
+  const [date, setDate] = useState(v.entryDate ?? today);
+  const [lives, setLives] = useState(v.lives ?? '');
+  const guess = kind === 'endorsement' ? endorsementEstimate(premium.perLife, Number(lives) || 0, premium.validFrom, premium.validTo, date) : null;
+  const err = (k: string) => e[k] && <p className="mt-1 text-xs text-danger">{e[k]}</p>;
+  const label = 'mb-1 block text-xs font-medium text-muted';
+  return (
+    <form action={formAction} noValidate aria-label="Record a CD entry" className="space-y-3">
+      <FormMessage state={state} />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="text-sm"><span className={label}>Date</span>
+          <input type="date" name="entryDate" value={date} onChange={(x) => setDate(x.target.value)} className={control} />{err('entryDate')}</label>
+        <label className="text-sm"><span className={label}>Entry</span>
+          <select name="kind" aria-label="Entry" value={kind} onChange={(x) => setKind(x.target.value)} className={control}>
+            {Object.entries(CD_KINDS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select></label>
+        {kind === 'adjustment' && (
+          <label className="text-sm"><span className={label}>Direction</span>
+            <select name="direction" aria-label="Direction" defaultValue={v.direction ?? 'in'} className={control}><option value="in">Money in</option><option value="out">Money out</option></select></label>
+        )}
+        <label className="text-sm"><span className={label}>Amount (₹)</span>
+          <input name="amount" inputMode="decimal" defaultValue={v.amount ?? ''} className={control} />{err('amount')}</label>
+        {(kind === 'endorsement' || kind === 'refund') && (
+          <label className="text-sm"><span className={label}>Lives</span>
+            <input name="lives" inputMode="numeric" value={lives} onChange={(x) => setLives(x.target.value)} className={control} />{err('lives')}</label>
+        )}
+        {kind === 'endorsement' && syncs.length > 0 && (
+          <label className="text-sm sm:col-span-2"><span className={label}>For the endorsement of</span>
+            <select name="syncId" aria-label="For the endorsement of" defaultValue={v.syncId ?? ''} onChange={(x) => { const s = syncs.find((y) => y.id === x.target.value); if (s) setLives(String(s.lives)); }} className={control}>
+              <option value="">Not linked</option>{syncs.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select></label>
+        )}
+        <label className="text-sm"><span className={label}>Reference</span>
+          <input name="reference" maxLength={80} placeholder="Debit note, UTR or cheque no." defaultValue={v.reference ?? ''} className={control} />{err('reference')}</label>
+        <label className="text-sm sm:col-span-2"><span className={label}>Note</span>
+          <input name="note" maxLength={300} defaultValue={v.note ?? ''} className={control} />{err('note')}</label>
+      </div>
+      {kind === 'endorsement' && (
+        <p className="text-xs text-muted">{guess !== null
+          ? `Estimate ≈ ${inr.format(guess)} for ${lives} ${Number(lives) === 1 ? 'life' : 'lives'}: the premium per life, pro rata for the days left in the policy period. Enter the amount on the insurer’s debit note.`
+          : premium.perLife ? 'Enter the lives added to see an estimate.' : 'Set the premium per life below to see an estimate.'}</p>
+      )}
+      <SubmitButton size="sm">Record entry</SubmitButton>
+    </form>
+  );
+}
+
+/** The premium per insured life (for estimates) and the balance that triggers the low-balance warning. */
+export function CdSettingsForm({ action, perLife, lowBalance }: { action: Action; perLife: number | null; lowBalance: number | null }) {
+  const [state, formAction] = useActionState(action, initialActionState);
+  const v = state.ok ? {} : (state.values ?? {});
+  const e = state.fieldErrors ?? {};
+  return (
+    <form action={formAction} noValidate aria-label="CD settings" className="space-y-3">
+      <FormMessage state={state} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm"><span className="mb-1 block text-xs font-medium text-muted">Annual premium per life (₹)</span>
+          <input name="premiumPerLife" inputMode="decimal" defaultValue={v.premiumPerLife ?? (perLife ?? '')} className={control} />
+          {e.premiumPerLife && <p className="mt-1 text-xs text-danger">{e.premiumPerLife}</p>}</label>
+        <label className="text-sm"><span className="mb-1 block text-xs font-medium text-muted">Warn when the balance falls below (₹)</span>
+          <input name="lowBalance" inputMode="decimal" defaultValue={v.lowBalance ?? (lowBalance ?? '')} className={control} />
+          {e.lowBalance && <p className="mt-1 text-xs text-danger">{e.lowBalance}</p>}</label>
+      </div>
+      <SubmitButton size="sm" variant="secondary">Save CD settings</SubmitButton>
+    </form>
   );
 }

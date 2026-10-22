@@ -3,8 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { parseCsv } from '@peoplecore/shared';
 import { z } from 'zod';
-import { formValues, invalid, type ActionState } from '@/lib/action-state';
+import { formDataAll, formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { CD_KINDS, rosterKeys, type CdKind } from '@/lib/insurance';
 import { getOrgContext } from '@/server/context';
 import { flash } from '@/server/flash';
 import { createClient } from '@/server/supabase';
@@ -90,10 +91,13 @@ export async function coverAllAction(slug: string, _prev: ActionState): Promise<
   return { ok: true, message: `Covered ${rows.length} employee${rows.length === 1 ? '' : 's'}.` };
 }
 
-export async function lockEndorsementAction(slug: string, _prev: ActionState): Promise<ActionState> {
+/** Sends the chosen additions and deletions (`key` fields) to the insurer; the rest stay pending for the next one. */
+export async function lockEndorsementAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await getOrgContext(slug);
+  const keys = rosterKeys(formDataAll(formData, 'key'));
+  if (keys.length === 0) return { ok: false, message: 'Choose at least one change for this endorsement.' };
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('lock_insurance_endorsement', { p_org: ctx.org.id });
+  const { data, error } = await supabase.rpc('lock_insurance_endorsement', { p_org: ctx.org.id, p_keys: keys });
   if (error) return { ok: false, message: toUserMessage(error) };
   back(slug);
   const r = data as { additions: number; deletions: number };
@@ -157,4 +161,62 @@ export async function reconcileAction(slug: string, _prev: ReconcileState, formD
   const missing = [...ours.entries()].filter(([k]) => !theirs.has(k)).map(([, r]) => [r.employee_code, r.member_name, r.relationship]);
   const extra = [...theirs.entries()].filter(([k]) => !ours.has(k)).map(([, r]) => [r[ci] ?? '', r[ni] ?? '', ri >= 0 ? r[ri] ?? '' : '']);
   return { ok: true, message: `${ours.size - missing.length} matched · ${missing.length} missing at the insurer · ${extra.length} only at the insurer.`, result: { missing, extra, matched: ours.size - missing.length } };
+}
+
+const amount = z.coerce.number({ error: 'Enter an amount' }).positive('Enter an amount').max(999_999_999);
+
+/** An entry in the CD (cash deposit) account; HR enters amounts as positive and the kind decides the sign. */
+export async function addCdEntryAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('insurance.manage', 'org')) return DENIED;
+  const parsed = z.object({
+    entryDate: z.iso.date({ error: 'Enter a valid date' }),
+    kind: z.enum(Object.keys(CD_KINDS) as [CdKind, ...CdKind[]]),
+    direction: z.enum(['in', 'out']).default('in'),
+    amount,
+    lives: optional(z.coerce.number({ error: 'Enter a number' }).int('Enter a whole number').min(0).max(1_000_000)),
+    syncId: optional(z.uuid()),
+    reference: optional(z.string().trim().max(80, 'At most 80 characters')),
+    note: optional(z.string().trim().max(300, 'At most 300 characters')),
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const v = parsed.data;
+  const out = v.kind === 'endorsement' || (v.kind === 'adjustment' && v.direction === 'out');
+  const supabase = await createClient();
+  const { error } = await supabase.from('insurance_cd_entries').insert({
+    organization_id: ctx.org.id, entry_date: v.entryDate, kind: v.kind, amount: out ? -v.amount : v.amount, lives: v.lives ?? null,
+    sync_id: v.kind === 'endorsement' ? v.syncId ?? null : null, reference: v.reference ?? null, note: v.note ?? null,
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  back(slug);
+  return { ok: true, message: `${CD_KINDS[v.kind]} recorded.` };
+}
+
+export async function deleteCdEntryAction(slug: string, entryId: string, _prev: ActionState): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('insurance.manage', 'org') || !z.uuid().safeParse(entryId).success) return DENIED;
+  const supabase = await createClient();
+  const { error, count } = await supabase.from('insurance_cd_entries').delete({ count: 'exact' }).eq('organization_id', ctx.org.id).eq('id', entryId);
+  if (error) return { ok: false, message: toUserMessage(error) };
+  if (!count) return { ok: false, message: 'That entry no longer exists.' };
+  back(slug);
+  return { ok: true, message: 'Entry removed.' };
+}
+
+/** The premium per insured life (for estimates) and the balance below which the CD account shows a warning. */
+export async function saveCdSettingsAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('insurance.manage', 'org')) return DENIED;
+  const parsed = z.object({
+    premiumPerLife: optional(z.coerce.number({ error: 'Enter an amount' }).min(0, 'Enter an amount').max(9_999_999)),
+    lowBalance: optional(z.coerce.number({ error: 'Enter an amount' }).min(0, 'Enter an amount').max(999_999_999)),
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const supabase = await createClient();
+  const { error } = await supabase.from('insurance_policies').upsert({
+    organization_id: ctx.org.id, premium_per_life: parsed.data.premiumPerLife ?? null, cd_low_balance: parsed.data.lowBalance ?? null,
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  back(slug);
+  return { ok: true, message: 'CD settings saved.' };
 }

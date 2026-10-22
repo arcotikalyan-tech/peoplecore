@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { STARTER_BY_KEY } from '@/lib/learn-library';
 import { getOrgContext } from '@/server/context';
 import { flash } from '@/server/flash';
 import { createClient } from '@/server/supabase';
@@ -249,4 +250,42 @@ export async function saveLearnSettingsAction(slug: string, _prev: ActionState, 
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   back(slug);
   return { ok: true, message: 'Settings saved.' };
+}
+
+/** Adds a starter course from the library as a draft with its lessons, for HR to review and publish. */
+export async function addStarterCourseAction(slug: string, key: string): Promise<ActionState> {
+  const { ctx, ok } = await hr(slug);
+  if (!ok) return DENIED;
+  const starter = STARTER_BY_KEY.get(key);
+  if (!starter) return { ok: false, message: 'That course isn’t in the library.' };
+  const supabase = await createClient();
+  const { data: course, error } = await supabase.from('courses').insert({
+    organization_id: ctx.org.id, title: starter.title, description: starter.description, category: starter.category, format: 'online',
+    duration_minutes: starter.minutes, valid_for_months: starter.validForMonths, status: 'draft',
+  }).select('id').single();
+  if (error) return { ok: false, message: toUserMessage(error) };
+  const { error: lessons } = await supabase.from('course_lessons').insert(starter.lessons.map((l, i) => ({
+    organization_id: ctx.org.id, course_id: course.id, position: i + 1, title: l.title, kind: 'text', body: l.body, duration_minutes: l.minutes,
+  })));
+  if (lessons) {
+    await supabase.from('courses').delete().eq('organization_id', ctx.org.id).eq('id', course.id);
+    return { ok: false, message: toUserMessage(lessons) };
+  }
+  back(slug);
+  return { ok: true, message: 'Added as a draft: review it, then publish.' };
+}
+
+/** Reminds everyone still to finish a course, or only those past their due date (each person at most once a day). */
+export async function remindLearnersAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { ok } = await hr(slug);
+  if (!ok) return DENIED;
+  const parsed = z.object({ courseId: z.uuid(), scope: z.enum(['all', 'overdue']) }).safeParse(strings(formData));
+  if (!parsed.success) return { ok: false, message: 'Course not found.' };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('remind_learners', { p_course: parsed.data.courseId, p_overdue_only: parsed.data.scope === 'overdue' });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  return {
+    ok: true,
+    message: data ? `Reminded ${data} ${data === 1 ? 'person' : 'people'}.` : `No one to remind${parsed.data.scope === 'overdue' ? ' who is overdue' : ''} (each person gets at most one reminder a day).`,
+  };
 }

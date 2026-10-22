@@ -1,9 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
-import { CARD_FIELDS, TEMPLATES, type CardDesign } from '@/lib/id-cards';
+import { CARD_FIELDS, CARD_TYPE_LABELS, FIELDS_FOR, TEMPLATES, type CardDesign, type CardType } from '@/lib/id-cards';
 import { initialActionState, type ActionState } from '@/lib/action-state';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -31,7 +31,18 @@ export function TemplatePicker({ action, design, mode }: { action: Action; desig
     <form action={formAction} aria-label={mode === 'create' ? 'New design' : 'Choose template'} className="space-y-4">
       <FormMessage state={state} />
       {design && <input type="hidden" name="designId" value={design.id} />}
-      {mode === 'create' && <label className="block max-w-sm text-sm"><span className="mb-1 block font-medium">Design name</span><input name="name" required defaultValue={state.ok ? '' : state.values?.name ?? ''} placeholder="Head office cards" aria-label="Design name" className={input} /></label>}
+      {mode === 'create' && (
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="block w-full max-w-sm text-sm"><span className="mb-1 block font-medium">Design name</span><input name="name" required defaultValue={state.ok ? '' : state.values?.name ?? ''} placeholder="Head office cards" aria-label="Design name" className={input} /></label>
+          <fieldset className="flex gap-2 text-sm" aria-label="Card type"><legend className="sr-only">Card type</legend>
+            {(['id', 'visiting'] as const).map((k) => (
+              <label key={k} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
+                <input type="radio" name="cardType" value={k} defaultChecked={(state.values?.cardType ?? 'id') === k} className="accent-primary" />{k === 'id' ? '🪪' : '📇'} {CARD_TYPE_LABELS[k]}
+              </label>
+            ))}
+          </fieldset>
+        </div>
+      )}
       <fieldset><legend className="mb-2 text-sm font-medium">Template · {TEMPLATES.length} layouts</legend>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-8">
           {TEMPLATES.map((t) => (
@@ -47,26 +58,40 @@ export function TemplatePicker({ action, design, mode }: { action: Action; desig
   );
 }
 
-/** L2 — Fields and layout. */
+/** L2 — Fields and layout, and up to four custom lines (for example "Access: all floors"). */
 export function FieldsForm({ action, design }: { action: Action; design: CardDesign }) {
   const [state, formAction] = useActionState(action, initialActionState);
+  const kind = (design.card_type === 'visiting' ? 'visiting' : 'id') as CardType;
+  const [lines, setLines] = useState(Math.max(design.custom_fields.length, 0));
   return (
     <form action={formAction} aria-label="Fields and layout" className="space-y-4">
       <FormMessage state={state} />
       <input type="hidden" name="designId" value={design.id} />
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm"><span className="mb-1 block font-medium">Design name</span><input name="name" defaultValue={design.name} aria-label="Design name" className={input} /></label>
-        <label className="text-sm"><span className="mb-1 block font-medium">Orientation</span>
-          <select name="orientation" defaultValue={design.orientation} aria-label="Orientation" className={input}><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+        {kind === 'id' ? (
+          <label className="text-sm"><span className="mb-1 block font-medium">Orientation</span>
+            <select name="orientation" defaultValue={design.orientation} aria-label="Orientation" className={input}><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+        ) : <input type="hidden" name="orientation" value="landscape" />}
       </div>
-      <fieldset><legend className="mb-2 text-sm font-medium">Fields on the card</legend>
+      <fieldset><legend className="mb-2 text-sm font-medium">Fields on the {CARD_TYPE_LABELS[kind].toLowerCase()}</legend>
         <div className="grid gap-2 sm:grid-cols-3">
-          {CARD_FIELDS.map(([k, label]) => (
+          {CARD_FIELDS.filter(([k]) => FIELDS_FOR[kind].includes(k)).map(([k, label]) => (
             <label key={k} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm"><input type="checkbox" name="field" value={k} defaultChecked={design.fields.includes(k)} className={check} />{label}</label>
           ))}
         </div>
       </fieldset>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="showPhoto" defaultChecked={design.show_photo} className={check} />Show the photo (initials until photos are added)</label>
+      <fieldset className="space-y-2"><legend className="mb-1 text-sm font-medium">Custom lines</legend>
+        <p className="text-xs text-muted">Printed on every card as given, for example “Access · All floors” or “Shift · General”.</p>
+        {Array.from({ length: lines }, (_, i) => (
+          <div key={i} className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2">
+            <input name="customLabel" defaultValue={design.custom_fields[i]?.label ?? ''} maxLength={30} placeholder="Label" aria-label={`Custom line ${i + 1} label`} className={input} />
+            <input name="customValue" defaultValue={design.custom_fields[i]?.value ?? ''} maxLength={60} placeholder="Value" aria-label={`Custom line ${i + 1} value`} className={input} />
+          </div>
+        ))}
+        {lines < 4 && <button type="button" onClick={() => setLines((n) => n + 1)} className="text-sm text-primary">＋ Add field</button>}
+      </fieldset>
+      {kind === 'id' && <label className="flex items-center gap-2 text-sm"><input type="hidden" name="photoField" value="1" /><input type="checkbox" name="showPhoto" defaultChecked={design.show_photo} className={check} />Show the photo (initials until photos are added)</label>}
       <SubmitButton>Save fields</SubmitButton>
     </form>
   );

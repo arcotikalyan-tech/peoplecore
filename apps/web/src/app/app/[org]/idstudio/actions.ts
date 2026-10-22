@@ -29,12 +29,17 @@ async function manager(slug: string) {
 export async function createDesignAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await manager(slug);
   if (!ctx) return DENIED;
-  const parsed = z.object({ name: z.string().trim().min(2, 'Name the design').max(60), template: z.enum(TEMPLATE_KEYS) }).safeParse(Object.fromEntries(formData));
+  const parsed = z.object({ name: z.string().trim().min(2, 'Name the design').max(60), template: z.enum(TEMPLATE_KEYS), cardType: z.enum(['id', 'visiting']).default('id') })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, message: 'Name the design and pick a template.', values: formValues(formData) };
   const supabase = await createClient();
-  const { count } = await supabase.from('id_card_designs').select('id', { count: 'exact', head: true }).eq('organization_id', ctx.org.id);
+  const { count } = await supabase.from('id_card_designs').select('id', { count: 'exact', head: true }).eq('organization_id', ctx.org.id).eq('card_type', parsed.data.cardType);
+  const visiting = parsed.data.cardType === 'visiting';
   const { data, error } = await supabase.from('id_card_designs')
-    .insert({ organization_id: ctx.org.id, name: parsed.data.name, template: parsed.data.template, is_default: (count ?? 0) === 0 }).select('id').single();
+    .insert({
+      organization_id: ctx.org.id, name: parsed.data.name, template: parsed.data.template, is_default: (count ?? 0) === 0, card_type: parsed.data.cardType,
+      ...(visiting ? { orientation: 'landscape', fields: ['designation', 'phone', 'work_email', 'office_address', 'website'], show_photo: false } : {}),
+    }).select('id').single();
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   revalidatePath(page(slug));
   await flash('Design created. Choose its fields next.');
@@ -60,9 +65,17 @@ export async function saveFieldsAction(slug: string, _prev: ActionState, formDat
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, message: 'Please check the design name.', values: formValues(formData) };
   const fields = formData.getAll('field').map(String).filter((f) => FIELD_KEYS.has(f));
+  const labels = formData.getAll('customLabel').map((x) => String(x).trim());
+  const values = formData.getAll('customValue').map((x) => String(x).trim());
+  const custom = labels.map((label, i) => ({ label, value: values[i] ?? '' })).filter((c) => c.label || c.value);
+  if (custom.some((c) => !c.label || !c.value || c.label.length > 30 || c.value.length > 60)) {
+    return { ok: false, message: 'Give each custom line a label (up to 30 characters) and a value (up to 60).', values: formValues(formData) };
+  }
+  if (custom.length > 4) return { ok: false, message: 'Up to four custom lines.', values: formValues(formData) };
   const supabase = await createClient();
   const { error } = await supabase.from('id_card_designs').update({
-    name: parsed.data.name, orientation: parsed.data.orientation, fields, show_photo: formData.get('showPhoto') === 'on',
+    name: parsed.data.name, orientation: parsed.data.orientation, fields, custom_fields: custom,
+    ...(formData.has('photoField') ? { show_photo: formData.get('showPhoto') === 'on' } : {}),
   }).eq('organization_id', ctx.org.id).eq('id', parsed.data.designId);
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   revalidatePath(page(slug));
@@ -124,4 +137,17 @@ export async function deleteDesignAction(slug: string, _prev: ActionState, formD
   revalidatePath(page(slug));
   await flash('Design deleted.');
   redirect(page(slug));
+}
+
+/** Rolls a design out: it becomes the default for its kind and everyone is told their card is ready. */
+export async function rollOutDesignAction(slug: string, designId: string): Promise<ActionState> {
+  const ctx = await manager(slug);
+  if (!ctx) return DENIED;
+  if (!z.uuid().safeParse(designId).success) return { ok: false, message: 'Design not found.' };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('roll_out_id_card', { p_design: designId });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath(page(slug));
+  const n = Number(data);
+  return { ok: true, message: `Rolled out: ${n} ${n === 1 ? 'person was' : 'people were'} told their card is ready.` };
 }

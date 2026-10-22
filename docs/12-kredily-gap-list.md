@@ -49,9 +49,9 @@ Priority: **P1** affects payroll correctness or everyday admin control; **P2** c
 
 | Area | Gap | Status |
 |---|---|---|
-| ID Studio | Visiting cards; custom fields; roll a design out to everyone; export all | ☐ |
-| Konnect | Company discussion board (posts by topic, replies) | ☐ |
-| Insurance | Insurer list; CD (cash deposit) balance endorsement ledger | ☐ |
-| Hiring | Interview calendar view; job-board feeds (Naukri, LinkedIn, Indeed) — feeds need partner accounts | ☐ |
-| Compliance | Library breadth: Kredily tracks 522 artifacts (3 drafted); PeopleCore 160 | ☐ |
-| Learn | Starter course library; bulk reminders | ☐ |
+| ID Studio | Visiting cards; custom fields; roll a design out to everyone; export all | ☑ built (ID and visiting cards, each with a default; up to four custom lines; “Roll out to everyone” tells employees their card is ready; print sheets per kind; “Export all” downloads print-ready SVGs, front and back, in a ZIP; employees download their own) |
+| Konnect | Company discussion board (posts by topic, replies) | ☑ built (topics, discussions with replies and likes, search; authors edit or remove their posts; people who manage announcements pin, lock, hide and manage topics) |
+| Insurance | Insurer list; CD (cash deposit) balance endorsement ledger | ☑ built (insurer list with current names; the CD endorsement picks which additions and deletions to send, with Select all / Clear and a reason per change, and the rest stay pending; a CD account with deposits, endorsement charges, refunds and adjustments, a running balance, a low-balance alert and a pro-rata estimate from the premium per life) |
+| Hiring | Interview calendar view; job-board feeds (Naukri, LinkedIn, Indeed) — feeds need partner accounts | ☑ built (month calendar of interviews; an XML feed of published jobs in Indeed’s format at /careers/{org}/jobs.xml; Google job-posting data on each job page; a Job boards panel with the feed address and what each board needs; LinkedIn and Naukri still need the company’s own partner or recruiter accounts) |
+| Compliance | Library breadth: Kredily tracks 522 artifacts (3 drafted); PeopleCore 160 | ☑ built (517 artifacts: vendor TDS (Challan 281, Form 26Q, Form 16A, applying once TDS is deducted from a vendor payment), POSH, IR Code committees, more gratuity, bonus and maternity forms, and a common state pack for every state and UT, marked low confidence “verify”) |
+| Learn | Starter course library; bulk reminders | ☑ built (twelve starter courses, from POSH and information security to new-manager essentials, added as drafts with lessons for HR to review; remind everyone not finished, or only the overdue, from a course’s page, once a day at most) |

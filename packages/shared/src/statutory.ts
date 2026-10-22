@@ -82,7 +82,7 @@ export type DueRule =
   | { kind: 'annual'; basis: 'calendar' | 'fy'; due: string }
   | { kind: 'continuous' } | { kind: 'event' } | { kind: 'one_time' };
 
-export type Need = 'pf' | 'esi' | 'pt' | 'lwf' | 'tds' | 'contract' | 'factory';
+export type Need = 'pf' | 'esi' | 'pt' | 'lwf' | 'tds' | 'vendor_tds' | 'contract' | 'factory';
 
 /** What PeopleCore uses to produce the artifact: a report in Reports, or a page. */
 export type Renderer = { report: string } | { page: 'payslips' | 'tax' | 'letters' | 'holidays' };
@@ -158,6 +158,35 @@ const central: StatForm[] = [
   { id: 'IN-C-02', name: 'Register of contractors', form: 'Form XII', act: 'CLRA Central Rules 1971', jurisdiction: 'IN', cls: 'register', regime: 'legacy', frequency: 'Ongoing', due: { kind: 'continuous' }, trigger: 'Continuous', source: 'Contractors', confidence: 'high', needs: ['contract'] },
   { id: 'IN-C-03', name: 'Half-yearly return by contractor', form: 'Form XXIV', act: 'CLRA Central Rules 1971', jurisdiction: 'IN', cls: 'return', regime: 'legacy', frequency: 'Half-yearly', due: { kind: 'half_yearly', basis: 'calendar', due: ['07-30', '01-30'] }, trigger: 'Within 30 days of the half-year end', source: 'Contractors', confidence: 'high', needs: ['contract'] },
   { id: 'IN-C-04', name: 'Annual return by principal employer', form: 'Form XXV', act: 'CLRA Central Rules 1971', jurisdiction: 'IN', cls: 'return', regime: 'legacy', frequency: 'Annual', due: { kind: 'annual', basis: 'calendar', due: '02-15' }, trigger: 'By 15 February', source: 'Contractors', confidence: 'high', needs: ['contract'] },
+  // TDS on payments other than salary (vendors, contractors, professionals, rent).
+  { id: 'IN-T-05', name: 'TDS deposit on vendor and other payments', form: 'Challan 281', act: 'Income-tax Act', jurisdiction: 'IN', cls: 'challan', regime: 'continuing', frequency: 'Monthly', due: { kind: 'monthly', day: 7, march: '04-30' }, trigger: '7th of the following month; March by 30 April', source: 'Vendor payouts', confidence: 'high', needs: ['vendor_tds'] },
+  { id: 'IN-T-06', name: 'Quarterly TDS return on vendor and other payments', form: 'Form 26Q', act: 'Income-tax Act', jurisdiction: 'IN', cls: 'return', regime: 'continuing', frequency: 'Quarterly', due: { kind: 'quarterly', due: ['07-31', '10-31', '01-31', '05-31'] }, trigger: '31 Jul, 31 Oct, 31 Jan, 31 May', source: 'Vendor payouts', confidence: 'high', needs: ['vendor_tds'] },
+  { id: 'IN-T-07', name: 'TDS certificate for vendors', form: 'Form 16A', act: 'Income-tax Act', jurisdiction: 'IN', cls: 'slip', regime: 'continuing', frequency: 'Quarterly', due: { kind: 'quarterly', due: ['08-15', '11-15', '02-15', '06-15'] }, trigger: 'Within 15 days of the Form 26Q due date', source: 'Vendor payouts', confidence: 'high', needs: ['vendor_tds'] },
+  { id: 'IN-T-08', name: 'Statement of perquisites', form: 'Form 12BA', act: 'Income-tax Rules', jurisdiction: 'IN', cls: 'slip', regime: 'continuing', frequency: 'Annual', due: { kind: 'annual', basis: 'fy', due: '06-15' }, trigger: 'With Form 16, for employees given perquisites', source: 'Payroll runs', confidence: 'medium', needs: ['tds'], payroll: true },
+  { id: 'IN-T-09', name: 'Tax deduction account number (TAN)', form: 'Form 49B', act: 'Income-tax Act', jurisdiction: 'IN', cls: 'registration', regime: 'continuing', frequency: 'One-time', due: { kind: 'one_time' }, trigger: 'Before deducting any TDS', source: 'Company profile', confidence: 'high', needs: ['tds'] },
+  // Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013.
+  { id: 'IN-H-01', name: 'Constitution of the Internal Committee', form: 'IC order', act: 'POSH Act 2013', jurisdiction: 'IN', cls: 'registration', regime: 'continuing', frequency: 'One-time + every 3 years', due: { kind: 'one_time' }, trigger: 'Workplaces with 10 or more employees; members serve up to three years', source: 'HR', confidence: 'high', min: 10 },
+  { id: 'IN-H-02', name: 'Display of the Internal Committee and the penalties for sexual harassment', form: 'Display', act: 'POSH Act 2013', jurisdiction: 'IN', cls: 'notice', regime: 'continuing', frequency: 'On change', due: { kind: 'continuous' }, trigger: 'Displayed at a conspicuous place', source: 'HR', confidence: 'high', min: 10 },
+  { id: 'IN-H-03', name: 'Annual report of the Internal Committee', form: 'Annual report', act: 'POSH Act 2013 + Rules', jurisdiction: 'IN', cls: 'return', regime: 'continuing', frequency: 'Annual', due: { kind: 'annual', basis: 'calendar', due: '01-31' }, trigger: 'For each calendar year, to the employer and the District Officer (date varies by state; verify)', source: 'HR', confidence: 'medium', min: 10 },
+  // Industrial Relations Code.
+  { id: 'IN-I-02', name: 'Grievance Redressal Committee', form: 'Committee', act: 'Industrial Relations Code', jurisdiction: 'IN', cls: 'registration', regime: 'labour_code', frequency: 'One-time', due: { kind: 'one_time' }, trigger: 'Establishments with 20 or more workers', source: 'HR', confidence: 'medium', min: 20, from: LABOUR_CODES_FROM },
+  { id: 'IN-I-03', name: 'Works committee', form: 'Committee', act: 'Industrial Relations Code', jurisdiction: 'IN', cls: 'registration', regime: 'labour_code', frequency: 'One-time', due: { kind: 'one_time' }, trigger: 'Establishments with 100 or more workers, when the government orders it', source: 'HR', confidence: 'medium', min: 100, from: LABOUR_CODES_FROM },
+  { id: 'IN-I-04', name: 'Notice of change in service conditions', form: 'Notice of change', act: 'Industrial Relations Code', jurisdiction: 'IN', cls: 'notice', regime: 'labour_code', frequency: 'Event', due: { kind: 'event' }, trigger: '21 days before changing conditions such as wages, hours or leave', source: 'HR', confidence: 'medium', from: LABOUR_CODES_FROM },
+  // Gratuity, bonus and maternity: the other forms.
+  { id: 'IN-G-03', name: 'Notice of change (gratuity)', form: 'Form B', act: 'Payment of Gratuity Act', jurisdiction: 'IN', cls: 'registration', regime: 'continuing', frequency: 'Event', due: { kind: 'event' }, trigger: 'Within 30 days of a change in name, address, employer or business', source: 'Company profile', confidence: 'medium', min: 10 },
+  { id: 'IN-G-04', name: 'Notice of gratuity payable', form: 'Form L', act: 'Payment of Gratuity Act', jurisdiction: 'IN', cls: 'slip', regime: 'continuing', frequency: 'Per exit', due: { kind: 'event' }, trigger: 'Within 15 days of the employee’s application; pay within 30 days of it falling due', source: 'Full and final settlement', confidence: 'medium', min: 10 },
+  { id: 'IN-G-05', name: 'Abstract of the Payment of Gratuity Act (display)', form: 'Form U', act: 'Payment of Gratuity Act', jurisdiction: 'IN', cls: 'notice', regime: 'continuing', frequency: 'On change', due: { kind: 'continuous' }, trigger: 'Displayed at the premises', source: 'Admin', confidence: 'medium', min: 10 },
+  { id: 'IN-B-03', name: 'Computation of the allocable surplus', form: 'Form A', act: 'Payment of Bonus Act', jurisdiction: 'IN', cls: 'register', regime: 'continuing', frequency: 'Annual', due: { kind: 'annual', basis: 'fy', due: '11-30' }, trigger: 'With the bonus, within 8 months of the year end', source: 'Accounts', confidence: 'medium', min: 20 },
+  { id: 'IN-B-04', name: 'Set-on and set-off of the allocable surplus', form: 'Form B', act: 'Payment of Bonus Act', jurisdiction: 'IN', cls: 'register', regime: 'continuing', frequency: 'Annual', due: { kind: 'annual', basis: 'fy', due: '11-30' }, trigger: 'With the bonus, within 8 months of the year end', source: 'Accounts', confidence: 'medium', min: 20 },
+  { id: 'IN-M-03', name: 'Written intimation of maternity benefits', form: 'Intimation', act: 'Maternity Benefit Act', jurisdiction: 'IN', cls: 'slip', regime: 'continuing', frequency: 'Per joiner', due: { kind: 'event' }, trigger: 'To every woman employee, in writing and electronically, at appointment', source: 'Onboarding', confidence: 'high', min: 10 },
+  // Other central obligations.
+  { id: 'IN-X-01', name: 'Quarterly vacancy return', form: 'ER-I', act: 'Employment Exchanges (CNV) Act', jurisdiction: 'IN', cls: 'return', regime: 'legacy', frequency: 'Quarterly', due: { kind: 'quarterly', due: ['07-30', '10-30', '01-30', '04-30'] }, trigger: 'Within 30 days of each quarter (private establishments with 25+ employees)', source: 'Employee master', confidence: 'medium', min: 25, until: LABOUR_CODES_FROM },
+  { id: 'IN-X-02', name: 'Equal opportunity policy for persons with disabilities', form: 'Policy', act: 'Rights of Persons with Disabilities Act 2016', jurisdiction: 'IN', cls: 'notice', regime: 'continuing', frequency: 'One-time + on change', due: { kind: 'one_time' }, trigger: 'Published by the establishment (registration and size rules vary; verify)', source: 'Policies', confidence: 'medium' },
+  { id: 'IN-X-03', name: 'Complaints officer under the HIV and AIDS Act', form: 'Designation', act: 'HIV and AIDS (Prevention and Control) Act 2017', jurisdiction: 'IN', cls: 'registration', regime: 'continuing', frequency: 'One-time', due: { kind: 'one_time' }, trigger: 'Establishments with 100 or more persons', source: 'HR', confidence: 'medium', min: 100 },
+  // Contract labour and factories: the remaining registers.
+  { id: 'IN-C-05', name: 'Register of workmen employed by the contractor', form: 'Form XIII', act: 'CLRA Central Rules 1971', jurisdiction: 'IN', cls: 'register', regime: 'legacy', frequency: 'Ongoing', due: { kind: 'continuous' }, trigger: 'Kept by each contractor; checked by the principal employer', source: 'Contractors', confidence: 'medium', needs: ['contract'] },
+  { id: 'IN-C-06', name: 'Contractor’s muster roll, wage register and wage slips', form: 'Forms XVI, XVII, XIX', act: 'CLRA Central Rules 1971', jurisdiction: 'IN', cls: 'register', regime: 'legacy', frequency: 'Monthly', due: { kind: 'continuous' }, trigger: 'Each wage period, kept by the contractor', source: 'Contractors', confidence: 'medium', needs: ['contract'] },
+  { id: 'IN-F-01', name: 'Factory licence', form: 'Licence', act: 'OSH & Working Conditions Code (factories)', jurisdiction: 'IN', cls: 'registration', regime: 'labour_code', frequency: 'One-time + renewal', due: { kind: 'one_time' }, trigger: 'Before starting manufacturing operations (state rules apply; verify)', source: 'Company profile', confidence: 'medium', needs: ['factory'], from: LABOUR_CODES_FROM },
   // Displays.
   { id: 'IN-N-01', name: 'Abstracts of the Labour Codes (display)', form: 'Abstracts', act: 'Labour Codes', jurisdiction: 'IN', cls: 'notice', regime: 'labour_code', frequency: 'On change', due: { kind: 'continuous' }, trigger: 'Displayed at the premises', source: 'Company profile', confidence: 'medium', from: LABOUR_CODES_FROM },
 ];
@@ -232,7 +261,44 @@ function placeholders(): StatForm[] {
   });
 }
 
-export const STAT_FORMS: StatForm[] = [...central, ...states, ...placeholders()];
+/**
+ * The obligations most state shops and establishments, minimum wages, contract labour and factory laws share, for
+ * every state, as low-confidence entries to verify against the state's current rules. States with a detailed pack
+ * keep their own registers and notices.
+ */
+function stateCommons(): StatForm[] {
+  return (Object.keys(STATES) as StateCode[]).flatMap((code) => {
+    const st = STATES[code];
+    const s = st.name;
+    const se = `${s} Shops & Establishments law`;
+    const verify = (t: string) => `${t} (verify the state’s current rules)`;
+    const base = { jurisdiction: code, confidence: 'low' as const };
+    const out: StatForm[] = [];
+    if (!st.detailed) out.push(
+      { ...base, id: `${code}-S-02`, name: 'Register of employment and wages', form: 'Register', act: se, cls: 'register', regime: 'legacy', frequency: 'Monthly', due: { kind: 'continuous' }, trigger: verify('Each wage period'), source: 'Payroll + attendance' },
+      { ...base, id: `${code}-S-03`, name: 'Leave with wages register', form: 'Leave register', act: se, cls: 'register', regime: 'legacy', frequency: 'Ongoing', due: { kind: 'continuous' }, trigger: verify('Continuous'), source: 'Leave' },
+      { ...base, id: `${code}-S-04`, name: 'Notice of weekly holiday and working hours', form: 'Display', act: se, cls: 'notice', regime: 'legacy', frequency: 'On change', due: { kind: 'continuous' }, trigger: verify('Displayed at the premises'), source: 'Attendance rules' },
+      { ...base, id: `${code}-S-05`, name: 'National & festival holidays list', form: 'Intimation + display', act: `${s} holidays law`, cls: 'notice', regime: 'legacy', frequency: 'Annual', due: { kind: 'event' }, trigger: verify('At the start of each year'), source: 'Holidays' },
+      { ...base, id: `${code}-S-07`, name: 'Overtime register', form: 'Register', act: se, cls: 'register', regime: 'legacy', frequency: 'Ongoing', due: { kind: 'continuous' }, trigger: verify('Whenever overtime is worked'), source: 'Attendance' },
+    );
+    if (!st.detailed && st.pt) out.push(
+      { ...base, id: `${code}-PT-01`, name: 'Professional tax registration (employer)', form: 'PT registration', act: `${s} Professional Tax law`, cls: 'registration', regime: 'state_fiscal', frequency: 'One-time', due: { kind: 'one_time' }, trigger: verify('Before deducting professional tax'), source: 'Company profile', needs: ['pt'] },
+    );
+    if (st.lwf) out.push(
+      { ...base, id: `${code}-LWF-02`, name: 'Labour welfare fund registration', form: 'LWF registration', act: `${s} Labour Welfare Fund law`, cls: 'registration', regime: 'state_welfare', frequency: 'One-time', due: { kind: 'one_time' }, trigger: verify('Before the first contribution'), source: 'Company profile', needs: ['lwf'] },
+    );
+    out.push(
+      { ...base, id: `${code}-S-06`, name: 'Shops & establishments: changes and renewal', form: 'Amendment / renewal', act: se, cls: 'registration', regime: 'legacy', frequency: 'Event', due: { kind: 'event' }, trigger: verify('When registered details change, and on renewal where required'), source: 'Company profile' },
+      { ...base, id: `${code}-S-09`, name: 'Women working at night: permission and safeguards', form: 'Permission / undertaking', act: se, cls: 'registration', regime: 'legacy', frequency: 'Event', due: { kind: 'event' }, trigger: verify('Before women work late or night shifts'), source: 'Attendance rules' },
+      { ...base, id: `${code}-MW-01`, name: 'Minimum rates of wages (display)', form: 'Display', act: `${s} minimum wages notification`, cls: 'notice', regime: 'legacy', frequency: 'On revision', due: { kind: 'continuous' }, trigger: verify('Displayed at the premises; revised with each notification'), source: 'Payroll settings' },
+      { ...base, id: `${code}-CL-01`, name: 'Contractor licence', form: 'Licence', act: `${s} contract labour rules`, cls: 'registration', regime: 'legacy', frequency: 'One-time + renewal', due: { kind: 'one_time' }, trigger: verify('Held by each contractor before deploying workers'), source: 'Contractors', needs: ['contract'] },
+      { ...base, id: `${code}-F-01`, name: 'Factory registers and annual return under state rules', form: 'Registers + return', act: `${s} factories rules`, cls: 'register', regime: 'legacy', frequency: 'Ongoing', due: { kind: 'continuous' }, trigger: verify('Adult workers register, leave and accident records'), source: 'Attendance', needs: ['factory'] },
+    );
+    return out;
+  });
+}
+
+export const STAT_FORMS: StatForm[] = [...central, ...states, ...placeholders(), ...stateCommons()];
 export const STAT_FORM_BY_ID = new Map(STAT_FORMS.map((f) => [f.id, f]));
 
 // ─── Due dates ───────────────────────────────────────────────────────────────
@@ -329,6 +395,8 @@ export interface ScopeFacts {
   esiCode: boolean;
   ptEnabled: boolean;
   tds: boolean;
+  /** TDS was deducted from vendor or other non-salary payments (Form 26Q, 16A). */
+  vendorTds: boolean;
   contractLabour: boolean;
   factory: boolean;
 }
@@ -369,6 +437,7 @@ export function evaluate(form: StatForm, s: ScopeFacts, today: string): Evaluati
     }
     if (n === 'lwf') (state && STATES[state].lwf ? pass : fail)(state && STATES[state].lwf ? 'labour welfare fund operative in the state' : 'no labour welfare fund in this state');
     if (n === 'tds') (s.tds ? pass : fail)(s.tds ? 'salaries paid through payroll (TDS on salary)' : 'no payroll yet');
+    if (n === 'vendor_tds') (s.vendorTds ? pass : fail)(s.vendorTds ? 'TDS deducted from vendor payments' : 'no TDS deducted from vendor payments yet');
     if (n === 'contract') (s.contractLabour ? pass : fail)(s.contractLabour ? 'contract labour engaged' : 'no contract labour engaged (scope setting)');
     if (n === 'factory') (s.factory ? pass : fail)(s.factory ? 'establishment is a factory' : 'not a factory (scope setting)');
   }

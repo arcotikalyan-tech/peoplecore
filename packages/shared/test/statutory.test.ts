@@ -6,7 +6,7 @@ import {
 const form = (id: string) => STAT_FORM_BY_ID.get(id)!;
 const small: ScopeFacts = {
   headcount: 8, byState: { KA: 3 }, pfEnabled: true, pfCode: false, esiEnabled: true, esiCode: false, ptEnabled: true,
-  tds: true, contractLabour: false, factory: false,
+  tds: true, vendorTds: false, contractLabour: false, factory: false,
 };
 
 describe('catalogue', () => {
@@ -56,7 +56,28 @@ describe('due dates', () => {
   });
 });
 
+describe('library breadth', () => {
+  it('covers vendor TDS, POSH and every state, with uncertain state entries marked low confidence', () => {
+    expect(STAT_FORMS.length).toBeGreaterThanOrEqual(480);
+    for (const code of Object.keys(STATES)) expect(STAT_FORMS.some((f) => f.jurisdiction === code && f.id.endsWith('-S-06'))).toBe(true);
+    for (const f of STAT_FORMS.filter((x) => x.jurisdiction !== 'IN' && /-(S-0[6-9]|MW-01|CL-01|F-01|LWF-02)$/.test(x.id))) {
+      expect(f.confidence).toBe('low');
+      expect(f.trigger).toContain('verify');
+    }
+    expect(form('IN-T-06').form).toBe('Form 26Q');
+    expect(form('IN-H-01').min).toBe(10);
+  });
+});
+
 describe('applicability', () => {
+  it('vendor TDS forms apply once TDS is deducted from vendor payments', () => {
+    expect(evaluate(form('IN-T-06'), small, '2026-10-20').applies).toBe(false);
+    const on = evaluate(form('IN-T-06'), { ...small, vendorTds: true }, '2026-10-20');
+    expect(on.applies).toBe(true);
+    expect(on.reasons).toContain('✓ TDS deducted from vendor payments');
+    expect(obligationsDue([form('IN-T-07')], '2026-11-01', '2026-11-30').map((o) => [o.label, o.due])).toEqual([['Q2 FY 2026-27', '2026-11-15']]);
+  });
+
   it('applies thresholds and explains why', () => {
     const pf = evaluate(form('IN-P-01'), small, '2026-10-20');
     expect(pf.applies).toBe(false);

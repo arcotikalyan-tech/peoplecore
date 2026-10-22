@@ -10,7 +10,8 @@ export class XlsxError extends Error {}
 
 const MAX_PART_BYTES = 20 * 1024 * 1024;
 
-function unzip(bytes: Uint8Array, want: (name: string) => boolean): Map<string, string> {
+/** The text of the ZIP entries whose names `want` accepts (stored or deflated). */
+export function unzip(bytes: Uint8Array, want: (name: string) => boolean): Map<string, string> {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   // End of central directory: within the last 64 KiB + 22 bytes.
   let eocd = -1;

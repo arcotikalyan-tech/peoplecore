@@ -14,7 +14,7 @@ import { getStructure, structureOptions } from '@/server/structure';
 import { assignCourseAction, enrollAction, saveCourseAction, updateEnrollmentAction } from '../actions';
 import { AssignCourseForm, CompleteForm, CourseForm } from '../learning-forms';
 import { duration, FORMAT_LABEL, STATUS_LABEL, STATUS_TONE } from '../labels';
-import { completeLessonAction, courseSkillAction, coursePointsAction, courseStatusAction, deleteLessonAction, saveLessonAction } from '../learn-actions';
+import { completeLessonAction, courseSkillAction, coursePointsAction, courseStatusAction, deleteLessonAction, remindLearnersAction, saveLessonAction } from '../learn-actions';
 import { Buttons, CourseSkillForm, LessonForm, PointsForm } from '../learn-client';
 
 const STATUS_STEPS: Record<string, Array<{ text: string; value: string; variant?: 'primary' | 'secondary' | 'ghost' }>> = {
@@ -115,7 +115,11 @@ export default async function CoursePage({ params, searchParams }: {
 
           {(hr || others.length > 0) && (
             <Card>
-              <CardHeader title="Enrolments" description={hr ? 'Everyone enrolled.' : 'People in your reporting line.'} />
+              <CardHeader title="Enrolments" description={hr ? 'Everyone enrolled.' : 'People in your reporting line.'}
+                actions={hr && others.some((x) => x.status === 'assigned' || x.status === 'in_progress') ? (
+                  <Buttons action={remindLearnersAction.bind(null, slug)} hidden={{ courseId: c.id }} label="Remind learners"
+                    buttons={[{ text: '🔔 Remind everyone not finished', name: 'scope', value: 'all', variant: 'secondary' }, { text: 'Overdue only', name: 'scope', value: 'overdue' }]} />
+                ) : undefined} />
               <Table caption="Enrolments">
                 <thead><tr><Th>Person</Th><Th>Status</Th><Th>Due</Th><Th>Completed</Th><Th><span className="sr-only">Record</span></Th></tr></thead>
                 <tbody>

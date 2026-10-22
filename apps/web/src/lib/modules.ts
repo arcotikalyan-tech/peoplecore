@@ -17,6 +17,7 @@ export const MODULES = [
   { key: 'learning', label: 'Learning', group: 'Talent' },
   { key: 'engagement', label: 'Engagement', group: 'Workplace' },
   { key: 'peoplexp', label: 'PeopleXP', group: 'Workplace' },
+  { key: 'konnect', label: 'Konnect (discussions)', group: 'Workplace' },
   { key: 'helpdesk', label: 'Helpdesk', group: 'Workplace' },
   { key: 'knowledge', label: 'Knowledge base', group: 'Workplace' },
   { key: 'policies', label: 'Policies', group: 'Workplace' },
@@ -42,4 +43,5 @@ export const NOTIFICATION_CATEGORIES = [
   ['separation', 'Exits', 'Resignations and clearance'],
   ['report', 'Reports', 'Scheduled report reminders'],
   ['company', 'Company', 'Company profile changes and closing'],
+  ['konnect', 'Konnect', 'Replies to your discussions'],
 ] as const;

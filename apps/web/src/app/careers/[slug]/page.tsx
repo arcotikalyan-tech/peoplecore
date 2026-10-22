@@ -34,6 +34,7 @@ export default async function CareersPage({ params }: { params: Promise<{ slug: 
           </li>
         ))}
       </ul>
+      {jobs.length > 0 && <p className="mt-8 text-xs text-muted">For job boards: <a className="text-primary hover:underline" href={`/careers/${slug}/jobs.xml`}>jobs feed (XML)</a></p>}
     </main>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { todayIn } from '@peoplecore/shared';
+import { monthCells, todayIn } from '@peoplecore/shared';
 import { HubTabs, Panel, SubTabs } from '@/components/ui/hub';
 import { Badge } from '@/components/ui/surface';
 import { formatDate } from '@/lib/format';
@@ -163,16 +163,6 @@ async function CalendarTab({ slug, base, sp, today, calendar, extra }: { slug: s
       )}
     </div>
   );
-}
-
-function monthCells(ym: string) {
-  const first = `${ym}-01`;
-  const lead = (dow(first) + 6) % 7; // Monday first
-  const last = monthEnd(ym);
-  const cells: Array<string | null> = Array.from({ length: lead }, () => null);
-  for (let d = first; d <= last; d = addDays(d, 1)) cells.push(d);
-  while (cells.length % 7) cells.push(null);
-  return cells;
 }
 
 function MonthGrid({ ym, today, offs, byDay }: { ym: string; today: string; offs: number[]; byDay: Map<string, Event[]> }) {

@@ -1,6 +1,6 @@
 import 'server-only';
 import QRCode from 'qrcode';
-import type { CardDesign, CardPerson } from '@/lib/id-cards';
+import type { CardDesign, CardPerson, CustomLine } from '@/lib/id-cards';
 import { signImageUrl } from './document-storage';
 import { getStructure } from './structure';
 import { createClient } from './supabase';
@@ -10,10 +10,10 @@ import { createClient } from './supabase';
 export async function cardDesigns(orgId: string): Promise<CardDesign[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from('id_card_designs')
-    .select('id, name, template, orientation, fields, primary_color, accent_color, text_color, show_logo, show_photo, show_qr, qr_content, back_text, logo_path, is_default')
+    .select('id, name, template, orientation, fields, primary_color, accent_color, text_color, show_logo, show_photo, show_qr, qr_content, back_text, logo_path, is_default, card_type, custom_fields, rolled_out_at')
     .eq('organization_id', orgId).order('is_default', { ascending: false }).order('created_at');
   if (error) throw new Error(`Failed to load card designs (${error.code})`);
-  return data;
+  return data.map((d) => ({ ...d, custom_fields: (Array.isArray(d.custom_fields) ? d.custom_fields : []) as unknown as CustomLine[] }));
 }
 
 export async function cardPeople(orgId: string, filter: { ids?: string[]; departmentId?: string } = {}): Promise<CardPerson[]> {
@@ -25,11 +25,22 @@ export async function cardPeople(orgId: string, filter: { ids?: string[]; depart
   const { data: emps, error } = await q.order('employee_code').limit(1000);
   if (error) throw new Error(`Failed to load employees (${error.code})`);
   const ids = emps.map((e) => e.id);
-  const [structure, personal, emergency] = await Promise.all([
+  const [structure, personal, emergency, addresses] = await Promise.all([
     getStructure(orgId),
     ids.length ? supabase.from('employee_personal').select('employee_id, blood_group').in('employee_id', ids).then((r) => r.data ?? []) : Promise.resolve([]),
     ids.length ? supabase.from('emergency_contacts').select('employee_id, name, phone').in('employee_id', ids).order('created_at').then((r) => r.data ?? []) : Promise.resolve([]),
+    supabase.from('company_addresses').select('kind, line1, line2, city, state, pincode').eq('organization_id', orgId).then((r) => r.data ?? []),
   ]);
+  // A person's office: a branch in their location's city, else the corporate office, else the registered one.
+  const fmt = (a: (typeof addresses)[number]) => [a.line1, a.line2, a.city, [a.state, a.pincode].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const fallback = addresses.find((a) => a.kind === 'corporate') ?? addresses.find((a) => a.kind === 'registered') ?? null;
+  const cityOf = new Map(structure.locations.map((l) => [l.id, l.city]));
+  const officeFor = (locationId: string | null) => {
+    const city = locationId ? cityOf.get(locationId)?.toLowerCase() : null;
+    const branch = city ? addresses.find((a) => a.city.toLowerCase() === city) : null;
+    const a = branch ?? fallback;
+    return a ? fmt(a) : null;
+  };
   const dept = new Map(structure.departments.map((d) => [d.id, d.name]));
   const desig = new Map(structure.designations.map((d) => [d.id, d.title]));
   const loc = new Map(structure.locations.map((l) => [l.id, l.name]));
@@ -40,7 +51,7 @@ export async function cardPeople(orgId: string, filter: { ids?: string[]; depart
     id: e.id, name: [e.first_name, e.last_name].filter(Boolean).join(' '), code: e.employee_code,
     designation: (e.designation_id ? desig.get(e.designation_id) : null) ?? e.job_title ?? null, department: e.department_id ? dept.get(e.department_id) ?? null : null,
     location: e.location_id ? loc.get(e.location_id) ?? null : null, date_of_joining: e.date_of_joining, blood_group: blood.get(e.id) ?? null,
-    phone: e.work_phone, work_email: e.work_email, emergency_contact: sos.get(e.id) ?? null,
+    phone: e.work_phone, work_email: e.work_email, emergency_contact: sos.get(e.id) ?? null, office_address: officeFor(e.location_id),
   }));
 }
 

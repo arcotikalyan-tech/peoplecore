@@ -5,6 +5,7 @@ import { HubHeader, HubTabs, Panel, StatCard, SubTabs } from '@/components/ui/hu
 import { Badge } from '@/components/ui/surface';
 import { Pagination, Table, Td, Th } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
+import { STARTER_COURSES } from '@/lib/learn-library';
 import { getOrgContext } from '@/server/context';
 import { colleagueDirectory } from '@/server/engagement';
 import { getMyEmployee } from '@/server/employees';
@@ -13,7 +14,7 @@ import { requireModule } from '@/server/modules';
 import { getStructure } from '@/server/structure';
 import { viewModeFor } from '@/server/view';
 import {
-  applyRulesAction, enrollJourneyAction, remindOverdueAction, roleSkillAction, ruleToggleAction, saveJourneyAction, saveLearnSettingsAction, saveRuleAction, saveSkillAction,
+  addStarterCourseAction, applyRulesAction, enrollJourneyAction, remindOverdueAction, roleSkillAction, ruleToggleAction, saveJourneyAction, saveLearnSettingsAction, saveRuleAction, saveSkillAction,
 } from './learn-actions';
 import { AssignJourneyForm, Buttons, JourneyForm, LearnSettingsForm, RoleSkillForm, RuleForm, RunButton, SkillForm } from './learn-client';
 import { STATUS_LABEL, STATUS_TONE } from './labels';
@@ -277,7 +278,33 @@ async function Courses(p: Props) {
         </Table>
         <Pagination page={page} pageCount={pages} total={rows.length} hrefFor={(n) => `${p.base}?tab=courses${status ? `&status=${status}` : ''}&page=${n}`} />
       </Panel>
+      <StarterLibrary p={p} courses={courses} />
     </div>
+  );
+}
+
+/** Ready-made starter courses: one click adds a draft with its lessons, to review and publish. */
+function StarterLibrary({ p, courses }: { p: Props; courses: Array<{ id: string; title: string }> }) {
+  const have = new Map(courses.map((c) => [c.title.trim().toLowerCase(), c.id]));
+  return (
+    <Panel title="Starter library" meta={`${STARTER_COURSES.length} ready-made courses · added as drafts for you to review`}>
+      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Starter courses">
+        {STARTER_COURSES.map((c) => {
+          const id = have.get(c.title.toLowerCase());
+          return (
+            <li key={c.key} className="flex flex-col justify-between gap-3 rounded-xl border border-line p-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">{c.category}</p>
+                <p className="mt-1 font-medium">{c.title}</p>
+                <p className="mt-1 text-xs text-muted">{c.lessons.length} lessons · {c.minutes} min{c.validForMonths ? ` · renew every ${c.validForMonths} months` : ''}</p>
+              </div>
+              {id ? <Link className="text-sm text-primary hover:underline" href={`${p.base}/${id}`}>✓ In your catalog · open</Link>
+                : <RunButton action={addStarterCourseAction.bind(null, p.slug, c.key)} label={`Add ${c.title}`}>＋ Add to catalog</RunButton>}
+            </li>
+          );
+        })}
+      </ul>
+    </Panel>
   );
 }
 

@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import Link from 'next/link';
 import {
-  APPLICATION_STAGE_LABELS, CANDIDATE_SOURCE_LABELS, CANDIDATE_SOURCES, MOVABLE_STAGES, RECOMMENDATION_LABELS, REQUISITION_STATUS_LABELS, todayIn,
-  type ApplicationStage, type CandidateSource,
+  addMonths, APPLICATION_STAGE_LABELS, CANDIDATE_SOURCE_LABELS, CANDIDATE_SOURCES, monthCells, MOVABLE_STAGES, RECOMMENDATION_LABELS, REQUISITION_STATUS_LABELS,
+  todayIn, type ApplicationStage, type CandidateSource,
 } from '@peoplecore/shared';
 import { HubHeader, HubTabs, Panel, StatCard, SubTabs } from '@/components/ui/hub';
 import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
 import { Pagination, Table, Td, Th } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
+import { publicOriginFromHeaders } from '@/lib/public-origin';
 import { requirePermission } from '@/server/context';
 import { colleagueNames, colleagueOptions } from '@/server/engagement';
 import { employeeNames, managerOptions } from '@/server/employees';
@@ -16,7 +18,7 @@ import {
   talentPools, TEMPLATE_VARIABLES, type HiringApplication, type HiringJob,
 } from '@/server/hiring';
 import { requireModule } from '@/server/modules';
-import { candidateRetention, listRequisitions } from '@/server/recruitment';
+import { candidateRetention, listRequisitions, type InterviewView } from '@/server/recruitment';
 import { getStructure, structureOptions } from '@/server/structure';
 import { createRequisitionAction, moveApplicationAction, saveCandidateRetentionAction } from './actions';
 import {
@@ -60,7 +62,7 @@ export default async function RecruitmentPage({ params, searchParams }: { params
   ];
   const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : 'hub';
   const p: Props = {
-    slug, base, sp, today, canManage, canDirectory: ctx.can('employee.read', 'org'), orgId: ctx.org.id, orgName: ctx.org.name, data, settings, structure,
+    slug, base, sp, today, tz: ctx.org.timezone, canManage, canDirectory: ctx.can('employee.read', 'org'), orgId: ctx.org.id, orgName: ctx.org.name, data, settings, structure,
     jobOf: new Map(data.jobs.map((j) => [j.id, j])), dept: new Map(structure.departments.map((d) => [d.id, d.name])),
   };
   return (
@@ -82,7 +84,7 @@ export default async function RecruitmentPage({ params, searchParams }: { params
 }
 
 interface Props {
-  slug: string; base: string; sp: Search; today: string; canManage: boolean; canDirectory: boolean; orgId: string; orgName: string;
+  slug: string; base: string; sp: Search; today: string; tz: string; canManage: boolean; canDirectory: boolean; orgId: string; orgName: string;
   data: Awaited<ReturnType<typeof hiringData>>; settings: Awaited<ReturnType<typeof recruitingSettings>>; structure: Awaited<ReturnType<typeof getStructure>>;
   jobOf: Map<string, HiringJob>; dept: Map<string, string>;
 }
@@ -348,8 +350,12 @@ async function Pipeline(p: Props) {
           <p className="text-xs text-muted">Offers, interviews and hiring are done on each job’s page (click a candidate).</p>
         </>
       )}
-      {view === 'interviews' && (
-        <Panel title="Interviews" flush action={<Link className="text-xs text-primary" href={`${p.base}/interviews`}>My interviews →</Link>}>
+      {view === 'interviews' && p.sp.show === 'calendar' && <InterviewCalendar p={p} interviews={interviews} appOf={appOf} nameOf={nameOf} now={now} />}
+      {view === 'interviews' && p.sp.show !== 'calendar' && (
+        <Panel title="Interviews" flush action={<span className="flex gap-3 text-xs">
+          <Link className="text-primary" href={`${p.base}?tab=pipeline&view=interviews&show=calendar`}>🗓 Calendar view</Link>
+          <Link className="text-primary" href={`${p.base}/interviews`}>My interviews →</Link>
+        </span>}>
           {interviews.length === 0 ? <p className="px-5 py-6 text-center text-sm text-muted">No interviews yet.</p> : (
             <Table caption="Interviews">
               <thead><tr><Th>When</Th><Th>Candidate</Th><Th>Job</Th><Th>Round</Th><Th>Panel</Th><Th>Status</Th></tr></thead>
@@ -421,6 +427,72 @@ async function Pipeline(p: Props) {
   );
 }
 
+const WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/** Kredily's interview calendar: a month of interviews by day (organization time), each linked to its job. */
+function InterviewCalendar({ p, interviews, appOf, nameOf, now }: {
+  p: Props; interviews: InterviewView[]; appOf: Map<string, HiringApplication>; nameOf: (id: string) => string; now: number;
+}) {
+  const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(p.sp.month ?? '') ? p.sp.month! : p.today.slice(0, 7);
+  const href = (m: string) => `${p.base}?tab=pipeline&view=interviews&show=calendar&month=${m}`;
+  const time = new Intl.DateTimeFormat('en-IN', { timeZone: p.tz, hour: 'numeric', minute: '2-digit' });
+  const title = new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${month}-01T00:00:00Z`));
+  const byDay = new Map<string, InterviewView[]>();
+  for (const i of [...interviews].sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))) {
+    const day = todayIn(p.tz, new Date(i.scheduledAt));
+    if (day.startsWith(month)) byDay.set(day, [...(byDay.get(day) ?? []), i]);
+  }
+  const cells = monthCells(month);
+  const weeks = Array.from({ length: cells.length / 7 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
+  const count = [...byDay.values()].reduce((n, l) => n + l.length, 0);
+  const nav = 'rounded-md border border-line px-2 py-1 hover:bg-subtle';
+  return (
+    <Panel title={`Interviews · ${title}`} meta={`${count} interview${count === 1 ? '' : 's'}`} flush action={
+      <span className="flex flex-wrap items-center gap-2 text-xs">
+        <Link className={nav} href={href(addMonths(`${month}-01`, -1).slice(0, 7))} aria-label="Previous month">‹</Link>
+        <Link className={nav} href={href(p.today.slice(0, 7))}>Today</Link>
+        <Link className={nav} href={href(addMonths(`${month}-01`, 1).slice(0, 7))} aria-label="Next month">›</Link>
+        <Link className="text-primary" href={`${p.base}?tab=pipeline&view=interviews`}>☰ List view</Link>
+      </span>
+    }>
+      <div className="overflow-x-auto px-3 pb-3">
+        <table className="w-full min-w-[760px] table-fixed border-collapse text-sm" aria-label="Interview calendar">
+          <thead><tr>{WEEK.map((d) => <th key={d} className="pb-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted">{d}</th>)}</tr></thead>
+          <tbody>
+            {weeks.map((week, w) => (
+              <tr key={w}>
+                {week.map((d, i) => (
+                  <td key={d ?? `pad-${w}-${i}`} className={`h-24 border border-line p-1.5 align-top ${d ? '' : 'bg-subtle/50'}`} aria-label={d ? formatDate(d) : undefined}>
+                    {d && (
+                      <>
+                        <span className={`inline-grid size-6 place-items-center rounded-full text-xs tabular-nums ${d === p.today ? 'bg-primary font-semibold text-primary-fg' : 'text-muted'}`}>{Number(d.slice(8))}</span>
+                        <ul className="mt-1 space-y-1">
+                          {(byDay.get(d) ?? []).map((iv) => {
+                            const a = appOf.get(iv.applicationId);
+                            const tone = iv.status === 'cancelled' ? 'border-line text-muted line-through' : iv.status === 'completed' ? 'border-success/40 bg-success/10'
+                              : Date.parse(iv.scheduledAt) < now ? 'border-warning/40 bg-warning/10' : 'border-primary/30 bg-primary-soft';
+                            const label = `${time.format(new Date(iv.scheduledAt))} · ${a?.candidate.name ?? 'Candidate'} · ${iv.round}`;
+                            return (
+                              <li key={iv.id}>
+                                <Link href={a ? `${p.base}/${a.requisitionId}` : p.base} title={`${label}${a ? ` · ${jobTitle(p, a.requisitionId)}` : ''} · ${iv.panel.map((x) => nameOf(x.employeeId)).join(', ')}`}
+                                  className={`block truncate rounded border px-1.5 py-0.5 text-xs ${tone}`}>{label}</Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
 // ─── Outreach ────────────────────────────────────────────────────────────────
 
 async function Outreach(p: Props) {
@@ -471,11 +543,25 @@ async function Pools(p: Props) {
   );
 }
 
-function JobBoard(p: Props) {
+async function JobBoard(p: Props) {
   const published = p.data.jobs.filter((j) => j.is_published && j.status === 'open');
   const careers = `/careers/${p.slug}`;
+  const feed = `${publicOriginFromHeaders(await headers()) ?? ''}${careers}/jobs.xml`;
+  const boards: Array<[string, string]> = [
+    ['Google for Jobs', 'Automatic. Every job page carries Google’s job-posting data, so your jobs can show in Google’s job search once the careers page is indexed.'],
+    ['Indeed', 'Give Indeed the feed address from your Indeed employer account (or ask Indeed’s support team to schedule the feed).'],
+    ['LinkedIn', 'LinkedIn imports job feeds only through its job-posting partners and paid job slots. Ask your LinkedIn account team to set up the feed, or post jobs there with the link to apply.'],
+    ['Naukri', 'Naukri.com posts jobs through a Naukri recruiter account. Ask your Naukri account manager whether they can read the feed, or post jobs there with the link to apply.'],
+  ];
   return (
     <>
+      <Panel title="Job boards" meta="each board needs an employer or partner account" action={<a className="text-xs text-primary" href={`${careers}/jobs.xml`} target="_blank" rel="noreferrer">Open the feed ↗</a>}>
+        <p className="text-sm text-muted">Published jobs are also available as a feed in Indeed’s XML format, which most job boards and aggregators read. Give a board this address once and it picks up new and closed jobs by itself.</p>
+        <p className="mt-2 break-all rounded-lg bg-subtle px-3 py-2 font-mono text-sm" aria-label="Job feed address">{feed}</p>
+        <ul className="mt-4 space-y-2 text-sm" aria-label="Job boards">
+          {boards.map(([name, how]) => <li key={name}><span className="font-medium">{name}</span> <span className="text-muted">· {how}</span></li>)}
+        </ul>
+      </Panel>
       <Panel title="Your careers page" action={<Link className="text-xs text-primary" href={careers} target="_blank">Open careers page ↗</Link>}>
         <p className="text-sm text-muted">Open jobs you publish appear on your public careers page, where candidates apply directly (source: careers site, with consent). Share the page or a job’s link on job boards and social media.</p>
         <p className="mt-2 font-mono text-sm">{careers}</p>

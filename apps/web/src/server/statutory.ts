@@ -19,6 +19,8 @@ export interface StatutoryFacts {
   scope: { contract_labour: boolean; factory: boolean };
   locked_months: string[];
   any_payroll: boolean;
+  /** TDS was deducted from a vendor payment (Form 26Q and 16A apply). */
+  vendor_tds?: boolean;
 }
 
 export interface Filing {
@@ -42,7 +44,7 @@ export function scopeOf(f: StatutoryFacts): ScopeFacts {
   return {
     headcount: f.headcount, byState,
     pfEnabled: f.settings.pf, pfCode: f.company.pf_code, esiEnabled: f.settings.esi, esiCode: f.company.esi_code, ptEnabled: f.settings.pt,
-    tds: f.any_payroll || f.company.tan, contractLabour: f.scope.contract_labour, factory: f.scope.factory,
+    tds: f.any_payroll || f.company.tan, vendorTds: f.vendor_tds ?? false, contractLabour: f.scope.contract_labour, factory: f.scope.factory,
   };
 }
 

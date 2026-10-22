@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, addMonths, ageOn, compareIsoDates, isIsoDate, startOfDayIn, todayIn } from '../src/dates.ts';
+import { addDays, addMonths, ageOn, compareIsoDates, isIsoDate, monthCells, startOfDayIn, todayIn } from '../src/dates.ts';
 
 describe('isIsoDate', () => {
   it.each(['2026-01-01', '2024-02-29', '2026-12-31'])('accepts %s', (d) => expect(isIsoDate(d)).toBe(true));
@@ -21,6 +21,17 @@ describe('addDays', () => {
   it('crosses month and year boundaries', () => {
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
     expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+  });
+});
+
+describe('monthCells', () => {
+  it('lays a month out in Monday-first weeks with padding', () => {
+    const oct = monthCells('2026-10'); // 1 Oct 2026 is a Thursday
+    expect(oct.slice(0, 4)).toEqual([null, null, null, '2026-10-01']);
+    expect(oct.at(-1)).toBeNull();
+    expect(oct.filter(Boolean)).toHaveLength(31);
+    expect(oct.length % 7).toBe(0);
+    expect(monthCells('2027-02')).toHaveLength(28); // 1 Feb 2027 is a Monday: four full weeks
   });
 });
 

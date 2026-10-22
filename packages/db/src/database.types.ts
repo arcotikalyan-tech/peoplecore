@@ -3236,6 +3236,9 @@ export type Database = {
           is_default: boolean;
           created_at: string;
           updated_at: string;
+          card_type: string;
+          custom_fields: Json;
+          rolled_out_at: string | null;
         };
         Insert: {
           id?: string;
@@ -3256,6 +3259,9 @@ export type Database = {
           is_default?: boolean;
           created_at?: string;
           updated_at?: string;
+          card_type?: string;
+          custom_fields?: Json;
+          rolled_out_at?: string | null;
         };
         Update: {
           id?: string;
@@ -3276,6 +3282,51 @@ export type Database = {
           is_default?: boolean;
           created_at?: string;
           updated_at?: string;
+          card_type?: string;
+          custom_fields?: Json;
+          rolled_out_at?: string | null;
+        };
+        Relationships: [];
+      };
+      insurance_cd_entries: {
+        Row: {
+          id: string;
+          organization_id: string;
+          entry_date: string;
+          kind: string;
+          amount: number;
+          lives: number | null;
+          sync_id: string | null;
+          reference: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          entry_date: string;
+          kind: string;
+          amount: number;
+          lives?: number | null;
+          sync_id?: string | null;
+          reference?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          entry_date?: string;
+          kind?: string;
+          amount?: number;
+          lives?: number | null;
+          sync_id?: string | null;
+          reference?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -3331,6 +3382,8 @@ export type Database = {
           claim_process: string | null;
           hidden_fields: string[];
           updated_at: string;
+          premium_per_life: number | null;
+          cd_low_balance: number | null;
         };
         Insert: {
           organization_id: string;
@@ -3356,6 +3409,8 @@ export type Database = {
           claim_process?: string | null;
           hidden_fields?: string[];
           updated_at?: string;
+          premium_per_life?: number | null;
+          cd_low_balance?: number | null;
         };
         Update: {
           organization_id?: string;
@@ -3381,6 +3436,8 @@ export type Database = {
           claim_process?: string | null;
           hidden_fields?: string[];
           updated_at?: string;
+          premium_per_life?: number | null;
+          cd_low_balance?: number | null;
         };
         Relationships: [];
       };
@@ -3618,6 +3675,144 @@ export type Database = {
           updated_by?: string | null;
           updated_at?: string;
           search?: never;
+        };
+        Relationships: [];
+      };
+      konnect_likes: {
+        Row: {
+          organization_id: string;
+          thread_id: string;
+          employee_id: string;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          thread_id: string;
+          employee_id: string;
+          created_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          thread_id?: string;
+          employee_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      konnect_replies: {
+        Row: {
+          id: string;
+          organization_id: string;
+          thread_id: string;
+          author_employee_id: string;
+          body: string;
+          hidden: boolean;
+          created_at: string;
+          edited_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          thread_id: string;
+          author_employee_id: string;
+          body: string;
+          hidden?: boolean;
+          created_at?: string;
+          edited_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          thread_id?: string;
+          author_employee_id?: string;
+          body?: string;
+          hidden?: boolean;
+          created_at?: string;
+          edited_at?: string | null;
+        };
+        Relationships: [];
+      };
+      konnect_threads: {
+        Row: {
+          id: string;
+          organization_id: string;
+          topic_id: string;
+          author_employee_id: string;
+          title: string;
+          body: string;
+          pinned: boolean;
+          locked: boolean;
+          hidden: boolean;
+          reply_count: number;
+          like_count: number;
+          last_activity_at: string;
+          created_at: string;
+          edited_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          topic_id: string;
+          author_employee_id: string;
+          title: string;
+          body: string;
+          pinned?: boolean;
+          locked?: boolean;
+          hidden?: boolean;
+          reply_count?: number;
+          like_count?: number;
+          last_activity_at?: string;
+          created_at?: string;
+          edited_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          topic_id?: string;
+          author_employee_id?: string;
+          title?: string;
+          body?: string;
+          pinned?: boolean;
+          locked?: boolean;
+          hidden?: boolean;
+          reply_count?: number;
+          like_count?: number;
+          last_activity_at?: string;
+          created_at?: string;
+          edited_at?: string | null;
+        };
+        Relationships: [];
+      };
+      konnect_topics: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          description: string | null;
+          emoji: string | null;
+          position: number;
+          archived_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          description?: string | null;
+          emoji?: string | null;
+          position?: number;
+          archived_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          name?: string;
+          description?: string | null;
+          emoji?: string | null;
+          position?: number;
+          archived_at?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -9203,6 +9398,21 @@ export type Database = {
         };
         Returns: string;
       };
+      konnect_thread_list: {
+        Args: {
+          p_org: string;
+          p_topic?: string;
+          p_query?: string;
+          p_limit?: number;
+        };
+        Returns: { id: string; topic_id: string; title: string; excerpt: string; author_id: string; author_name: string; pinned: boolean; locked: boolean; hidden: boolean; reply_count: number; like_count: number; liked: boolean; mine: boolean; last_activity_at: string; created_at: string }[];
+      };
+      konnect_thread_view: {
+        Args: {
+          p_thread: string;
+        };
+        Returns: Json;
+      };
       kudos_feed: {
         Args: {
           p_org: string;
@@ -9245,6 +9455,7 @@ export type Database = {
       lock_insurance_endorsement: {
         Args: {
           p_org: string;
+          p_keys?: string[];
         };
         Returns: Json;
       };
@@ -9443,6 +9654,12 @@ export type Database = {
         };
         Returns: { employee_id: string; employee_code: string; employee_name: string; acknowledged_at: string }[];
       };
+      public_job_feed: {
+        Args: {
+          p_org_slug: string;
+        };
+        Returns: { requisition_id: string; title: string; department: string; location: string; city: string; state_code: string; employment_type: Database['public']['Enums']['employment_type']; description: string; posted_at: string; organization_name: string }[];
+      };
       public_job_postings: {
         Args: {
           p_org_slug: string;
@@ -9615,6 +9832,13 @@ export type Database = {
       release_letters: {
         Args: {
           p_letters: string[];
+        };
+        Returns: number;
+      };
+      remind_learners: {
+        Args: {
+          p_course: string;
+          p_overdue_only?: boolean;
         };
         Returns: number;
       };
@@ -9820,6 +10044,12 @@ export type Database = {
       revoke_support_access: {
         Args: {
           p_org: string;
+        };
+        Returns: number;
+      };
+      roll_out_id_card: {
+        Args: {
+          p_design: string;
         };
         Returns: number;
       };
