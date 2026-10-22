@@ -17,6 +17,8 @@ export type EmailAudience = (typeof EMAIL_AUDIENCES)[number][0];
 /** Emails to the people on a record rather than to a role: one switch each (event, audience, label, note). */
 export const PERSON_EMAIL_RULES = [
   ['helpdesk_reply', 'ticket_parties', 'Helpdesk replies', 'Email the requester when an agent replies on their ticket, and the assignee when the requester replies (never internal notes)'],
+  ['decision', 'self', 'Decisions on requests', 'Email people when their leave, attendance correction, work from home or on duty request, or expense claim is approved or rejected, with the approver’s comment'],
+  ['payslip', 'self', 'Payslip ready', 'Email each employee when their payslip is published (a link only, never the figures)'],
 ] as const;
 
 export const EMAIL_STATUS_LABELS: Record<string, string> = {

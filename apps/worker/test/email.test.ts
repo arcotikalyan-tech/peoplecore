@@ -24,6 +24,8 @@ describe('emails', () => {
     expect(reply.text).toContain('because you’re on this helpdesk ticket');
     expect(reply.html).toContain('“VPN”:<br><br>Please update to 5.2.');
     expect(compose(email, { from: 'a@example.test', appUrl: null }).text).toContain('because of your role');
+    expect(compose({ ...email, event: 'decision' }, { from: 'a@example.test', appUrl: null }).text).toContain('because you made this request');
+    expect(compose({ ...email, event: 'payslip' }, { from: 'a@example.test', appUrl: null }).text).toContain('because your payslip was published');
   });
 
   it('reports each email as sent or failed', async () => {

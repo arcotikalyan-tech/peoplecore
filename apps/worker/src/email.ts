@@ -37,6 +37,8 @@ const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', 
 const FOOTER = 'You get this email because of your role. An administrator can change these emails in Settings › Notifications.';
 const FOOTERS: Record<string, string> = {
   helpdesk_reply: 'You get this email because you’re on this helpdesk ticket. An administrator can change these emails in Settings › Notifications.',
+  decision: 'You get this email because you made this request. An administrator can change these emails in Settings › Notifications.',
+  payslip: 'You get this email because your payslip was published. An administrator can change these emails in Settings › Notifications.',
 };
 
 /** The message for one queued email: plain text and a light HTML version, with a link into the app when known. */
