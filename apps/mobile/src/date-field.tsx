@@ -9,13 +9,20 @@ const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 export function DateField({ label, value, onChange, min, placeholder = 'Choose a date', clearable }: {
   label: string; value: string; onChange: (iso: string) => void; min?: string; placeholder?: string; clearable?: boolean;
 }) {
-  const start = value || min || new Date().toISOString().slice(0, 10);
   const [open, setOpen] = useState(false);
-  const [[year, month], setMonth] = useState<[number, number]>([Number(start.slice(0, 4)), Number(start.slice(5, 7))]);
+  const [[year, month], setMonth] = useState<[number, number]>([0, 0]);
+  // Opens on the chosen date, else the earliest allowed one, else this month.
+  const toggle = () => {
+    if (!open) {
+      const start = value || min || new Date().toISOString().slice(0, 10);
+      setMonth([Number(start.slice(0, 4)), Number(start.slice(5, 7))]);
+    }
+    setOpen((o) => !o);
+  };
   return (
     <View style={{ marginBottom: 12 }}>
       <Text style={s.label}>{label}</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${value ? longDate(value) : placeholder}`} onPress={() => setOpen((o) => !o)}
+      <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${value ? longDate(value) : placeholder}`} onPress={toggle}
         style={[s.input, { justifyContent: 'center' }]}>
         <Text style={{ color: value ? colors.fg : colors.muted, fontSize: 15 }}>{value ? longDate(value) : placeholder}</Text>
       </Pressable>
