@@ -70,7 +70,7 @@ jobs:
           NEXT_TELEMETRY_DISABLED: '1'
       # Screenshots of failures only; they show synthetic demo data.
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-failures
           path: apps/web/test-results/
