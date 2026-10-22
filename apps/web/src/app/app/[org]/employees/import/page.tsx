@@ -19,7 +19,7 @@ export default async function ImportPage({ params }: { params: Promise<{ org: st
       <PageHeader
         eyebrow={<Link href={base} className="hover:text-fg">← Employees</Link>}
         title="Import employees"
-        description="Check a CSV file first: every row is validated against the same rules as the add form, and nothing is saved until you confirm. One problem stops the whole import, so you never end up with half a file."
+        description="Upload a CSV or Excel file: PeopleCore’s template, or an export from Zoho People, greytHR or Keka. Choose what each column holds, then check: every row is validated against the same rules as the add form, and nothing is saved until you confirm. One problem stops the whole import, so you never end up with half a file."
         actions={<a href={`${base}/import/template`} className={buttonClass('secondary')} download>Download template</a>}
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
@@ -28,7 +28,7 @@ export default async function ImportPage({ params }: { params: Promise<{ org: st
           <ImportForm action={importEmployeesAction.bind(null, slug)} directoryHref={base} />
         </Card>
         <Card>
-          <CardHeader title="Columns" description="Headers are matched by name, in any order. Required columns are marked." />
+          <CardHeader title="Template columns" description="The template’s headers are recognised automatically, in any order, as are the usual export headers of other HR systems. Required columns are marked." />
           <ul className="divide-y divide-line text-sm">
             {IMPORT_COLUMNS.map((c) => (
               <li key={c.key} className="flex justify-between gap-3 px-5 py-2">

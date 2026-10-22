@@ -38,12 +38,12 @@ Priority: **P1** affects payroll correctness or everyday admin control; **P2** c
 
 | Area | Gap | Status |
 |---|---|---|
-| Settings › Roles | Standard roles HR Executive (no payroll), Finance Admin, Vendor-payout admin, Partner (read-only), Attendance-device admin | ☐ |
-| Settings › Notifications | Email notifications per event (regularisation, leave, expense, birthday, work anniversary) per role | ☐ |
-| Onboarding | Employee import from Excel/CSV with column mapping, including Zoho / GreytHR / Keka exports | ☐ |
-| Company profile | Directors, auditors, company secretary; company PAN / CIN / GST proofs; industry list | ☐ |
-| Profile | Gender "Transgender"; blood groups A1B±; previous work experience (years, months) | ☐ |
-| Leave | "Event leave" standard type; nudge employees; close leave cycle from the hub | ☐ |
+| Settings › Roles | Standard roles HR Executive (no payroll), Finance Admin, Vendor-payout admin, Partner (read-only), Attendance-device admin | ☑ built (HR executive, Finance administrator as the payroll checker, Partner read-only, Attendance device admin with a new `attendance.device.manage`; the vendor payout admin came with batch 1; roles show their holders and payroll access) |
+| Settings › Notifications | Email notifications per event (regularisation, leave, expense, birthday, work anniversary) per role | ☑ built (matrix by event and role, plus “their manager”; an outbox the worker sends over SMTP with a delivery log; needs the SMTP settings on the server to go out) |
+| Onboarding | Employee import from Excel/CSV with column mapping, including Zoho / GreytHR / Keka exports | ☑ built (CSV or .xlsx; columns mapped with suggestions for the template and Zoho, greytHR and Keka headers; names of departments, locations and managers become codes; spreadsheet dates and employment types understood) |
+| Company profile | Directors, auditors, company secretary; company PAN / CIN / GST proofs; industry list | ☑ built (officers were already there; proofs for PAN, TAN, CIN, GST, PF and ESI in a private bucket; industry from a list) |
+| Profile | Gender "Transgender"; blood groups A1B±; previous work experience (years, months) | ☑ built (total experience shown with time here) |
+| Leave | "Event leave" standard type; nudge employees; close leave cycle from the hub | ☑ built (Event leave for new organizations and one click for others, with maternity and paternity; nudge people with unused leave, weekly at most; year-end preview of carry-forward and lapse with “close now”) |
 
 ## Batch 4 — P3: breadth
 

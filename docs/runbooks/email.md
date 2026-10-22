@@ -55,3 +55,21 @@ Vibe Upp project. Type the mailbox password into the dashboard only, never into 
 
 If an email doesn't arrive: Supabase dashboard → Logs → Auth shows the SMTP error (wrong password, port
 blocked, or the sender address not matching the mailbox are the usual causes).
+
+## Notification emails from the worker (2026-10-22)
+
+Email notifications chosen in Settings › Notifications (regularization, leave and expense applications, birthdays,
+work anniversaries, by role) are queued in `email_outbox` and sent by the worker's `notifications.email` job every
+15 minutes. They use the same Hostinger mailbox, configured for the worker in `/opt/peoplecore/.env` (shared with
+the web app). Type the password into that file on the server only, never into chat, a file in the repo or a commit.
+
+| Variable | Value |
+|---|---|
+| `SMTP_URL` | `smtps://no-reply%40yourdomain:PASSWORD@smtp.hostinger.com:465` (URL-encode `@` in the user as `%40`) |
+| `EMAIL_FROM` | `PeopleCore <no-reply@yourdomain>` |
+| `APP_URL` | The app's address, e.g. `https://hr.yourdomain`, for the links in emails |
+
+Then restart the worker (`docker compose up -d worker`). Without `SMTP_URL`, emails wait in the outbox and expire
+after two days, so nothing piles up. Settings › Notifications › Recent emails shows each email's status (waiting,
+sent, failed after five attempts, or expired). Locally, point `SMTP_URL` at Mailpit (`smtp://127.0.0.1:54325` when
+`[inbucket] smtp_port` is set in `supabase/config.toml`).

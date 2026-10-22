@@ -42,6 +42,10 @@ export function WorkDetailsForm({ action, defaults, legalEntities }: { action: A
         <TextField idPrefix="work" name="jobTitle" label="Job title" defaultValue={val('jobTitle')} error={e.jobTitle} />
         <SelectField idPrefix="work" name="billable" label="Billing status" options={[{ value: 'no', label: 'Non-Billable' }, { value: 'yes', label: 'Billable' }]}
           defaultValue={val('billable') || 'no'} error={e.billable} />
+        <div className="grid grid-cols-2 gap-3 sm:col-span-2 sm:max-w-md">
+          <TextField idPrefix="work" name="priorYears" label="Experience before joining (years)" inputMode="numeric" defaultValue={val('priorYears')} error={e.priorYears} />
+          <TextField idPrefix="work" name="priorMonths" label="and months" inputMode="numeric" defaultValue={val('priorMonths')} error={e.priorMonths} />
+        </div>
       </div>
       <p className="text-xs text-muted">Department, designation, location and manager change through “Change assignment”, which keeps history.</p>
       <div className="flex justify-end">

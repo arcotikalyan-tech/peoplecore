@@ -1353,6 +1353,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      company_documents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          kind: string;
+          file_name: string;
+          storage_path: string;
+          content_type: string;
+          size_bytes: number;
+          uploaded_by: string | null;
+          uploaded_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          kind: string;
+          file_name: string;
+          storage_path: string;
+          content_type: string;
+          size_bytes: number;
+          uploaded_by?: string | null;
+          uploaded_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          kind?: string;
+          file_name?: string;
+          storage_path?: string;
+          content_type?: string;
+          size_bytes?: number;
+          uploaded_by?: string | null;
+          uploaded_at?: string;
+        };
+        Relationships: [];
+      };
       company_officers: {
         Row: {
           id: string;
@@ -1902,6 +1938,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      email_outbox: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string | null;
+          to_email: string;
+          event: string;
+          subject: string;
+          body: string;
+          link: string | null;
+          status: string;
+          attempts: number;
+          claimed_at: string | null;
+          last_error: string | null;
+          created_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id?: string | null;
+          to_email: string;
+          event: string;
+          subject: string;
+          body: string;
+          link?: string | null;
+          status?: string;
+          attempts?: number;
+          claimed_at?: string | null;
+          last_error?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          user_id?: string | null;
+          to_email?: string;
+          event?: string;
+          subject?: string;
+          body?: string;
+          link?: string | null;
+          status?: string;
+          attempts?: number;
+          claimed_at?: string | null;
+          last_error?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Relationships: [];
+      };
       emergency_contacts: {
         Row: {
           id: string;
@@ -2315,6 +2402,7 @@ export type Database = {
           confirmed_on: string | null;
           job_title: string | null;
           billable: boolean;
+          prior_experience_months: number | null;
         };
         Insert: {
           id?: string;
@@ -2344,6 +2432,7 @@ export type Database = {
           confirmed_on?: string | null;
           job_title?: string | null;
           billable?: boolean;
+          prior_experience_months?: number | null;
         };
         Update: {
           id?: string;
@@ -2373,6 +2462,7 @@ export type Database = {
           confirmed_on?: string | null;
           job_title?: string | null;
           billable?: boolean;
+          prior_experience_months?: number | null;
         };
         Relationships: [];
       };
@@ -3955,6 +4045,7 @@ export type Database = {
           accrual_start: string;
           updated_by: string | null;
           updated_at: string;
+          last_nudged_at: string | null;
         };
         Insert: {
           organization_id: string;
@@ -3965,6 +4056,7 @@ export type Database = {
           accrual_start?: string;
           updated_by?: string | null;
           updated_at?: string;
+          last_nudged_at?: string | null;
         };
         Update: {
           organization_id?: string;
@@ -3975,6 +4067,7 @@ export type Database = {
           accrual_start?: string;
           updated_by?: string | null;
           updated_at?: string;
+          last_nudged_at?: string | null;
         };
         Relationships: [];
       };
@@ -4560,6 +4653,33 @@ export type Database = {
           organization_id?: string;
           employment_type?: Database['public']['Enums']['employment_type'];
           notice_days?: number;
+        };
+        Relationships: [];
+      };
+      notification_email_rules: {
+        Row: {
+          organization_id: string;
+          event: string;
+          audience: string;
+          enabled: boolean;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          event: string;
+          audience: string;
+          enabled?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          event?: string;
+          audience?: string;
+          enabled?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -9110,6 +9230,12 @@ export type Database = {
         };
         Returns: { leave_type_id: string; code: string; name: string; is_paid: boolean; allow_negative: boolean; allow_half_day: boolean; balance: number; pending: number; available: number }[];
       };
+      leave_year_end_preview: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { leave_type_id: string; name: string; people: number; balance: number; carry: number; lapse: number }[];
+      };
       loan_eligibility: {
         Args: {
           p_org: string;
@@ -9232,6 +9358,12 @@ export type Database = {
           p_org: string;
         };
         Returns: { review_id: string; cycle_id: string; cycle_name: string; cycle_status: Database['public']['Enums']['cycle_status']; status: Database['public']['Enums']['review_status']; self_review_due: string }[];
+      };
+      nudge_leave: {
+        Args: {
+          p_org: string;
+        };
+        Returns: number;
       };
       org_members: {
         Args: {
@@ -10307,6 +10439,18 @@ export type Database = {
         Args: never;
         Returns: Json;
       };
+      worker_celebration_emails: {
+        Args: {
+          p_now?: string;
+        };
+        Returns: Json;
+      };
+      worker_claim_emails: {
+        Args: {
+          p_limit?: number;
+        };
+        Returns: { id: string; to_email: string; subject: string; body: string; link: string; org_slug: string; org_name: string }[];
+      };
       worker_claim_jobs: {
         Args: {
           p_worker: string;
@@ -10329,6 +10473,14 @@ export type Database = {
       worker_daily_core_hr: {
         Args: never;
         Returns: Json;
+      };
+      worker_email_result: {
+        Args: {
+          p_id: string;
+          p_ok: boolean;
+          p_error?: string;
+        };
+        Returns: undefined;
       };
       worker_enqueue_job: {
         Args: {
@@ -10422,7 +10574,7 @@ export type Database = {
       employment_type: 'permanent' | 'contract' | 'intern' | 'temporary' | 'consultant';
       enrollment_status: 'assigned' | 'in_progress' | 'completed' | 'cancelled';
       expense_status: 'draft' | 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled';
-      gender: 'female' | 'male' | 'non_binary' | 'undisclosed';
+      gender: 'female' | 'male' | 'transgender' | 'non_binary' | 'undisclosed';
       goal_status: 'active' | 'completed' | 'dropped';
       grievance_category: 'posh' | 'discrimination' | 'bullying' | 'conduct' | 'pay' | 'safety' | 'ethics' | 'other';
       grievance_status: 'submitted' | 'in_review' | 'investigating' | 'resolved' | 'closed' | 'withdrawn';

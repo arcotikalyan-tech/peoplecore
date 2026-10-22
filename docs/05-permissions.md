@@ -35,6 +35,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 | attendance.read | O | O | | O | T | T | S | O |
 | attendance.approve | O | O | | | T | T | | |
 | attendance.manage | O | O | | | | | | |
+| attendance.device.manage | O | O | | | | | | |
 | leave.approve | O | O | | | T | T | | |
 | leave.read | O | O | | O | T | T | S | O |
 | leave.manage | O | O | | | | | | |
@@ -82,7 +83,7 @@ Platform super-admins are **not** org members by default (tested). They manage t
 
 | Role | Can be granted or revoked by |
 |---|---|
-| Organization owner, HR administrator, Payroll / finance administrator, Auditor, Vendor payout admin | `role.manage` only (owners) |
+| Organization owner, HR administrator, HR executive, Payroll administrator, Finance administrator, Auditor, Partner, Vendor payout admin, Attendance device admin | `role.manage` only (owners) |
 | Employee, Reporting manager, Department head, Recruiter | `member.manage` (HR) or `role.manage` |
 
 - Each role stores its `assignment_permission`; custom roles default to owner-only.
@@ -93,7 +94,7 @@ Platform super-admins are **not** org members by default (tested). They manage t
 
 ## Two-step sign-in (enforced in the database)
 
-Organization owner, HR administrator, Payroll / finance administrator, Auditor and Vendor payout admin roles, and platform-admin status, only take effect once the session has completed a second factor (TOTP, session `aal2`). With a password alone, a person keeps only their everyday roles (Employee, Manager, Department head, Recruiter). The app sends them to `/mfa` to set up or enter a code, but the database enforces the rule even for direct API calls.
+Organization owner, HR administrator, HR executive, Payroll administrator, Finance administrator, Auditor, Partner, Vendor payout admin and Attendance device admin roles, and platform-admin status, only take effect once the session has completed a second factor (TOTP, session `aal2`). With a password alone, a person keeps only their everyday roles (Employee, Manager, Department head, Recruiter). The app sends them to `/mfa` to set up or enter a code, but the database enforces the rule even for direct API calls.
 
 **Since 2026-10-21 this is a setting (owner's decision).** Each organization's owner can make two-step optional for these roles in Settings › Controls (`org_controls.require_mfa`, changed only through `set_org_require_mfa`, which needs `role.manage` — so turning it off itself needs a two-step session while it is on). Platform admins can make it optional for platform admins in the platform console (`platform_settings.require_mfa_for_admins`, through `set_platform_require_mfa`, audited). Both default on. Anyone can turn two-step on for themselves under My preferences; a person with a verified authenticator is always asked for the code (enforced by the app, not the database).
 
@@ -105,3 +106,14 @@ Organization owner, HR administrator, Payroll / finance administrator, Auditor a
 
 
 **Vendor payout admin** (2026-10-21): `org.read` and `vendor.manage` only. Owners give it to chosen HR administrators from Settings › Controls (Kredily's "Vendor payout for HR"). Vendor payments need a second person to approve (whoever records an invoice can't approve it).
+
+**Standard roles added 2026-10-22** (Kredily's role list; all owner-granted and two-step):
+
+| Role | Grants (all organization-wide) | For |
+|---|---|---|
+| HR executive | `org.read`, `employee.read`, `employee.create`, `employee.update`, `onboarding.manage`, `attendance.read`, `leave.read`, `ai.use` | People operations without payroll or sensitive IDs |
+| Finance administrator | `org.read`, `employee.read`, `employee.identity.read`, `employee.bank.read`, `compensation.read`, `payroll.approve`, `expense.approve`, `expense.manage`, `vendor.manage`, `statutory.manage`, `ai.use` | The checker: approves payroll prepared by the payroll administrator, pays expenses and vendors |
+| Partner (read-only) | `org.read`, `employee.read`, `employee.identity.read`, `compensation.read` | An external partner such as a CA firm |
+| Attendance device admin | `org.read`, `employee.read`, `attendance.read`, `attendance.device.manage` | Registers biometric devices and imports their punches; changes no rules |
+
+"Payroll / finance administrator" is now "Payroll administrator" (the maker; its grants are unchanged).

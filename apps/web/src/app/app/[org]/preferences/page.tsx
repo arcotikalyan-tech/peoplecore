@@ -11,7 +11,8 @@ import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
 import { createClient } from '@/server/supabase';
 import { requestDeletionAction } from './privacy-actions';
-import { DeletionRequestForm, SCOPE_LABELS } from './privacy-client';
+import { DeletionRequestForm } from './privacy-client';
+import { SCOPE_LABELS } from './privacy-data';
 
 export const metadata: Metadata = { title: 'My preferences' };
 

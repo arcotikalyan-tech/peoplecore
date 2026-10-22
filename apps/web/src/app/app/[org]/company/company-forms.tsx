@@ -4,15 +4,11 @@ import { useState } from 'react';
 import { ActionForm } from '@/components/action-form';
 import { SelectField, TextField } from '@/components/ui/fields';
 import type { ActionState } from '@/lib/action-state';
+import { ENTITY_TYPES, INDUSTRIES } from './company-data';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
-export const ENTITY_TYPES = [
-  { value: 'private_limited', label: 'Private Limited Company' }, { value: 'public_limited', label: 'Public Limited Company' },
-  { value: 'llp', label: 'Limited Liability Partnership' }, { value: 'opc', label: 'One Person Company' }, { value: 'partnership', label: 'Partnership firm' },
-  { value: 'proprietorship', label: 'Sole proprietorship' }, { value: 'section_8', label: 'Section 8 company' }, { value: 'trust', label: 'Trust' },
-  { value: 'society', label: 'Society' }, { value: 'other', label: 'Other' },
-];
+
 
 export interface Profile {
   legal_name: string | null; brand_name: string | null; email: string | null; phone: string | null; website: string | null; industry: string | null;
@@ -31,7 +27,8 @@ export function DetailsForm({ action, p }: { action: Action; p: Profile }) {
             <TextField idPrefix="co" name="email" label="Company official email" type="email" defaultValue={v.email ?? p.email ?? ''} error={e.email} />
             <TextField idPrefix="co" name="phone" label="Company official contact" defaultValue={v.phone ?? p.phone ?? ''} error={e.phone} />
             <TextField idPrefix="co" name="website" label="Website" defaultValue={v.website ?? p.website ?? ''} error={e.website} />
-            <TextField idPrefix="co" name="industry" label="Industry type" defaultValue={v.industry ?? p.industry ?? ''} error={e.industry} />
+            <SelectField idPrefix="co" name="industry" label="Industry type" placeholder="Choose…" defaultValue={v.industry ?? p.industry ?? ''} error={e.industry}
+              options={[...INDUSTRIES, ...(p.industry && !INDUSTRIES.includes(p.industry) ? [p.industry] : [])].map((i) => ({ value: i, label: i }))} />
           </div>
           <fieldset className="grid gap-3 sm:grid-cols-2">
             <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">Social profiles</legend>
@@ -188,6 +185,16 @@ export function CustomValuesForm({ action, fields, values, canEditAll }: {
           })}
         </div>
       )}
+    </ActionForm>
+  );
+}
+
+/** Upload a proof (PDF, JPEG or PNG up to 5 MB) for one kind of company document. */
+export function ProofUploadForm({ action, kind, label, replace }: { action: Action; kind: string; label: string; replace: boolean }) {
+  return (
+    <ActionForm action={action} label={`Upload ${label}`} submit={replace ? 'Replace' : '📎 Upload'} size="sm" variant="secondary" hidden={{ kind }}
+      pendingLabel="Uploading…" className="flex flex-wrap items-end gap-2">
+      {() => <TextField idPrefix={`proof-${kind}`} name="file" label="File" type="file" accept="application/pdf,image/jpeg,image/png" className="[&_input]:h-auto [&_input]:py-1.5" />}
     </ActionForm>
   );
 }

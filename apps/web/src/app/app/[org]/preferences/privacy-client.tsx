@@ -4,12 +4,9 @@ import { useActionState } from 'react';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { initialActionState, type ActionState } from '@/lib/action-state';
+import { SCOPE_LABELS } from './privacy-data';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
-export const SCOPE_LABELS: Record<string, string> = {
-  contact: 'Personal email and phone numbers', address: 'Current and permanent address', family: 'Family members and dependants',
-  emergency: 'Emergency contacts', custom: 'Answers to custom profile fields',
-};
 
 export function DeletionRequestForm({ action }: { action: Action }) {
   const [state, formAction] = useActionState(action, initialActionState);

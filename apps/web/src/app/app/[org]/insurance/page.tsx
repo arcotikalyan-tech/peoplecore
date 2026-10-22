@@ -189,7 +189,7 @@ function Members({ slug, base, sp, policy, roster, emps, coverage, personal }: {
         <input type="hidden" name="tab" value="management" /><input type="hidden" name="view" value="members" />
         <select name="coverage" defaultValue={sp.coverage ?? ''} aria-label="Coverage" className={sel}><option value="">All coverage</option><option value="covered">Covered</option><option value="not">Not covered</option></select>
         <select name="type" defaultValue={sp.type ?? ''} aria-label="Employment type" className={sel}><option value="">All types</option>{Object.entries(TYPE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
-        <select name="gender" defaultValue={sp.gender ?? ''} aria-label="Gender" className={sel}><option value="">All genders</option><option value="male">Male</option><option value="female">Female</option><option value="non_binary">Non-binary</option></select>
+        <select name="gender" defaultValue={sp.gender ?? ''} aria-label="Gender" className={sel}><option value="">All genders</option><option value="male">Male</option><option value="female">Female</option><option value="transgender">Transgender</option><option value="non_binary">Non-binary</option></select>
         <button type="submit" className="h-9 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-fg">⨁ Filter</button>
       </form>
       <div className="overflow-x-auto">

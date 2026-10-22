@@ -8,8 +8,13 @@ import { requirePermission } from '@/server/context';
 import { listMembers } from '@/server/members';
 import { createClient } from '@/server/supabase';
 import { DepartmentsSection, DesignationsSection, LocationsSection } from '../structure/sections';
-import { archiveCustomFieldAction, removeRowAction, saveAddressAction, saveCompanyAction, saveCustomFieldAction, saveGradeAction, saveOfficerAction, setDesignationGradeAction } from './actions';
-import { AddressForm, CustomFieldForm, DetailsForm, ENTITY_TYPES, GradeForm, GradeSelect, OfficerForm, StatutoryForm, type Profile } from './company-forms';
+import {
+  archiveCustomFieldAction, removeCompanyDocumentAction, removeRowAction, saveAddressAction, saveCompanyAction, saveCustomFieldAction, saveGradeAction, saveOfficerAction,
+  setDesignationGradeAction, uploadCompanyDocumentAction,
+} from './actions';
+import { COMPANY_PROOFS, ENTITY_TYPES } from './company-data';
+import { AddressForm, CustomFieldForm, DetailsForm, GradeForm, GradeSelect, OfficerForm, ProofUploadForm, StatutoryForm, type Profile } from './company-forms';
+import { ButtonAction } from '../settings/settings-client';
 
 export const metadata: Metadata = { title: 'Company Profile' };
 
@@ -18,7 +23,7 @@ const TABS = [
   { key: 'department', label: 'Department' }, { key: 'designation', label: 'Designation' }, { key: 'announcements', label: 'Announcements' },
   { key: 'policies', label: 'Policies' }, { key: 'admin', label: 'Admin' }, { key: 'statutory', label: 'Statutory' },
 ];
-const ADMIN_ROLES = ['owner', 'hr_admin', 'payroll_admin', 'auditor'];
+const ADMIN_ROLES = ['owner', 'hr_admin', 'hr_executive', 'payroll_admin', 'finance_admin', 'vendor_admin', 'attendance_device_admin', 'auditor', 'partner'];
 
 function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -275,6 +280,33 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
                 </>
               )}
             </Panel>
+            {await (async () => {
+              const { data: docs } = await supabase.from('company_documents').select('id, kind, file_name, uploaded_at').eq('organization_id', ctx.org.id).order('uploaded_at', { ascending: false });
+              if (!manage && (docs ?? []).length === 0) return null;
+              return (
+                <Panel title="Proofs">
+                  <p className="mb-3 text-sm text-muted">Copies of the company’s registrations, kept privately: organization admins add them; auditors can read them.</p>
+                  <ul className="divide-y divide-line" aria-label="Company proofs">
+                    {COMPANY_PROOFS.map(({ kind, label }) => {
+                      const latest = (docs ?? []).filter((d) => d.kind === kind);
+                      return (
+                        <li key={kind} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+                          <span className="min-w-48"><span className="font-medium">{label}</span>
+                            {latest.length ? latest.map((d) => (
+                              <span key={d.id} className="block text-xs text-muted">
+                                <a href={`/app/${slug}/company/documents/${d.id}`} className="text-primary hover:underline">📎 {d.file_name}</a> · uploaded {formatDate(d.uploaded_at.slice(0, 10))}
+                                {manage && <span className="ml-2 inline-block align-middle"><ButtonAction action={removeCompanyDocumentAction.bind(null, slug, d.id)} aria={`Remove ${d.file_name}`} label="Remove" variant="ghost" /></span>}
+                              </span>
+                            )) : <span className="block text-xs text-muted">Not uploaded</span>}
+                          </span>
+                          {manage && <ProofUploadForm action={uploadCompanyDocumentAction.bind(null, slug)} kind={kind} label={label} replace={latest.length > 0} />}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </Panel>
+              );
+            })()}
             <Panel title="Bank account info"><p className="text-sm text-muted">The salary debit account lives in <Link href={`/app/${slug}/payroll?tab=settings&view=bank`} className="text-primary hover:underline">Payroll › Settings › Bank Integration</Link>.</p></Panel>
           </div>
         );

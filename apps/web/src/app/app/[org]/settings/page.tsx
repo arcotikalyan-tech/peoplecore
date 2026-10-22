@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { HubTabs, Panel } from '@/components/ui/hub';
 import { Badge } from '@/components/ui/surface';
 import { formatDateTime } from '@/lib/format';
+import { EMAIL_AUDIENCES, EMAIL_EVENTS, EMAIL_STATUS_LABELS } from '@/lib/email-rules';
 import { MODULES, NOTIFICATION_CATEGORIES } from '@/lib/modules';
 import { getOrgContext, type OrgContext } from '@/server/context';
 import { disabledModules, orgControls } from '@/server/modules';
@@ -11,9 +12,9 @@ import { setupChecks } from '@/server/setup';
 import { createClient } from '@/server/supabase';
 import {
   cancelClosureAction, createRoleAction, deleteRoleAction, grantSupportAction, requestClosureAction, revokeSupportAction, saveControlsAction, saveModulesAction,
-  setPayrollShortcutAction, setRequireMfaAction, setVendorAccessAction, saveNotificationsAction, setRolePermissionAction,
+  setPayrollShortcutAction, setRequireMfaAction, setVendorAccessAction, saveEmailRulesAction, saveNotificationsAction, setRolePermissionAction,
 } from './actions';
-import { ButtonAction, ClosureForm, ControlsForm, RoleForm, ScopeCell, SupportForm, ToggleList } from './settings-client';
+import { ButtonAction, ClosureForm, ControlsForm, EmailRulesForm, RoleForm, ScopeCell, SupportForm, ToggleList } from './settings-client';
 import { saveDirectorySettingsAction } from '../employees/people-actions';
 import { DirectorySettingsForm } from '../employees/people-client';
 import { listMembers } from '@/server/members';
@@ -56,17 +57,41 @@ export default async function SettingsPage({ params, searchParams }: { params: P
         </Panel>
       )}
       {tab === 'controls' && <ControlsTab slug={slug} ctx={ctx} owner={ctx.can('role.manage', 'org')} />}
-      {tab === 'notifications' && (
-        <Panel title="Notifications" meta="Switch a category off to stop those notifications for everyone in the organization.">
-          {await (async () => {
-            const supabase = await createClient();
-            const { data } = await supabase.from('notification_settings').select('category, enabled').eq('organization_id', ctx.org.id);
-            const off = new Set((data ?? []).filter((d) => !d.enabled).map((d) => d.category));
-            return <ToggleList action={saveNotificationsAction.bind(null, slug)} label="Notification categories" name="category" submit="Save notifications"
-              items={NOTIFICATION_CATEGORIES.map(([k, l, n]) => ({ key: k, label: l, note: n, on: !off.has(k) }))} />;
-          })()}
-        </Panel>
-      )}
+      {tab === 'notifications' && await (async () => {
+        const supabase = await createClient();
+        const [{ data }, { data: rules }, { data: mail }] = await Promise.all([
+          supabase.from('notification_settings').select('category, enabled').eq('organization_id', ctx.org.id),
+          supabase.from('notification_email_rules').select('event, audience, enabled').eq('organization_id', ctx.org.id),
+          supabase.from('email_outbox').select('id, to_email, subject, status, created_at, sent_at, last_error').eq('organization_id', ctx.org.id)
+            .order('created_at', { ascending: false }).limit(30),
+        ]);
+        const off = new Set((data ?? []).filter((d) => !d.enabled).map((d) => d.category));
+        return (
+          <div className="space-y-5">
+            <Panel title="Email notifications" meta="by event and role; all off until you switch them on">
+              <EmailRulesForm action={saveEmailRulesAction.bind(null, slug)} events={EMAIL_EVENTS} audiences={EMAIL_AUDIENCES}
+                on={(rules ?? []).filter((r) => r.enabled).map((r) => `${r.event}:${r.audience}`)} />
+              <p className="mt-3 text-xs text-muted">Everyone holding the role gets the email; “their manager” is the person’s own reporting manager. Nobody is emailed about their own request or celebration. The worker sends emails over SMTP; until SMTP is set up they wait, and they expire after two days.</p>
+            </Panel>
+            <Panel title="Recent emails" meta={`${(mail ?? []).length} latest`} flush>
+              {(mail ?? []).length === 0 ? <p className="px-5 pb-3 text-sm text-muted">No emails yet.</p> : (
+                <ul className="divide-y divide-line text-sm" aria-label="Recent emails">
+                  {(mail ?? []).map((m) => (
+                    <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5">
+                      <span><span className="font-medium">{m.subject}</span><span className="block text-xs text-muted">to {m.to_email} · {formatDateTime(m.created_at, ctx.org.timezone)}{m.last_error ? ` · ${m.last_error}` : ''}</span></span>
+                      <Badge tone={m.status === 'sent' ? 'success' : m.status === 'failed' ? 'danger' : m.status === 'expired' ? 'neutral' : 'warning'}>{EMAIL_STATUS_LABELS[m.status] ?? m.status}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+            <Panel title="In-app notifications" meta="Switch a category off to stop those notifications for everyone in the organization.">
+              <ToggleList action={saveNotificationsAction.bind(null, slug)} label="Notification categories" name="category" submit="Save notifications"
+                items={NOTIFICATION_CATEGORIES.map(([k, l, n]) => ({ key: k, label: l, note: n, on: !off.has(k) }))} />
+            </Panel>
+          </div>
+        );
+      })()}
       {tab === 'support' && owner && <Support ctx={ctx} slug={slug} />}
     </>
   );
@@ -132,14 +157,17 @@ async function Setup({ ctx, slug }: { ctx: OrgContext; slug: string }) {
 
 async function Roles({ ctx, slug, owner }: { ctx: OrgContext; slug: string; owner: boolean }) {
   const supabase = await createClient();
-  const [roles, grants, perms, assigned] = await Promise.all([
+  const [roles, grants, perms, assigned, members] = await Promise.all([
     supabase.from('roles').select('id, key, name, description, is_system, requires_mfa').eq('organization_id', ctx.org.id).order('is_system', { ascending: false }).order('name').then((r) => r.data ?? []),
     supabase.from('role_permissions').select('role_id, permission_key, scope').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
     supabase.from('permissions').select('key, module, description, is_sensitive').order('module').order('key').then((r) => r.data ?? []),
     supabase.from('member_roles').select('role_id').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
+    listMembers(ctx.org.id).catch(() => []),
   ]);
   const scope = new Map(grants.map((g) => [`${g.role_id}|${g.permission_key}`, g.scope as string]));
   const count = (id: string) => assigned.filter((a) => a.role_id === id).length;
+  const holders = (id: string) => members.filter((m) => m.role_ids.includes(id)).map((m) => m.employee_name ?? m.email);
+  const payroll = (id: string) => grants.some((g) => g.role_id === id && ['payroll.prepare', 'payroll.approve', 'compensation.read', 'compensation.update'].includes(g.permission_key) && g.scope === 'org');
   const modules = [...new Set(perms.map((p) => p.module))];
   return (
     <div className="space-y-5">
@@ -148,8 +176,13 @@ async function Roles({ ctx, slug, owner }: { ctx: OrgContext; slug: string; owne
           {roles.map((r) => (
             <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
               <span><span className="font-medium">{r.name}</span> {r.is_system ? <Badge>Built-in</Badge> : <Badge tone="primary">Custom</Badge>} {r.requires_mfa && <Badge tone="warning">Two-step sign-in</Badge>}
-                <span className="block text-xs text-muted">{r.description ?? ''} · {count(r.id)} member{count(r.id) === 1 ? '' : 's'} · {grants.filter((g) => g.role_id === r.id).length} permissions</span></span>
+                {' '}{payroll(r.id) ? <Badge tone="success">Payroll access</Badge> : <Badge>No payroll</Badge>}
+                <span className="block text-xs text-muted">{r.description ?? ''} · {count(r.id)} member{count(r.id) === 1 ? '' : 's'} · {grants.filter((g) => g.role_id === r.id).length} permissions</span>
+                {holders(r.id).length > 0 && <span className="block text-xs">{holders(r.id).slice(0, 4).join(', ')}{holders(r.id).length > 4 ? ` and ${holders(r.id).length - 4} more` : ''}</span>}</span>
+              <span className="flex items-center gap-2">
+                <Link href={`/app/${slug}/members`} className="text-xs text-primary hover:underline" aria-label={`Assign ${r.name}`}>Assign</Link>
               {owner && !r.is_system && count(r.id) === 0 && <DeleteRole slug={slug} roleId={r.id} name={r.name} />}
+              </span>
             </li>
           ))}
         </ul>

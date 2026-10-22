@@ -11,9 +11,11 @@ import {
   getBalanceSheet, getLedger, getLeaveSettings, getRequestsBoard, getRules, leaveCycle, leaveEmployees, ledgerMonths, type LeaveRule,
 } from '@/server/leave-ops';
 import { getLeaveSetup } from '@/server/leave';
+import { createClient } from '@/server/supabase';
+import { ButtonAction } from '../../settings/settings-client';
 import {
-  addHolidayAction, applyLeaveAction, assignLeaveRuleAction, cancelLeaveAction, decideLeaveAction, importAssignmentsAction, recalculateLeaveAction,
-  removeAssignmentsAction, removeHolidayAction, saveLeaveRuleAction, saveLeaveSettingsAction, setBalanceAction,
+  addHolidayAction, addStandardLeaveTypeAction, applyLeaveAction, assignLeaveRuleAction, cancelLeaveAction, decideLeaveAction, importAssignmentsAction,
+  nudgeLeaveAction, recalculateLeaveAction, removeAssignmentsAction, removeHolidayAction, saveLeaveRuleAction, saveLeaveSettingsAction, setBalanceAction,
 } from '../actions';
 import {
   ApplyLeaveForm, ApprovalsBoard, AssignmentsBoard, AssignRuleForm, BalanceEditor, HolidayForm, ImportAssignmentsForm, LeaveRuleEditor,
@@ -136,11 +138,11 @@ export async function AdminHub({ ctx, slug, base, today }: Ctx) {
           )}
         </Panel>
       </div>
-      <Panel title="Org actions">
+      <Panel title="Org actions" action={ctx.can('leave.manage', 'org') ? <RunButton action={nudgeLeaveAction.bind(null, slug)} label="📣 Nudge employees" pending="Nudging…" /> : undefined}>
         <ul className="grid gap-3 sm:grid-cols-3" aria-label="Org actions">
           <li><Link href={`${base}?tab=approvals&status=pending`} className="lift block rounded-xl border border-line p-4"><span className="font-medium">Bulk approve</span><span className="block text-xs text-muted">{actionable.length} waiting for you</span></Link></li>
           <li><Link href={`${base}?tab=rules`} className="lift block rounded-xl border border-line p-4"><span className="font-medium">Edit leave rules</span><span className="block text-xs text-muted">{rules.filter((r) => r.is_active).length} rules · assign directly</span></Link></li>
-          <li><Link href={`${base}?tab=accruals`} className="lift block rounded-xl border border-line p-4"><span className="font-medium">Close cycle</span><span className="block text-xs text-muted">{shortDate(cycle.start)} → {shortDate(cycle.end)}</span></Link></li>
+          <li><Link href={`${base}?tab=accruals#close`} className="lift block rounded-xl border border-line p-4"><span className="font-medium">Close cycle</span><span className="block text-xs text-muted">{shortDate(cycle.start)} → {shortDate(cycle.end)} · see what carries forward and lapses</span></Link></li>
         </ul>
       </Panel>
       <div className="grid gap-5 xl:grid-cols-2">
@@ -273,6 +275,15 @@ export async function RulesTab({ ctx, slug, base, today, view, selected }: Ctx &
             <p className="max-w-3xl text-sm text-muted">Each leave rule defines one leave type (accrual, carry-forward, encashment…). Edit a rule, then assign it from the <span className="font-medium text-fg">Assignments</span> tab — no policy bundle needed.</p>
             <Link href={`${base}?tab=rules&rule=new`} className={buttonClass('primary', 'sm')}>+ New leave rule</Link>
           </div>
+          {ctx.can('leave.manage', 'org') && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-line px-4 py-3 text-sm" role="group" aria-label="Add a standard leave type">
+              <span className="text-muted">Add a standard type:</span>
+              {([['event', 'Event leave', 'event'], ['maternity', 'Maternity leave', 'maternity'], ['paternity', 'Paternity leave', 'paternity']] as const)
+                .filter(([, , cat]) => !active.some((r) => r.category === cat))
+                .map(([k, label]) => <ButtonAction key={k} action={addStandardLeaveTypeAction.bind(null, slug, k)} aria={`Add ${label}`} label={`＋ ${label}`} />)}
+              {(['event', 'maternity', 'paternity'] as const).every((cat) => active.some((r) => r.category === cat)) && <span className="text-muted">all added.</span>}
+            </div>
+          )}
           {(selected === 'new' || editing) && (
             <Panel title={editing ? `Edit rule · ${editing.name}` : 'New leave rule'} action={<Link href={`${base}?tab=rules`} className="text-sm text-muted hover:text-fg">Close</Link>}>
               <LeaveRuleEditor key={editing?.id ?? 'new'} action={saveLeaveRuleAction.bind(null, slug)} rule={editing ? ruleValues(editing) : NEW_RULE} />
@@ -481,7 +492,44 @@ export async function AccrualsTab({ ctx, slug, base, today, employee }: Ctx & { 
         <span className="ml-auto text-xs text-muted">Leave year {formatDate(cycle.start)} – {formatDate(cycle.end)}{settings.carry_forward_expiry !== 'never' ? ' · carried leave expires at year end' : ''}</span>
       </form>
       {chosen ? <AccrualLedger orgId={ctx.org.id} employeeId={chosen.id} today={today} cycleStart={cycle.start} label={cycle.label} /> : <p className="text-sm text-muted">No employees yet.</p>}
+      {ctx.can('leave.manage', 'org') && <YearEndPreview ctx={ctx} slug={slug} cycle={cycle} />}
     </div>
+  );
+}
+
+/** Closing the leave year: what would carry forward and lapse per leave type, as balances stand today. */
+async function YearEndPreview({ ctx, slug, cycle }: { ctx: OrgContext; slug: string; cycle: { start: string; end: string; label: string } }) {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('leave_year_end_preview', { p_org: ctx.org.id });
+  const rows = (data ?? []).filter((r) => Number(r.balance) > 0);
+  return (
+    <section id="close" aria-label="Close the leave cycle" className="lift-soft rounded-xl border border-line bg-surface">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-5 pb-1 pt-4">
+        <h2 className="text-sm font-semibold">Close the leave cycle <span className="font-normal text-muted">{formatDate(cycle.start)} → {formatDate(cycle.end)}</span></h2>
+        <RunButton action={recalculateLeaveAction.bind(null, slug)} label="Close and carry forward now" pending="Closing…" />
+      </header>
+      <p className="px-5 pb-3 text-sm text-muted">The year closes on its own on {formatDate(cycle.end)}: unused leave up to each rule’s carry-forward limit moves to the new year, the rest lapses. “Close and carry forward now” runs it for any year that has ended, and is safe to run more than once. As balances stand today:</p>
+      {rows.length === 0 ? <p className="px-5 pb-4 text-sm text-muted">No unused leave to carry forward.</p> : (
+        <div className="scroll-thin overflow-x-auto pb-3">
+          <table className="w-full text-sm">
+            <caption className="sr-only">Year-end preview by leave type</caption>
+            <thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted">
+              <th className="px-5 py-2 font-semibold">Leave type</th><th className="py-2 text-right font-semibold">People</th><th className="py-2 text-right font-semibold">Unused</th>
+              <th className="py-2 text-right font-semibold">Carries forward</th><th className="px-5 py-2 text-right font-semibold">Lapses</th>
+            </tr></thead>
+            <tbody className="divide-y divide-line">
+              {rows.map((r) => (
+                <tr key={r.leave_type_id}>
+                  <td className="px-5 py-2 font-medium">{r.name}</td><td className="text-right tabular-nums">{r.people}</td>
+                  <td className="text-right tabular-nums">{num(Number(r.balance))}</td><td className="text-right tabular-nums text-success">{num(Number(r.carry))}</td>
+                  <td className="px-5 text-right tabular-nums text-danger">{num(Number(r.lapse))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 

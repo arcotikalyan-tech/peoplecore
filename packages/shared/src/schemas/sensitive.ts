@@ -3,11 +3,12 @@ import { optionalEmail, optionalIsoDate, optionalPhone, optionalText, phone, req
 
 /** Mirrors the check constraints in supabase/migrations/*_sensitive_employee_data.sql. */
 
-export const GENDERS = ['female', 'male', 'non_binary', 'undisclosed'] as const;
+export const GENDERS = ['female', 'male', 'transgender', 'non_binary', 'undisclosed'] as const;
 export type Gender = (typeof GENDERS)[number];
 export const GENDER_LABELS: Record<Gender, string> = {
   female: 'Female',
   male: 'Male',
+  transgender: 'Transgender',
   non_binary: 'Non-binary',
   undisclosed: 'Prefer not to say',
 };

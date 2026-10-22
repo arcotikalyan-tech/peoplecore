@@ -51,15 +51,16 @@ beforeAll(async () => {
 });
 
 describe('defaults', () => {
-  it('every organization starts with CL, SL, EL and LOP, policies, a default calendar and a leave flow', async () => {
+  it('every organization starts with CL, SL, EL, Event leave and LOP, policies, a default calendar and a leave flow', async () => {
     const { db } = ctx.t;
-    expect(Object.keys(types).sort()).toEqual(['CL', 'EL', 'LOP', 'SL']);
+    expect(Object.keys(types).sort()).toEqual(['CL', 'EL', 'EVL', 'LOP', 'SL']);
     const pol = await db.query<{ code: string; accrual_period: string; accrual_days: string; carry_forward_max: string | null }>(
       `select t.code, p.accrual_period, p.accrual_days::text, p.carry_forward_max::text from leave_policies p join leave_types t on t.id = p.leave_type_id
         where t.organization_id = $1 order by t.code`, [ctx.f.orgA]);
     expect(pol.rows).toEqual([
       { code: 'CL', accrual_period: 'monthly', accrual_days: '1.00', carry_forward_max: '0.00' },
       { code: 'EL', accrual_period: 'monthly', accrual_days: '1.25', carry_forward_max: '30.00' },
+      { code: 'EVL', accrual_period: 'yearly', accrual_days: '3.00', carry_forward_max: '0.00' },
       { code: 'LOP', accrual_period: 'none', accrual_days: '0.00', carry_forward_max: null },
       { code: 'SL', accrual_period: 'monthly', accrual_days: '1.00', carry_forward_max: '0.00' },
     ]);

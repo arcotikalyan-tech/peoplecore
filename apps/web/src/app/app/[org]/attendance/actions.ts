@@ -155,6 +155,11 @@ async function manage(orgSlug: string) {
   const ctx = await getOrgContext(orgSlug);
   return ctx.can('attendance.manage', 'org') ? ctx : null;
 }
+/** Devices: attendance admins and attendance device admins. */
+async function manageDevices(orgSlug: string) {
+  const ctx = await getOrgContext(orgSlug);
+  return ctx.can('attendance.manage', 'org') || ctx.can('attendance.device.manage', 'org') ? ctx : null;
+}
 const DENIED: ActionState = { ok: false, message: 'You don’t have permission to change attendance settings.' };
 const done = (orgSlug: string, message: string): ActionState => {
   revalidatePath(`/app/${orgSlug}/attendance`, 'layout');
@@ -266,7 +271,7 @@ export async function testZoneAction(orgSlug: string, _prev: ZoneTestState, form
 }
 
 export async function createDeviceAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-  const ctx = await manage(orgSlug);
+  const ctx = await manageDevices(orgSlug);
   if (!ctx) return DENIED;
   const parsed = deviceSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(parsed.error, formData);
@@ -279,7 +284,7 @@ export async function createDeviceAction(orgSlug: string, _prev: ActionState, fo
 }
 
 export async function importDevicePunchesAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-  const ctx = await manage(orgSlug);
+  const ctx = await manageDevices(orgSlug);
   if (!ctx) return DENIED;
   const deviceId = z.uuid().safeParse(formData.get('deviceId'));
   const file = formData.get('file');

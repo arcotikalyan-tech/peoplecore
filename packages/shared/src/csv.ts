@@ -16,6 +16,14 @@ export function csvCell(value: CsvValue): string {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
+/**
+ * CSV for text that stays inside the app (an uploaded sheet carried between import steps): quoted where needed, but
+ * without the formula prefix, so values such as +91 phone numbers come back unchanged.
+ */
+export function toPlainCsv(rows: ReadonlyArray<readonly string[]>): string {
+  return rows.map((row) => row.map((v) => (/[",\r\n]/.test(v) ? `"${v.replaceAll('"', '""')}"` : v)).join(',')).join('\r\n') + '\r\n';
+}
+
 export function toCsv(header: readonly string[], rows: ReadonlyArray<readonly CsvValue[]>): string {
   const lines = [header, ...rows].map((row) => row.map(csvCell).join(','));
   return `\uFEFF${lines.join('\r\n')}\r\n`;

@@ -18,10 +18,42 @@ let locationCode = '';
 const HEADER = 'Employee code,First name,Last name,Work email,Employment type,Date of joining,Department code,Designation,Location code,Manager code';
 const email = (n: string) => `e2e.import.${n}.${run.toLowerCase()}@${domain}`;
 
+/** Upload, keep the suggested column mapping, check. */
+async function upload(page: Page, file: { name: string; mimeType: string; buffer: Buffer }) {
+  const form = page.getByRole('form', { name: 'Upload a file' });
+  await form.getByLabel(/CSV or Excel file|Start again with another file/).setInputFiles(file);
+  await form.getByRole('button', { name: 'Upload' }).click();
+  await expect(page.getByRole('form', { name: 'Map columns' })).toBeVisible();
+}
 async function check(page: Page, name: string, lines: string[]) {
-  const form = page.getByRole('form', { name: 'Check a file' });
-  await form.getByLabel(/CSV file|Check another file/).setInputFiles({ name, mimeType: 'text/csv', buffer: Buffer.from([HEADER, ...lines].join('\r\n')) });
-  await form.getByRole('button', { name: 'Check file' }).click();
+  await upload(page, { name, mimeType: 'text/csv', buffer: Buffer.from([HEADER, ...lines].join('\r\n')) });
+  await page.getByRole('form', { name: 'Map columns' }).getByRole('button', { name: 'Check rows' }).click();
+}
+
+/** A one-sheet .xlsx with inline strings (stored, not compressed): enough for the importer's reader. */
+function xlsx(rows: string[][]): Buffer {
+  const cell = (v: string, c: number, r: number) => `<c r="${String.fromCharCode(65 + c)}${r}" t="inlineStr"><is><t>${v.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</t></is></c>`;
+  const parts: Record<string, string> = {
+    'xl/workbook.xml': '<workbook xmlns:r="r"><sheets><sheet name="Employees" sheetId="1" r:id="rId1"/></sheets></workbook>',
+    'xl/_rels/workbook.xml.rels': '<Relationships><Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>',
+    'xl/worksheets/sheet1.xml': `<worksheet><sheetData>${rows.map((row, r) => `<row r="${r + 1}">${row.map((v, c) => cell(v, c, r + 1)).join('')}</row>`).join('')}</sheetData></worksheet>`,
+  };
+  const chunks: Buffer[] = [];
+  const central: Buffer[] = [];
+  let offset = 0;
+  for (const [name, text] of Object.entries(parts)) {
+    const data = Buffer.from(text);
+    const n = Buffer.from(name);
+    const local = Buffer.alloc(30); local.writeUInt32LE(0x04034b50, 0); local.writeUInt32LE(data.length, 18); local.writeUInt32LE(data.length, 22); local.writeUInt16LE(n.length, 26);
+    const head = Buffer.alloc(46); head.writeUInt32LE(0x02014b50, 0); head.writeUInt32LE(data.length, 20); head.writeUInt32LE(data.length, 24); head.writeUInt16LE(n.length, 28); head.writeUInt32LE(offset, 42);
+    chunks.push(local, n, data);
+    central.push(head, n);
+    offset += 30 + n.length + data.length;
+  }
+  const dir = Buffer.concat(central);
+  const end = Buffer.alloc(22); end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(Object.keys(parts).length, 8); end.writeUInt16LE(Object.keys(parts).length, 10);
+  end.writeUInt32LE(dir.length, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...chunks, dir, end]);
 }
 
 const imported = async () =>
@@ -59,7 +91,7 @@ test('checking a file with problems lists each one by line and saves nothing', a
   await check(page, 'bad.csv', [
     `I${run}-1,Ira,T${run},${email('a')},Permanent,2026-01-05,NOPE${run},,,`,
     `I${run}-2,Om,T${run},${email('a')},Permanent,2026-01-05,,,,`,
-    `I${run}-3,Pia,T${run},,Freelance,2026-01-05,,,,`,
+    `I${run}-3,Pia,T${run},,Volunteer,2026-01-05,,,,`,
     `I${run}-4,Raj,T${run},,Permanent,2026-01-05,,,,GHOST${run}`,
   ]);
   const problems = page.getByRole('list', { name: 'Problems' });
@@ -84,7 +116,7 @@ test('a clean file is checked, then imported in one go, with managers from the f
   expect(await imported()).toEqual([]); // the check saved nothing
 
   await page.getByRole('button', { name: 'Import 3 employees' }).click();
-  await expect(page.getByText('3 employees imported.')).toBeVisible();
+  await expect(page.getByText('3 employees imported from good.csv.')).toBeVisible();
 
   const rows = await imported();
   expect(rows.map((r) => r.employee_code)).toEqual([`I${run}-1`, `I${run}-2`, `I${run}-3`]);
@@ -97,6 +129,29 @@ test('a clean file is checked, then imported in one go, with managers from the f
   const { data: events } = await admin.from('audit_events').select('metadata').eq('organization_id', orgId).eq('action', 'import')
     .order('occurred_at', { ascending: false }).limit(1);
   expect(events?.[0]?.metadata).toEqual({ rows: 3, created: 3 });
+});
+
+test('a greytHR export in Excel is mapped by itself, with department and manager names turned into codes', async ({ page }) => {
+  const rohan = (await admin.from('employees').select('id, first_name, last_name').eq('organization_id', orgId).eq('employee_code', managerCode).single()).data!;
+  const dept = (await admin.from('departments').select('name').eq('organization_id', orgId).eq('code', 'ENG').single()).data!.name;
+  await signIn(page, 'demo.hr');
+  await open(page, '/app/demo/employees/import');
+  await upload(page, { name: 'greythr.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: xlsx([
+    ['Employee No', 'Name', 'DOJ', 'Department', 'Email', 'Category', 'Reporting Manager', 'Blood Group'],
+    [`I${run}-7`, `Kavya T${run}`, '05-Jan-2026', dept, email('g'), 'Full Time', `${rohan.first_name} ${rohan.last_name} (${managerCode})`, 'O+'],
+  ]) });
+  const map = page.getByRole('form', { name: 'Map columns' });
+  await expect(map.getByText('looks like a greytHR file')).toBeVisible();
+  await expect(map.getByLabel('Name imports as')).toHaveValue('full_name');
+  await expect(map.getByLabel('Blood Group imports as')).toHaveValue('');
+  await map.getByRole('button', { name: 'Check rows' }).click();
+  await expect(page.getByText('All 1 rows are ready to import. Nothing has been saved yet.')).toBeVisible();
+  await page.getByRole('button', { name: 'Import 1 employee' }).click();
+  await expect(page.getByText('1 employee imported from greythr.xlsx.')).toBeVisible();
+  const kavya = (await admin.from('employees').select('first_name, last_name, date_of_joining, employment_type, manager_employee_id, department_id')
+    .eq('organization_id', orgId).eq('employee_code', `I${run}-7`).single()).data!;
+  const eng = (await admin.from('departments').select('id').eq('organization_id', orgId).eq('code', 'ENG').single()).data!.id;
+  expect(kavya).toEqual({ first_name: 'Kavya', last_name: `T${run}`, date_of_joining: '2026-01-05', employment_type: 'permanent', manager_employee_id: rohan.id, department_id: eng });
 });
 
 test('importing the same file again is refused as a whole', async ({ page }) => {

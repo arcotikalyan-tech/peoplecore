@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
+import { EMAIL_AUDIENCES, EMAIL_EVENTS } from '@/lib/email-rules';
 import { MODULES, NOTIFICATION_CATEGORIES } from '@/lib/modules';
 import { getOrgContext } from '@/server/context';
 import { flash } from '@/server/flash';
@@ -115,6 +116,21 @@ export async function saveNotificationsAction(slug: string, _prev: ActionState, 
   const { error } = await supabase.from('notification_settings').upsert(NOTIFICATION_CATEGORIES.map(([k]) => ({ organization_id: ctx.org.id, category: k, enabled: on.has(k) })));
   if (error) return { ok: false, message: toUserMessage(error) };
   return done(slug, 'Notification settings saved.');
+}
+
+/** Which events email which audiences: every combination is saved, on or off. */
+export async function saveEmailRulesAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('org.manage', 'org')) return DENIED;
+  const on = new Set(formData.getAll('rule').map(String));
+  const rows = EMAIL_EVENTS.flatMap(([event]) => EMAIL_AUDIENCES.map(([audience]) => ({
+    organization_id: ctx.org.id, event, audience, enabled: on.has(`${event}:${audience}`),
+  })));
+  const supabase = await createClient();
+  const { error } = await supabase.from('notification_email_rules').upsert(rows, { onConflict: 'organization_id,event,audience' });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  const n = rows.filter((r) => r.enabled).length;
+  return done(slug, n ? `Email notifications saved: ${n} switched on.` : 'Email notifications saved: all off.');
 }
 
 export async function grantSupportAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

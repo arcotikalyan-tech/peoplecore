@@ -62,7 +62,7 @@ describe('leave rules', () => {
           where t.organization_id = $1 order by t.code`, [f.orgA])).rows;
       expect(cats).toEqual([
         { code: 'CL', category: 'casual', annual: '12.00' }, { code: 'EL', category: 'earned', annual: '15.00' },
-        { code: 'LOP', category: 'lop', annual: '0.00' }, { code: 'SL', category: 'sick', annual: '12.00' },
+        { code: 'EVL', category: 'event', annual: '3.00' }, { code: 'LOP', category: 'lop', annual: '0.00' }, { code: 'SL', category: 'sick', annual: '12.00' },
       ]);
 
       const id = await rule(tx, null, {

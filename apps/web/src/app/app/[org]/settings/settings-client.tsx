@@ -36,6 +36,40 @@ export function ToggleList({ action, label, name, items, submit }: {
   );
 }
 
+/** Email notifications: events down, audiences across; each cell is one rule. */
+export function EmailRulesForm({ action, events, audiences, on }: {
+  action: Action; events: ReadonlyArray<readonly [string, string, string]>; audiences: ReadonlyArray<readonly [string, string]>; on: string[];
+}) {
+  const [state, formAction] = useActionState(action, initialActionState);
+  return (
+    <form action={formAction} aria-label="Email notifications" className="space-y-4">
+      <FormMessage state={state} />
+      <div className="scroll-thin overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
+          <caption className="sr-only">Email notifications by event and audience</caption>
+          <thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted">
+            <th className="py-2 pr-4 font-semibold">Notification</th>
+            {audiences.map(([k, l]) => <th key={k} scope="col" className="px-2 py-2 text-center font-semibold">{l}</th>)}
+          </tr></thead>
+          <tbody className="divide-y divide-line">
+            {events.map(([e, label, note]) => (
+              <tr key={e}>
+                <th scope="row" className="py-2.5 pr-4 text-left font-medium">{label}<span className="block text-xs font-normal text-muted">{note}</span></th>
+                {audiences.map(([a, al]) => (
+                  <td key={a} className="px-2 text-center">
+                    <input type="checkbox" name="rule" value={`${e}:${a}`} defaultChecked={on.includes(`${e}:${a}`)} aria-label={`${label}: email ${al.toLowerCase()}`} className={check} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SubmitButton>Save email notifications</SubmitButton>
+    </form>
+  );
+}
+
 export function ControlsForm({ action, c }: { action: Action; c: { block_self_edit: boolean; salary_history_visible: boolean; birthdays_visible: boolean; notify_data_changes: boolean } }) {
   const [state, formAction] = useActionState(action, initialActionState);
   const row = (name: string, on: boolean, title: string, note: string) => (

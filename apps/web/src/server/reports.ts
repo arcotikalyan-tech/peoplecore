@@ -674,7 +674,7 @@ async function diversity(ctx: OrgContext, p: Params): Promise<Output> {
   const { people } = await staff(ctx, p);
   const now = people.filter((e) => ['active', 'on_notice'].includes(e.status));
   const pers = await personalFor(now.map((e) => e.id));
-  const genders = ['female', 'male', 'non_binary', 'undisclosed'];
+  const genders = ['female', 'male', 'transgender', 'non_binary', 'undisclosed'];
   const by = new Map<string, Map<string, number>>();
   for (const e of now) {
     const g = pers.get(e.id)?.gender ?? 'not_recorded';

@@ -52,5 +52,9 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'helpdesk.sla', key: `helpdesk.sla:${hour}:${quarter}`, payload: { hour } },
     // Every 15 minutes: automatic clock-in at shift starts and clock-out at shift ends.
     { kind: 'attendance.auto_clock', key: `attendance.auto_clock:${hour}:${quarter}`, payload: { hour } },
+    // Every 15 minutes: notification emails waiting in the outbox.
+    { kind: 'notifications.email', key: `notifications.email:${hour}:${quarter}`, payload: { hour } },
+    // Birthday and work-anniversary emails, once a day per organization from 9 am local time.
+    { kind: 'notifications.celebrations', key: `notifications.celebrations:${hour}`, payload: { hour } },
   ];
 }

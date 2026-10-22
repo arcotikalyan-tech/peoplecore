@@ -192,6 +192,41 @@ export async function recalculateLeaveAction(orgSlug: string, _prev: ActionState
   return { ok: true, message: `Balances recalculated: ${r?.credited ?? 0} credit${r?.credited === 1 ? '' : 's'} and ${r?.lapsed ?? 0} lapse${r?.lapsed === 1 ? '' : 's'} added.` };
 }
 
+/** Tells people with unused leave to plan time off (at most once a week; nudge_leave decides who). */
+export async function nudgeLeaveAction(orgSlug: string, _prev: ActionState): Promise<ActionState> {
+  const ctx = await hr(orgSlug);
+  if (!ctx) return DENIED;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('nudge_leave', { p_org: ctx.org.id });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  const n = Number(data);
+  return { ok: true, message: n ? `${n} ${n === 1 ? 'person was' : 'people were'} nudged to plan leave.` : 'Nobody has much unused leave right now.' };
+}
+
+/** Standard leave types to add in one click: Kredily's Event leave, and maternity and paternity leave. */
+const STANDARD_TYPES = {
+  event: { name: 'Event leave', category: 'event', short_name: 'EV', description: 'For personal occasions such as a wedding or a bereavement in the family.',
+    annual_days: 3, accrue_over_year: false, carry_forward: false, allow_half_day: true },
+  maternity: { name: 'Maternity leave', category: 'maternity', short_name: 'ML', description: 'Up to 26 weeks under the Maternity Benefit Act, counted in calendar days.',
+    annual_days: 182, accrue_over_year: false, carry_forward: false, count_weekends: true, count_holidays: true, allow_half_day: false, applies_to: 'assigned' },
+  paternity: { name: 'Paternity leave', category: 'paternity', short_name: 'PT', description: 'For the birth or adoption of a child.',
+    annual_days: 5, accrue_over_year: false, carry_forward: false, allow_half_day: false },
+} as const;
+
+export async function addStandardLeaveTypeAction(orgSlug: string, kind: keyof typeof STANDARD_TYPES): Promise<ActionState> {
+  const ctx = await hr(orgSlug);
+  if (!ctx) return DENIED;
+  const preset = STANDARD_TYPES[kind];
+  if (!preset) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from('leave_types').select('id').eq('organization_id', ctx.org.id).eq('category', preset.category).eq('is_active', true).limit(1);
+  if (existing?.length) return { ok: false, message: `There is already a ${preset.name.toLowerCase()} rule.` };
+  const { error } = await supabase.rpc('save_leave_rule', { p_org: ctx.org.id, p_type: null as unknown as string, p: preset });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  done(orgSlug);
+  return { ok: true, message: `${preset.name} added${'applies_to' in preset ? '; assign it to the people it applies to' : ''}.` };
+}
+
 export async function saveLeaveSettingsAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await hr(orgSlug);
   if (!ctx) return DENIED;

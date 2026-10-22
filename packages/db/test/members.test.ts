@@ -15,7 +15,7 @@ describe('who can grant which roles', () => {
   it('HR can grant everyday roles only; owners can grant any role; employees none', async () => {
     const { f, t } = ctx;
     expect(await t.asUser(f.users.hrA, (tx) => grantableKeys(tx, f.orgA))).toEqual(['department_head', 'employee', 'manager', 'recruiter']);
-    expect(await t.asUser(f.users.ownerA, (tx) => grantableKeys(tx, f.orgA))).toHaveLength(9);
+    expect(await t.asUser(f.users.ownerA, (tx) => grantableKeys(tx, f.orgA))).toHaveLength(13);
     expect(await t.asUser(f.users.icA, (tx) => grantableKeys(tx, f.orgA))).toEqual([]);
     expect(await t.asUser(f.users.hrA, (tx) => grantableKeys(tx, f.orgB))).toEqual([]); // other tenant
   });

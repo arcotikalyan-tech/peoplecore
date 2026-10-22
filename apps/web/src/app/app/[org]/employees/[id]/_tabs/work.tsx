@@ -94,7 +94,9 @@ export async function WorkTab(p: ProfileProps) {
             { label: 'Employee type', value: EMPLOYMENT_TYPE_LABELS[employee.employment_type] },
             { label: 'Work location', value: lookup(loc, employee.location_id) },
             { label: 'Probation status', value: probationStatus },
-            { label: 'Work experience', value: `${t.years} yr ${t.months} mo` },
+            { label: 'Work experience', value: `${t.years} yr ${t.months} mo here` },
+            { label: 'Before joining', value: employee.prior_experience_months === null ? null : `${Math.floor(employee.prior_experience_months / 12)} yr ${employee.prior_experience_months % 12} mo` },
+            { label: 'Total experience', value: (() => { const m = t.years * 12 + t.months + (employee.prior_experience_months ?? 0); return `${Math.floor(m / 12)} yr ${m % 12} mo`; })() },
             { label: 'Billing status', value: employee.billable ? 'Billable' : 'Non-Billable' },
             { label: 'Legal entity', value: lookup(entity, employee.legal_entity_id) },
             { label: 'Work email', value: employee.work_email },
@@ -106,6 +108,8 @@ export async function WorkTab(p: ProfileProps) {
               firstName: employee.first_name, middleName: employee.middle_name, lastName: employee.last_name, workEmail: employee.work_email,
               workPhone: employee.work_phone, probationEndDate: employee.probation_end_date, legalEntityId: employee.legal_entity_id,
               jobTitle: employee.job_title, billable: employee.billable ? 'yes' : 'no',
+              priorYears: employee.prior_experience_months === null ? null : String(Math.floor(employee.prior_experience_months / 12)),
+              priorMonths: employee.prior_experience_months === null ? null : String(employee.prior_experience_months % 12),
             }} />
         </EditableSection>
 

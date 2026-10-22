@@ -47,6 +47,7 @@ export const PERMISSIONS = {
   'attendance.read': { module: 'attendance', description: 'View attendance' },
   'attendance.approve': { module: 'attendance', description: 'Approve regularizations' },
   'attendance.manage': { module: 'attendance', description: 'Configure shifts, rosters, geofences and devices; import punches' },
+  'attendance.device.manage': { module: 'attendance', description: 'Register biometric devices and import their punches' },
   'leave.approve': { module: 'leave', description: 'Approve leave' },
   'leave.read': { module: 'leave', description: 'View leave balances and requests' },
   'leave.manage': { module: 'leave', description: 'Configure leave, holidays and adjust balances' },
@@ -88,6 +89,10 @@ export const ROLE_KEYS = [
   'employee',
   'auditor',
   'vendor_admin',
+  'hr_executive',
+  'finance_admin',
+  'partner',
+  'attendance_device_admin',
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
 
@@ -123,6 +128,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
       'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org', 'expense.manage': 'org',
       'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org', 'workflow.manage': 'org', 'separation.manage': 'org', 'letter.manage': 'org', 'insurance.manage': 'org', 'statutory.manage': 'org', 'timesheet.manage': 'org', 'peoplexp.manage': 'org', 'vendor.manage': 'org',
+      'attendance.device.manage': 'org',
     },
   },
   hr_admin: {
@@ -142,6 +148,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
       'leave.read': 'org', 'leave.manage': 'org', 'attendance.manage': 'org', 'recruitment.offer.approve': 'org',
       'onboarding.manage': 'org', 'policy.manage': 'org', 'performance.read': 'org', 'performance.manage': 'org',
       'announcement.manage': 'org', 'helpdesk.manage': 'org', 'asset.manage': 'org', 'grievance.manage': 'org', 'learning.manage': 'org', 'workflow.manage': 'org', 'separation.manage': 'org', 'letter.manage': 'org', 'insurance.manage': 'org', 'statutory.manage': 'org', 'timesheet.manage': 'org', 'peoplexp.manage': 'org',
+      'attendance.device.manage': 'org',
     },
   },
   recruiter: {
@@ -153,7 +160,7 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
     grants: { 'org.read': 'org', 'recruitment.read': 'org', 'recruitment.manage': 'org', 'ai.use': 'org' },
   },
   payroll_admin: {
-    name: 'Payroll / finance administrator',
+    name: 'Payroll administrator',
     description: 'Prepares payroll and manages compensation',
     assignableWith: 'role.manage',
     requiresMfa: true,
@@ -218,6 +225,40 @@ export const ROLE_TEMPLATES: Record<RoleKey, RoleTemplate> = {
     assignableWith: 'role.manage',
     requiresMfa: true,
     grants: { 'org.read': 'org', 'vendor.manage': 'org' },
+  },
+  hr_executive: {
+    name: 'HR executive',
+    description: 'People operations without payroll: employee records, onboarding, attendance and leave',
+    assignableWith: 'role.manage',
+    requiresMfa: true,
+    grants: {
+      'org.read': 'org', 'employee.read': 'org', 'employee.create': 'org', 'employee.update': 'org', 'onboarding.manage': 'org',
+      'attendance.read': 'org', 'leave.read': 'org', 'ai.use': 'org',
+    },
+  },
+  finance_admin: {
+    name: 'Finance administrator',
+    description: 'Approves payroll, sees salaries and bank details, approves expenses and pays vendors',
+    assignableWith: 'role.manage',
+    requiresMfa: true,
+    grants: {
+      'org.read': 'org', 'employee.read': 'org', 'employee.identity.read': 'org', 'employee.bank.read': 'org', 'compensation.read': 'org',
+      'payroll.approve': 'org', 'expense.approve': 'org', 'expense.manage': 'org', 'vendor.manage': 'org', 'statutory.manage': 'org', 'ai.use': 'org',
+    },
+  },
+  partner: {
+    name: 'Partner (read-only)',
+    description: 'An external partner such as a CA firm: reads employee profiles, IDs and salaries',
+    assignableWith: 'role.manage',
+    requiresMfa: true,
+    grants: { 'org.read': 'org', 'employee.read': 'org', 'employee.identity.read': 'org', 'compensation.read': 'org' },
+  },
+  attendance_device_admin: {
+    name: 'Attendance device admin',
+    description: 'Sets up biometric devices and imports their punches',
+    assignableWith: 'role.manage',
+    requiresMfa: true,
+    grants: { 'org.read': 'org', 'employee.read': 'org', 'attendance.read': 'org', 'attendance.device.manage': 'org' },
   },
 };
 

@@ -6,6 +6,9 @@ import { formValues, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { getOrgContext } from '@/server/context';
 import { flash } from '@/server/flash';
+import { randomUUID } from 'node:crypto';
+import { checkDocumentFile, safeFileName } from '@peoplecore/shared';
+import { COMPANY_BUCKET, removeDocumentFile, storeDocumentFile } from '@/server/document-storage';
 import { createClient } from '@/server/supabase';
 
 /** Company profile actions; RLS allows writes to org.manage holders only. */
@@ -194,4 +197,42 @@ export async function saveCustomValuesAction(slug: string, employeeId: string, _
   if (deletes.length) await supabase.from('employee_custom_values').delete().eq('employee_id', employeeId).in('field_id', deletes);
   revalidatePath(`/app/${slug}/employees/${employeeId}`);
   return { ok: true, message: 'Saved.' };
+}
+
+const PROOF_KINDS = ['pan', 'tan', 'cin', 'gst', 'incorporation', 'pf', 'esi', 'other'] as const;
+
+/** Stores a company proof in the private bucket, then records it (RLS: org.manage); the file goes if the record is refused. */
+export async function uploadCompanyDocumentAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('org.manage', 'org')) return { ok: false, message: 'Only organization admins can add company documents.' };
+  const kind = z.enum(PROOF_KINDS).safeParse(formData.get('kind'));
+  const file = formData.get('file');
+  if (!kind.success) return { ok: false, message: 'Invalid request.' };
+  if (!(file instanceof File) || file.size === 0) return { ok: false, message: 'Choose a PDF, JPEG or PNG file.' };
+  if (file.size > 5 * 1024 * 1024) return { ok: false, message: 'Files can be at most 5 MB.' };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const check = checkDocumentFile(bytes.byteLength, bytes.subarray(0, 16));
+  if (!check.ok) return { ok: false, message: 'Choose a PDF, JPEG or PNG file.' };
+  const path = `${ctx.org.id}/${randomUUID()}`;
+  if (!(await storeDocumentFile(path, bytes, check.type, COMPANY_BUCKET))) return { ok: false, message: 'The file could not be stored. Please try again.' };
+  const supabase = await createClient();
+  const { error } = await supabase.from('company_documents').insert({
+    organization_id: ctx.org.id, kind: kind.data, file_name: safeFileName(file.name) || 'document', storage_path: path, content_type: check.type, size_bytes: bytes.byteLength,
+  });
+  if (error) {
+    await removeDocumentFile(path, COMPANY_BUCKET);
+    return fail(error);
+  }
+  return done(slug, `${safeFileName(file.name)} uploaded.`);
+}
+
+/** Removes a proof: the record first (RLS decides), then the file. */
+export async function removeCompanyDocumentAction(slug: string, documentId: string): Promise<ActionState> {
+  const ctx = await getOrgContext(slug);
+  if (!ctx.can('org.manage', 'org') || !z.uuid().safeParse(documentId).success) return { ok: false, message: 'Invalid request.' };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('company_documents').delete().eq('id', documentId).eq('organization_id', ctx.org.id).select('storage_path').maybeSingle();
+  if (error || !data) return error ? fail(error) : { ok: false, message: 'That document is already gone.' };
+  await removeDocumentFile(data.storage_path, COMPANY_BUCKET);
+  return done(slug, 'Document removed.');
 }

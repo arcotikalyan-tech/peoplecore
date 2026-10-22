@@ -30,7 +30,7 @@ test('HR maintains the company profile, statutory IDs, offices, directors and cu
   await open(page, '/app/demo/company?tab=overview&edit=details');
   const details = page.getByRole('form', { name: 'Company details' });
   await details.getByLabel('Brand name').fill('PeopleCore Demo');
-  await details.getByLabel('Industry type').fill('Software');
+  await details.getByLabel('Industry type').selectOption('Information Technology (IT)');
   await details.getByRole('button', { name: 'Save details' }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
 

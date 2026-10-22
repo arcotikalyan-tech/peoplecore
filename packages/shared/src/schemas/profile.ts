@@ -7,7 +7,7 @@ import { GENDERS, personalDetailsSchema } from './sensitive.ts';
 const blank = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
 const yesNo = z.preprocess(blank, z.enum(['yes', 'no']).optional());
 
-export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
+export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'A1+', 'A1-', 'A2+', 'A2-', 'A1B+', 'A1B-', 'A2B+', 'A2B-'] as const;
 export const MARITAL_STATUSES = ['single', 'married', 'divorced', 'widowed', 'separated'] as const;
 export const MARITAL_STATUS_LABELS: Record<(typeof MARITAL_STATUSES)[number], string> = {
   single: 'Single', married: 'Married', divorced: 'Divorced', widowed: 'Widowed', separated: 'Separated',
@@ -77,4 +77,12 @@ export const familyMemberSchema = z.object({
 export const workProfileSchema = z.object({
   jobTitle: z.preprocess(blank, z.string().trim().min(2, 'At least 2 characters').max(120).optional()),
   billable: yesNo,
+  // Work experience before joining, as years and months (stored in months).
+  priorYears: z.preprocess(blank, z.coerce.number({ error: 'Whole years' }).int('Whole years').min(0).max(60, 'At most 60').optional()),
+  priorMonths: z.preprocess(blank, z.coerce.number({ error: 'Whole months' }).int('Whole months').min(0).max(11, '0 to 11').optional()),
 });
+
+/** Months of experience before joining from the form's years and months (null when both are empty). */
+export function priorExperienceMonths(v: { priorYears?: number; priorMonths?: number }): number | null {
+  return v.priorYears === undefined && v.priorMonths === undefined ? null : (v.priorYears ?? 0) * 12 + (v.priorMonths ?? 0);
+}

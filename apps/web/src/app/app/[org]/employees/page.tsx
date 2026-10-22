@@ -12,7 +12,8 @@ import { getOrgContext } from '@/server/context';
 import { employeeNames } from '@/server/employees';
 import { createClient } from '@/server/supabase';
 import { decideDeletionAction } from '../preferences/privacy-actions';
-import { DecideDeletionForm, SCOPE_LABELS } from '../preferences/privacy-client';
+import { DecideDeletionForm } from '../preferences/privacy-client';
+import { SCOPE_LABELS } from '../preferences/privacy-data';
 import { directory, directorySettings, genderMix, peopleRecords, profileGaps, signInStats, upcomingBirthdays, type Person } from '@/server/people';
 import { viewModeFor } from '@/server/view';
 import { bulkPeopleAction, saveDirectorySettingsAction } from './people-actions';
@@ -109,7 +110,7 @@ async function Overview({ slug, base, today, people, href }: { slug: string; bas
   const joiners = current.filter((p) => p.joined && p.joined >= addDays(today, -30) && p.joined <= today);
   const gapCount = gaps ? current.filter((p) => !gaps.get(p.id)?.pan).length : current.filter((p) => !p.departmentId || !p.designationId).length;
   const avgTenure = current.length ? current.reduce((s, p) => s + p.tenureYears, 0) / current.length : 0;
-  const knownGender = gender ? gender.female + gender.male + gender.non_binary : 0;
+  const knownGender = gender ? gender.female + gender.male + gender.transgender + gender.non_binary : 0;
   const lifecycle = {
     pre: people.filter((p) => p.status === 'pre_joining').length,
     onboarding: joiners.length,
@@ -363,7 +364,7 @@ async function Insights({ orgId, people, today }: { orgId: string; people: Perso
       {panel('📊 Tenure Distribution', <Bars rows={tenure.map(([l, a, b]) => [l, current.filter((p) => p.tenureYears >= a && p.tenureYears < b).length])} />)}
       {panel('📍 Locations', <Bars rows={group((p) => p.location ?? 'No location')} />)}
       {panel('💼 Employment type', <Bars rows={group((p) => (p.employmentType ?? 'unknown').replace(/_/g, ' '))} />)}
-      {panel('⚖ Gender', gender ? <Bars rows={[['Women', gender.female], ['Men', gender.male], ['Non-binary', gender.non_binary], ['Not shared', gender.undisclosed + gender.unknown]]} /> : <p className="text-sm text-muted">Not recorded, or you don’t have access to personal details.</p>)}
+      {panel('⚖ Gender', gender ? <Bars rows={[['Women', gender.female], ['Men', gender.male], ['Transgender', gender.transgender], ['Non-binary', gender.non_binary], ['Not shared', gender.undisclosed + gender.unknown]]} /> : <p className="text-sm text-muted">Not recorded, or you don’t have access to personal details.</p>)}
     </div>
   );
 }

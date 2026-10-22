@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@peoplecore/db/types';
+import { mailerFromEnv, sendBatch, type OutgoingEmail } from './email.ts';
 import type { Handlers, Log } from './queue.ts';
 
 /** Job handlers. Each must be safe to run more than once (jobs are retried after failures and crashes). */
@@ -79,6 +80,26 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       const { data, error } = await db.rpc('worker_report_schedules');
       if (error) throw new Error(error.message);
       log('reports.schedules', data as Record<string, unknown>);
+    },
+    // Queued notification emails (migration 20261022000200), over SMTP when it is configured.
+    'notifications.email': async (_job, log) => {
+      const mailer = mailerFromEnv();
+      if (!mailer) return;  // not configured: emails wait in the outbox and expire after two days
+      const { data, error } = await db.rpc('worker_claim_emails', { p_limit: 50 });
+      if (error) throw new Error(error.message);
+      const emails = (data ?? []) as OutgoingEmail[];
+      if (emails.length === 0) return;
+      const r = await sendBatch(emails, mailer, async (id, ok, message) => {
+        const { error: e } = await db.rpc('worker_email_result', { p_id: id, p_ok: ok, p_error: message ?? undefined });
+        if (e) throw new Error(e.message);
+      });
+      log('notifications.email', r);
+    },
+    'notifications.celebrations': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_celebration_emails');
+      if (error) throw new Error(error.message);
+      const r = data as { birthday_emails?: number; anniversary_emails?: number } | null;
+      if (r?.birthday_emails || r?.anniversary_emails) log('notifications.celebrations', r as Record<string, unknown>);
     },
     'attendance.auto_clock': async (_job, log) => {
       const { data, error } = await db.rpc('worker_attendance_auto_clock');

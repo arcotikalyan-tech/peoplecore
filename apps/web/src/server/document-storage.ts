@@ -25,11 +25,13 @@ const LETTER_PATH = new RegExp(`^${UUID}/${UUID}$`);
 export const STATUTORY_BUCKET = 'statutory-documents';
 /** Check-in selfies: <org uuid>/<employee uuid>/<file uuid>. Written by the punch action for the signed-in employee only. */
 export const SELFIE_BUCKET = 'attendance-selfies';
+/** Company proofs (PAN, CIN, GST…): <org uuid>/<file uuid>. Callers must hold org.manage (checked by the action; RLS on the row). */
+export const COMPANY_BUCKET = 'company-documents';
 /** Always named explicitly: a default bucket would silently put files in the wrong place. */
-type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET | typeof LETTER_BUCKET | typeof STATUTORY_BUCKET | typeof SELFIE_BUCKET;
+type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET | typeof LETTER_BUCKET | typeof STATUTORY_BUCKET | typeof SELFIE_BUCKET | typeof COMPANY_BUCKET;
 
 function checkedPath(path: string, bucket?: Bucket) {
-  if (!(bucket === LETTER_BUCKET || bucket === STATUTORY_BUCKET ? LETTER_PATH : PATH).test(path)) throw new Error('Invalid document path');
+  if (!(bucket === LETTER_BUCKET || bucket === STATUTORY_BUCKET || bucket === COMPANY_BUCKET ? LETTER_PATH : PATH).test(path)) throw new Error('Invalid document path');
   return path;
 }
 

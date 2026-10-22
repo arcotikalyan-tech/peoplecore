@@ -38,6 +38,7 @@ export default async function AttendancePage({ params, searchParams }: { params:
   const seesOthers = ctx.can('attendance.read', 'org') || ctx.can('attendance.read', 'team');
   const admin = view === 'admin' && seesOthers;
   const manage = ctx.can('attendance.manage', 'org');
+  const devices = manage || ctx.can('attendance.device.manage', 'org');
   const reviews = manage || ctx.can('attendance.approve');
 
   const adminTabs = [
@@ -45,7 +46,8 @@ export default async function AttendancePage({ params, searchParams }: { params:
     ...(reviews || me ? [{ key: 'approvals', label: 'Approvals' }] : []),
     ...(manage ? [{ key: 'rules', label: 'Attendance Rules' }] : []),
     { key: 'analytics', label: 'Analytics' },
-    ...(manage ? [{ key: 'devices', label: 'Devices' }, { key: 'settings', label: 'Settings' }] : []),
+    ...(devices ? [{ key: 'devices', label: 'Devices' }] : []),
+    ...(manage ? [{ key: 'settings', label: 'Settings' }] : []),
   ];
   const selfTabs = [
     { key: 'hub', label: 'Today' }, { key: 'calendar', label: 'Calendar' }, { key: 'logs', label: 'Punches' },

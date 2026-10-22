@@ -13,6 +13,7 @@ import {
   personalProfileSchema,
   qualificationSchema,
   updateWorkDetailsSchema,
+  priorExperienceMonths,
   workProfileSchema,
   DOCUMENT_PROOFS,
 } from '@peoplecore/shared';
@@ -55,6 +56,7 @@ export async function updateWorkDetailsAction(orgSlug: string, employeeId: strin
       legal_entity_id: v.legalEntityId ?? null,
       ...(formData.has('jobTitle') ? { job_title: extra.data.jobTitle ?? null } : {}),
       ...(formData.has('billable') ? { billable: extra.data.billable === 'yes' } : {}),
+      ...(formData.has('priorYears') ? { prior_experience_months: priorExperienceMonths(extra.data) } : {}),
     })
     .eq('id', employeeIdSchema.parse(employeeId))
     .eq('organization_id', ctx.org.id)

@@ -82,7 +82,7 @@ export async function genderMix(orgId: string, ids: string[]) {
   const supabase = await createClient();
   const { data, error } = await supabase.from('employee_personal').select('employee_id, gender').eq('organization_id', orgId).in('employee_id', ids.slice(0, 1000));
   if (error || !data || data.length === 0) return null;
-  const counts = { female: 0, male: 0, non_binary: 0, undisclosed: 0, unknown: ids.length - data.length };
+  const counts = { female: 0, male: 0, transgender: 0, non_binary: 0, undisclosed: 0, unknown: ids.length - data.length };
   for (const r of data) counts[(r.gender ?? 'undisclosed') as keyof typeof counts] += 1;
   return counts;
 }
