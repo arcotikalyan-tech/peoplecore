@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateSetup, SETUP_STEPS, type SetupFacts } from './org-setup';
+import { evaluateSetup, SETUP_STEPS, type SetupFacts } from '../src/org-setup.ts';
 
 const fresh: SetupFacts = {
   company: false, locations: false, structure: false, shifts_changed: false, leave_changed: false, holidays: false,

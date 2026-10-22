@@ -26,3 +26,17 @@ export const supabase = createClient(url ?? 'http://127.0.0.1:54321', key ?? 'no
     detectSessionInUrl: false,
   },
 });
+
+/** Checks a password with a separate client that keeps nothing, so the signed-in session is untouched. */
+export async function passwordIsRight(email: string, password: string): Promise<boolean> {
+  const memory = new Map<string, string>();
+  const check = createClient(url ?? 'http://127.0.0.1:54321', key ?? 'not-configured', {
+    auth: {
+      persistSession: false, autoRefreshToken: false, detectSessionInUrl: false,
+      storage: { getItem: async (k) => memory.get(k) ?? null, setItem: async (k, v) => { memory.set(k, v); }, removeItem: async (k) => { memory.delete(k); } },
+    },
+  });
+  const { error } = await check.auth.signInWithPassword({ email, password });
+  if (!error) await check.auth.signOut({ scope: 'local' });
+  return !error;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { passwordErrorMessage, passwordProblem } from './password';
+import { passwordErrorMessage, passwordProblem } from '../src/password.ts';
 
 describe('passwordProblem', () => {
   it('asks for length, letters and a number, within 72 bytes', () => {

@@ -17,3 +17,5 @@ export * from './schemas/attendance.ts';
 export * from './schemas/recruitment-offers.ts';
 export * from './schemas/profile.ts';
 export * from './statutory.ts';
+export * from './password.ts';
+export * from './org-setup.ts';

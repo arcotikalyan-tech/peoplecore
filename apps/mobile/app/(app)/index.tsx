@@ -1,17 +1,20 @@
 import NetInfo from '@react-native-community/netinfo';
+import { evaluateSetup, type SetupFacts, type SetupProgress } from '@peoplecore/shared/org-setup';
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Linking, RefreshControl, ScrollView, Text, View } from 'react-native';
 import type { QueuedPunch } from '@/lib/punch-queue';
 import { currentPosition, newClientId, queue, sendPunch } from '@/lib/punches';
 import { useSession } from '@/lib/session';
+import { SITE_URL } from '@/lib/site';
 import { supabase } from '@/lib/supabase';
-import { Button, Card, Message, s, Screen } from '@/ui';
+import { Button, Card, colors, Message, s, Screen } from '@/ui';
 
 const time = (iso: string, tz: string) => new Intl.DateTimeFormat('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 const todayIn = (tz: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
 
 export default function Today() {
-  const { workplace, signOut } = useSession();
+  const { workplace } = useSession();
+  const [setup, setSetup] = useState<SetupProgress | null>(null);
   const [punches, setPunches] = useState<Array<{ id: string; punched_at: string; method: string }>>([]);
   const [queued, setQueued] = useState<QueuedPunch[]>([]);
   const [busy, setBusy] = useState(false);
@@ -33,6 +36,19 @@ export default function Today() {
     else if (r.waiting) setMessage({ tone: 'muted', text: 'Saved on this phone. It will be sent when you’re back online.' });
     await load();
   }, [load]);
+
+  // Organization setup, for the owner and HR (org_setup_status is empty for everyone else).
+  useEffect(() => {
+    if (!workplace) return;
+    void (async () => {
+      const [{ data: facts }, { data: modules }] = await Promise.all([
+        supabase.rpc('org_setup_status', { p_org: workplace.orgId }),
+        supabase.from('org_modules').select('module, enabled').eq('organization_id', workplace.orgId),
+      ]);
+      const off = new Set(((modules ?? []) as Array<{ module: string; enabled: boolean }>).filter((m) => !m.enabled).map((m) => m.module));
+      setSetup(facts ? evaluateSetup(facts as SetupFacts, off) : null);
+    })();
+  }, [workplace]);
 
   useEffect(() => {
     void sync();
@@ -61,6 +77,17 @@ export default function Today() {
       <Screen>
         <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: '700' }}>{workplace?.employeeName ? `Hello, ${workplace.employeeName.split(' ')[0]}` : 'Today'}</Text>
         <Text style={s.muted}>{workplace?.orgName ?? 'No organization'}</Text>
+        {setup && setup.percent < 100 && workplace && (
+          <Card title={`Organization setup · ${setup.percent}% done`}>
+            <View accessibilityRole="progressbar" accessibilityLabel="Setup progress" accessibilityValue={{ min: 0, max: 100, now: setup.percent }}
+              style={{ height: 8, borderRadius: 4, backgroundColor: colors.line, marginBottom: 8 }}>
+              <View style={{ height: 8, borderRadius: 4, width: `${setup.percent}%`, backgroundColor: colors.primary }} />
+            </View>
+            <Text style={s.muted}>{setup.done} of {setup.total} steps done{setup.requiredLeft ? ` · ${setup.requiredLeft} required left` : ''}</Text>
+            {setup.next[0] && <Text style={{ marginTop: 6 }}>Next: <Text style={{ fontWeight: '600' }}>{setup.next[0].title}</Text></Text>}
+            <View style={{ marginTop: 10 }}><Button label="Continue on the website" variant="secondary" onPress={() => void Linking.openURL(`${SITE_URL}/app/${workplace.slug}/setup`)} /></View>
+          </Card>
+        )}
         {!workplace?.employeeId ? (
           <Card><Text style={s.muted}>Your HR team hasn’t linked an employee profile to your account yet.</Text></Card>
         ) : (
@@ -84,7 +111,6 @@ export default function Today() {
             ))}
           </Card>
         )}
-        <Button label="Sign out" variant="secondary" onPress={() => void signOut()} />
       </Screen>
     </ScrollView>
   );
