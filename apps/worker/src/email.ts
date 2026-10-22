@@ -9,6 +9,8 @@ export interface OutgoingEmail {
   link: string | null;
   org_slug: string;
   org_name: string;
+  /** The event it is about (absent from batches claimed before migration 20261022000800). */
+  event?: string | null;
 }
 
 export interface Mailer {
@@ -33,15 +35,19 @@ export function mailerFromEnv(env: NodeJS.ProcessEnv = process.env): Mailer | nu
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 const FOOTER = 'You get this email because of your role. An administrator can change these emails in Settings › Notifications.';
+const FOOTERS: Record<string, string> = {
+  helpdesk_reply: 'You get this email because you’re on this helpdesk ticket. An administrator can change these emails in Settings › Notifications.',
+};
 
 /** The message for one queued email: plain text and a light HTML version, with a link into the app when known. */
 export function compose(e: OutgoingEmail, m: Pick<Mailer, 'from' | 'appUrl'>) {
   const link = e.link && m.appUrl ? `${m.appUrl}/app/${encodeURIComponent(e.org_slug)}${e.link}` : null;
-  const text = [e.body, link ? `Open in PeopleCore: ${link}` : null, `— ${e.org_name} on PeopleCore. ${FOOTER}`].filter(Boolean).join('\n\n');
+  const footer = (e.event && FOOTERS[e.event]) || FOOTER;
+  const text = [e.body, link ? `Open in PeopleCore: ${link}` : null, `— ${e.org_name} on PeopleCore. ${footer}`].filter(Boolean).join('\n\n');
   const html = [
-    `<p style="font:15px/1.5 system-ui,sans-serif;color:#111827">${escapeHtml(e.body)}</p>`,
+    `<p style="font:15px/1.5 system-ui,sans-serif;color:#111827">${escapeHtml(e.body).replace(/\r?\n/g, '<br>')}</p>`,
     link ? `<p><a href="${escapeHtml(link)}" style="font:14px system-ui,sans-serif;color:#4f46e5">Open in PeopleCore</a></p>` : '',
-    `<p style="font:12px/1.5 system-ui,sans-serif;color:#6b7280">${escapeHtml(e.org_name)} on PeopleCore. ${escapeHtml(FOOTER)}</p>`,
+    `<p style="font:12px/1.5 system-ui,sans-serif;color:#6b7280">${escapeHtml(e.org_name)} on PeopleCore. ${escapeHtml(footer)}</p>`,
   ].join('');
   return { from: m.from, to: e.to_email, subject: e.subject, text, html };
 }

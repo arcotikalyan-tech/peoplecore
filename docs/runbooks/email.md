@@ -59,7 +59,7 @@ blocked, or the sender address not matching the mailbox are the usual causes).
 ## Notification emails from the worker (2026-10-22)
 
 Email notifications chosen in Settings › Notifications (regularization, leave and expense applications, birthdays,
-work anniversaries, by role) are queued in `email_outbox` and sent by the worker's `notifications.email` job every
+work anniversaries, by role; and helpdesk replies, to the requester or the assignee) are queued in `email_outbox` and sent by the worker's `notifications.email` job every
 15 minutes. They use the same Hostinger mailbox, configured for the worker in `/opt/peoplecore/.env` (shared with
 the web app). Type the password into that file on the server only, never into chat, a file in the repo or a commit.
 

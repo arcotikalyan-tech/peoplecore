@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
-import { EMAIL_AUDIENCES, EMAIL_EVENTS } from '@/lib/email-rules';
+import { EMAIL_AUDIENCES, EMAIL_EVENTS, PERSON_EMAIL_RULES } from '@/lib/email-rules';
 import { MODULES, NOTIFICATION_CATEGORIES } from '@/lib/modules';
 import { getOrgContext } from '@/server/context';
 import { flash } from '@/server/flash';
@@ -123,9 +123,10 @@ export async function saveEmailRulesAction(slug: string, _prev: ActionState, for
   const ctx = await getOrgContext(slug);
   if (!ctx.can('org.manage', 'org')) return DENIED;
   const on = new Set(formData.getAll('rule').map(String));
-  const rows = EMAIL_EVENTS.flatMap(([event]) => EMAIL_AUDIENCES.map(([audience]) => ({
-    organization_id: ctx.org.id, event, audience, enabled: on.has(`${event}:${audience}`),
-  })));
+  const rows: Array<{ organization_id: string; event: string; audience: string; enabled: boolean }> = [
+    ...EMAIL_EVENTS.flatMap(([event]) => EMAIL_AUDIENCES.map(([audience]) => ({ organization_id: ctx.org.id, event, audience, enabled: on.has(`${event}:${audience}`) }))),
+    ...PERSON_EMAIL_RULES.map(([event, audience]) => ({ organization_id: ctx.org.id, event, audience, enabled: on.has(`${event}:${audience}`) })),
+  ];
   const supabase = await createClient();
   const { error } = await supabase.from('notification_email_rules').upsert(rows, { onConflict: 'organization_id,event,audience' });
   if (error) return { ok: false, message: toUserMessage(error) };

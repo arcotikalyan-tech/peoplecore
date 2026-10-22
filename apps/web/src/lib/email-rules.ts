@@ -14,6 +14,11 @@ export const EMAIL_AUDIENCES = [
 ] as const;
 export type EmailAudience = (typeof EMAIL_AUDIENCES)[number][0];
 
+/** Emails to the people on a record rather than to a role: one switch each (event, audience, label, note). */
+export const PERSON_EMAIL_RULES = [
+  ['helpdesk_reply', 'ticket_parties', 'Helpdesk replies', 'Email the requester when an agent replies on their ticket, and the assignee when the requester replies (never internal notes)'],
+] as const;
+
 export const EMAIL_STATUS_LABELS: Record<string, string> = {
   queued: 'Waiting', sending: 'Sending', sent: 'Sent', failed: 'Failed', expired: 'Not sent (expired)',
 };

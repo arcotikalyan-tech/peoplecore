@@ -19,6 +19,13 @@ describe('emails', () => {
     expect(compose(email, { from: m.from, appUrl: null }).text).not.toContain('Open in PeopleCore');
   });
 
+  it('says why it was sent, and keeps line breaks in the HTML', () => {
+    const reply = compose({ ...email, event: 'helpdesk_reply', body: 'Pia Demo replied on ticket #4 “VPN”:\n\nPlease update to 5.2.' }, { from: 'a@example.test', appUrl: null });
+    expect(reply.text).toContain('because you’re on this helpdesk ticket');
+    expect(reply.html).toContain('“VPN”:<br><br>Please update to 5.2.');
+    expect(compose(email, { from: 'a@example.test', appUrl: null }).text).toContain('because of your role');
+  });
+
   it('reports each email as sent or failed', async () => {
     const outcomes: Array<[string, boolean, string | undefined]> = [];
     const transport = nodemailer.createTransport({ jsonTransport: true });

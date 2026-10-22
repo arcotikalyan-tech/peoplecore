@@ -10887,7 +10887,7 @@ export type Database = {
         Args: {
           p_limit?: number;
         };
-        Returns: { id: string; to_email: string; subject: string; body: string; link: string; org_slug: string; org_name: string }[];
+        Returns: { id: string; to_email: string; subject: string; body: string; link: string; org_slug: string; org_name: string; event: string }[];
       };
       worker_claim_jobs: {
         Args: {

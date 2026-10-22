@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { HubTabs, Panel } from '@/components/ui/hub';
 import { Badge } from '@/components/ui/surface';
 import { formatDateTime } from '@/lib/format';
-import { EMAIL_AUDIENCES, EMAIL_EVENTS, EMAIL_STATUS_LABELS } from '@/lib/email-rules';
+import { EMAIL_AUDIENCES, EMAIL_EVENTS, EMAIL_STATUS_LABELS, PERSON_EMAIL_RULES } from '@/lib/email-rules';
 import { MODULES, NOTIFICATION_CATEGORIES } from '@/lib/modules';
 import { getOrgContext, type OrgContext } from '@/server/context';
 import { disabledModules, orgControls } from '@/server/modules';
@@ -69,7 +69,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
         return (
           <div className="space-y-5">
             <Panel title="Email notifications" meta="by event and role; all off until you switch them on">
-              <EmailRulesForm action={saveEmailRulesAction.bind(null, slug)} events={EMAIL_EVENTS} audiences={EMAIL_AUDIENCES}
+              <EmailRulesForm action={saveEmailRulesAction.bind(null, slug)} events={EMAIL_EVENTS} audiences={EMAIL_AUDIENCES} personal={PERSON_EMAIL_RULES}
                 on={(rules ?? []).filter((r) => r.enabled).map((r) => `${r.event}:${r.audience}`)} />
               <p className="mt-3 text-xs text-muted">Everyone holding the role gets the email; “their manager” is the person’s own reporting manager. Nobody is emailed about their own request or celebration. The worker sends emails over SMTP; until SMTP is set up they wait, and they expire after two days.</p>
             </Panel>

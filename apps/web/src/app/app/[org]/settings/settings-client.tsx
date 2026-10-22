@@ -37,8 +37,10 @@ export function ToggleList({ action, label, name, items, submit }: {
 }
 
 /** Email notifications: events down, audiences across; each cell is one rule. */
-export function EmailRulesForm({ action, events, audiences, on }: {
-  action: Action; events: ReadonlyArray<readonly [string, string, string]>; audiences: ReadonlyArray<readonly [string, string]>; on: string[];
+export function EmailRulesForm({ action, events, audiences, personal = [], on }: {
+  action: Action; events: ReadonlyArray<readonly [string, string, string]>; audiences: ReadonlyArray<readonly [string, string]>;
+  /** Emails to the people on a record (event, audience, label, note), each with one switch. */
+  personal?: ReadonlyArray<readonly [string, string, string, string]>; on: string[];
 }) {
   const [state, formAction] = useActionState(action, initialActionState);
   return (
@@ -65,6 +67,12 @@ export function EmailRulesForm({ action, events, audiences, on }: {
           </tbody>
         </table>
       </div>
+      {personal.map(([e, a, label, note]) => (
+        <label key={`${e}:${a}`} className="flex items-start gap-3 rounded-xl border border-line p-4 text-sm">
+          <input type="checkbox" name="rule" value={`${e}:${a}`} defaultChecked={on.includes(`${e}:${a}`)} className={`${check} mt-0.5`} />
+          <span><span className="block font-medium">{label}</span><span className="block text-xs text-muted">{note}</span></span>
+        </label>
+      ))}
       <SubmitButton>Save email notifications</SubmitButton>
     </form>
   );
