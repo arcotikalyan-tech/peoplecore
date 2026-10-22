@@ -13,7 +13,14 @@ SHA=$(git rev-parse HEAD)
 if [ "${1:-}" != "--force" ]; then
   git fetch -q origin main
   [ "$(git rev-parse origin/main)" = "$SHA" ] || { echo "HEAD is not origin/main; push first." >&2; exit 1; }
-  ok=$(gh run list --workflow CI --commit "$SHA" --json conclusion -q '[.[] | select(.conclusion == "success")] | length')
+  # Asks the Actions API by workflow file and commit (`gh run list --commit` sometimes returns nothing for a run that
+  # exists), a few times before giving up.
+  ok=0
+  for _ in 1 2 3; do
+    ok=$(gh api "repos/{owner}/{repo}/actions/workflows/ci.yml/runs?head_sha=$SHA" --jq '[.workflow_runs[] | select(.conclusion == "success")] | length' 2>/dev/null || echo 0)
+    [ "$ok" -gt 0 ] && break
+    sleep 3
+  done
   [ "$ok" -gt 0 ] || { echo "CI has not passed on ${SHA:0:7} yet." >&2; exit 1; }
   pending=$(cd supabase/migrations && ls | sort | tail -1)
   echo "Latest migration in this commit: $pending (must already be applied by Deploy)."
