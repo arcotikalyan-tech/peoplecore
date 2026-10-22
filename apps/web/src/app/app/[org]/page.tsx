@@ -6,7 +6,7 @@ import { Sparkles } from 'lucide-react';
 import { addDays, todayIn } from '@peoplecore/shared';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/components/ui/cn';
-import { Alert, EmptyState } from '@/components/ui/surface';
+import { EmptyState } from '@/components/ui/surface';
 import { getMyMonth, getPunches } from '@/server/attendance';
 import { myRule } from '@/server/attendance-ops';
 import { orgControls } from '@/server/modules';
@@ -17,12 +17,16 @@ import {
 } from '@/server/dashboard';
 import { listAnnouncements } from '@/server/engagement';
 import { countEmployees, getMyEmployee } from '@/server/employees';
+import { ProfileChecklist } from '@/components/profile-checklist';
+import { createClient } from '@/server/supabase';
+import { profileProgress, type Completeness } from '@/lib/profile-checklist';
 import { getBalances } from '@/server/leave';
-import { getStructure } from '@/server/structure';
+import { orgSetup } from '@/server/setup';
 import { viewModeFor } from '@/server/view';
 import { punchAction } from './attendance/actions';
 import { PunchButton } from './attendance/attendance-forms';
 import { DismissInsight, QuickAccess, type QuickTile } from './dashboard-client';
+import { SetupCard } from './setup/checklist';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
@@ -48,7 +52,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
   const seesPayroll = admin && (ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org'));
   const seesAttendance = admin && (ctx.can('attendance.read', 'org') || ctx.can('attendance.read', 'team'));
 
-  const [work, attention, headcount, trend, pay, snapshot, presence, exits, compliance, activity, holidays, birthdays, announcements, punches, balances, myDays, rule, structure] = await Promise.all([
+  const [work, attention, headcount, trend, pay, snapshot, presence, exits, compliance, activity, holidays, birthdays, announcements, punches, balances, myDays, rule, setup] = await Promise.all([
     myWork(orgId, me?.id ?? null, today),
     needsAttention(ctx, today),
     seesPeople ? countEmployees(orgId, { status: 'active' }) : null,
@@ -66,8 +70,9 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
     me ? getBalances(me.id).catch(() => []) : [],
     !admin && me ? getMyMonth(me.id, monthStart).catch(() => []) : [],
     me ? myRule(orgId, me.id, today).catch(() => null) : null,
-    admin && ctx.can('org.manage') ? getStructure(orgId) : null,
+    admin && (ctx.can('org.manage', 'org') || ctx.can('onboarding.manage', 'org')) ? orgSetup(orgId) : null,
   ]);
+  const completeness = me ? ((await (await createClient()).rpc('my_profile_completeness', { p_org: orgId })).data as unknown as Completeness | null) : null;
 
   const localDate = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(iso));
   const time = (iso: string) => new Intl.DateTimeFormat('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
@@ -121,12 +126,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
           <p className="mt-1 text-sm text-muted">{longDate} · {ctx.org.name}{admin && headcount !== null ? ` · ${headcount.toLocaleString('en-IN')} employees` : ''}</p>
         </header>
 
-        {structure && structure.departments.length === 0 && (
-          <Alert tone="info" title="Set up your organization">
-            Add departments, designations and locations first, so new employees can be placed correctly.{' '}
-            <Link href={`${base}/structure`} className="font-medium text-primary hover:underline">Open organization setup →</Link>
-          </Alert>
-        )}
+        {setup && setup.percent < 100 && <SetupCard slug={slug} orgName={ctx.org.name} progress={setup} />}
 
         {admin && showInsight && (
           <section aria-label="Today" className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary-soft to-surface px-4 py-3.5">
@@ -268,6 +268,13 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
       </div>
 
       <aside className="space-y-4" aria-label="At a glance">
+        {completeness && !profileProgress(completeness).complete && (
+          <section aria-label="Complete your profile" className="lift-soft rounded-2xl border border-primary/25 bg-surface p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Complete your profile</p>
+            <p className="mb-3 mt-1 text-xs text-muted">HR and payroll need these to pay you and reach you in an emergency.</p>
+            <ProfileChecklist base={base} c={completeness} />
+          </section>
+        )}
         {me && (
           <section aria-label="Work hours" className="lift-soft rounded-2xl border border-primary/20 bg-gradient-to-b from-warning-soft/60 to-surface p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">⏱ Work hours</p>

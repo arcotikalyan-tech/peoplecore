@@ -98,11 +98,7 @@ export function AppShell(props: ShellProps) {
               <Bell className="size-5" />
               {unread > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-fg">{unread > 99 ? '99+' : unread}</span>}
             </Link>
-            {user.profileHref ? (
-              <Link href={user.profileHref} aria-label="My profile" className="rounded-full"><Avatar name={user.name} size="sm" /></Link>
-            ) : (
-              <Avatar name={user.name} size="sm" />
-            )}
+            <AccountMenu base={base} user={user} platformAdmin={platformAdmin} />
           </div>
         </header>
 
@@ -160,7 +156,7 @@ function Sidebar({ base, nav, rail, org, user, platformAdmin, onToggleRail }: {
         <div className={cn('flex items-center gap-1', rail ? 'flex-col' : 'justify-between px-1')}>
           <div className={cn('flex items-center gap-3 text-muted', rail && 'flex-col gap-1')}>
             <Link href="/app" className="hover:text-fg" title="Switch organization">{rail ? '⇄' : 'Switch'}</Link>
-            <Link href={`${base}/preferences`} className="hover:text-fg" title="My preferences" aria-label="My preferences">{rail ? '⚙' : 'Preferences'}</Link>
+            <Link href={`${base}/preferences`} className="hover:text-fg" title="Account settings" aria-label="Account settings">{rail ? '⚙' : 'Settings'}</Link>
             {platformAdmin && <Link href="/platform" className="hover:text-fg" title="Platform console" aria-label="Platform console">{rail ? <ShieldCheck className="size-4" /> : 'Platform'}</Link>}
             <form action="/auth/signout" method="post">
               <button className="hover:text-fg" aria-label="Sign out" title={rail ? 'Sign out' : undefined}>{rail ? <LogOut className="size-4" /> : 'Sign out'}</button>
@@ -198,8 +194,50 @@ function SideLink({ item, rail }: { item: NavItem; rail: boolean }) {
         <span className={cn('rounded-full bg-primary text-[10px] font-semibold tabular-nums text-primary-fg', rail ? 'absolute right-1.5 top-1 px-1' : 'ml-auto px-1.5')} aria-label={`${item.count} unread`}>
           {item.count}
         </span>
+      ) : item.badge ? (
+        <span className={cn('rounded-full bg-warning-soft text-[10px] font-semibold tabular-nums text-warning', rail ? 'absolute right-0.5 top-1 px-1' : 'ml-auto px-1.5')} aria-label={item.badge.label}>
+          {item.badge.text}
+        </span>
       ) : null}
     </Link>
+  );
+}
+
+/** The avatar's menu: who is signed in, their profile and account settings, switching organization, signing out. */
+function AccountMenu({ base, user, platformAdmin }: { base: string; user: ShellProps['user']; platformAdmin: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const escape = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', outside);
+    document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', escape); };
+  }, [open]);
+  const item = 'block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-subtle';
+  const close = () => setOpen(false);
+  return (
+    <div ref={ref} className="relative">
+      <button aria-label="Account menu" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+        <Avatar name={user.name} size="sm" />
+      </button>
+      {open && (
+        <div role="menu" aria-label="Account" className="absolute right-0 top-11 z-50 w-64 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+          <div className="px-3 py-2">
+            <p className="truncate text-sm font-medium">{user.name}</p>
+            <p className="truncate text-xs text-muted" title={user.email ?? undefined}>{user.email}</p>
+          </div>
+          <div className="my-1 border-t border-line" />
+          {user.profileHref && <Link role="menuitem" href={user.profileHref} onClick={close} className={item}>My profile</Link>}
+          <Link role="menuitem" href={`${base}/preferences`} onClick={close} className={item}>Account settings</Link>
+          <Link role="menuitem" href="/app" onClick={close} className={item}>Switch organization</Link>
+          {platformAdmin && <Link role="menuitem" href="/platform" onClick={close} className={item}>Platform console</Link>}
+          <div className="my-1 border-t border-line" />
+          <form action="/auth/signout" method="post"><button role="menuitem" className={cn(item, 'text-danger')}>Sign out</button></form>
+        </div>
+      )}
+    </div>
   );
 }
 

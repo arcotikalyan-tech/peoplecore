@@ -8,7 +8,8 @@ import { EMAIL_AUDIENCES, EMAIL_EVENTS, EMAIL_STATUS_LABELS, PERSON_EMAIL_RULES 
 import { MODULES, NOTIFICATION_CATEGORIES } from '@/lib/modules';
 import { getOrgContext, type OrgContext } from '@/server/context';
 import { disabledModules, orgControls } from '@/server/modules';
-import { setupChecks } from '@/server/setup';
+import { orgSetup } from '@/server/setup';
+import { SetupChecklist } from '../setup/checklist';
 import { createClient } from '@/server/supabase';
 import {
   cancelClosureAction, createRoleAction, deleteRoleAction, grantSupportAction, requestClosureAction, revokeSupportAction, saveControlsAction, saveModulesAction,
@@ -26,7 +27,7 @@ type Search = Record<string, string | undefined>;
 
 /**
  * Settings (Kredily's Settings and the CEO's settings): a hub of every setting, roles and permissions, the module
- * selector, controls, notifications, the setup wizard (readiness checklist), support access and bank integration.
+ * selector, controls, notifications, organization setup (the checklist with progress), support access and bank integration.
  */
 export default async function SettingsPage({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<Search> }) {
   const { org: slug } = await params;
@@ -36,7 +37,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   const base = `/app/${slug}/settings`;
   const owner = ctx.can('role.manage', 'org');
   const tabs = [
-    { key: 'hub', label: '✦ Hub' }, { key: 'setup', label: 'Setup wizard' }, { key: 'roles', label: 'Roles & permissions' }, { key: 'modules', label: 'Module selector' },
+    { key: 'hub', label: '✦ Hub' }, { key: 'setup', label: 'Organization setup' }, { key: 'roles', label: 'Roles & permissions' }, { key: 'modules', label: 'Module selector' },
     { key: 'controls', label: 'Controls' }, { key: 'notifications', label: 'Notifications' }, ...(owner ? [{ key: 'support', label: 'Support access' }] : []),
   ];
   const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : 'hub';
@@ -125,40 +126,15 @@ function Hub({ slug, base, owner }: { slug: string; base: string; owner: boolean
 }
 
 async function Setup({ ctx, slug }: { ctx: OrgContext; slug: string }) {
-  const steps = await setupChecks(ctx.org.id, slug);
-  const done = steps.filter((s) => s.done).length;
-  const groups = [...new Set(steps.map((s) => s.group))];
-  return (
-    <div className="space-y-5">
-      <Panel title="Readiness" meta={`${done} of ${steps.length} ready`}>
-        <div className="h-2 rounded-full bg-subtle" role="progressbar" aria-valuenow={Math.round((done / steps.length) * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="Setup progress">
-          <div className="h-2 rounded-full bg-primary" style={{ width: `${(done / steps.length) * 100}%` }} />
-        </div>
-        <p className="mt-2 text-sm text-muted">Import many employees at once from a CSV on the People page.</p>
-      </Panel>
-      <div className="grid gap-5 lg:grid-cols-2">
-        {groups.map((g) => (
-          <Panel key={g} title={g} flush>
-            <ul className="divide-y divide-line" aria-label={`${g} setup`}>
-              {steps.filter((s) => s.group === g).map((s) => (
-                <li key={s.title} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
-                  <span className="flex items-center gap-3"><span aria-hidden className={`grid size-6 place-items-center rounded-full text-xs ${s.done ? 'bg-success-soft text-success' : 'bg-subtle text-muted'}`}>{s.done ? '✓' : '·'}</span>
-                    <span><span className="block font-medium">{s.title}</span><span className="block text-xs text-muted">{s.note}</span></span></span>
-                  <Link className="text-primary hover:underline" href={s.href}>{s.done ? 'Review' : 'Set up'} →</Link>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-        ))}
-      </div>
-    </div>
-  );
+  const progress = await orgSetup(ctx.org.id);
+  if (!progress) return <p className="text-sm text-muted">Organization setup is for the owner and HR.</p>;
+  return <SetupChecklist slug={slug} orgName={ctx.org.name} progress={progress} />;
 }
 
 async function Roles({ ctx, slug, owner }: { ctx: OrgContext; slug: string; owner: boolean }) {
   const supabase = await createClient();
   const [roles, grants, perms, assigned, members] = await Promise.all([
-    supabase.from('roles').select('id, key, name, description, is_system, requires_mfa').eq('organization_id', ctx.org.id).order('is_system', { ascending: false }).order('name').then((r) => r.data ?? []),
+    supabase.from('roles').select('id, key, name, description, is_system').eq('organization_id', ctx.org.id).order('is_system', { ascending: false }).order('name').then((r) => r.data ?? []),
     supabase.from('role_permissions').select('role_id, permission_key, scope').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
     supabase.from('permissions').select('key, module, description, is_sensitive').order('module').order('key').then((r) => r.data ?? []),
     supabase.from('member_roles').select('role_id').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
@@ -175,7 +151,7 @@ async function Roles({ ctx, slug, owner }: { ctx: OrgContext; slug: string; owne
         <ul className="divide-y divide-line" aria-label="Roles">
           {roles.map((r) => (
             <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
-              <span><span className="font-medium">{r.name}</span> {r.is_system ? <Badge>Built-in</Badge> : <Badge tone="primary">Custom</Badge>} {r.requires_mfa && <Badge tone="warning">Two-step sign-in</Badge>}
+              <span><span className="font-medium">{r.name}</span> {r.is_system ? <Badge>Built-in</Badge> : <Badge tone="primary">Custom</Badge>}
                 {' '}{payroll(r.id) ? <Badge tone="success">Payroll access</Badge> : <Badge>No payroll</Badge>}
                 <span className="block text-xs text-muted">{r.description ?? ''} · {count(r.id)} member{count(r.id) === 1 ? '' : 's'} · {grants.filter((g) => g.role_id === r.id).length} permissions</span>
                 {holders(r.id).length > 0 && <span className="block text-xs">{holders(r.id).slice(0, 4).join(', ')}{holders(r.id).length > 4 ? ` and ${holders(r.id).length - 4} more` : ''}</span>}</span>
@@ -306,15 +282,20 @@ async function ControlsTab({ slug, ctx, owner }: { slug: string; ctx: OrgContext
         </Panel>
       )}
       {owner && (
-        <Panel title="Two-step sign-in">
+        <Panel title="Two-step sign-in" meta={c.require_mfa ? 'On for everyone' : 'Off'}>
           <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
             <p className="max-w-xl">
               {c.require_mfa
-                ? 'Required for owners, HR, payroll and auditors: they enter a code from an authenticator app before they see sensitive records.'
-                : 'Optional: owners, HR, payroll and auditors sign in with their password alone. Anyone can still turn it on for themselves under My preferences.'}
-              <span className="mt-1 block text-xs text-muted">Recommended on. These roles can see every salary, bank account and ID number.</span>
+                ? 'Everyone in the organization enters a code from an authenticator app after their password, whatever their role. Anyone who hasn’t set it up yet is asked to at their next sign-in.'
+                : 'Everyone signs in with their email and password. Turn this on to also ask everyone, whatever their role, for a code from an authenticator app; each person sets it up at their next sign-in. Anyone can still turn it on for themselves in Account settings.'}
+              <span className="mt-1 block text-xs text-muted">Recommended once your team is settled in: HR and payroll can see every salary, bank account and ID number.</span>
             </p>
-            <ButtonAction action={setRequireMfaAction.bind(null, slug, !c.require_mfa)} aria="Two-step sign-in requirement" label={c.require_mfa ? 'Make optional' : 'Require it'} variant={c.require_mfa ? 'danger' : 'secondary'} />
+            {c.require_mfa || ctx.user.aal === 'aal2' ? (
+              <ButtonAction action={setRequireMfaAction.bind(null, slug, !c.require_mfa)} aria="Two-step sign-in for everyone" label={c.require_mfa ? 'Turn off' : 'Turn on for everyone'} variant={c.require_mfa ? 'danger' : 'secondary'} />
+            ) : (
+              <p className="max-w-xs text-xs text-muted">To turn it on for everyone, first{' '}
+                <Link className="text-primary hover:underline" href={`/mfa?next=${encodeURIComponent(`/app/${slug}/settings?tab=controls`)}`}>set it up for yourself</Link>.</p>
+            )}
           </div>
         </Panel>
       )}

@@ -13,6 +13,8 @@ interface Props {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   cancelHref: string;
   options: { departments: Option[]; designations: Option[]; locations: Option[]; legalEntities: Option[]; managers: Option[] };
+  /** The creator may also invite people to sign in (member.manage). */
+  canInvite?: boolean;
 }
 
 const employmentTypes = EMPLOYMENT_TYPES.map((t) => ({ value: t, label: EMPLOYMENT_TYPE_LABELS[t] }));
@@ -30,7 +32,7 @@ function Section({ title, description, children }: { title: string; description:
   );
 }
 
-export function EmployeeForm({ action, cancelHref, options }: Props) {
+export function EmployeeForm({ action, cancelHref, options, canInvite }: Props) {
   const [state, formAction] = useActionState(action, initialActionState);
   const v = state.values ?? {};
   const e = state.fieldErrors ?? {};
@@ -48,6 +50,13 @@ export function EmployeeForm({ action, cancelHref, options }: Props) {
         <Section title="Work contact" description="Used for sign-in invitations and notifications.">
           <TextField name="workEmail" label="Work email" type="email" autoComplete="off" defaultValue={v.workEmail} error={e.workEmail} />
           <TextField name="workPhone" label="Work phone" type="tel" autoComplete="off" defaultValue={v.workPhone} error={e.workPhone} placeholder="+91 98765 43210" />
+          {canInvite && (
+            <label className="flex items-start gap-2 text-sm sm:col-span-2">
+              <input type="checkbox" name="invite" defaultChecked={v.invite !== undefined ? v.invite === 'on' : true} className="mt-0.5 size-4 rounded border-line-strong accent-primary" />
+              <span><span className="font-medium">Invite them to sign in</span>
+                <span className="block text-xs text-muted">Emails the work email an invitation to set a password. If they already have a PeopleCore sign-in with that email, it’s linked instead.</span></span>
+            </label>
+          )}
         </Section>
         <Section title="Employment" description="Future joining dates create the employee in pre-joining status.">
           <SelectField name="employmentType" label="Employment type" required options={employmentTypes} placeholder="Select…" defaultValue={v.employmentType ?? 'permanent'} error={e.employmentType} />

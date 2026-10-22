@@ -1,6 +1,6 @@
 /**
- * The guided implementation plan (Kredily's six-week onboarding). `auto` steps are done when the matching
- * readiness check (server/setup.ts) passes; the rest are marked done by hand.
+ * The guided implementation plan (Kredily's six-week onboarding). `auto` steps are done when the data shows the
+ * matching organization setup step (lib/org-setup.ts); the rest are marked done by hand.
  */
 export const PLAN: Array<{ week: number; title: string; steps: Array<{ key: string; title: string; note: string; auto?: string; href?: string }> }> = [
   { week: 1, title: 'Company and structure', steps: [
@@ -29,7 +29,7 @@ export const PLAN: Array<{ week: number; title: string; steps: Array<{ key: stri
     { key: 'review_payslips', title: 'Review payslips with finance', note: 'Spot-check a few employees end to end', href: 'payroll' },
   ] },
   { week: 6, title: 'Go live', steps: [
-    { key: 'invite', title: 'Invite everyone to sign in', note: 'Activation sends each employee an invitation', auto: 'members', href: 'onboarding?tab=activation' },
+    { key: 'invite', title: 'Invite everyone to sign in', note: 'Activation sends each employee an invitation', auto: 'invite', href: 'onboarding?tab=activation' },
     { key: 'announce', title: 'Announce the launch', note: 'An announcement with how to apply for leave and see payslips', href: 'engagement' },
     { key: 'go_live', title: 'First live payroll', note: 'Lock the run and pay salaries', href: 'payroll?tab=run' },
   ] },

@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { adminClient, domain, open, signIn, test } from './helpers';
 import { linkFromLatestEmail, mailpitUrl } from './mailbox';
 
@@ -67,6 +67,7 @@ test('HR invites a new person, who accepts from the email and lands in the organ
 
   const guest = await (await browser.newContext()).newPage();
   await guest.goto(link);
+  await choosePassword(guest);
   await guest.waitForURL(/\/app\/demo(\/|$|\?)/); // invitation accepted on first sign-in
 
   const user = (await admin.auth.admin.listUsers({ perPage: 1000 })).data.users.find((u) => u.email === invitee)!;
@@ -93,6 +94,17 @@ test("an invitation from Supabase's default template (session in the URL fragmen
   expect(error).toBeNull();
   const guest = await (await browser.newContext()).newPage();
   await guest.goto(data.properties!.action_link);
+  await choosePassword(guest);
   await guest.waitForURL(/\/app\/demo(\/|$|\?)/);
   expect(guest.url()).not.toContain('access_token');
 });
+
+/** After accepting an invitation: choosing a password comes before anything else. */
+async function choosePassword(page: Page) {
+  await page.waitForURL(/\/set-password\?next=/);
+  await expect(page.getByRole('heading', { name: 'Welcome to PeopleCore' })).toBeVisible();
+  const password = `Invited-${run}-pass`;
+  await page.getByLabel('New password', { exact: true }).fill(password);
+  await page.getByLabel('Confirm new password').fill(password);
+  await page.getByRole('button', { name: 'Set password and continue' }).click();
+}

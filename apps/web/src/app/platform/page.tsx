@@ -5,7 +5,7 @@ import { Brand } from '@/components/brand';
 import { Badge, Card, CardHeader, EmptyState, PageHeader } from '@/components/ui/surface';
 import { Table, Td, Th } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
-import { isPlatformAdmin, requireMfaIfNeeded, requireUser } from '@/server/context';
+import { isPlatformAdmin, requireMfaIfNeeded, requirePasswordSet, requireUser } from '@/server/context';
 import { createClient } from '@/server/supabase';
 import { CreateOrgForm } from './create-org-form';
 import { OrgStatusControl } from './org-status-control';
@@ -19,6 +19,7 @@ export default async function PlatformPage({ searchParams }: { searchParams: Pro
   const { support } = await searchParams;
   const user = await requireUser();
   if (!(await isPlatformAdmin())) notFound();
+  await requirePasswordSet('/platform');
   await requireMfaIfNeeded(user, '/platform');
 
   // Platform admins can list tenants (organizations RLS) but cannot read tenant data without membership.
@@ -36,7 +37,7 @@ export default async function PlatformPage({ searchParams }: { searchParams: Pro
     .select('id, company, contact_name, work_email, phone, headcount, message, status, created_at')
     .order('created_at', { ascending: false }).limit(100);
   const { data: platformSettings } = await supabase.from('platform_settings').select('require_mfa_for_admins').maybeSingle();
-  const requireMfa = platformSettings?.require_mfa_for_admins ?? true;
+  const requireMfa = platformSettings?.require_mfa_for_admins ?? false;
   const summary = support && (windows ?? []).some((w) => w.organization_id === support)
     ? ((await supabase.rpc('support_overview', { p_org: support })).data as Record<string, unknown> | null) : null;
 
@@ -141,12 +142,16 @@ export default async function PlatformPage({ searchParams }: { searchParams: Pro
           </Card>
           <Card className="lg:col-span-2">
             <CardHeader title="Two-step sign-in for platform administrators" description={requireMfa
-              ? 'Required: platform administrators enter an authenticator code before any platform power works.'
-              : 'Optional: platform administrators sign in with a password alone. Anyone can still turn it on for themselves.'} />
+              ? 'On: platform administrators enter an authenticator code before any platform power works.'
+              : 'Off: platform administrators sign in with their password. Anyone can still turn it on for themselves.'} />
             <form action={setPlatformRequireMfaAction} className="flex flex-wrap items-center justify-between gap-3 px-5 pb-5 text-sm">
               <input type="hidden" name="on" value={String(!requireMfa)} />
-              <span className="text-xs text-muted">Recommended on: this account can create and suspend every organization.</span>
-              <button className={requireMfa ? 'rounded-md bg-danger px-3 py-1.5 text-white' : 'rounded-md border border-line px-3 py-1.5'}>{requireMfa ? 'Make optional' : 'Require it'}</button>
+              <span className="text-xs text-muted">{requireMfa || user.aal === 'aal2'
+                ? 'Recommended on: this account can create and suspend every organization.'
+                : <>To turn it on, first <a className="text-primary hover:underline" href="/mfa?next=%2Fplatform">set it up for yourself</a>.</>}</span>
+              {(requireMfa || user.aal === 'aal2') && (
+                <button className={requireMfa ? 'rounded-md bg-danger px-3 py-1.5 text-white' : 'rounded-md border border-line px-3 py-1.5'}>{requireMfa ? 'Turn off' : 'Turn on'}</button>
+              )}
             </form>
           </Card>
           <Card className="self-start">

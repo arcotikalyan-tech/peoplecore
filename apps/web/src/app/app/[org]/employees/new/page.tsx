@@ -26,6 +26,7 @@ export default async function NewEmployeePage({ params }: { params: Promise<{ or
         action={createEmployeeAction.bind(null, slug)}
         cancelHref={base}
         options={{ ...structureOptions(structure), managers }}
+        canInvite={ctx.can('member.manage', 'org')}
       />
     </>
   );

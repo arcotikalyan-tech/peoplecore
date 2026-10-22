@@ -4,8 +4,9 @@ import { adminClient, open, signIn, test } from './helpers';
 /**
  * POSH on the demo tenant: HR constitutes the Internal Committee (Meera presides; Farah and Rohan from the staff; an
  * external member) and records a workshop; Dev sees the committee and files a POSH complaint; Farah, on the committee
- * and signed in with two-step, records the first statutory step; Rohan, without two-step, is asked to use it; HR sees
- * the year's figures. Everything made here is removed afterwards.
+ * and signed in with two-step, records the first statutory step; Rohan, also on the committee, sees the case with his
+ * password alone (two-step is off in the demo company); HR sees the year's figures. Everything made here is removed
+ * afterwards.
  */
 test.describe.configure({ mode: 'serial' });
 
@@ -86,8 +87,8 @@ test('HR constitutes the committee; Dev complains; a committee member records th
   const rohan = await (await browser.newContext()).newPage();
   await signIn(rohan, 'demo.manager');
   await open(rohan, '/app/demo/grievances');
-  await expect(rohan.getByText('POSH cases open in a two-step session')).toBeVisible();
-  await expect(rohan.getByRole('link', { name: `Remarks ${run}` })).toHaveCount(0);
+  await expect(rohan.getByText('POSH cases open in a two-step session')).toHaveCount(0);
+  await expect(rohan.getByRole('table', { name: 'Cases' }).getByRole('link', { name: `Remarks ${run}` })).toBeVisible();
 
   await open(page, '/app/demo/grievances/posh');
   const received = page.locator('div').filter({ has: page.getByText('Complaints received', { exact: true }) }).locator('dd').first();

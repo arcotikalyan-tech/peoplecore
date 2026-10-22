@@ -37,3 +37,11 @@ export async function unlinkedEmployees(orgId: string) {
   if (error) throw new Error(`Failed to load employees (${error.code})`);
   return data.map((e) => ({ value: e.id, label: `${legalName(e)} (${e.employee_code})` }));
 }
+
+/** Each member's sign-in: whether they have set a password, and when they were invited and last signed in (member managers only). */
+export async function memberSignInStatus(orgId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('member_sign_in_status', { p_org: orgId });
+  if (error) throw new Error(`Failed to load sign-in status (${error.code})`);
+  return new Map(data.map((r) => [r.member_id, r]));
+}

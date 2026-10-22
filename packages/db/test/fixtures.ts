@@ -56,6 +56,8 @@ export async function buildFixture(t: TestDatabase): Promise<Fixture> {
       .rows[0]!.id;
   const orgA = await org('Demo Org A', 'demo-a');
   const orgB = await org('Demo Org B', 'demo-b');
+  // Org A has switched two-step sign-in on (Settings › Controls); org B keeps the default, off.
+  await t.db.query('update org_controls set require_mfa = true where organization_id = $1', [orgA]);
 
   const names = ['ownerA', 'hrA', 'payrollA', 'recruiterA', 'auditorA', 'managerA', 'leadA', 'icA', 'peerA', 'ownerB', 'employeeB', 'outsider'] as const;
   const users = {} as Fixture['users'];

@@ -74,6 +74,7 @@ test('HR adds an employee', async ({ page }) => {
   await page.getByLabel('Date of joining').fill('2026-10-01');
   await page.getByLabel('Department', { exact: true }).selectOption({ label: `${dept.name} (${dept.code})` });
   await page.getByLabel('Reporting manager').selectOption(managerId);
+  await page.getByLabel('Invite them to sign in').uncheck(); // invitations: account.spec.ts
   await page.getByRole('button', { name: 'Create employee' }).click();
 
   await page.waitForURL(/\/app\/demo\/employees\/[0-9a-f-]{36}\?created=1$/);
@@ -194,7 +195,7 @@ test('suspending an organization locks its members out until it is reactivated',
   await demoRow.getByRole('button', { name: 'Confirm suspension' }).click();
   await expect(demoRow.getByText('suspended', { exact: true })).toBeVisible();
 
-  // demo.hr has its own authenticator, so the code is asked at sign-in even while no privileged role applies.
+  // demo.hr turned two-step on for themselves, so the code is asked at sign-in even while nothing applies.
   const hr = await (await browser.newContext()).newPage();
   await hr.goto('/login');
   await hr.getByLabel('Work email').fill(`demo.hr@${domain}`);
@@ -207,8 +208,7 @@ test('suspending an organization locks its members out until it is reactivated',
   await expect(hr.getByText('Access to PeopleCore Demo (synthetic data) is suspended')).toBeVisible();
   await expect(hr.getByText('Suspended', { exact: true })).toBeVisible();
 
-  // A second HR admin with no authenticator signs in password-only while suspended: nothing privileged
-  // applies yet, so no second step is asked.
+  // A second HR admin with no authenticator signs in password-only while suspended (two-step is off in the demo company).
   const fresh = await newHrAdmin();
   try {
     const other = await (await browser.newContext()).newPage();
@@ -222,10 +222,10 @@ test('suspending an organization locks its members out until it is reactivated',
     await demoRow.getByRole('button', { name: 'Confirm reactivation' }).click();
     await expect(demoRow.getByText('active', { exact: true })).toBeVisible();
 
-    // The HR-admin role applies again, so the password-only session must set up two-step before any HR data.
-    await other.goto('/app/demo/employees');
-    await expect(other).toHaveURL(/\/mfa\?next=%2Fapp%2Fdemo$/);
-    await expect(other.getByRole('heading', { name: 'Set up two-step verification' })).toBeVisible();
+    // The HR-admin role applies again as soon as the organization is reactivated.
+    await open(other, '/app/demo/employees');
+    await expect(other).toHaveURL(/\/app\/demo\/employees$/);
+    await expect(other.getByRole('heading', { level: 1, name: 'People' })).toBeVisible();
   } finally {
     await adminClient().auth.admin.deleteUser(fresh.userId);
   }

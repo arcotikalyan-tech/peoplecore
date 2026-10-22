@@ -31,7 +31,7 @@ export async function requireUser(): Promise<SessionUser> {
   return user;
 }
 
-/** Whether the user's roles need two-factor sign-in (owner, HR, payroll, auditor, platform admin). */
+/** Whether somewhere the user belongs requires two-step sign-in (an organization's switch in Settings › Controls, or the platform's for admins). */
 export const needsMfa = cache(async (): Promise<boolean> => {
   const known = requestShell().needsMfa;
   if (known !== undefined) return known;
@@ -42,16 +42,17 @@ export const needsMfa = cache(async (): Promise<boolean> => {
 });
 
 /**
- * Sends users whose roles need two-factor to /mfa until they complete it for this session. UX only:
- * the database already withholds those roles' permissions from password-only (aal1) sessions.
+ * Sends people to /mfa until they complete it for this session when their organization (or the platform, for admins)
+ * requires two-step, or they turned it on for themselves. UX only: the database already withholds permissions from
+ * password-only (aal1) sessions where two-step is required.
  */
 export async function requireMfaIfNeeded(user: SessionUser, nextPath: string) {
   if (user.aal !== 'aal2' && ((await needsMfa()) || (await hasOwnAuthenticator()))) redirect(`/mfa?next=${encodeURIComponent(nextPath)}`);
 }
 
 /**
- * The person turned two-step on for themselves (a verified authenticator), even where their roles don't require it:
- * then we always ask for the code. Read from the session (no network call).
+ * The person turned two-step on for themselves (a verified authenticator), even where nothing requires it: then we
+ * always ask for the code. Read from the session (no network call).
  */
 export const hasOwnAuthenticator = cache(async (): Promise<boolean> => {
   const supabase = await createClient();
@@ -74,6 +75,8 @@ interface ShellBundle {
   grants: Grant[];
   platform_admin: boolean;
   needs_mfa: boolean;
+  /** No password yet (invited, or email links only): they choose one before anything else. */
+  needs_password?: boolean;
   disabled_modules: string[];
 }
 
@@ -95,7 +98,9 @@ export const getOrgContext = cache(async (slug: string): Promise<OrgContext> => 
   const shell = requestShell();
   shell.platformAdmin = bundle.platform_admin;
   shell.needsMfa = bundle.needs_mfa;
-  // At aal1 the database withholds privileged roles' grants; send those users to /mfa before anything renders.
+  // A password first (they need it to sign in again), then two-step where it is switched on.
+  if (bundle.needs_password) redirect(`/set-password?next=${encodeURIComponent(`/app/${slug}`)}`);
+  // Where the organization requires two-step the database withholds grants at aal1; send them to /mfa before anything renders.
   await requireMfaIfNeeded(user, `/app/${slug}`);
   const org = bundle.org;
   if (!org) {
@@ -113,6 +118,13 @@ export const getOrgContext = cache(async (slug: string): Promise<OrgContext> => 
   return { user, org, grants, can: (key, scope) => hasGrant(grants, key, scope) };
 });
 
+/** Sends people without a password (invited, or email links only) to choose one before anything else. */
+export async function requirePasswordSet(nextPath: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('my_needs_password');
+  if (data) redirect(`/set-password?next=${encodeURIComponent(nextPath)}`);
+}
+
 export async function requirePermission(slug: string, key: PermissionKey, scope?: PermissionScope): Promise<OrgContext> {
   const ctx = await getOrgContext(slug);
   if (!ctx.can(key, scope)) notFound();
@@ -127,13 +139,14 @@ export async function isVerifiedPlatformAdmin(): Promise<boolean> {
   const user = await getSessionUser();
   if (!user || !(await isPlatformAdmin())) return false;
   if (user.aal === 'aal2') return true;
-  // Two-step is a platform setting (on by default); the database applies the same rule (app.platform_mfa_ok).
+  // Two-step is a platform setting (off unless switched on); the database applies the same rule (app.platform_mfa_ok).
   const supabase = await createClient();
-  const { data } = await supabase.from('platform_settings').select('require_mfa_for_admins').maybeSingle();
-  return data?.require_mfa_for_admins === false;
+  const { data, error } = await supabase.from('platform_settings').select('require_mfa_for_admins').maybeSingle();
+  if (error) return false;
+  return !data?.require_mfa_for_admins;
 }
 
-/** Listed as a platform admin (UI/navigation only; powers additionally need two-factor). */
+/** Listed as a platform admin (UI/navigation only; powers also need two-step when the platform switch is on). */
 export const isPlatformAdmin = cache(async (): Promise<boolean> => {
   const user = await getSessionUser();
   if (!user) return false;

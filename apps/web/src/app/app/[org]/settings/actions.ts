@@ -98,14 +98,14 @@ export async function cancelClosureAction(slug: string, _prev: ActionState): Pro
   return done(slug, 'Closing the company is cancelled.');
 }
 
-/** Owners only: whether owner, HR, payroll and auditor roles need two-step sign-in in this organization. */
+/** Owners only: whether everyone in this organization needs two-step sign-in (turning it on needs a two-step session). */
 export async function setRequireMfaAction(slug: string, on: boolean): Promise<ActionState> {
   const ctx = await getOrgContext(slug);
   if (!ctx.can('role.manage', 'org')) return DENIED;
   const supabase = await createClient();
   const { error } = await supabase.rpc('set_org_require_mfa', { p_org: ctx.org.id, p_on: on });
   if (error) return { ok: false, message: toUserMessage(error) };
-  return done(slug, on ? 'Two-step sign-in is required again.' : 'Two-step sign-in is now optional.');
+  return done(slug, on ? 'Two-step sign-in is on for everyone. Each person sets it up at their next sign-in.' : 'Two-step sign-in is off. People who set it up for themselves keep it.');
 }
 
 export async function saveNotificationsAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

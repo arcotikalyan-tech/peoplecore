@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { Brand } from '@/components/brand';
 import { ButtonLink } from '@/components/ui/button';
 import { Alert, Badge, Card, EmptyState } from '@/components/ui/surface';
-import { isPlatformAdmin, requireUser } from '@/server/context';
+import { isPlatformAdmin, requirePasswordSet, requireUser } from '@/server/context';
 import { createClient } from '@/server/supabase';
 
 export const metadata: Metadata = { title: 'Choose organization' };
@@ -16,6 +16,7 @@ export default async function OrganizationPicker({ searchParams }: { searchParam
   // First visit after an invitation: activate pending memberships (idempotent, audited).
   const { error: acceptError } = await supabase.rpc('accept_invitations');
   if (acceptError) throw new Error('Failed to accept invitations');
+  await requirePasswordSet('/app');
 
   // The caller's own memberships, including suspended organizations. (Platform admins can *see* every
   // organization row, but only open those they belong to.)

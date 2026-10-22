@@ -13,6 +13,7 @@ import { readFlash } from '@/server/flash';
 import { aiAvailable } from '@/server/ai';
 import { unreadNotificationCount } from '@/server/inbox';
 import { disabledModules } from '@/server/modules';
+import { orgSetup } from '@/server/setup';
 import { hasAdminView, viewModeFor } from '@/server/view';
 import { searchPeopleAction } from './search-actions';
 
@@ -27,9 +28,15 @@ export default async function OrgLayout({ children, params }: { children: ReactN
   const when = (ok: boolean, item: NavItem) => (ok ? [item] : []);
   const reports = REPORTS.some((r) => canRun(ctx, r.access));
 
+  // Organization setup for the people who run it: next to the dashboard until it's done, then under Admin.
+  const setup = view === 'admin' && (ctx.can('org.manage', 'org') || ctx.can('onboarding.manage', 'org')) ? await orgSetup(ctx.org.id) : null;
+  const setupItem: NavItem | null = setup
+    ? { href: `${base}/setup`, label: 'Organization setup', icon: 'list-checks', ...(setup.percent < 100 ? { badge: { text: `${setup.percent}%`, label: `${setup.percent}% done` } } : {}) }
+    : null;
   const home: NavGroup = { label: null, items: [
     { href: base, label: 'Dashboard', icon: 'home', exact: true },
     { href: `${base}/inbox`, label: 'Inbox', icon: 'inbox', count: unread },
+    ...(setupItem && setup!.percent < 100 ? [setupItem] : []),
   ] };
 
   const off = await disabledModules(ctx.org.id);
@@ -81,6 +88,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       ...when(ctx.can('statutory.manage', 'org'), { href: `${base}/statutory`, label: 'Compliance', icon: 'scale' }),
       ...when(ctx.can('member.manage', 'org'), { href: `${base}/members`, label: 'Members', icon: 'user-cog' }),
       ...when(ctx.can('org.manage', 'org') || ctx.can('role.manage', 'org'), { href: `${base}/settings`, label: 'Settings', icon: 'settings' }),
+      ...(setupItem && setup!.percent === 100 ? [setupItem] : []),
       ...when(ctx.can('workflow.manage', 'org'), { href: `${base}/workflows`, label: 'Workflows', icon: 'workflow' }),
       ...when(ctx.can('ai.manage', 'org'), { href: `${base}/ai`, label: 'AI assistants', icon: 'bot' }),
       ...when(ctx.can('audit.read'), { href: `${base}/audit`, label: 'Audit log', icon: 'scroll' }),

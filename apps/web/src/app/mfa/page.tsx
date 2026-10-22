@@ -41,7 +41,7 @@ export default async function MfaPage({ searchParams }: { searchParams: Promise<
               : factor
                 ? 'Enter the 6-digit code from your authenticator app.'
                 : required
-                  ? 'Your role in PeopleCore can see sensitive records, so it needs a second sign-in step. Setup takes a minute.'
+                  ? 'Your organization asks everyone to use two-step sign-in. Setup takes a minute with an authenticator app such as Google Authenticator or Microsoft Authenticator.'
                   : 'Add a code from an authenticator app to your sign-in, so a leaked password alone can’t open your account.'}
           </p>
         </div>

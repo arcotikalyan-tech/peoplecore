@@ -72,7 +72,7 @@ export async function setAccessRequestStatusAction(formData: FormData): Promise<
   revalidatePath('/platform');
 }
 
-/** Platform admins: whether platform administrators need two-step sign-in (default on). */
+/** Platform admins: whether platform administrators need two-step sign-in (off unless switched on; on needs a two-step session). */
 export async function setPlatformRequireMfaAction(formData: FormData): Promise<void> {
   if (!(await isPlatformAdmin())) return;
   const supabase = await createClient();

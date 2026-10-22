@@ -3,9 +3,12 @@ import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
 import { Table, Td, Th } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
 import { requirePermission } from '@/server/context';
-import { listMembers, roleCatalog, unlinkedEmployees } from '@/server/members';
-import { inviteMemberAction, removeMemberAction, setMemberRolesAction, setMemberStatusAction } from './actions';
+import { listMembers, memberSignInStatus, roleCatalog, unlinkedEmployees } from '@/server/members';
+import {
+  inviteMemberAction, linkEmployeeAction, removeMemberAction, sendPasswordLinkAction, setMemberRolesAction, setMemberStatusAction, unlinkEmployeeAction,
+} from './actions';
 import { InviteForm } from './invite-form';
+import { LinkEmployeeForm, MemberButton } from './link-forms';
 import { MemberActions } from './member-actions';
 
 export const metadata: Metadata = { title: 'Members' };
@@ -16,11 +19,13 @@ const statusLabel = { active: 'Active', invited: 'Invited', suspended: 'Suspende
 export default async function MembersPage({ params }: { params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await requirePermission(slug, 'member.manage', 'org');
-  const [members, { roles, grantableIds }, employees] = await Promise.all([
+  const [members, { roles, grantableIds }, employees, signIn] = await Promise.all([
     listMembers(ctx.org.id),
     roleCatalog(ctx.org.id),
     unlinkedEmployees(ctx.org.id),
+    memberSignInStatus(ctx.org.id),
   ]);
+  const canLink = ctx.can('employee.update', 'org');
 
   const roleName = new Map(roles.map((r) => [r.id, r.name]));
   const grantable = new Set(grantableIds);
@@ -51,7 +56,14 @@ export default async function MembersPage({ params }: { params: Promise<{ org: s
                   <tr key={m.member_id} className="align-top">
                     <Td>
                       <div className="font-medium">{m.email}</div>
-                      {m.employee_name && <div className="text-xs text-muted">{m.employee_name}</div>}
+                      {m.employee_name ? (
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                          <span>Employee: {m.employee_name}</span>
+                          {canLink && (manageable || isSelf) && <MemberButton action={unlinkEmployeeAction.bind(null, slug)} memberId={m.member_id} label="Unlink" aria={`Unlink ${m.email} from ${m.employee_name}`} />}
+                        </div>
+                      ) : canLink && (manageable || isSelf) ? (
+                        <LinkEmployeeForm action={linkEmployeeAction.bind(null, slug)} memberId={m.member_id} email={m.email ?? ''} options={employees} />
+                      ) : <div className="text-xs text-muted">No employee record</div>}
                     </Td>
                     <Td>
                       <div className="flex max-w-56 flex-wrap gap-1">
@@ -62,6 +74,11 @@ export default async function MembersPage({ params }: { params: Promise<{ org: s
                     </Td>
                     <Td>
                       <Badge tone={statusTone[m.status]}>{statusLabel[m.status]}</Badge>
+                      {signIn.get(m.member_id) && !signIn.get(m.member_id)!.has_password && <div className="mt-1 text-xs text-warning">No password yet</div>}
+                      {!isSelf && manageable && signIn.get(m.member_id) && (
+                        <div className="mt-1"><MemberButton action={sendPasswordLinkAction.bind(null, slug)} memberId={m.member_id} variant="secondary"
+                          label={signIn.get(m.member_id)!.has_password ? 'Send password reset link' : 'Send password setup link'} aria={`Send ${m.email} a password link`} /></div>
+                      )}
                     </Td>
                     <Td className="whitespace-nowrap text-muted">
                       {m.last_sign_in_at ? formatDateTime(m.last_sign_in_at, ctx.org.timezone) : 'Never'}

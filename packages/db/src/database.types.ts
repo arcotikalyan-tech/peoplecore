@@ -5191,6 +5191,7 @@ export type Database = {
           done_at: string;
           done_by: string | null;
           note: string | null;
+          status: string;
         };
         Insert: {
           organization_id: string;
@@ -5198,6 +5199,7 @@ export type Database = {
           done_at?: string;
           done_by?: string | null;
           note?: string | null;
+          status?: string;
         };
         Update: {
           organization_id?: string;
@@ -5205,6 +5207,7 @@ export type Database = {
           done_at?: string;
           done_by?: string | null;
           note?: string | null;
+          status?: string;
         };
         Relationships: [];
       };
@@ -9614,6 +9617,13 @@ export type Database = {
         };
         Returns: { leave_type_id: string; name: string; people: number; balance: number; carry: number; lapse: number }[];
       };
+      link_member_employee: {
+        Args: {
+          p_member: string;
+          p_employee: string;
+        };
+        Returns: undefined;
+      };
       loan_eligibility: {
         Args: {
           p_org: string;
@@ -9667,6 +9677,12 @@ export type Database = {
         };
         Returns: { user_id: string; name: string }[];
       };
+      member_sign_in_status: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { member_id: string; user_id: string; email: string; has_password: boolean; invited_at: string; last_sign_in_at: string; employee_id: string; employee_name: string }[];
+      };
       move_application: {
         Args: {
           p_application: string;
@@ -9710,6 +9726,10 @@ export type Database = {
         Args: never;
         Returns: boolean;
       };
+      my_needs_password: {
+        Args: never;
+        Returns: boolean;
+      };
       my_org_context: {
         Args: {
           p_slug: string;
@@ -9732,6 +9752,12 @@ export type Database = {
         };
         Returns: { permission_key: string; scope: Database['public']['Enums']['permission_scope'] }[];
       };
+      my_profile_completeness: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
+      };
       my_reviews: {
         Args: {
           p_org: string;
@@ -9749,6 +9775,12 @@ export type Database = {
           p_org: string;
         };
         Returns: { member_id: string; user_id: string; email: string; status: Database['public']['Enums']['member_status']; joined_at: string; last_sign_in_at: string; role_ids: string[]; employee_id: string; employee_name: string }[];
+      };
+      org_setup_status: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
       };
       pay_expense_claims: {
         Args: {
@@ -10759,6 +10791,12 @@ export type Database = {
           p_ip?: string;
         };
         Returns: Json;
+      };
+      unlink_member_employee: {
+        Args: {
+          p_member: string;
+        };
+        Returns: undefined;
       };
       upcoming_birthdays: {
         Args: {

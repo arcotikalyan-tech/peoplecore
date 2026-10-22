@@ -7,7 +7,7 @@ export type IconKey =
   | 'home' | 'inbox' | 'users' | 'building' | 'user-plus' | 'briefcase' | 'log-out' | 'clock' | 'palm' | 'wallet'
   | 'receipt' | 'card' | 'trophy' | 'graduation' | 'megaphone' | 'lifebuoy' | 'book' | 'file' | 'shield' | 'laptop'
   | 'sparkles' | 'chart' | 'user-cog' | 'workflow' | 'bot' | 'scroll' | 'user' | 'mail' | 'sheet' | 'coins' | 'heart-pulse'
-  | 'timer' | 'calendar' | 'id-card' | 'handshake' | 'scale' | 'settings' | 'heart' | 'messages';
+  | 'timer' | 'calendar' | 'id-card' | 'handshake' | 'scale' | 'settings' | 'heart' | 'messages' | 'list-checks';
 
 export interface NavItem {
   href: string;
@@ -15,6 +15,8 @@ export interface NavItem {
   icon: IconKey;
   exact?: boolean;
   count?: number;
+  /** A short status shown instead of a count, e.g. "40%" for setup progress. */
+  badge?: { text: string; label: string };
 }
 
 export interface NavGroup {

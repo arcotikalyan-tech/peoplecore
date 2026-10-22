@@ -147,10 +147,11 @@ const employeeSeen = await visibleIds(employee.client);
 check('employee sees only their own record', sameSet(employeeSeen, new Set([employeeSelf.id])), `${employeeSeen.size} visible`);
 
 const hrPasswordOnly = await signIn('demo.hr', { secondFactor: false });
-// Without the second factor the HR-admin role is switched off; only their everyday Employee role remains.
-const hrSelf = employeeOf(hr.userId)!;
+// Where the company requires two-step, a password-only session gets no permissions at all; otherwise roles apply as usual.
+const twoStepRequired = (await admin.from('org_controls').select('require_mfa').eq('organization_id', org.id).maybeSingle()).data?.require_mfa ?? false;
 const hrPasswordOnlySeen = hrPasswordOnly ? await visibleIds(hrPasswordOnly.client) : new Set<string>();
-check('HR with a password only (no second factor) sees just their own record', sameSet(hrPasswordOnlySeen, new Set([hrSelf.id])), `${hrPasswordOnlySeen.size} visible`);
+if (twoStepRequired) check('HR with a password only (no second step) sees nobody while the company requires two-step', hrPasswordOnlySeen.size === 0, `${hrPasswordOnlySeen.size} visible`);
+else check('HR with a password only sees the whole organization (two-step is off for the company)', sameSet(hrPasswordOnlySeen, allIds), `${hrPasswordOnlySeen.size}/${allIds.size}`);
 
 const auditCount = async (c: Client) => (await c.from('audit_events').select('id', { count: 'exact', head: true }).eq('organization_id', org.id)).count ?? 0;
 check('HR can read the audit log', (await auditCount(hr.client)) > 0);
@@ -207,7 +208,7 @@ if (appUrl) {
 
   if (hrPasswordOnly) {
     const pending = await page('/app/demo/employees', hrPasswordOnly.cookie);
-    check('HR without the second factor is sent to two-step verification', [302, 303, 307].includes(pending.status) && pending.location.includes('/mfa'), `HTTP ${pending.status}`);
+    check('HR, who uses two-step, is asked for the code before any page', [302, 303, 307].includes(pending.status) && pending.location.includes('/mfa'), `HTTP ${pending.status}`);
   }
 
   const anonPage = await page('/app/demo');

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
@@ -21,6 +22,7 @@ export function LoginForm({ next }: { next: string }) {
           <FormMessage state={pwState} />
           <TextField name="email" label="Work email" type="email" autoComplete="username" required defaultValue={pwState.values?.email} />
           <PasswordField name="password" label="Password" autoComplete="current-password" required />
+          <p className="-mt-2 text-right text-sm"><Link href="/forgot-password" className="font-medium text-primary hover:underline">Forgot password?</Link></p>
           <SubmitButton pendingLabel="Signing in…">Sign in</SubmitButton>
         </form>
       ) : (

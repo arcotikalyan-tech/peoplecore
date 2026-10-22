@@ -10,7 +10,7 @@ import { managerOptions } from '@/server/employees';
 import { namesFor } from '@/server/leave';
 import { getPlans, getTemplates } from '@/server/onboarding';
 import { requireModule } from '@/server/modules';
-import { setupChecks } from '@/server/setup';
+import { orgSetup } from '@/server/setup';
 import { getStructure } from '@/server/structure';
 import { createClient } from '@/server/supabase';
 import { activateEmployeesAction, addTemplateTaskAction, cancelOnboardingAction, markSetupStepAction, removeTemplateTaskAction, startOnboardingAction } from './actions';
@@ -36,12 +36,12 @@ export default async function OnboardingPage({ params, searchParams }: { params:
   const tabs = [{ key: 'hub', label: '✦ Hub' }, { key: 'company', label: 'Company' }, { key: 'activation', label: 'Activation' }, { key: 'guided', label: 'Guided plan' }, { key: 'journeys', label: 'Journeys' }];
   const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : 'hub';
   const supabase = await createClient();
-  const [checks, done, emps] = await Promise.all([
-    setupChecks(ctx.org.id, slug),
+  const [setup, done, emps] = await Promise.all([
+    orgSetup(ctx.org.id),
     supabase.from('org_setup_steps').select('step_key, done_at').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
     supabase.from('employees').select('id, employee_code, first_name, last_name, work_email, user_id, status, department_id, designation_id, location_id').eq('organization_id', ctx.org.id).neq('status', 'exited').order('employee_code').then((r) => r.data ?? []),
   ]);
-  const auto = new Map(checks.map((c) => [c.key, c.done]));
+  const auto = new Map((setup?.steps ?? []).map((c) => [c.key, c.byData]));
   const manual = new Set(done.map((d) => d.step_key));
   const stepDone = (s: { key: string; auto?: string }) => (s.auto ? auto.get(s.auto) ?? false : false) || manual.has(s.key);
   const allSteps = PLAN.flatMap((w) => w.steps);
@@ -58,7 +58,7 @@ export default async function OnboardingPage({ params, searchParams }: { params:
       {tab === 'hub' && (
         <div className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Setup ready" value={`${checks.filter((c) => c.done).length}/${checks.length}`} note="readiness checks" tone="primary" href={`${app}/settings?tab=setup`} />
+            <StatCard label="Organization setup" value={setup ? `${setup.percent}%` : '—'} note={setup ? `${setup.done} of ${setup.total} steps done` : 'for the owner and HR'} tone="primary" href={`${app}/setup`} />
             <StatCard label="Guided plan" value={`${Math.round((planDone / allSteps.length) * 100)}%`} note={`${planDone} of ${allSteps.length} steps`} tone="success" href={`${base}?tab=guided`} />
             <StatCard label="Activated" value={`${activated}/${emps.length}`} note={`${pending.length} still to invite`} tone={pending.length ? 'warning' : 'muted'} href={`${base}?tab=activation`} />
             <StatCard label="New hires onboarding" value="→" note="Journeys in progress" href={`${base}?tab=journeys`} />

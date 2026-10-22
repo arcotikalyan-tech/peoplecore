@@ -28,7 +28,7 @@ describe('my_org_context (the page shell in one round trip)', () => {
     expect(b.disabled_modules).toEqual(['loans']);
   });
 
-  it("withholds another tenant's organization and modules, and privileged grants at aal1", async () => {
+  it("withholds another tenant's organization and modules, and every grant at aal1 where two-step is on", async () => {
     const { f } = ctx;
     const other = await bundle(f.users.hrA, 'demo-b');
     expect(other.org).toBeNull();
@@ -38,8 +38,11 @@ describe('my_org_context (the page shell in one round trip)', () => {
     expect(aal1.org?.id).toBe(f.orgA);
     expect(aal1.grants).toEqual([]);
     expect(aal1.needs_mfa).toBe(true);
-    const ic = await bundle(f.users.icA, 'demo-a', 'aal1');
-    expect(ic.grants.length).toBeGreaterThan(0);
-    expect(ic.needs_mfa).toBe(false);
+    const ic = await bundle(f.users.icA, 'demo-a', 'aal1'); // whatever the role
+    expect(ic.grants).toEqual([]);
+    expect(ic.needs_mfa).toBe(true);
+    const b = await bundle(f.users.employeeB, 'demo-b', 'aal1'); // org B keeps the default: off
+    expect(b.grants.length).toBeGreaterThan(0);
+    expect(b.needs_mfa).toBe(false);
   });
 });

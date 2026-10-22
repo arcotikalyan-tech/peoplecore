@@ -1,5 +1,6 @@
 /**
- * Sets up two-factor sign-in for the demo accounts whose roles require it (owner, HR, payroll, platform).
+ * Sets up two-step sign-in for the demo accounts that use it (owner, HR, payroll, platform), as anyone may for
+ * themselves in Account settings; with an authenticator, sign-in always asks for the code.
  *
  *   corepack pnpm --filter @peoplecore/web demo:mfa
  */
