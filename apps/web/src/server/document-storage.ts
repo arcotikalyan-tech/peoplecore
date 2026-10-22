@@ -2,7 +2,7 @@ import 'server-only';
 import { createAdminClient } from './admin';
 
 /**
- * Files in the private `employee-documents` and `expense-receipts` buckets. Uses the service-role client: storage.objects has no
+ * Files in the private buckets (employee documents, receipts, letters, statutory proofs, selfies, company proofs, helpdesk files). Uses the service-role client: storage.objects has no
  * policies for signed-in users, so only the server can reach these files.
  *
  * AUTHORIZATION: callers must already have checked the actor's permission for this employee's documents,
@@ -27,8 +27,11 @@ export const STATUTORY_BUCKET = 'statutory-documents';
 export const SELFIE_BUCKET = 'attendance-selfies';
 /** Company proofs (PAN, CIN, GST…): <org uuid>/<file uuid>. Callers must hold org.manage (checked by the action; RLS on the row). */
 export const COMPANY_BUCKET = 'company-documents';
+/** Files on helpdesk tickets: <org uuid>/<ticket uuid>/<file uuid>. Recorded with add_ticket_attachment, signed only for ticket_file. */
+export const HELPDESK_BUCKET = 'helpdesk-attachments';
 /** Always named explicitly: a default bucket would silently put files in the wrong place. */
-type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET | typeof LETTER_BUCKET | typeof STATUTORY_BUCKET | typeof SELFIE_BUCKET | typeof COMPANY_BUCKET;
+type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET | typeof LETTER_BUCKET | typeof STATUTORY_BUCKET | typeof SELFIE_BUCKET | typeof COMPANY_BUCKET
+  | typeof HELPDESK_BUCKET;
 
 function checkedPath(path: string, bucket?: Bucket) {
   if (!(bucket === LETTER_BUCKET || bucket === STATUTORY_BUCKET || bucket === COMPANY_BUCKET ? LETTER_PATH : PATH).test(path)) throw new Error('Invalid document path');

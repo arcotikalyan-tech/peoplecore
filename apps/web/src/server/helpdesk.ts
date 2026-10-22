@@ -64,3 +64,11 @@ export async function getArticle(orgId: string, id: string) {
   if (error) throw new Error(`Failed to load the article (${error.code})`);
   return data;
 }
+
+/** The files on a ticket the caller can see (requesters: not agents' internal files). */
+export async function ticketFiles(ticketId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('ticket_files', { p_ticket: ticketId });
+  if (error) throw new Error(`Failed to load the ticket's files (${error.code})`);
+  return data;
+}

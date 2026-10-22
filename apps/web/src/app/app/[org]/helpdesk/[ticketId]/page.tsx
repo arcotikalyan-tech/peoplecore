@@ -6,9 +6,9 @@ import { formatDateTime } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
 import { colleagueNames, colleagueOptions } from '@/server/engagement';
 import { getMyEmployee } from '@/server/employees';
-import { getTicket, getTicketCategories, ticketThread } from '@/server/helpdesk';
-import { replyTicketAction, updateTicketAction } from '../actions';
-import { ReplyForm, UpdateTicketForm } from '../helpdesk-forms';
+import { getTicket, getTicketCategories, ticketFiles, ticketThread } from '@/server/helpdesk';
+import { attachTicketFileAction, removeTicketFileAction, replyTicketAction, updateTicketAction } from '../actions';
+import { AttachFileForm, ReplyForm, UpdateTicketForm } from '../helpdesk-forms';
 import { STATUS_LABEL, TICKET_TONE, isOverdue } from '../tone';
 
 export const metadata: Metadata = { title: 'Ticket' };
@@ -23,8 +23,9 @@ export default async function TicketPage({ params }: { params: Promise<{ org: st
   const isAssignee = !!me && ticket.assignee_id === me.id;
   const isRequester = !!me && ticket.requester_id === me.id;
   const agent = helpdesk || isAssignee;
-  const [thread, names, categories, assignees] = await Promise.all([
+  const [thread, files, names, categories, assignees] = await Promise.all([
     ticketThread(ticket.id),
+    ticketFiles(ticket.id),
     colleagueNames(ctx.org.id),
     getTicketCategories(ctx.org.id, true),
     helpdesk ? colleagueOptions(ctx.org.id) : Promise.resolve(null),
@@ -32,6 +33,7 @@ export default async function TicketPage({ params }: { params: Promise<{ org: st
   const closed = ticket.status === 'closed';
   const now = new Date().toISOString();
   const tz = ctx.org.timezone;
+  const size = (n: number) => (n >= 1_048_576 ? `${(n / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
   return (
     <>
@@ -60,6 +62,26 @@ export default async function TicketPage({ params }: { params: Promise<{ org: st
             : (agent || isRequester) && <ReplyForm action={replyTicketAction.bind(null, slug)} ticketId={ticket.id} agent={agent} />}
         </Card>
         <div className="space-y-6">
+          <Card>
+            <CardHeader title="Files" description={files.length ? undefined : 'Screenshots, documents or photos that help explain the problem.'} />
+            {files.length > 0 && (
+              <ul className="divide-y divide-line" aria-label="Files">
+                {files.map((f) => (
+                  <li key={f.id} className={`flex flex-wrap items-center justify-between gap-2 px-5 py-2 text-sm ${f.internal ? 'bg-warning-soft' : ''}`}>
+                    <span className="min-w-0">
+                      <a className="font-medium text-primary hover:underline" href={`/app/${slug}/helpdesk/${ticket.id}/files/${f.id}`}>{f.name}</a>
+                      <span className="block text-xs text-muted">{size(f.size_bytes)} · {f.mine ? 'You' : f.uploader_name} · {formatDateTime(f.created_at, tz)}{f.internal ? ' · Internal' : ''}</span>
+                    </span>
+                    {!closed && (agent || f.mine) && (
+                      <ActionForm action={removeTicketFileAction.bind(null, slug)} label={`Remove ${f.name}`} submit="Remove" hidden={{ ticketId: ticket.id, fileId: f.id }}
+                        variant="ghost" size="sm" className="inline-flex items-center gap-2" />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!closed && (agent || isRequester) && <AttachFileForm action={attachTicketFileAction.bind(null, slug)} ticketId={ticket.id} agent={agent} />}
+          </Card>
           <Card>
             <CardHeader title="Details" />
             <DetailList items={[

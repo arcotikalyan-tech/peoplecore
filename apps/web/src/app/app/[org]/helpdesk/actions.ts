@@ -1,12 +1,15 @@
 'use server';
 
+import { createHash, randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { checkDocumentFile, safeFileName } from '@peoplecore/shared';
 import { z } from 'zod';
 import { formValues, invalid, sqlNull, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
+import { HELPDESK_BUCKET, removeDocumentFile, storeDocumentFile } from '@/server/document-storage';
 import { createClient } from '@/server/supabase';
 
 /** Helpdesk and knowledge-base actions. The database decides who may reply, change or close a ticket. */
@@ -120,4 +123,48 @@ export async function saveArticleAction(orgSlug: string, _prev: ActionState, for
   revalidatePath(`/app/${orgSlug}/knowledge`, 'layout');
   await flash(v.published ? 'Article published.' : 'Draft saved. Only helpdesk staff can see it.');
   redirect(`/app/${orgSlug}/knowledge/${result.data.id}`);
+}
+
+/**
+ * Attaches a file to a ticket. The ticket must be visible to the caller and open before anything is stored; the
+ * database checks again when recording it, and the file is removed if that refuses.
+ */
+export async function attachTicketFileAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  const ticketId = z.uuid().safeParse(formData.get('ticketId'));
+  if (!ticketId.success) return { ok: false, message: 'Ticket not found.' };
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) return { ok: false, message: 'Choose a file.', fieldErrors: { file: 'Choose a file' } };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const check = checkDocumentFile(bytes.byteLength, bytes.subarray(0, 16));
+  if (!check.ok) return { ok: false, message: check.message, fieldErrors: { file: check.message } };
+  const supabase = await createClient();
+  const { data: ticket } = await supabase.from('tickets').select('id, status').eq('organization_id', ctx.org.id).eq('id', ticketId.data).maybeSingle();
+  if (!ticket) return { ok: false, message: 'Ticket not found.' };
+  if (ticket.status === 'closed') return { ok: false, message: 'This ticket is closed. Raise a new one.' };
+  const id = randomUUID();
+  const path = `${ctx.org.id}/${ticket.id}/${id}`;
+  if (!(await storeDocumentFile(path, bytes, check.type, HELPDESK_BUCKET))) return { ok: false, message: 'The file could not be stored. Please try again.' };
+  const { error } = await supabase.rpc('add_ticket_attachment', {
+    p_ticket: ticket.id, p_id: id, p_name: safeFileName(file.name), p_type: check.type, p_size: bytes.byteLength,
+    p_sha256: createHash('sha256').update(bytes).digest('hex'), p_internal: formData.get('internal') === 'on',
+  });
+  if (error) {
+    await removeDocumentFile(path, HELPDESK_BUCKET);
+    return { ok: false, message: toUserMessage(error) };
+  }
+  revalidatePath(`/app/${orgSlug}/helpdesk/${ticket.id}`);
+  return { ok: true, message: 'File attached.' };
+}
+
+export async function removeTicketFileAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await getOrgContext(orgSlug);
+  const parsed = z.object({ ticketId: z.uuid(), fileId: z.uuid() }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, message: 'File not found.' };
+  const supabase = await createClient();
+  const { data: path, error } = await supabase.rpc('remove_ticket_attachment', { p_id: parsed.data.fileId });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  if (path) await removeDocumentFile(path, HELPDESK_BUCKET);
+  revalidatePath(`/app/${orgSlug}/helpdesk/${parsed.data.ticketId}`);
+  return { ok: true, message: 'File removed.' };
 }

@@ -123,3 +123,25 @@ export function ArticleForm({ action, article }: { action: Action; article?: { i
     </ActionForm>
   );
 }
+
+/** Attaches a PDF, JPEG or PNG (5 MB at most) to a ticket; agents can keep it internal. */
+export function AttachFileForm({ action, ticketId, agent }: { action: Action; ticketId: string; agent: boolean }) {
+  return (
+    <ActionForm action={action} label="Attach a file" submit="Attach" pendingLabel="Uploading…" hidden={{ ticketId }} variant="secondary" size="sm"
+      className="space-y-3 border-t border-line px-5 py-4">
+      {(v, e) => (
+        <>
+          <label className="block text-sm"><span className="mb-1 block text-xs font-medium text-muted">File (PDF, JPEG or PNG, 5 MB at most)</span>
+            <input type="file" name="file" accept="application/pdf,image/jpeg,image/png" aria-label="File" className="block w-full text-sm" />
+            {e.file && <span className="mt-1 block text-xs text-danger">{e.file}</span>}</label>
+          {agent && (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="internal" defaultChecked={v.internal === 'on'} className="size-4 rounded border-line-strong accent-primary" />
+              Internal (the requester won’t see it)
+            </label>
+          )}
+        </>
+      )}
+    </ActionForm>
+  );
+}

@@ -7833,6 +7833,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      ticket_attachments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          ticket_id: string;
+          name: string;
+          content_type: string;
+          size_bytes: number;
+          sha256: string;
+          internal: boolean;
+          uploaded_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          organization_id: string;
+          ticket_id: string;
+          name: string;
+          content_type: string;
+          size_bytes: number;
+          sha256: string;
+          internal?: boolean;
+          uploaded_by?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          ticket_id?: string;
+          name?: string;
+          content_type?: string;
+          size_bytes?: number;
+          sha256?: string;
+          internal?: boolean;
+          uploaded_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       ticket_categories: {
         Row: {
           id: string;
@@ -8797,6 +8836,18 @@ export type Database = {
           p_employee_id?: string;
         };
         Returns: string;
+      };
+      add_ticket_attachment: {
+        Args: {
+          p_ticket: string;
+          p_id: string;
+          p_name: string;
+          p_type: string;
+          p_size: number;
+          p_sha256: string;
+          p_internal?: boolean;
+        };
+        Returns: undefined;
       };
       adjust_leave_balance: {
         Args: {
@@ -9993,6 +10044,12 @@ export type Database = {
         };
         Returns: string;
       };
+      remove_ticket_attachment: {
+        Args: {
+          p_id: string;
+        };
+        Returns: string;
+      };
       reply_expense_claim: {
         Args: {
           p_claim: string;
@@ -10598,6 +10655,18 @@ export type Database = {
           p_accuracy?: number;
         };
         Returns: Json;
+      };
+      ticket_file: {
+        Args: {
+          p_id: string;
+        };
+        Returns: { path: string; name: string }[];
+      };
+      ticket_files: {
+        Args: {
+          p_ticket: string;
+        };
+        Returns: { id: string; name: string; content_type: string; size_bytes: number; internal: boolean; uploader_name: string; mine: boolean; created_at: string }[];
       };
       ticket_thread: {
         Args: {
