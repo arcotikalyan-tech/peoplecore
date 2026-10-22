@@ -1,18 +1,30 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { todayIn } from '@peoplecore/shared';
 import { ActionForm } from '@/components/action-form';
 import { Badge, Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surface';
 import { formatDate, formatDateTime } from '@/lib/format';
+import { POSH_ACTIONS, poshTimeline, type StepState } from '@/lib/posh';
 import { getOrgContext } from '@/server/context';
 import { colleagueOptions } from '@/server/engagement';
-import { getGrievance, grievancePeople, grievanceThread, investigatorOptions } from '@/server/grievances';
+import { getGrievance, grievancePeople, grievanceThread, investigatorOptions, poshSteps } from '@/server/grievances';
 import {
-  addInvestigatorAction, addRespondentAction, grievanceMessageAction, removeInvestigatorAction, updateGrievanceAction, withdrawGrievanceAction,
+  addInvestigatorAction, addRespondentAction, grievanceMessageAction, recordPoshStepAction, removeInvestigatorAction, updateGrievanceAction, withdrawGrievanceAction,
 } from '../actions';
-import { AddPersonForm, GrievanceMessageForm, UpdateGrievanceForm, WithdrawGrievanceForm } from '../grievance-forms';
+import { AddPersonForm, GrievanceMessageForm, PoshStepForm, UpdateGrievanceForm, WithdrawGrievanceForm } from '../grievance-forms';
 import { CATEGORY_LABEL, OPEN_STATUSES, STATUS_LABEL, STATUS_TONE } from '../labels';
 
 export const metadata: Metadata = { title: 'Grievance' };
+
+const STATE: Record<StepState, { tone: 'success' | 'danger' | 'warning' | 'neutral' | 'primary'; label: (due: string | null, done: string | null) => string }> = {
+  done: { tone: 'success', label: (_, done) => (done ? `Done ${formatDate(done)}` : 'Done') },
+  late: { tone: 'danger', label: () => 'Late' },
+  overdue: { tone: 'danger', label: (due) => `Overdue since ${formatDate(due)}` },
+  due_soon: { tone: 'warning', label: (due) => `Due ${formatDate(due)}` },
+  open: { tone: 'primary', label: (due) => (due ? `Due ${formatDate(due)}` : 'Not yet due') },
+  optional: { tone: 'neutral', label: () => 'If asked for' },
+  not_needed: { tone: 'neutral', label: () => 'Not needed' },
+};
 
 export default async function GrievancePage({ params }: { params: Promise<{ org: string; caseId: string }> }) {
   const { org: slug, caseId } = await params;
@@ -23,17 +35,22 @@ export default async function GrievancePage({ params }: { params: Promise<{ org:
   const handler = g.my_role === 'manager' || g.my_role === 'investigator';
   const manager = g.my_role === 'manager';
   const open = OPEN_STATUSES.includes(g.status) || g.status === 'resolved';
-  const [thread, people, investigators, colleagues] = await Promise.all([
+  const posh = g.category === 'posh' && handler;
+  const [thread, people, investigators, colleagues, steps] = await Promise.all([
     grievanceThread(g.id),
     grievancePeople(g.id),
     manager && open ? investigatorOptions(ctx.org.id) : Promise.resolve([]),
     manager && open ? colleagueOptions(ctx.org.id) : Promise.resolve([]),
+    posh ? poshSteps(g.id) : Promise.resolve(null),
   ]);
   const named = people.filter((p) => p.kind === 'named');
   const team = people.filter((p) => p.kind === 'investigator');
   const onCase = new Set([...team.map((p) => p.user_id), ...named.map((p) => p.user_id)]);
   const namedIds = new Set(named.map((p) => p.employee_id));
   const tz = ctx.org.timezone;
+  const today = todayIn(tz);
+  const timeline = posh ? poshTimeline({ filedOn: todayIn(tz, new Date(g.created_at)), incidentOn: g.incident_on, steps, today }) : [];
+  const editable = g.status !== 'withdrawn';
 
   return (
     <>
@@ -53,6 +70,34 @@ export default async function GrievancePage({ params }: { params: Promise<{ org:
               ]} />
             </div>
           </Card>
+          {posh && (
+            <Card>
+              <CardHeader title="POSH timeline" description="What the Act and its Rules ask for, and when. Record each step as it happens; reasons and documents go in internal notes." />
+              <ol className="divide-y divide-line" aria-label="POSH timeline">
+                {timeline.map((r) => (
+                  <li key={r.key} className="space-y-2 px-5 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{r.label}{r.key === 'action_taken' && steps?.action_kind && <span className="font-normal text-muted"> · {POSH_ACTIONS[steps.action_kind]}</span>}</p>
+                        <p className="text-xs text-muted">{r.rule}</p>
+                      </div>
+                      <Badge tone={STATE[r.state].tone}>{r.key === 'filing' && r.state === 'late' ? 'Past the time limit' : STATE[r.state].label(r.due, r.done)}</Badge>
+                    </div>
+                    {editable && r.step && r.state !== 'not_needed' && (r.key !== 'filing' || r.state === 'late' || steps?.filing_extended_on) && (
+                      <div className="flex flex-wrap items-end gap-2">
+                        <PoshStepForm action={recordPoshStepAction.bind(null, slug)} caseId={g.id} step={r.step} today={today}
+                          label={r.key === 'filing' ? 'Time limit extended' : r.label} done={r.key === 'filing' ? steps?.filing_extended_on ?? null : r.done} />
+                        {(r.key === 'filing' ? steps?.filing_extended_on : r.done) && (
+                          <ActionForm action={recordPoshStepAction.bind(null, slug)} label={`Clear: ${r.label}`} submit="Clear" hidden={{ caseId: g.id, step: r.step, clear: 'yes' }}
+                            variant="ghost" size="sm" className="inline-flex items-center gap-2" />
+                        )}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          )}
           {g.outcome && (
             <Card>
               <CardHeader title="Outcome" description={g.resolved_at ? `Resolved ${formatDate(g.resolved_at)}` : undefined} />

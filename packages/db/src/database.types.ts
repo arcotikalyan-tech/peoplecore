@@ -5928,6 +5928,123 @@ export type Database = {
         };
         Relationships: [];
       };
+      posh_case_steps: {
+        Row: {
+          grievance_id: string;
+          organization_id: string;
+          filing_extended_on: string | null;
+          conciliation_requested_on: string | null;
+          conciliation_settled_on: string | null;
+          notice_sent_on: string | null;
+          reply_received_on: string | null;
+          inquiry_completed_on: string | null;
+          report_sent_on: string | null;
+          action_taken_on: string | null;
+          action_kind: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          grievance_id: string;
+          organization_id: string;
+          filing_extended_on?: string | null;
+          conciliation_requested_on?: string | null;
+          conciliation_settled_on?: string | null;
+          notice_sent_on?: string | null;
+          reply_received_on?: string | null;
+          inquiry_completed_on?: string | null;
+          report_sent_on?: string | null;
+          action_taken_on?: string | null;
+          action_kind?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          grievance_id?: string;
+          organization_id?: string;
+          filing_extended_on?: string | null;
+          conciliation_requested_on?: string | null;
+          conciliation_settled_on?: string | null;
+          notice_sent_on?: string | null;
+          reply_received_on?: string | null;
+          inquiry_completed_on?: string | null;
+          report_sent_on?: string | null;
+          action_taken_on?: string | null;
+          action_kind?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      posh_committee_members: {
+        Row: {
+          id: string;
+          organization_id: string;
+          role: string;
+          employee_id: string | null;
+          external_name: string | null;
+          external_org: string | null;
+          woman: boolean;
+          term_from: string;
+          term_until: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          role: string;
+          employee_id?: string | null;
+          external_name?: string | null;
+          external_org?: string | null;
+          woman: boolean;
+          term_from: string;
+          term_until: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          role?: string;
+          employee_id?: string | null;
+          external_name?: string | null;
+          external_org?: string | null;
+          woman?: boolean;
+          term_from?: string;
+          term_until?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      posh_sessions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          held_on: string;
+          audience: string;
+          title: string;
+          attendees: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          held_on: string;
+          audience: string;
+          title: string;
+          attendees?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          held_on?: string;
+          audience?: string;
+          title?: string;
+          attendees?: number | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       pxp_badges: {
         Row: {
           id: string;
@@ -9654,6 +9771,19 @@ export type Database = {
         };
         Returns: { employee_id: string; employee_code: string; employee_name: string; acknowledged_at: string }[];
       };
+      posh_annual_report: {
+        Args: {
+          p_org: string;
+          p_year: number;
+        };
+        Returns: Json;
+      };
+      posh_committee: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { role: string; name: string; external_org: string; term_until: string; is_me: boolean }[];
+      };
       public_job_feed: {
         Args: {
           p_org_slug: string;
@@ -9788,6 +9918,15 @@ export type Database = {
           p_subcategory?: string;
         };
         Returns: string;
+      };
+      record_posh_step: {
+        Args: {
+          p_case: string;
+          p_step: string;
+          p_on: string;
+          p_action?: string;
+        };
+        Returns: undefined;
       };
       record_punch: {
         Args: {

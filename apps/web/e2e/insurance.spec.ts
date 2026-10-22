@@ -97,6 +97,8 @@ test('HR keeps the CD account: settings, a deposit, an endorsement charge with a
   await entry.getByLabel('Reference').fill(`DN ${run}`);
   await entry.getByRole('button', { name: 'Record entry' }).click();
   await expect(statement.getByText(`DN ${run}`)).toBeVisible();
+  await expect(entry.getByLabel('Entry', { exact: true })).toHaveValue('deposit'); // the form starts over, fields and all
+  await expect(entry.getByLabel('Lives')).toHaveCount(0);
   const mine = async () => (await admin.from('insurance_cd_entries').select('kind, amount').eq('organization_id', orgId).like('reference', `%${run}%`).order('created_at')).data;
   expect(await mine()).toEqual([{ kind: 'deposit', amount: 50000 }, { kind: 'endorsement', amount: -4200 }]);
   await expect(page.getByRole('alert').filter({ hasText: 'below your alert level' }).first()).toBeVisible();

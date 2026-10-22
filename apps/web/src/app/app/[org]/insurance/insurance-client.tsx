@@ -369,17 +369,19 @@ export function CdEntryForm({ action, today, syncs, premium }: {
   const [kind, setKind] = useState(v.kind ?? 'deposit');
   const [date, setDate] = useState(v.entryDate ?? today);
   const [lives, setLives] = useState(v.lives ?? '');
+  // React resets the form after each submission; bring the fields that depend on the entry back in line with it.
+  const reset = () => { setKind(v.kind ?? 'deposit'); setDate(v.entryDate ?? today); setLives(v.lives ?? ''); };
   const guess = kind === 'endorsement' ? endorsementEstimate(premium.perLife, Number(lives) || 0, premium.validFrom, premium.validTo, date) : null;
   const err = (k: string) => e[k] && <p className="mt-1 text-xs text-danger">{e[k]}</p>;
   const label = 'mb-1 block text-xs font-medium text-muted';
   return (
-    <form action={formAction} noValidate aria-label="Record a CD entry" className="space-y-3">
+    <form action={formAction} onReset={reset} noValidate aria-label="Record a CD entry" className="space-y-3">
       <FormMessage state={state} />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-sm"><span className={label}>Date</span>
           <input type="date" name="entryDate" value={date} onChange={(x) => setDate(x.target.value)} className={control} />{err('entryDate')}</label>
         <label className="text-sm"><span className={label}>Entry</span>
-          <select name="kind" aria-label="Entry" value={kind} onChange={(x) => setKind(x.target.value)} className={control}>
+          <select name="kind" aria-label="Entry" defaultValue={v.kind ?? 'deposit'} onChange={(x) => setKind(x.target.value)} className={control}>
             {Object.entries(CD_KINDS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select></label>
         {kind === 'adjustment' && (

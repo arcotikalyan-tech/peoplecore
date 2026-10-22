@@ -3,6 +3,7 @@
 import { ActionForm } from '@/components/action-form';
 import { SelectField, TextAreaField, TextField, type Option } from '@/components/ui/fields';
 import type { ActionState } from '@/lib/action-state';
+import { COMMITTEE_ROLES, POSH_ACTIONS, type PoshStep } from '@/lib/posh';
 import { CATEGORY_LABEL, STATUS_LABEL } from './labels';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -84,6 +85,64 @@ export function AddPersonForm({ action, caseId, name, label, submit, options, pl
       {(v, e) => (
         <SelectField idPrefix={`gp-${name}`} name={name} label={label} required options={options} placeholder={placeholder}
           defaultValue={v[name] ?? ''} error={e[name]} className="min-w-56 flex-1" />
+      )}
+    </ActionForm>
+  );
+}
+
+const ROLE_OPTIONS: Option[] = Object.entries(COMMITTEE_ROLES).map(([value, label]) => ({ value, label }));
+const ACTION_OPTIONS: Option[] = Object.entries(POSH_ACTIONS).map(([value, label]) => ({ value, label }));
+
+/**
+ * Adds someone to the Internal Committee: an employee as presiding officer or member, or the external member by name
+ * and organization. Every field is always shown (no client state), and the server checks which ones apply.
+ */
+export function CommitteeMemberForm({ action, employees, today, termUntil }: { action: Action; employees: Option[]; today: string; termUntil: string }) {
+  return (
+    <ActionForm action={action} label="Add a committee member" submit="Add to the committee" className="grid gap-3 px-5 py-4 sm:grid-cols-2">
+      {(v, e) => (
+        <>
+          <SelectField idPrefix="pcm" name="role" label="Role" options={ROLE_OPTIONS} defaultValue={v.role ?? 'member'} error={e.role} />
+          <SelectField idPrefix="pcm" name="employeeId" label="Employee" options={employees} placeholder="Choose… (not for the external member)"
+            defaultValue={v.employeeId ?? ''} error={e.employeeId} />
+          <TextField idPrefix="pcm" name="externalName" label="External member’s name" defaultValue={v.externalName} error={e.externalName} />
+          <TextField idPrefix="pcm" name="externalOrg" label="NGO or association" defaultValue={v.externalOrg} error={e.externalOrg} />
+          <SelectField idPrefix="pcm" name="woman" label="Woman" options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]} defaultValue={v.woman ?? 'yes'}
+            hint="At least half the committee are women, and a woman presides." error={e.woman} />
+          <TextField idPrefix="pcm" name="termFrom" label="Term from" type="date" required defaultValue={v.termFrom ?? today} error={e.termFrom} />
+          <TextField idPrefix="pcm" name="termUntil" label="Term until" type="date" required defaultValue={v.termUntil ?? termUntil} hint="Three years at most." error={e.termUntil} />
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+/** Records the date of one statutory step of a POSH case (and, for the employer's action, what it was). */
+export function PoshStepForm({ action, caseId, step, label, today, done }: { action: Action; caseId: string; step: PoshStep; label: string; today: string; done: string | null }) {
+  return (
+    <ActionForm action={action} label={`Record: ${label}`} submit={done ? 'Change' : 'Record'} hidden={{ caseId, step }} variant="secondary" size="sm"
+      className="flex flex-wrap items-end gap-2">
+      {(v, e) => (
+        <>
+          <TextField idPrefix={`pst-${step}`} name="on" label="Date" type="date" max={today} defaultValue={v.on ?? done ?? today} error={e.on} className="w-40" />
+          {step === 'action_taken' && <SelectField idPrefix={`pst-${step}`} name="action" label="Action" options={ACTION_OPTIONS} placeholder="Choose…" defaultValue={v.action ?? ''} className="min-w-48" />}
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+export function PoshSessionForm({ action, today }: { action: Action; today: string }) {
+  return (
+    <ActionForm action={action} label="Record a session" submit="Record session" className="grid gap-3 px-5 py-4 sm:grid-cols-2">
+      {(v, e) => (
+        <>
+          <TextField idPrefix="pss" name="title" label="Title" required placeholder="POSH awareness workshop" defaultValue={v.title} error={e.title} className="sm:col-span-2" />
+          <SelectField idPrefix="pss" name="audience" label="For" options={[{ value: 'employees', label: 'Employees (awareness)' }, { value: 'committee', label: 'The committee (orientation)' }]}
+            defaultValue={v.audience ?? 'employees'} />
+          <TextField idPrefix="pss" name="heldOn" label="Held on" type="date" required max={today} defaultValue={v.heldOn ?? today} error={e.heldOn} />
+          <TextField idPrefix="pss" name="attendees" label="Attendees" inputMode="numeric" defaultValue={v.attendees} error={e.attendees} />
+        </>
       )}
     </ActionForm>
   );
