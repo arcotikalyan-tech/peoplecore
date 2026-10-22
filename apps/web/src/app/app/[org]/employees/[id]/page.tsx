@@ -128,7 +128,7 @@ export default async function EmployeePage({ params, searchParams }: { params: P
 
   return (
     <>
-      {canBrowse && !isSelf && <p className="mb-3 text-sm"><Link href={`${base}/employees`} className="text-muted hover:text-fg">← People</Link></p>}
+      {canBrowse && !isSelf && <p className="mb-3 text-sm"><Link href={`${base}/employees`} className="text-muted hover:text-fg">← Employees</Link></p>}
       {sp.created && <div className="mb-5"><Alert tone="success" title="Employee created." /></div>}
 
       <header className="lift-soft mb-5 flex flex-wrap items-center gap-5 rounded-2xl border border-line bg-surface p-5">

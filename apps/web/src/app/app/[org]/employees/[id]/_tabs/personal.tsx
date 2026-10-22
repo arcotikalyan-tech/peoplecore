@@ -24,6 +24,7 @@ export async function PersonalTab(p: ProfileProps & { personal: Personal }) {
   const defaults = Object.fromEntries(Object.entries({
     dateOfBirth: v.date_of_birth, gender: v.gender, bloodGroup: v.blood_group, maritalStatus: v.marital_status, isDisabled: v.is_disabled,
     personalEmail: v.personal_email, personalPhone: v.personal_phone, alternatePhone: v.alternate_phone,
+    workEmail: employee.work_email, workPhone: employee.work_phone,
     linkedinUrl: v.linkedin_url, twitterUrl: v.twitter_url, websiteUrl: v.website_url,
     addressLine1: v.address_line1, addressLine2: v.address_line2, city: v.city, stateCode: v.state_code, postalCode: v.postal_code,
     permSameAsCurrent: v.perm_same_as_current, permAddressLine1: v.perm_address_line1, permAddressLine2: v.perm_address_line2,
@@ -69,7 +70,7 @@ export async function PersonalTab(p: ProfileProps & { personal: Personal }) {
               { label: 'X / Twitter', value: v.twitter_url as string },
               { label: 'Website', value: v.website_url as string },
             ]} />}>
-            <ContactInfoForm action={action} defaults={defaults} />
+            <ContactInfoForm action={action} defaults={defaults} canEditWork={canEditWork} />
           </EditableSection>
           <EditableSection key={`ad:${key}`} title="Addresses" canEdit={canEdit}
             view={<Fields cols={2} items={[{ label: 'Current address', value: current }, { label: 'Permanent address', value: permanent }]} />}>

@@ -225,7 +225,7 @@ test('suspending an organization locks its members out until it is reactivated',
     // The HR-admin role applies again as soon as the organization is reactivated.
     await open(other, '/app/demo/employees');
     await expect(other).toHaveURL(/\/app\/demo\/employees$/);
-    await expect(other.getByRole('heading', { level: 1, name: 'People' })).toBeVisible();
+    await expect(other.getByRole('heading', { level: 1, name: 'Employees' })).toBeVisible();
   } finally {
     await adminClient().auth.admin.deleteUser(fresh.userId);
   }
@@ -233,7 +233,7 @@ test('suspending an organization locks its members out until it is reactivated',
   // demo.hr's session already passed two-step, so it reaches HR data without a second prompt.
   await open(hr, '/app/demo/employees');
   await expect(hr).toHaveURL(/\/app\/demo\/employees$/);
-  await expect(hr.getByRole('heading', { level: 1, name: 'People' })).toBeVisible();
+  await expect(hr.getByRole('heading', { level: 1, name: 'Employees' })).toBeVisible();
 });
 
 /** A throwaway HR admin in the demo tenant with no authenticator (delete with auth.admin.deleteUser). */

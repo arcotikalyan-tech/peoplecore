@@ -104,7 +104,7 @@ function Hub({ slug, base, owner }: { slug: string; base: string; owner: boolean
     { icon: '🏢', title: 'Company profile', note: 'Details, offices, departments, designations, statutory IDs', href: `${app}/company` },
     { icon: '🧭', title: 'Setup wizard', note: 'What’s ready and what’s left', href: `${base}?tab=setup` },
     { icon: '🛡', title: 'Roles & permissions', note: 'What each role can do; custom roles', href: `${base}?tab=roles` },
-    { icon: '👥', title: 'Members', note: 'Invite people and assign roles', href: `${app}/members` },
+    { icon: '👥', title: 'Users & roles', note: 'Who can sign in, and their roles', href: `${app}/members` },
     { icon: '🧩', title: 'Module selector', note: 'Turn modules on or off', href: `${base}?tab=modules` },
     { icon: '🎛', title: 'Controls', note: 'Self-edits, salary history, birthdays', href: `${base}?tab=controls` },
     { icon: '🔔', title: 'Notifications', note: 'Which notifications people get', href: `${base}?tab=notifications` },
@@ -252,7 +252,7 @@ async function ControlsTab({ slug, ctx, owner }: { slug: string; ctx: OrgContext
   return (
     <div className="space-y-5">
       <Panel title="Controls"><ControlsForm action={saveControlsAction.bind(null, slug)} c={c} /></Panel>
-      <Panel title="Directory" meta="Who can browse the directory and what colleagues see. The same settings are under People › Settings.">
+      <Panel title="Directory" meta="Who can browse the directory and what colleagues see. The same settings are under Employees › Settings.">
         <DirectorySettingsForm action={saveDirectorySettingsAction.bind(null, slug)} s={dir} canEdit={ctx.can('org.manage', 'org')} />
       </Panel>
       {owner && (

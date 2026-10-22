@@ -246,7 +246,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
         const roleName = new Map((roles ?? []).map((r) => [r.id, r]));
         const admins = members.filter((m) => m.role_ids.some((id) => ADMIN_ROLES.includes(roleName.get(id)?.key ?? '')));
         return (
-          <Panel title="Admins" action={<Link href={`/app/${slug}/members`} className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-fg">Manage members</Link>}>
+          <Panel title="Admins" action={<Link href={`/app/${slug}/members`} className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-fg">Manage users &amp; roles</Link>}>
             <table className="w-full text-sm"><thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted"><th className="py-2">Name</th><th>Email</th><th>Roles</th><th>Last sign-in</th></tr></thead>
               <tbody className="divide-y divide-line">{admins.map((m) => (
                 <tr key={m.member_id}><td className="py-2 font-medium">{m.employee_name ?? '—'}</td><td className="text-muted">{m.email}</td>

@@ -11,7 +11,7 @@ import { InviteForm } from './invite-form';
 import { LinkEmployeeForm, MemberButton } from './link-forms';
 import { MemberActions } from './member-actions';
 
-export const metadata: Metadata = { title: 'Members' };
+export const metadata: Metadata = { title: 'Users & roles' };
 
 const statusTone = { active: 'success', invited: 'primary', suspended: 'warning' } as const;
 const statusLabel = { active: 'Active', invited: 'Invited', suspended: 'Suspended' } as const;
@@ -34,10 +34,10 @@ export default async function MembersPage({ params }: { params: Promise<{ org: s
 
   return (
     <>
-      <PageHeader title="Members" description={`People who can sign in to ${ctx.org.name}, and what they can do. Every change is audited.`} />
+      <PageHeader title="Users & roles" description={`Who can sign in to ${ctx.org.name} and what they can do: employees, and anyone else you give access (an accountant, an auditor). Employee records themselves are under Employees. Every change is audited.`} />
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
-          <Table caption="Members">
+          <Table caption="Users">
             <thead>
               <tr>
                 <Th>Person</Th>

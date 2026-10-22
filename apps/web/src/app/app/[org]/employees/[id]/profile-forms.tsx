@@ -37,6 +37,8 @@ export function WorkDetailsForm({ action, defaults, legalEntities }: { action: A
         <TextField idPrefix="work" name="lastName" label="Last name" defaultValue={val('lastName')} error={e.lastName} />
         <TextField idPrefix="work" name="workEmail" label="Work email" type="email" defaultValue={val('workEmail')} error={e.workEmail} />
         <TextField idPrefix="work" name="workPhone" label="Work phone" type="tel" defaultValue={val('workPhone')} error={e.workPhone} />
+        <TextField idPrefix="work" name="dateOfJoining" label="Date of joining" type="date" defaultValue={val('dateOfJoining')} error={e.dateOfJoining}
+          hint="To correct a mistake. Leave and payroll already processed aren’t recalculated." />
         <TextField idPrefix="work" name="probationEndDate" label="Probation end date" type="date" defaultValue={val('probationEndDate')} error={e.probationEndDate} />
         <SelectField idPrefix="work" name="legalEntityId" label="Legal entity" options={legalEntities} placeholder="None" defaultValue={val('legalEntityId')} error={e.legalEntityId} />
         <TextField idPrefix="work" name="jobTitle" label="Job title" defaultValue={val('jobTitle')} error={e.jobTitle} />
@@ -47,7 +49,7 @@ export function WorkDetailsForm({ action, defaults, legalEntities }: { action: A
           <TextField idPrefix="work" name="priorMonths" label="and months" inputMode="numeric" defaultValue={val('priorMonths')} error={e.priorMonths} />
         </div>
       </div>
-      <p className="text-xs text-muted">Department, designation, location and manager change through “Change assignment”, which keeps history.</p>
+      <p className="text-xs text-muted">Department, designation, location, manager and employee type change through “Change assignment”, which keeps history.</p>
       <div className="flex justify-end">
         <SubmitButton>Save work details</SubmitButton>
       </div>
@@ -82,12 +84,26 @@ export function PersonalInfoForm({ action, defaults }: { action: Action; default
   );
 }
 
-export function ContactInfoForm({ action, defaults }: { action: Action; defaults: Defaults }) {
+/** Contact info: the company's (official email, work phone; HR edits them, the employee sees them) and the person's own. */
+export function ContactInfoForm({ action, defaults, canEditWork }: { action: Action; defaults: Defaults; canEditWork: boolean }) {
   const { state, formAction, e, val } = useForm(action, defaults);
   return (
     <form action={formAction} noValidate className="space-y-4 px-5 py-4" aria-label="Contact info">
       <FormMessage state={state} />
       <div className="grid gap-4 sm:grid-cols-3">
+        {canEditWork ? (
+          <>
+            <TextField idPrefix="ci" name="workEmail" label="Official email" type="email" defaultValue={val('workEmail')} error={e.workEmail} />
+            <TextField idPrefix="ci" name="workPhone" label="Work phone" type="tel" defaultValue={val('workPhone')} error={e.workPhone} />
+          </>
+        ) : (
+          <>
+            {/* Disabled fields aren't submitted: shown for reference only. */}
+            <TextField idPrefix="ci" name="workEmail" label="Official email" type="email" defaultValue={val('workEmail')} disabled hint="Set by HR" />
+            <TextField idPrefix="ci" name="workPhone" label="Work phone" type="tel" defaultValue={val('workPhone')} disabled hint="Set by HR" />
+          </>
+        )}
+        <div className="hidden sm:block" />
         <TextField idPrefix="ci" name="personalEmail" label="Personal email" type="email" defaultValue={val('personalEmail')} error={e.personalEmail} />
         <TextField idPrefix="ci" name="personalPhone" label="Personal phone" type="tel" defaultValue={val('personalPhone')} error={e.personalPhone} />
         <TextField idPrefix="ci" name="alternatePhone" label="Alternate phone" type="tel" defaultValue={val('alternatePhone')} error={e.alternatePhone} />

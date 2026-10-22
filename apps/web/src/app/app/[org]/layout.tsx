@@ -48,7 +48,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
   const nav: NavGroup[] = view === 'admin' ? [
     home,
     { label: 'People', items: [
-      ...when(ctx.can('employee.read'), { href: `${base}/employees`, label: 'People', icon: 'users' }),
+      ...when(ctx.can('employee.read'), { href: `${base}/employees`, label: 'Employees', icon: 'users' }),
       ...when(ctx.can('org.read'), { href: `${base}/company`, label: 'Company Profile', icon: 'building' }),
       ...(profileHref ? [{ href: profileHref, label: 'My Profile', icon: 'user' } as NavItem] : []),
       { href: `${base}/letters`, label: 'Letters', icon: 'mail' },
@@ -91,7 +91,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
       ...when(ctx.can('employee.read', 'org') || ctx.can('employee.read', 'team'), { href: `${base}/insights`, label: 'Insights', icon: 'chart' }),
       ...when(reports, { href: `${base}/reports`, label: 'Reports', icon: 'sheet' }),
       ...when(ctx.can('statutory.manage', 'org'), { href: `${base}/statutory`, label: 'Compliance', icon: 'scale' }),
-      ...when(ctx.can('member.manage', 'org'), { href: `${base}/members`, label: 'Members', icon: 'user-cog' }),
+      ...when(ctx.can('member.manage', 'org'), { href: `${base}/members`, label: 'Users & roles', icon: 'user-cog' }),
       ...when(ctx.can('org.manage', 'org') || ctx.can('role.manage', 'org'), { href: `${base}/settings`, label: 'Settings', icon: 'settings' }),
       ...(setupItem && setup!.percent === 100 ? [setupItem] : []),
       ...when(ctx.can('workflow.manage', 'org'), { href: `${base}/workflows`, label: 'Workflows', icon: 'workflow' }),
@@ -102,7 +102,7 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     home,
     { label: 'Me', items: [
       ...(profileHref ? [{ href: profileHref, label: 'My Profile', icon: 'user' } as NavItem] : []),
-      { href: `${base}/employees`, label: 'People', icon: 'users' },
+      { href: `${base}/employees`, label: 'Employees', icon: 'users' },
       { href: `${base}/letters`, label: 'Letters', icon: 'mail' },
       { href: `${base}/insurance`, label: 'Insurance', icon: 'heart-pulse' },
       ...when(ctx.can('attendance.read'), { href: `${base}/attendance`, label: 'Attendance', icon: 'clock' }),

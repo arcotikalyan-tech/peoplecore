@@ -31,20 +31,20 @@ test.afterAll(async () => {
 test('HR sees the overview, people, lifecycle and org chart, and confirms a probation', async ({ page }) => {
   await signIn(page, 'demo.hr');
   await open(page, '/app/demo/employees');
-  await expect(page.getByRole('heading', { level: 1, name: 'People' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Employees' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Workforce lifecycle' })).toBeVisible();
-  await page.getByRole('navigation', { name: 'People sections' }).getByRole('link', { name: /^People/ }).click();
+  await page.getByRole('navigation', { name: 'Employee sections' }).getByRole('link', { name: /^Directory/ }).click();
   await expect(page.getByRole('link', { name: 'Open Dev Nair' })).toBeVisible();
 
   await page.getByRole('link', { name: /Confirm Probation/ }).click();
-  const board = page.getByRole('form', { name: 'People' });
+  const board = page.getByRole('form', { name: 'Employees' });
   await board.getByRole('checkbox', { name: 'Select Dev Nair' }).check();
   await board.getByRole('button', { name: '✓ Confirm probation' }).click();
   await expect(page.getByText('Confirmed 1 person.')).toBeVisible();
   expect((await admin.from('employees').select('confirmed_on').eq('id', target!.id).single()).data!.confirmed_on).not.toBeNull();
 
   await open(page, '/app/demo/employees?tab=people&view=list');
-  await expect(page.getByRole('table', { name: 'People' })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Employees' })).toBeVisible();
   await open(page, '/app/demo/employees?tab=lifecycle');
   await expect(page.getByRole('region', { name: 'Active' })).toBeVisible();
   await open(page, '/app/demo/employees?tab=orgchart');
@@ -55,7 +55,7 @@ test('directory visibility decides what employees see about colleagues', async (
   await admin.from('directory_settings').update({ show_email: false }).eq('organization_id', orgId);
   await signIn(page, 'demo.employee');
   await open(page, '/app/demo/employees');
-  await expect(page.getByRole('navigation', { name: 'People sections' }).getByRole('link', { name: 'Overview' })).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Employee sections' }).getByRole('link', { name: 'Overview' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: /^Email / })).toHaveCount(0);
 
   const ctx = await browser.newContext();

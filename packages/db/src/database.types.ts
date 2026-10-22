@@ -9143,6 +9143,7 @@ export type Database = {
           p_location_id?: string;
           p_manager_employee_id?: string;
           p_notes?: string;
+          p_employment_type?: Database['public']['Enums']['employment_type'];
         };
         Returns: string;
       };
@@ -9207,6 +9208,13 @@ export type Database = {
           p_date?: string;
         };
         Returns: number;
+      };
+      correct_joining_date: {
+        Args: {
+          p_employee: string;
+          p_date: string;
+        };
+        Returns: undefined;
       };
       create_employee: {
         Args: {

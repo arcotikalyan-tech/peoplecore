@@ -44,6 +44,13 @@ export async function updateWorkDetailsAction(orgSlug: string, employeeId: strin
   const v = parsed.data;
 
   const supabase = await createClient();
+  // A corrected joining date goes through correct_joining_date: the history's joining entry and the status follow it.
+  const joining = String(formData.get('dateOfJoining') ?? '').trim();
+  if (joining) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(joining)) return { ok: false, message: 'Please fix the highlighted fields.', fieldErrors: { dateOfJoining: 'Enter a valid date' }, values: formValues(formData) };
+    const { error: joinError } = await supabase.rpc('correct_joining_date', { p_employee: employeeIdSchema.parse(employeeId), p_date: joining });
+    if (joinError) return { ok: false, message: toUserMessage(joinError), fieldErrors: joinError.code === '22023' ? { dateOfJoining: joinError.message } : undefined, values: formValues(formData) };
+  }
   const { data, error } = await supabase
     .from('employees')
     .update({
@@ -64,6 +71,7 @@ export async function updateWorkDetailsAction(orgSlug: string, employeeId: strin
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   if (data.length === 0) return { ok: false, message: 'You don’t have permission to edit this employee.' };
   revalidatePath(profilePath(orgSlug, employeeId));
+  await flash('Work details saved.'); // the panel closes as it saves, taking its own message with it
   return { ok: true, message: 'Work details saved.' };
 }
 
@@ -88,6 +96,20 @@ export async function savePersonalDetailsAction(orgSlug: string, employeeId: str
     if (!formData.has(key)) continue;
     row[column] = PERSONAL_FLAGS.has(key) ? v[key] === 'yes' : (v[key] ?? null);
   }
+  // The company's contact fields (official email, work phone) live on the employee record: HR only (RLS on employees).
+  if (formData.has('workEmail') || formData.has('workPhone')) {
+    const work = z.object({
+      workEmail: z.union([z.literal(''), z.email('Enter a valid email address').max(254)]),
+      workPhone: z.string().trim().max(30, 'Use at most 30 characters'),
+    }).safeParse({ workEmail: String(formData.get('workEmail') ?? '').trim(), workPhone: String(formData.get('workPhone') ?? '') });
+    if (!work.success) return invalid(work.error, formData);
+    const supabase = await createClient();
+    const { data, error } = await supabase.from('employees')
+      .update({ work_email: work.data.workEmail.toLowerCase() || null, work_phone: work.data.workPhone || null })
+      .eq('id', employeeIdSchema.parse(employeeId)).eq('organization_id', ctx.org.id).select('id');
+    if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+    if (data.length === 0) return { ok: false, message: 'Only HR can change the official email and work phone.', values: formValues(formData) };
+  }
   if (row.perm_same_as_current === true) {
     for (const c of ['perm_address_line1', 'perm_address_line2', 'perm_city', 'perm_state_code', 'perm_postal_code']) row[c] = null;
   }
@@ -97,6 +119,7 @@ export async function savePersonalDetailsAction(orgSlug: string, employeeId: str
     .upsert(row as Database['public']['Tables']['employee_personal']['Insert'], { onConflict: 'employee_id' });
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   revalidatePath(profilePath(orgSlug, employeeId));
+  await flash('Personal details saved.'); // the panel closes as it saves, taking its own message with it
   return { ok: true, message: 'Personal details saved.' };
 }
 

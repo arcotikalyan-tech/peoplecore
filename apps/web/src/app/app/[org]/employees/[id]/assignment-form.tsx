@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { ASSIGNMENT_CHANGE_REASONS, ASSIGNMENT_CHANGE_REASON_LABELS } from '@peoplecore/shared';
+import { ASSIGNMENT_CHANGE_REASONS, ASSIGNMENT_CHANGE_REASON_LABELS, EMPLOYMENT_TYPE_LABELS, EMPLOYMENT_TYPES } from '@peoplecore/shared';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { SelectField, TextAreaField, TextField, type Option } from '@/components/ui/fields';
@@ -10,11 +10,12 @@ import { initialActionState, type ActionState } from '@/lib/action-state';
 interface Props {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   employeeId: string;
-  current: { departmentId: string | null; designationId: string | null; locationId: string | null; managerEmployeeId: string | null };
+  current: { departmentId: string | null; designationId: string | null; locationId: string | null; managerEmployeeId: string | null; employmentType: string };
   options: { departments: Option[]; designations: Option[]; locations: Option[]; managers: Option[] };
   today: string;
 }
 
+const types = EMPLOYMENT_TYPES.map((t) => ({ value: t, label: EMPLOYMENT_TYPE_LABELS[t] }));
 const reasons = ASSIGNMENT_CHANGE_REASONS.map((r) => ({ value: r, label: ASSIGNMENT_CHANGE_REASON_LABELS[r] }));
 
 export function AssignmentForm({ action, employeeId, current, options, today }: Props) {
@@ -37,6 +38,8 @@ export function AssignmentForm({ action, employeeId, current, options, today }: 
         <SelectField name="locationId" label="Location" options={options.locations} placeholder="None" defaultValue={pick('locationId', current.locationId)} error={e.locationId} />
         <SelectField name="managerEmployeeId" label="Reporting manager" options={options.managers.filter((m) => m.value !== employeeId)} placeholder="None"
           defaultValue={pick('managerEmployeeId', current.managerEmployeeId)} error={e.managerEmployeeId} />
+        <SelectField name="employmentType" label="Employee type" options={types} defaultValue={pick('employmentType', current.employmentType)} error={e.employmentType}
+          hint="Contract to permanent and the like: choose “Employment type change” as the reason." />
       </div>
       <TextAreaField name="notes" label="Notes" defaultValue={v?.notes} error={e.notes} />
       <div className="flex justify-end">

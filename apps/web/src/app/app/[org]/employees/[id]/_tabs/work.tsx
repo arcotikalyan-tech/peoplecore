@@ -106,7 +106,7 @@ export async function WorkTab(p: ProfileProps) {
           <WorkDetailsForm action={updateWorkDetailsAction.bind(null, slug, id)} legalEntities={structureOptions(structure).legalEntities}
             defaults={{
               firstName: employee.first_name, middleName: employee.middle_name, lastName: employee.last_name, workEmail: employee.work_email,
-              workPhone: employee.work_phone, probationEndDate: employee.probation_end_date, legalEntityId: employee.legal_entity_id,
+              workPhone: employee.work_phone, dateOfJoining: employee.date_of_joining, probationEndDate: employee.probation_end_date, legalEntityId: employee.legal_entity_id,
               jobTitle: employee.job_title, billable: employee.billable ? 'yes' : 'no',
               priorYears: employee.prior_experience_months === null ? null : String(Math.floor(employee.prior_experience_months / 12)),
               priorMonths: employee.prior_experience_months === null ? null : String(employee.prior_experience_months % 12),
@@ -161,9 +161,9 @@ export async function WorkTab(p: ProfileProps) {
 
         {canEditWork && (
           <Card>
-            <CardHeader title="Change assignment" description="Transfers, promotions and manager changes close the current history entry and open a new one." />
+            <CardHeader title="Change assignment" description="Transfers, promotions, manager and employee type changes close the current history entry and open a new one." />
             <AssignmentForm action={changeAssignmentAction.bind(null, slug)} employeeId={employee.id} today={today}
-              current={{ departmentId: employee.department_id, designationId: employee.designation_id, locationId: employee.location_id, managerEmployeeId: employee.manager_employee_id }}
+              current={{ departmentId: employee.department_id, designationId: employee.designation_id, locationId: employee.location_id, managerEmployeeId: employee.manager_employee_id, employmentType: employee.employment_type }}
               options={{ ...structureOptions(structure), managers }} />
           </Card>
         )}

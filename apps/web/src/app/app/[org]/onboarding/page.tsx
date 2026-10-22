@@ -102,7 +102,7 @@ export default async function OnboardingPage({ params, searchParams }: { params:
           <Panel title="Activation">
             <div className="h-2 rounded-full bg-subtle"><div className="h-2 rounded-full bg-primary" style={{ width: `${emps.length ? (activated / emps.length) * 100 : 0}%` }} /></div>
             <p className="mt-2 text-sm">{activated} of {emps.length} employees can sign in.</p>
-            <p className="mt-1 text-xs text-muted">Each invitation goes to the employee’s work email. They join with the Employee role, linked to their record. Manage roles on <Link className="text-primary hover:underline" href={`${app}/members`}>Members</Link>.</p>
+            <p className="mt-1 text-xs text-muted">Each invitation goes to the employee’s work email. They join with the Employee role, linked to their record. Manage roles on <Link className="text-primary hover:underline" href={`${app}/members`}>Users &amp; roles</Link>.</p>
           </Panel>
         </div>
       )}

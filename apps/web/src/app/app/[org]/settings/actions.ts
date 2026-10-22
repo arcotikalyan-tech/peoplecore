@@ -176,7 +176,7 @@ export async function createRoleAction(slug: string, _prev: ActionState, formDat
       if (e2) return { ok: false, message: toUserMessage(e2) };
     }
   }
-  return done(slug, `Role ${parsed.data.name} created. Assign it to people on the Members page.`);
+  return done(slug, `Role ${parsed.data.name} created. Assign it to people on Users & roles.`);
 }
 
 export async function setRolePermissionAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

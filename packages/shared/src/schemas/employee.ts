@@ -72,6 +72,8 @@ export const changeAssignmentSchema = z.object({
   locationId: optionalUuid,
   managerEmployeeId: optionalUuid,
   notes: optionalText(2000),
+  /** Contract → permanent and the like; blank keeps the current type. */
+  employmentType: z.preprocess((v) => (v === '' ? undefined : v), z.enum(EMPLOYMENT_TYPES).optional()),
 });
 export type ChangeAssignmentInput = z.infer<typeof changeAssignmentSchema>;
 

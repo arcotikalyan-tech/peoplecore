@@ -20,7 +20,7 @@ import { bulkPeopleAction, saveDirectorySettingsAction } from './people-actions'
 import { DirectorySettingsForm, PeopleBoard, ZoomFrame, type Card as PersonCard } from './people-client';
 import { photoUrls } from '@/server/photos';
 
-export const metadata: Metadata = { title: 'People' };
+export const metadata: Metadata = { title: 'Employees' };
 
 type Search = Record<string, string | undefined>;
 const CURRENT = new Set(['active', 'on_notice']);
@@ -48,10 +48,10 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
   const depts = new Set(current.map((p) => p.department).filter(Boolean));
   const locs = new Set(current.map((p) => p.location).filter(Boolean));
   const tabs = hr
-    ? [{ key: 'overview', label: 'Overview' }, { key: 'people', label: 'People', count: current.length }, { key: 'orgchart', label: 'Org Chart' },
+    ? [{ key: 'overview', label: 'Overview' }, { key: 'people', label: 'Directory', count: current.length }, { key: 'orgchart', label: 'Org Chart' },
        { key: 'lifecycle', label: 'Lifecycle' }, { key: 'insights', label: 'Insights' }, { key: 'settings', label: 'Settings' },
        ...(ctx.can('employee.personal.update', 'org') ? [{ key: 'deletion', label: 'Deletion requests' }] : [])]
-    : [{ key: 'people', label: 'People', count: current.length }, { key: 'orgchart', label: 'Org Chart' }];
+    : [{ key: 'people', label: 'Directory', count: current.length }, { key: 'orgchart', label: 'Org Chart' }];
   const filtering = Boolean(sp.q || sp.status || sp.department || sp.flag);
   const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : filtering || !hr ? 'people' : 'overview';
   const stats = hr ? await signInStats(ctx.org.id, people) : null;
@@ -62,7 +62,7 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
     <>
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-baseline gap-2">
-          <h1 className="text-xl font-semibold tracking-tight">People</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Employees</h1>
           <p className="text-sm text-muted">· {current.length} employees · {depts.size} departments · {locs.size} locations</p>
         </div>
         {hr && (
@@ -75,7 +75,7 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
           </div>
         )}
       </header>
-      <HubTabs base={base} label="People sections" tabs={tabs} current={tab} />
+      <HubTabs base={base} label="Employee sections" tabs={tabs} current={tab} />
 
       {tab === 'overview' && <Overview slug={slug} base={base} today={today} people={people} href={href} />}
       {tab === 'deletion' && <DeletionRequests slug={slug} orgId={ctx.org.id} />}

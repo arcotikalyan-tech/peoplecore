@@ -40,7 +40,7 @@ export function PeopleBoard({ cards, view, bulk, options, today }: {
     </div>
   );
   return (
-    <form action={formAction} aria-label="People" className="space-y-4">
+    <form action={formAction} aria-label="Employees" className="space-y-4">
       <FormMessage state={state} />
       {bulk && picked.length > 0 && (
         <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-primary/30 bg-primary-soft/50 p-3 text-sm">
@@ -81,7 +81,7 @@ export function PeopleBoard({ cards, view, bulk, options, today }: {
       ) : (
         <div className="lift-soft scroll-thin overflow-x-auto rounded-2xl border border-line bg-surface">
           <table className="w-full min-w-[760px] text-sm">
-            <caption className="sr-only">People</caption>
+            <caption className="sr-only">Employees</caption>
             <thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted">
               {bulk && <th className="w-10 px-4 py-2"><input type="checkbox" aria-label="Select all" className="size-4 accent-primary" checked={picked.length === cards.length && cards.length > 0}
                 onChange={(e) => setPicked(e.target.checked ? cards.map((c) => c.id) : [])} /></th>}

@@ -34,5 +34,6 @@ export function toChangeAssignmentArgs(v: ChangeAssignmentInput): Fns['change_em
     p_location_id: v.locationId,
     p_manager_employee_id: v.managerEmployeeId,
     p_notes: v.notes,
+    p_employment_type: v.employmentType,
   };
 }

@@ -10,7 +10,7 @@ export const PLAN: Array<{ week: number; title: string; steps: Array<{ key: stri
     { key: 'flows', title: 'Approval flows', note: 'Who approves leave, expenses, loans', auto: 'flows', href: 'workflows' },
   ] },
   { week: 2, title: 'People', steps: [
-    { key: 'employees', title: 'Import employees', note: 'CSV import with a dry run on the People page', auto: 'employees', href: 'employees' },
+    { key: 'employees', title: 'Import employees', note: 'CSV import with a dry run on the Employees page', auto: 'employees', href: 'employees' },
     { key: 'managers', title: 'Reporting managers', note: 'Every employee reports to someone', auto: 'managers', href: 'employees' },
     { key: 'documents', title: 'Collect documents', note: 'ID proofs and bank details from employees', href: 'employees' },
   ] },
