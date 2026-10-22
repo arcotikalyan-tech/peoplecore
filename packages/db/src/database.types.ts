@@ -843,6 +843,7 @@ export type Database = {
           computed_at: string;
           early_out_minutes: number;
           overtime_minutes: number;
+          expected_minutes: number;
         };
         Insert: {
           organization_id: string;
@@ -861,6 +862,7 @@ export type Database = {
           computed_at?: string;
           early_out_minutes?: number;
           overtime_minutes?: number;
+          expected_minutes?: number;
         };
         Update: {
           organization_id?: string;
@@ -879,6 +881,7 @@ export type Database = {
           computed_at?: string;
           early_out_minutes?: number;
           overtime_minutes?: number;
+          expected_minutes?: number;
         };
         Relationships: [];
       };
@@ -896,6 +899,11 @@ export type Database = {
           applied_by: string | null;
           reverted_at: string | null;
           reverted_by: string | null;
+          method: string | null;
+          total_days: number;
+          leave_split: Json;
+          ladder: string[];
+          version: number;
         };
         Insert: {
           id?: string;
@@ -910,6 +918,11 @@ export type Database = {
           applied_by?: string | null;
           reverted_at?: string | null;
           reverted_by?: string | null;
+          method?: string | null;
+          total_days: number;
+          leave_split?: Json;
+          ladder?: string[];
+          version?: number;
         };
         Update: {
           id?: string;
@@ -924,6 +937,11 @@ export type Database = {
           applied_by?: string | null;
           reverted_at?: string | null;
           reverted_by?: string | null;
+          method?: string | null;
+          total_days?: number;
+          leave_split?: Json;
+          ladder?: string[];
+          version?: number;
         };
         Relationships: [];
       };
@@ -1037,6 +1055,15 @@ export type Database = {
           last_checkout_reminder: string | null;
           last_digest: string | null;
           last_late_alert: string | null;
+          last_deduction_cycle: string | null;
+          comp_off_notify_hr: boolean;
+          comp_off_notify_employee: boolean;
+          daily_summary: boolean;
+          last_daily_summary: string | null;
+          punch_reminders: boolean;
+          last_punch_reminder: string | null;
+          regularize_days_back: number;
+          regularize_monthly_limit: number | null;
         };
         Insert: {
           organization_id: string;
@@ -1051,6 +1078,15 @@ export type Database = {
           last_checkout_reminder?: string | null;
           last_digest?: string | null;
           last_late_alert?: string | null;
+          last_deduction_cycle?: string | null;
+          comp_off_notify_hr?: boolean;
+          comp_off_notify_employee?: boolean;
+          daily_summary?: boolean;
+          last_daily_summary?: string | null;
+          punch_reminders?: boolean;
+          last_punch_reminder?: string | null;
+          regularize_days_back?: number;
+          regularize_monthly_limit?: number | null;
         };
         Update: {
           organization_id?: string;
@@ -1065,6 +1101,15 @@ export type Database = {
           last_checkout_reminder?: string | null;
           last_digest?: string | null;
           last_late_alert?: string | null;
+          last_deduction_cycle?: string | null;
+          comp_off_notify_hr?: boolean;
+          comp_off_notify_employee?: boolean;
+          daily_summary?: boolean;
+          last_daily_summary?: string | null;
+          punch_reminders?: boolean;
+          last_punch_reminder?: string | null;
+          regularize_days_back?: number;
+          regularize_monthly_limit?: number | null;
         };
         Relationships: [];
       };
@@ -1235,6 +1280,8 @@ export type Database = {
           credited_at: string;
           reverted_by: string | null;
           reverted_at: string | null;
+          decided_by: string | null;
+          decided_at: string | null;
         };
         Insert: {
           organization_id: string;
@@ -1246,6 +1293,8 @@ export type Database = {
           credited_at?: string;
           reverted_by?: string | null;
           reverted_at?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
         };
         Update: {
           organization_id?: string;
@@ -1257,6 +1306,8 @@ export type Database = {
           credited_at?: string;
           reverted_by?: string | null;
           reverted_at?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
         };
         Relationships: [];
       };
@@ -2714,9 +2765,11 @@ export type Database = {
           name: string;
           latitude: number;
           longitude: number;
-          radius_m: number;
+          radius_m: number | null;
           is_active: boolean;
           created_at: string;
+          shape: string;
+          points: Json | null;
         };
         Insert: {
           id?: string;
@@ -2725,9 +2778,11 @@ export type Database = {
           name: string;
           latitude: number;
           longitude: number;
-          radius_m: number;
+          radius_m?: number | null;
           is_active?: boolean;
           created_at?: string;
+          shape?: string;
+          points?: Json | null;
         };
         Update: {
           id?: string;
@@ -2736,9 +2791,11 @@ export type Database = {
           name?: string;
           latitude?: number;
           longitude?: number;
-          radius_m?: number;
+          radius_m?: number | null;
           is_active?: boolean;
           created_at?: string;
+          shape?: string;
+          points?: Json | null;
         };
         Relationships: [];
       };
@@ -6681,6 +6738,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      saved_views: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          page: string;
+          name: string;
+          params: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id?: string;
+          page: string;
+          name: string;
+          params: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          user_id?: string;
+          page?: string;
+          name?: string;
+          params?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       scorecard_ratings: {
         Row: {
           organization_id: string;
@@ -6864,6 +6951,21 @@ export type Database = {
           late_penalty_days: number;
           overtime_after_minutes: number | null;
           comp_off_min_minutes: number | null;
+          effective_from: string | null;
+          auto_clock_in: boolean;
+          auto_clock_out: boolean;
+          deduct_absent: boolean;
+          comp_off_auto_approve: boolean;
+          penalties_enabled: boolean;
+          late_interval: number;
+          late_method: string;
+          early_marks_allowed: number | null;
+          early_interval: number;
+          early_method: string;
+          short_marks_allowed: number | null;
+          short_interval: number;
+          short_method: string;
+          penalty_leave_order: string[];
         };
         Insert: {
           id?: string;
@@ -6888,6 +6990,21 @@ export type Database = {
           late_penalty_days?: number;
           overtime_after_minutes?: number | null;
           comp_off_min_minutes?: number | null;
+          effective_from?: string | null;
+          auto_clock_in?: boolean;
+          auto_clock_out?: boolean;
+          deduct_absent?: boolean;
+          comp_off_auto_approve?: boolean;
+          penalties_enabled?: boolean;
+          late_interval?: number;
+          late_method?: string;
+          early_marks_allowed?: number | null;
+          early_interval?: number;
+          early_method?: string;
+          short_marks_allowed?: number | null;
+          short_interval?: number;
+          short_method?: string;
+          penalty_leave_order?: string[];
         };
         Update: {
           id?: string;
@@ -6912,6 +7029,21 @@ export type Database = {
           late_penalty_days?: number;
           overtime_after_minutes?: number | null;
           comp_off_min_minutes?: number | null;
+          effective_from?: string | null;
+          auto_clock_in?: boolean;
+          auto_clock_out?: boolean;
+          deduct_absent?: boolean;
+          comp_off_auto_approve?: boolean;
+          penalties_enabled?: boolean;
+          late_interval?: number;
+          late_method?: string;
+          early_marks_allowed?: number | null;
+          early_interval?: number;
+          early_method?: string;
+          short_marks_allowed?: number | null;
+          short_interval?: number;
+          short_method?: string;
+          penalty_leave_order?: string[];
         };
         Relationships: [];
       };
@@ -8439,6 +8571,13 @@ export type Database = {
         };
         Returns: { employee_id: string; employee_code: string; employee_name: string; days_in_period: number; present: number; half_days: number; absent: number; paid_leave: number; unpaid_leave: number; weekly_offs: number; holidays: number; not_marked: number; late_days: number; payable_days: number; lop_days: number }[];
       };
+      attendance_rule_for: {
+        Args: {
+          p_employee: string;
+          p_date: string;
+        };
+        Returns: Database['public']['Tables']['shifts']['Row'][];
+      };
       calibrate_review: {
         Args: {
           p_review: string;
@@ -8659,6 +8798,13 @@ export type Database = {
         };
         Returns: string;
       };
+      decide_comp_offs: {
+        Args: {
+          p_items: Json;
+          p_approve: boolean;
+        };
+        Returns: number;
+      };
       decide_data_deletion: {
         Args: {
           p_request: string;
@@ -8674,6 +8820,13 @@ export type Database = {
           p_approve: boolean;
         };
         Returns: undefined;
+      };
+      decide_overtimes: {
+        Args: {
+          p_items: Json;
+          p_approve: boolean;
+        };
+        Returns: number;
       };
       decide_salary_revision: {
         Args: {
@@ -9431,6 +9584,16 @@ export type Database = {
         };
         Returns: string;
       };
+      request_regularizations: {
+        Args: {
+          p_employee: string;
+          p_dates: string[];
+          p_in?: string;
+          p_out?: string;
+          p_reason?: string;
+        };
+        Returns: Json;
+      };
       request_salary_revision: {
         Args: {
           p_employee: string;
@@ -9462,6 +9625,12 @@ export type Database = {
         };
         Returns: { pan: string; aadhaar_last4: string; uan: string; esic_number: string; passport_number: string; passport_expiry: string }[];
       };
+      revert_attendance_penalties: {
+        Args: {
+          p_ids: string[];
+        };
+        Returns: number;
+      };
       revert_attendance_penalty: {
         Args: {
           p_penalty: string;
@@ -9474,6 +9643,12 @@ export type Database = {
           p_date: string;
         };
         Returns: undefined;
+      };
+      revert_comp_offs: {
+        Args: {
+          p_items: Json;
+        };
+        Returns: number;
       };
       review_anomaly: {
         Args: {
@@ -9913,6 +10088,16 @@ export type Database = {
         };
         Returns: { employee_id: string; name: string; start_date: string; end_date: string; half_day_start: boolean; half_day_end: boolean; status: Database['public']['Enums']['leave_status'] }[];
       };
+      test_geofence: {
+        Args: {
+          p_org: string;
+          p_location: string;
+          p_lat: number;
+          p_lng: number;
+          p_accuracy?: number;
+        };
+        Returns: Json;
+      };
       ticket_thread: {
         Args: {
           p_ticket: string;
@@ -10096,16 +10281,26 @@ export type Database = {
         Args: never;
         Returns: Json;
       };
+      worker_attendance_auto_clock: {
+        Args: {
+          p_now?: string;
+        };
+        Returns: Json;
+      };
       worker_attendance_daily: {
         Args: never;
         Returns: Json;
       };
-      worker_attendance_penalties: {
-        Args: never;
+      worker_attendance_deductions: {
+        Args: {
+          p_now?: string;
+        };
         Returns: Json;
       };
       worker_attendance_reminders: {
-        Args: never;
+        Args: {
+          p_now?: string;
+        };
         Returns: Json;
       };
       worker_candidate_retention: {
@@ -10246,7 +10441,7 @@ export type Database = {
       payout_status: 'pending' | 'paid' | 'failed' | 'on_hold';
       payroll_status: 'draft' | 'computed' | 'approved' | 'locked' | 'cancelled';
       permission_scope: 'org' | 'team' | 'self';
-      punch_method: 'web' | 'mobile' | 'biometric' | 'import' | 'regularization';
+      punch_method: 'web' | 'mobile' | 'biometric' | 'import' | 'regularization' | 'auto';
       recommendation: 'strong_yes' | 'yes' | 'no' | 'strong_no';
       requisition_status: 'open' | 'on_hold' | 'closed';
       review_status: 'not_started' | 'self_submitted' | 'manager_submitted' | 'calibrated';

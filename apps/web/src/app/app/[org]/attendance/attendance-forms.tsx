@@ -1,11 +1,13 @@
 'use client';
 
 import { useActionState, useState, useTransition } from 'react';
+import { describePenalty, PENALTY_METHOD_LABELS, PENALTY_METHODS, SHORT_HOURS_METHODS, type PenaltyMethod } from '@peoplecore/shared';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { Button } from '@/components/ui/button';
 import { SelectField, TextField, type Option } from '@/components/ui/fields';
 import { initialActionState, type ActionState } from '@/lib/action-state';
+import type { RuleValues } from './rule-values';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -53,25 +55,32 @@ export function PunchButton({ action, label, selfie: needsSelfie = false }: { ac
   );
 }
 
-export function RotationForm({ action, shifts, today }: { action: Action; shifts: Option[]; today: string }) {
+export function RotationForm({ action, shifts, today, rotation }: {
+  action: Action; shifts: Option[]; today: string; rotation?: { id: string; name: string; period_days: number; start_date: string; pattern: string[] };
+}) {
   const [state, formAction] = useActionState(action, initialActionState);
-  const [steps, setSteps] = useState(2);
+  const [steps, setSteps] = useState(rotation?.pattern.length ?? 2);
   const v = state.ok ? {} : (state.values ?? {});
   const e = state.fieldErrors ?? {};
+  const id = rotation?.id ?? 'new';
   return (
-    <form action={formAction} noValidate aria-label="New rotation" className="space-y-3 px-5 py-4">
+    <form action={formAction} noValidate aria-label={rotation ? `Edit rotation ${rotation.name}` : 'New rotation'} className="space-y-3 px-5 py-4">
       <FormMessage state={state} />
+      {rotation && <input type="hidden" name="rotationId" value={rotation.id} />}
       <div className="grid gap-3 sm:grid-cols-3">
-        <TextField idPrefix="rot" name="name" label="Rotation" required placeholder="Weekly day/late swap" defaultValue={v.name} error={e.name} />
-        <TextField idPrefix="rot" name="periodDays" label="Switch every (days)" inputMode="numeric" defaultValue={v.periodDays ?? '7'} error={e.periodDays} />
-        <TextField idPrefix="rot" name="startDate" label="First day" type="date" defaultValue={v.startDate ?? today} error={e.startDate} />
+        <TextField idPrefix={`rot-${id}`} name="name" label="Rotation" required placeholder="Weekly day/late swap" defaultValue={v.name ?? rotation?.name} error={e.name} />
+        <TextField idPrefix={`rot-${id}`} name="periodDays" label="Switch every (days)" inputMode="numeric" defaultValue={v.periodDays ?? String(rotation?.period_days ?? 7)} error={e.periodDays} />
+        <TextField idPrefix={`rot-${id}`} name="startDate" label="First day" type="date" defaultValue={v.startDate ?? rotation?.start_date ?? today} error={e.startDate}
+          hint="The rotation’s effective date: its first shift starts here." />
       </div>
       <div className="grid gap-2 sm:grid-cols-3">
-        {Array.from({ length: steps }, (_, i) => <SelectField key={i} idPrefix={`rot-${i}`} name="shiftId" label={`Shift ${i + 1}`} options={shifts} placeholder="Choose…" />)}
+        {Array.from({ length: steps }, (_, i) => <SelectField key={i} idPrefix={`rot-${id}-${i}`} name="shiftId" label={`Shift ${i + 1}`} options={shifts} placeholder="Choose…"
+          defaultValue={rotation?.pattern[i] ?? ''} />)}
       </div>
       <div className="flex items-center gap-3">
         {steps < 12 && <button type="button" onClick={() => setSteps((n) => n + 1)} className="text-xs text-primary">＋ Add shift</button>}
-        <SubmitButton size="sm">Create rotation</SubmitButton>
+        {steps > 2 && <button type="button" onClick={() => setSteps((n) => n - 1)} className="text-xs text-muted">− Remove the last</button>}
+        <SubmitButton size="sm">{rotation ? 'Save rotation' : 'Create rotation'}</SubmitButton>
       </div>
     </form>
   );
@@ -234,36 +243,24 @@ export function AttendanceRequestForm({ action, minDate, maxDate }: { action: Ac
   );
 }
 
-export interface RuleValues {
-  id?: string;
-  name: string;
-  description: string | null;
-  start_time: string;
-  end_time: string;
-  break_minutes: number;
-  grace_minutes: number;
-  early_grace_minutes: number;
-  full_day_minutes: number;
-  half_day_minutes: number;
-  verify_selfie: boolean;
-  verify_geofence: boolean;
-  verify_ip: boolean;
-  overtime_after_minutes: number | null;
-  comp_off_min_minutes: number | null;
-  late_marks_allowed: number | null;
-  late_penalty_days: number;
-}
-
 const RULE_SECTIONS = [['schedule', 'Schedule'], ['verification', 'Verification'], ['behaviour', 'Behaviour & anomaly'], ['penalties', 'Penalties']] as const;
 
 /** One attendance rule. Every section's fields stay in the form (hidden ones too), so one save covers all of them. */
-export function RuleEditor({ action, rule, readOnly = false }: { action?: Action; rule: RuleValues; readOnly?: boolean }) {
+export function RuleEditor({ action, rule, leaveTypes = [], readOnly = false }: { action?: Action; rule: RuleValues; leaveTypes?: Option[]; readOnly?: boolean }) {
   const [state, formAction] = useActionState(action ?? noAction, initialActionState);
   const [section, setSection] = useState<(typeof RULE_SECTIONS)[number][0]>('schedule');
   const v = state.ok ? {} : (state.values ?? {});
   const e = state.fieldErrors ?? {};
   const val = (k: string, fallback: string | number | null | undefined) => v[k] ?? (fallback === null || fallback === undefined ? '' : String(fallback));
   const box = (k: string, fallback: boolean) => (v[k] !== undefined ? v[k] === 'on' : fallback);
+  const [ladder, setLadder] = useState<[string, string]>([v.penaltyLeave1 ?? rule.penalty_leave_order[0] ?? '', v.penaltyLeave2 ?? rule.penalty_leave_order[1] ?? '']);
+  const ladderNames = ladder.filter(Boolean).map((id) => leaveTypes.find((t) => t.value === id)?.label ?? 'Leave');
+  const check = (name: string, label: string, hint: string, on: boolean) => (
+    <label key={name} className="flex items-start gap-3 rounded-lg border border-line p-3 text-sm">
+      <input type="checkbox" name={name} defaultChecked={box(name, on)} className="mt-0.5 size-4 accent-primary" />
+      <span><span className="font-medium">{label}</span><span className="block text-xs text-muted">{hint}</span></span>
+    </label>
+  );
   return (
     <form action={formAction} noValidate aria-label={rule.id ? `Edit rule ${rule.name}` : 'New attendance rule'}>
       <fieldset disabled={readOnly} className="space-y-5">
@@ -281,6 +278,13 @@ export function RuleEditor({ action, rule, readOnly = false }: { action?: Action
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField idPrefix="rule" name="name" label="Rule name" required defaultValue={val('name', rule.name)} error={e.name} />
             <TextField idPrefix="rule" name="description" label="Description" defaultValue={val('description', rule.description)} error={e.description} />
+            {rule.is_default ? (
+              <p className="self-end text-xs text-muted sm:col-span-2">The default rule applies to everyone without another rule, from the day they join.</p>
+            ) : (
+              <TextField idPrefix="rule" name="effectiveFrom" label="Effective date" type="date" className="sm:col-span-2 sm:max-w-xs"
+                hint="People assigned to this rule follow it from this date; before it, the default rule applies. Empty: from their assignment."
+                defaultValue={val('effectiveFrom', rule.effective_from)} error={e.effectiveFrom} />
+            )}
             <TextField idPrefix="rule" name="startTime" label="In time" type="time" required defaultValue={val('startTime', rule.start_time.slice(0, 5))} error={e.startTime} />
             <TextField idPrefix="rule" name="endTime" label="Out time" type="time" required defaultValue={val('endTime', rule.end_time.slice(0, 5))} error={e.endTime} />
             <TextField idPrefix="rule" name="graceMinutes" label="In-time grace (minutes)" type="number" min={0} max={240} hint="Arrivals within this many minutes aren’t late." defaultValue={val('graceMinutes', rule.grace_minutes)} error={e.graceMinutes} />
@@ -293,31 +297,77 @@ export function RuleEditor({ action, rule, readOnly = false }: { action?: Action
           </div>
         </div>
         <div hidden={section !== 'verification'} className="space-y-3">
-          <p className="text-sm text-muted">How a check-in must be verified. Punches that miss a check are flagged for review, never refused.</p>
-          {([['verifySelfie', 'Selfie', 'A photo with each mobile punch.', rule.verify_selfie],
-            ['verifyGeofence', 'Location (geofence)', 'Inside the geofence of the person’s office.', rule.verify_geofence],
-            ['verifyIp', 'Office network', 'From one of the office IP addresses in Settings.', rule.verify_ip]] as const).map(([name, label, hint, on]) => (
-            <label key={name} className="flex items-start gap-3 rounded-lg border border-line p-3 text-sm">
-              <input type="checkbox" name={name} defaultChecked={box(name, on)} className="mt-0.5 size-4 accent-primary" />
-              <span><span className="font-medium">{label}</span><span className="block text-xs text-muted">{hint}</span></span>
-            </label>
-          ))}
+          <p className="text-sm text-muted">How a check-in is verified. A web check-in that misses a check is refused; an offline mobile punch synced later is counted and flagged for review. Zones are drawn in Settings › Zones.</p>
+          {check('verifySelfie', 'Selfie', 'A photo with each check-in.', rule.verify_selfie)}
+          {check('verifyGeofence', 'Location (zones)', 'Inside one of the zones of the person’s office: a circle, a rectangle or a polygon.', rule.verify_geofence)}
+          {check('verifyIp', 'Office network', 'From one of the office IP addresses in Settings.', rule.verify_ip)}
+          <p className="pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted">Automatic clock-in and clock-out</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {check('autoClockIn', 'Clock in automatically at the in time', 'On working days, for people who haven’t punched within 4 hours of the start. Not on weekly offs, holidays or full-day leave.', rule.auto_clock_in)}
+            {check('autoClockOut', 'Clock out automatically at the out time', 'For people still checked in when the shift ends.', rule.auto_clock_out)}
+          </div>
         </div>
-        <div hidden={section !== 'behaviour'} className="grid gap-4 sm:grid-cols-2">
-          <TextField idPrefix="rule" name="overtimeAfterMinutes" label="Overtime after (minutes beyond a full day)" type="number" min={0} max={720}
-            hint="Leave empty for no overtime. Overtime waits for the manager’s approval." defaultValue={val('overtimeAfterMinutes', rule.overtime_after_minutes)} error={e.overtimeAfterMinutes} />
-          <TextField idPrefix="rule" name="compOffMinMinutes" label="Comp-off for work on an off day (minimum minutes)" type="number" min={60} max={1440}
-            hint="Leave empty for no comp-off. A full day’s work earns 1 day, less earns half." defaultValue={val('compOffMinMinutes', rule.comp_off_min_minutes)} error={e.compOffMinMinutes} />
+        <div hidden={section !== 'behaviour'} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField idPrefix="rule" name="overtimeAfterMinutes" label="Overtime after (minutes beyond a full day)" type="number" min={0} max={720}
+              hint="Leave empty for no overtime. Overtime waits for the manager’s approval." defaultValue={val('overtimeAfterMinutes', rule.overtime_after_minutes)} error={e.overtimeAfterMinutes} />
+            <TextField idPrefix="rule" name="compOffMinMinutes" label="Comp-off for work on an off day (minimum minutes)" type="number" min={60} max={1440}
+              hint="Leave empty for no comp-off. A full day’s work earns 1 day, less earns half." defaultValue={val('compOffMinMinutes', rule.comp_off_min_minutes)} error={e.compOffMinMinutes} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {check('compOffAutoApprove', 'Approve comp-off automatically', 'Otherwise it waits for HR or the manager in Logs › Comp-off before it reaches the leave balance.', rule.comp_off_auto_approve)}
+            {check('deductAbsent', 'Automatic deduction at the end of each cycle', 'The morning after the attendance cycle ends, this rule’s penalties are applied and absent days are deducted from salary.', rule.deduct_absent)}
+          </div>
         </div>
-        <div hidden={section !== 'penalties'} className="grid gap-4 sm:grid-cols-2">
-          <TextField idPrefix="rule" name="lateMarksAllowed" label="Late marks allowed per month" type="number" min={0} max={31}
-            hint="Leave empty for no late-mark penalty." defaultValue={val('lateMarksAllowed', rule.late_marks_allowed)} error={e.lateMarksAllowed} />
-          <SelectField idPrefix="rule" name="latePenaltyDays" label="Each late mark beyond that costs" defaultValue={val('latePenaltyDays', String(rule.late_penalty_days))}
-            options={[{ value: '0.5', label: 'Half a day of pay' }, { value: '1', label: 'A full day of pay' }]} error={e.latePenaltyDays} />
+        <div hidden={section !== 'penalties'} className="space-y-4">
+          {check('penaltiesEnabled', 'Penalty rules', 'Master switch for this rule’s late-coming, early-leaving and short-hours penalties. They are applied per attendance cycle: automatically at its end with automatic deduction, or from Logs › Penalties.', rule.penalties_enabled)}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <PenaltyCard kind="late" title="🕘 Late coming" noun="late arrivals" v={v} e={e} ladder={ladderNames}
+              allowed={rule.late_marks_allowed} step={rule.late_interval} method={rule.late_method} />
+            <PenaltyCard kind="early" title="🏃 Early leaving" noun="early exits" v={v} e={e} ladder={ladderNames}
+              allowed={rule.early_marks_allowed} step={rule.early_interval} method={rule.early_method} />
+            <PenaltyCard kind="short" title="⏳ Short hours" noun="short days" v={v} e={e} ladder={ladderNames} shortHours
+              allowed={rule.short_marks_allowed} step={rule.short_interval} method={rule.short_method} />
+          </div>
+          <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <SelectField idPrefix="rule" name="penaltyLeave1" label="Deduct from first" placeholder="Loss of pay" options={leaveTypes}
+              value={ladder[0]} onChange={(ev) => setLadder([ev.target.value, ev.target.value ? ladder[1] : ''])} error={e.penaltyLeave1} />
+            <SelectField idPrefix="rule" name="penaltyLeave2" label="Then from" placeholder={ladder[0] ? 'Loss of pay' : '—'} options={leaveTypes.filter((t) => t.value !== ladder[0])}
+              value={ladder[1]} disabled={!ladder[0]} onChange={(ev) => setLadder([ladder[0], ev.target.value])} error={e.penaltyLeave2} />
+            <p className="pb-2.5 text-sm text-muted">→ then loss of pay</p>
+          </div>
+          <p className="text-xs text-muted">Order: late coming, then early leaving, then short hours. With full- or half-day deductions a day counted by a higher rule isn’t counted again; hourly rules count every day they apply to. Leave is used while there’s a balance.</p>
         </div>
         {!readOnly && <SubmitButton pendingLabel="Saving…">{rule.id ? 'Save changes' : 'Create rule'}</SubmitButton>}
       </fieldset>
     </form>
+  );
+}
+
+/** One penalty rule: the allowance, the interval and the method, with what they mean in a sentence. */
+function PenaltyCard({ kind, title, noun, allowed, step, method, v, e, ladder, shortHours = false }: {
+  kind: 'late' | 'early' | 'short'; title: string; noun: string; allowed: number | null; step: number; method: string;
+  v: Record<string, string>; e: Record<string, string>; ladder: string[]; shortHours?: boolean;
+}) {
+  const [a, setA] = useState(v[`${kind}MarksAllowed`] ?? (allowed === null ? '' : String(allowed)));
+  const [n, setN] = useState(v[`${kind}Interval`] ?? String(step));
+  const [m, setM] = useState(v[`${kind}Method`] ?? method);
+  const methods = (shortHours ? SHORT_HOURS_METHODS : PENALTY_METHODS).map((x) => ({ value: x, label: PENALTY_METHOD_LABELS[x] }));
+  return (
+    <div role="group" aria-label={title.replace(/^\S+\s/, '')} className="space-y-3 rounded-xl border border-line p-4">
+      <p className="text-sm font-semibold">{title}</p>
+      <div className="grid grid-cols-2 gap-3">
+        <TextField idPrefix="rule" name={`${kind}MarksAllowed`} label="Allowed per cycle" type="number" min={0} max={31} placeholder="Off"
+          value={a} onChange={(ev) => setA(ev.target.value)} error={e[`${kind}MarksAllowed`]} />
+        <TextField idPrefix="rule" name={`${kind}Interval`} label="Then one per" type="number" min={1} max={31} disabled={m === 'hourly' || m === 'half_day_by_duration'}
+          value={n} onChange={(ev) => setN(ev.target.value)} error={e[`${kind}Interval`]} />
+      </div>
+      <SelectField idPrefix="rule" name={`${kind}Method`} label="Deduction" options={methods} value={m} onChange={(ev) => setM(ev.target.value)} error={e[`${kind}Method`]} />
+      {(m === 'hourly' || m === 'half_day_by_duration') && <input type="hidden" name={`${kind}Interval`} value={n || '1'} />}
+      <p className="text-xs text-muted" aria-live="polite">
+        {describePenalty(a === '' ? null : Number(a), Math.max(1, Number(n) || 1), m as PenaltyMethod, noun, ladder)}
+      </p>
+    </div>
   );
 }
 
@@ -417,6 +467,12 @@ export interface SettingsValues {
   pending_digest: boolean;
   late_punch_alert: boolean;
   skip_level_approval: boolean;
+  daily_summary: boolean;
+  punch_reminders: boolean;
+  comp_off_notify_employee: boolean;
+  comp_off_notify_hr: boolean;
+  regularize_days_back: number;
+  regularize_monthly_limit: number | null;
   allowed_ips: string[];
 }
 
@@ -430,16 +486,32 @@ export function AttendanceSettingsForm({ action, settings }: { action: Action; s
       <span><span className="font-medium">{label}</span><span className="block text-xs text-muted">{hint}</span></span>
     </label>
   );
+  const heading = (t: string) => <p className="pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted">{t}</p>;
   return (
     <form action={formAction} noValidate aria-label="Attendance settings" className="space-y-5">
       <FormMessage state={state} />
       <TextField idPrefix="aset" name="cycleStartDay" label="Attendance cycle starts on day" type="number" min={1} max={28} className="max-w-xs"
-        hint="1 for calendar months; 26 for a 26th–25th cycle." defaultValue={v.cycleStartDay ?? String(settings.cycle_start_day)} error={e.cycleStartDay} />
+        hint="1 for calendar months; 26 for a 26th–25th cycle. The same setting as payroll’s attendance and leave cycle; penalties are counted per cycle."
+        defaultValue={v.cycleStartDay ?? String(settings.cycle_start_day)} error={e.cycleStartDay} />
+      {heading('Reminders')}
       <div className="grid gap-3 sm:grid-cols-2">
-        {toggle('remindMissingCheckout', 'Missing check-out reminder', 'Remind people who checked in but not out.', settings.remind_missing_checkout)}
-        {toggle('pendingDigest', 'Pending approvals digest', 'A daily summary of regularizations waiting for approvers.', settings.pending_digest)}
-        {toggle('latePunchAlert', 'Late punch alert', 'Tell people when a punch is marked late.', settings.late_punch_alert)}
+        {toggle('remindMissingCheckout', 'Missing check-out reminder', 'At 10 am, to people who checked in yesterday but not out.', settings.remind_missing_checkout)}
+        {toggle('pendingDigest', 'Pending approvals digest', 'At 9 am, to approvers with regularizations or requests waiting.', settings.pending_digest)}
+        {toggle('latePunchAlert', 'Late arrivals to managers', 'At 11 am, the people in each manager’s team who are late today.', settings.late_punch_alert)}
+        {toggle('punchReminders', 'Late / early punch reminder', 'At 11 am, to people who checked in late today or out early yesterday.', settings.punch_reminders)}
+        {toggle('dailySummary', 'Daily attendance summary', 'At 9 am, yesterday’s present, late, on leave and absent counts to attendance admins.', settings.daily_summary)}
+        {toggle('compOffNotifyEmployee', 'Comp-off for employees', 'Tell people when they earn comp-off and when it’s credited to claim.', settings.comp_off_notify_employee)}
+        {toggle('compOffNotifyHr', 'Comp-off for HR', 'Tell attendance admins when someone earns comp-off by working an off day.', settings.comp_off_notify_hr)}
+      </div>
+      {heading('Approvals and regularization')}
+      <div className="grid gap-3 sm:grid-cols-2">
         {toggle('skipLevelApproval', 'Skip-level approval', 'Route requests to the manager’s manager when the manager is away.', settings.skip_level_approval)}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField idPrefix="aset" name="regularizeDaysBack" label="Employees can regularize up to (days back)" type="number" min={1} max={90}
+          hint="1–90. Attendance admins can always go back 90 days." defaultValue={v.regularizeDaysBack ?? String(settings.regularize_days_back)} error={e.regularizeDaysBack} />
+        <TextField idPrefix="aset" name="regularizeMonthlyLimit" label="Regularizations per person per month" type="number" min={1} max={31} placeholder="No limit"
+          hint="Pending and approved requests count." defaultValue={v.regularizeMonthlyLimit ?? (settings.regularize_monthly_limit === null ? '' : String(settings.regularize_monthly_limit))} error={e.regularizeMonthlyLimit} />
       </div>
       <TextField idPrefix="aset" name="allowedIps" label="Office IP addresses" placeholder="203.0.113.10, 198.51.100.0/24"
         hint="Used by rules that verify the office network. Separate with commas or spaces." defaultValue={v.allowedIps ?? settings.allowed_ips.join(', ')} error={e.allowedIps} />

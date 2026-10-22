@@ -24,15 +24,15 @@ Priority: **P1** affects payroll correctness or everyday admin control; **P2** c
 
 | Area | Gap | Status |
 |---|---|---|
-| Attendance › Rules | Rule effective date; normal vs rotational shift on the rule | ☐ |
-| Attendance › Rules › Penalties | Late-coming and early-leaving allowances, penalty interval, short-hours allowance; deduction hourly (pro-rata) or half day by duration; master switch | ☐ |
-| Attendance › Settings | Automatic deduction of absent days at cycle end on a set date | ☐ |
-| Attendance › Rules | Auto clock-in / clock-out rule | ☐ |
-| Attendance › Geofence | Zones drawn as rectangle or polygon (not only radius), test punch | ☐ |
-| Attendance › Comp-off | Auto-credit, auto-approve, HR notified above a threshold, employees notified when claimable | ☐ |
-| Attendance › Regularisation | Limit on how many days back; bulk regularise (employee) | ☐ |
-| Attendance › Notifications | Daily attendance summary to admins; late / early punch reminder | ☐ |
-| Attendance › Logs | Saved views; bulk revert of penalties | ☐ |
+| Attendance › Rules | Rule effective date; normal vs rotational shift on the rule | ☑ built (assigned people follow a rule from its effective date, the default rule before it; Normal / Rotational switch on the Rules page with rotations editable there; Duplicate) |
+| Attendance › Rules › Penalties | Late-coming and early-leaving allowances, penalty interval, short-hours allowance; deduction hourly (pro-rata) or half day by duration; master switch | ☑ built (per rule: allowance per cycle, one deduction per N more, full day / half day / hourly, short hours also half day by duration; de-duplication in Kredily's order; deductions from up to two leave types, then loss of pay) |
+| Attendance › Settings | Automatic deduction of absent days at cycle end on a set date | ☑ built (per rule; the morning after the cycle ends; absent days deducted from salary and not counted twice by payroll; run any cycle by hand; the attendance cycle and payroll's input cycle are one setting) |
+| Attendance › Rules | Auto clock-in / clock-out rule | ☑ built (clock-in at the shift start on working days for people who haven't punched, clock-out at the end for people still in; every 15 minutes) |
+| Attendance › Geofence | Zones drawn as rectangle or polygon (not only radius), test punch | ☑ built (circle, rectangle or polygon from coordinates, previewed to scale with area and perimeter; check-ins judged against the shape; test punch per location) |
+| Attendance › Comp-off | Auto-credit, auto-approve, HR notified above a threshold, employees notified when claimable | ☑ built (auto-approve per rule, otherwise approve or reject in bulk; HR told when someone earns comp-off, employees when it's credited) |
+| Attendance › Regularisation | Limit on how many days back; bulk regularise (employee) | ☑ built (1–90 days back, optional monthly cap; employees pick several days for one correction) |
+| Attendance › Notifications | Daily attendance summary to admins; late / early punch reminder | ☑ built (9 am summary of yesterday for attendance admins; 11 am reminders for late check-ins today and early check-outs yesterday) |
+| Attendance › Logs | Saved views; bulk revert of penalties | ☑ built (named views per person; bulk revert of penalties, bulk approve / reject / revert of comp-off, bulk approve / reject of overtime; penalty export) |
 
 ## Batch 3 — P2: roles, notifications, people
 

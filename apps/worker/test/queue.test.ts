@@ -49,20 +49,23 @@ describe('dueJobs', () => {
     const a = dueJobs(new Date('2026-10-18T05:01:00Z'));
     const b = dueJobs(new Date('2026-10-18T05:59:59Z'));
     const c = dueJobs(new Date('2026-10-18T06:00:00Z'));
-    const hourly = (jobs: ReturnType<typeof dueJobs>) => jobs.filter((j) => j.kind !== 'helpdesk.sla').map((j) => j.key);
+    const hourly = (jobs: ReturnType<typeof dueJobs>) => jobs.filter((j) => !['helpdesk.sla', 'attendance.auto_clock'].includes(j.kind)).map((j) => j.key);
     expect(hourly(a)).toEqual(['core_hr.daily:2026-10-18T05', 'leave.accrual:2026-10-18T05', 'attendance.daily:2026-10-18', 'assets.returns:2026-10-18T05',
       'approvals.escalate:2026-10-18T05', 'learning.daily:2026-10-18T05',
       'workflows.resume:2026-10-18T05', 'separations.daily:2026-10-18T05',
-      'retention.daily:2026-10-18', 'recruitment.retention:2026-10-18', 'org.closures:2026-10-18T05', 'ai.retention:2026-10-18', 'reports.schedules:2026-10-18T05', 'attendance.reminders:2026-10-18T05', 'learning.rules:2026-10-18', 'timesheet.reminders:2026-10-18T05']);
+      'retention.daily:2026-10-18', 'recruitment.retention:2026-10-18', 'org.closures:2026-10-18T05', 'ai.retention:2026-10-18', 'reports.schedules:2026-10-18T05', 'attendance.reminders:2026-10-18T05', 'learning.rules:2026-10-18', 'timesheet.reminders:2026-10-18T05', 'attendance.deductions:2026-10-18T05']);
     expect(hourly(b)).toEqual(hourly(a));
     expect(hourly(c)).toEqual(['core_hr.daily:2026-10-18T06', 'leave.accrual:2026-10-18T06', 'attendance.daily:2026-10-18', 'assets.returns:2026-10-18T06',
       'approvals.escalate:2026-10-18T06', 'learning.daily:2026-10-18T06',
       'workflows.resume:2026-10-18T06', 'separations.daily:2026-10-18T06',
-      'retention.daily:2026-10-18', 'recruitment.retention:2026-10-18', 'org.closures:2026-10-18T06', 'ai.retention:2026-10-18', 'reports.schedules:2026-10-18T06', 'attendance.reminders:2026-10-18T06', 'learning.rules:2026-10-18', 'timesheet.reminders:2026-10-18T06']); // same day key
+      'retention.daily:2026-10-18', 'recruitment.retention:2026-10-18', 'org.closures:2026-10-18T06', 'ai.retention:2026-10-18', 'reports.schedules:2026-10-18T06', 'attendance.reminders:2026-10-18T06', 'learning.rules:2026-10-18', 'timesheet.reminders:2026-10-18T06', 'attendance.deductions:2026-10-18T06']); // same day key
   });
 
-  it('checks helpdesk SLAs every quarter hour', () => {
+  it('checks helpdesk SLAs and automatic clock-in/out every quarter hour', () => {
     const sla = (iso: string) => dueJobs(new Date(iso)).find((j) => j.kind === 'helpdesk.sla')!.key;
+    const clock = (iso: string) => dueJobs(new Date(iso)).find((j) => j.kind === 'attendance.auto_clock')!.key;
+    expect(clock('2026-10-18T05:29:00Z')).toBe('attendance.auto_clock:2026-10-18T05:15');
+    expect(clock('2026-10-18T05:30:00Z')).toBe('attendance.auto_clock:2026-10-18T05:30');
     expect(sla('2026-10-18T05:01:00Z')).toBe('helpdesk.sla:2026-10-18T05:00');
     expect(sla('2026-10-18T05:14:59Z')).toBe('helpdesk.sla:2026-10-18T05:00');
     expect(sla('2026-10-18T05:15:00Z')).toBe('helpdesk.sla:2026-10-18T05:15');

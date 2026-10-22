@@ -85,7 +85,7 @@ export default async function AttendancePage({ params, searchParams }: { params:
         <>
           {tab === 'hub' && <AdminHub ctx={ctx} orgBase={orgBase} base={base} today={today} pulse={sp.pulse ?? 'all'} q={sp.q ?? ''} />}
           {tab === 'logs' && <LogsTab ctx={ctx} slug={slug} orgBase={orgBase} base={base} today={today}
-            p={{ view: sp.view ?? 'daily', date, month, q: sp.q ?? '', dept: sp.dept ?? '', page }} />}
+            p={{ view: sp.view ?? 'daily', date, month, monthSet: /^\d{4}-\d{2}/.test(sp.month ?? ''), q: sp.q ?? '', dept: sp.dept ?? '', page }} />}
           {tab === 'approvals' && <ApprovalsTab ctx={ctx} slug={slug} orgBase={orgBase} base={base} view={sp.view ?? 'open'} myEmployeeId={me?.id ?? null} />}
           {tab === 'rules' && <RulesTab ctx={ctx} slug={slug} base={base} view={sp.view ?? 'rules'} selected={sp.rule ?? ''} />}
           {tab === 'analytics' && <AnalyticsTab ctx={ctx} today={today} />}

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { addDays } from '@peoplecore/shared';
+import { addDays, attendanceCycle, attendanceCycleMonth, PENALTY_KIND_LABELS, PENALTY_METHOD_LABELS, type PenaltyKind, type PenaltyMethod } from '@peoplecore/shared';
 import { ActionForm } from '@/components/action-form';
 import { Avatar } from '@/components/ui/avatar';
 import { buttonClass } from '@/components/ui/button';
@@ -9,15 +9,19 @@ import { Badge } from '@/components/ui/surface';
 import { Pagination, Table, Td, Th } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
 import type { OrgContext } from '@/server/context';
-import { compOffLog, monthGrid, overtimeLog, peopleDay, penaltyLog, structureNames } from '@/server/attendance-ops';
+import { compOffLog, monthGrid, overtimeLog, peopleDay, penaltyLeaveTypes, penaltyLog, rulesSetup, savedViews, structureNames } from '@/server/attendance-ops';
 import { namesFor } from '@/server/leave';
-import { decideOvertimeAction, revertCompOffAction, revertPenaltyAction, runPenaltiesAction } from '../actions';
+import { ButtonAction } from '../../settings/settings-client';
+import { compOffBoardAction, deleteViewAction, overtimeBoardAction, penaltyBoardAction, runPenaltiesAction, saveViewAction } from '../actions';
+import { SaveViewForm, SelectBoard } from '../automation-client';
 import { clock, hours, LEGEND, StatusChip } from './status';
 
 export interface LogParams {
   view: string;
   date: string;
   month: string;
+  /** Whether the month came from the address (otherwise the penalty log opens on the current cycle). */
+  monthSet?: boolean;
   q: string;
   dept: string;
   page: number;
@@ -26,12 +30,33 @@ export interface LogParams {
 export async function LogsTab({ ctx, slug, orgBase, base, today, p }: { ctx: OrgContext; slug: string; orgBase: string; base: string; today: string; p: LogParams }) {
   const view = ['daily', 'calendar', 'penalty', 'compoff', 'overtime'].includes(p.view) ? p.view : 'daily';
   const manage = ctx.can('attendance.manage', 'org');
+  const views = await savedViews(ctx.org.id, 'attendance.logs');
+  const current: Record<string, string> = {
+    tab: 'logs', view, ...(view === 'daily' ? { date: p.date } : p.monthSet ? { month: p.month.slice(0, 7) } : {}),
+    ...(p.q ? { q: p.q } : {}), ...(p.dept ? { dept: p.dept } : {}),
+  };
   return (
     <>
       <SubTabs base={base} label="Logs" current={view} extra={{ tab: 'logs' }} tabs={[
         { key: 'daily', label: 'Daily log' }, { key: 'calendar', label: 'Month calendar' }, { key: 'penalty', label: 'Penalties' },
         { key: 'compoff', label: 'Comp-off' }, { key: 'overtime', label: 'Overtime' },
       ]} />
+      <details className="mb-4 rounded-xl border border-line bg-surface px-4 py-2 text-sm">
+        <summary className="cursor-pointer font-medium">★ Saved views{views.length ? ` (${views.length})` : ''}</summary>
+        <div className="space-y-3 py-3">
+          {views.length > 0 && (
+            <ul className="flex flex-wrap gap-2" aria-label="Saved views">
+              {views.map((v) => (
+                <li key={v.id} className="flex items-center gap-1 rounded-full border border-line pl-3">
+                  <Link href={`${base}?${new URLSearchParams(v.params)}`} className="py-1 font-medium hover:underline">{v.name}</Link>
+                  <ButtonAction action={deleteViewAction.bind(null, slug, v.id)} aria={`Remove view ${v.name}`} label="✕" variant="ghost" />
+                </li>
+              ))}
+            </ul>
+          )}
+          <SaveViewForm action={saveViewAction.bind(null, slug, 'attendance.logs')} params={current} />
+        </div>
+      </details>
       {view === 'daily' && <Daily ctx={ctx} orgBase={orgBase} base={base} today={today} p={p} />}
       {view === 'calendar' && <Calendar ctx={ctx} orgBase={orgBase} base={base} p={p} />}
       {view === 'penalty' && <Penalties ctx={ctx} slug={slug} base={base} today={today} p={p} manage={manage} />}
@@ -150,39 +175,44 @@ async function Calendar({ ctx, orgBase, base, p }: { ctx: OrgContext; orgBase: s
 }
 
 async function Penalties({ ctx, slug, base, today, p, manage }: { ctx: OrgContext; slug: string; base: string; today: string; p: LogParams; manage: boolean }) {
-  const rows = await penaltyLog(ctx.org.id, p.month);
+  const setup = await rulesSetup(ctx.org.id);
+  const startDay = setup.settings?.cycle_start_day ?? 1;
+  const month = p.monthSet ? `${p.month.slice(0, 7)}-01` : attendanceCycleMonth(today, startDay);
+  const [rows, leaveTypes] = await Promise.all([penaltyLog(ctx.org.id, month), penaltyLeaveTypes(ctx.org.id)]);
   const names = await namesFor(ctx.org.id, rows.map((r) => r.employee_id));
-  const month = p.month.slice(0, 7);
+  const leaveName = new Map(leaveTypes.map((t) => [t.value, t.label]));
+  const cycle = attendanceCycle(month, startDay);
+  const label = new Date(`${month}T00:00:00Z`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const fmt = (n: number) => n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
   return (
-    <Panel title="Penalties" meta={new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' })} flush
-      action={manage ? (
-        <ActionForm action={runPenaltiesAction.bind(null, slug)} label="Apply penalties for the month" submit="Apply for this month" size="sm" variant="secondary"
-          hidden={{ month }} className="flex items-center gap-2" />
-      ) : undefined}>
-      <form method="get" action={base} className="mb-3 flex items-end gap-2 px-5" aria-label="Choose the month">
+    <Panel title="Penalties" meta={`${label} cycle · ${formatDate(cycle.from)} – ${formatDate(cycle.to)}`} flush
+      action={<div className="flex flex-wrap items-center gap-2">
+        <a href={`${base}/penalties/export?month=${month.slice(0, 7)}`} className={buttonClass('ghost', 'sm')} download>⬇ Export</a>
+        {manage && <ActionForm action={runPenaltiesAction.bind(null, slug)} label="Apply penalties for the cycle" submit="Apply for this cycle" size="sm" variant="secondary"
+          hidden={{ month: month.slice(0, 7) }} className="flex items-center gap-2" />}
+      </div>}>
+      <form method="get" action={base} className="mb-3 flex items-end gap-2 px-5" aria-label="Choose the cycle">
         <input type="hidden" name="tab" value="logs" /><input type="hidden" name="view" value="penalty" />
-        <label className="text-sm"><span className="mb-1 block font-medium">Month</span>
-          <input type="month" name="month" defaultValue={month} max={today.slice(0, 7)} className="h-9 rounded-md border border-line-strong bg-surface px-2.5" /></label>
+        <label className="text-sm"><span className="mb-1 block font-medium">Cycle (the month it ends in)</span>
+          <input type="month" name="month" defaultValue={month.slice(0, 7)} className="h-9 rounded-md border border-line-strong bg-surface px-2.5" /></label>
         <button className={buttonClass('secondary')}>Show</button>
       </form>
-      <p className="px-5 pb-3 text-sm text-muted">Late marks beyond each rule’s monthly allowance become loss-of-pay days in that month’s payroll. A reverted penalty stays reverted when the month is applied again.</p>
-      <Table caption="Penalties">
-        <thead><tr><Th>Employee</Th><Th>Penalty</Th><Th>Occurrences</Th><Th>Loss of pay</Th><Th>Applied</Th><Th>Status</Th>{manage && <Th />}</tr></thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id}>
-              <Td className="font-medium">{names.get(r.employee_id) ?? '—'}</Td>
-              <Td>Late marks<span className="block text-xs text-muted">{r.detail}</span></Td>
-              <Td className="tabular-nums">{r.occurrences}</Td>
-              <Td className="tabular-nums">{r.days} day{r.days === 1 ? '' : 's'}</Td>
-              <Td className="text-muted">{formatDate(r.applied_at.slice(0, 10))}</Td>
-              <Td>{r.reverted_at ? <Badge>Reverted</Badge> : <Badge tone="danger">Applied</Badge>}</Td>
-              {manage && <Td>{!r.reverted_at && <ActionForm action={revertPenaltyAction.bind(null, slug)} label={`Revert penalty for ${names.get(r.employee_id) ?? 'employee'}`} submit="Revert" size="sm" variant="ghost" hidden={{ penaltyId: r.id }} className="flex" />}</Td>}
-            </tr>
-          ))}
-          {rows.length === 0 && <tr><Td className="py-8 text-center text-muted">No penalties this month.</Td></tr>}
-        </tbody>
-      </Table>
+      <p className="px-5 pb-3 text-sm text-muted">Late coming, early leaving and short hours beyond each rule’s allowance, and absent days under automatic deduction. Deductions come out of the rule’s leave types first, then loss of pay in the cycle’s payroll. A reverted penalty gives its leave back and stays reverted when the cycle is applied again.</p>
+      <SelectBoard action={penaltyBoardAction.bind(null, slug)} label="Penalties" empty="No penalties in this cycle."
+        columns={['Employee', 'Anomaly', 'Penalty', 'Deducted from', 'Deduction', 'Applied', 'Status']}
+        buttons={[{ op: 'revert', label: '↺ Revert selected' }]}
+        rows={rows.map((r) => ({
+          value: r.id, selectable: manage && !r.reverted_at, label: `${names.get(r.employee_id) ?? 'employee'} ${PENALTY_KIND_LABELS[r.kind as PenaltyKind] ?? r.kind}`,
+          cells: [
+            <span key="n" className="font-medium">{names.get(r.employee_id) ?? '—'}</span>,
+            <span key="a">{PENALTY_KIND_LABELS[r.kind as PenaltyKind] ?? r.kind}<span className="block text-xs text-muted">{r.detail}</span></span>,
+            <span key="m" className="text-muted">{r.method ? PENALTY_METHOD_LABELS[r.method as PenaltyMethod] : '—'}</span>,
+            <span key="f" className="text-xs">{[...r.leave_split.map((x) => `${leaveName.get(x.leaveTypeId) ?? 'Leave'} ${fmt(Number(x.days))}`), r.days > 0 ? `Loss of pay ${fmt(r.days)}` : null].filter(Boolean).join(' · ') || '—'}</span>,
+            <span key="d" className="tabular-nums">{fmt(r.total_days)} day{r.total_days === 1 ? '' : 's'}</span>,
+            <span key="t" className="text-muted">{formatDate(r.applied_at.slice(0, 10))}</span>,
+            r.reverted_at ? <Badge key="s">Reverted</Badge> : <Badge key="s" tone="danger">Applied</Badge>,
+          ],
+        }))} />
     </Panel>
   );
 }
@@ -190,24 +220,26 @@ async function Penalties({ ctx, slug, base, today, p, manage }: { ctx: OrgContex
 async function CompOff({ ctx, slug, today, manage }: { ctx: OrgContext; slug: string; today: string; manage: boolean }) {
   const rows = await compOffLog(ctx.org.id, addDays(today, -90), today);
   const names = await namesFor(ctx.org.id, rows.map((r) => r.employee_id));
+  const time = clock(ctx.org.timezone);
+  const decides = manage || ctx.can('attendance.approve');
+  const pending = rows.filter((r) => r.status === 'pending').length;
+  const STATUS: Record<string, React.ReactNode> = {
+    pending: <Badge tone="warning">Waiting</Badge>, credited: <Badge tone="success">Credited</Badge>, rejected: <Badge tone="danger">Rejected</Badge>, reverted: <Badge>Reverted</Badge>,
+  };
   return (
-    <Panel title="Comp-off" meta="last 90 days" flush>
-      <p className="px-5 pb-3 text-sm text-muted">Credited automatically for work on a weekly off or holiday, under rules that allow comp-off. The days go straight to the person’s comp-off leave balance.</p>
-      <Table caption="Comp-off credits">
-        <thead><tr><Th>Employee</Th><Th>Worked on</Th><Th>Credited</Th><Th>Status</Th>{manage && <Th />}</tr></thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={`${r.employee_id}-${r.work_date}`}>
-              <Td className="font-medium">{names.get(r.employee_id) ?? '—'}</Td>
-              <Td>{formatDate(r.work_date)}</Td>
-              <Td className="tabular-nums">{r.days} day{r.days === 1 ? '' : 's'}</Td>
-              <Td>{r.status === 'reverted' ? <Badge>Reverted</Badge> : <Badge tone="success">Credited</Badge>}</Td>
-              {manage && <Td>{r.status === 'credited' && <ActionForm action={revertCompOffAction.bind(null, slug)} label={`Revert comp-off for ${names.get(r.employee_id) ?? 'employee'} on ${r.work_date}`} submit="Revert" size="sm" variant="ghost" hidden={{ employeeId: r.employee_id, workDate: r.work_date }} className="flex" />}</Td>}
-            </tr>
-          ))}
-          {rows.length === 0 && <tr><Td className="py-8 text-center text-muted">No comp-off credited in the last 90 days.</Td></tr>}
-        </tbody>
-      </Table>
+    <Panel title="Comp-off" meta={`${pending} waiting · last 90 days`} flush>
+      <p className="px-5 pb-3 text-sm text-muted">Earned for work on a weekly off or holiday under rules that allow comp-off. Rules that approve it automatically credit the leave balance straight away; the rest wait here for HR or the manager.</p>
+      <SelectBoard action={compOffBoardAction.bind(null, slug)} label="Comp-off" empty="No comp-off in the last 90 days."
+        columns={['Employee', 'Worked on', 'In', 'Out', 'Worked', 'Comp-off', 'Status']}
+        buttons={[{ op: 'approve', label: '✓ Approve', variant: 'primary' }, { op: 'reject', label: '✗ Reject' }, ...(manage ? [{ op: 'revert', label: '↺ Revert', variant: 'ghost' as const }] : [])]}
+        rows={rows.map((r) => ({
+          value: `${r.employee_id}:${r.work_date}`, label: `${names.get(r.employee_id) ?? 'employee'} ${r.work_date}`,
+          selectable: (r.status === 'pending' && decides) || (r.status === 'credited' && manage),
+          cells: [
+            <span key="n" className="font-medium">{names.get(r.employee_id) ?? '—'}</span>, formatDate(r.work_date), time(r.first_in), time(r.last_out),
+            <span key="w" className="tabular-nums">{hours(r.worked)}</span>, `${r.days} day${r.days === 1 ? '' : 's'}`, STATUS[r.status] ?? r.status,
+          ],
+        }))} />
     </Panel>
   );
 }
@@ -218,27 +250,17 @@ async function Overtime({ ctx, slug, today }: { ctx: OrgContext; slug: string; t
   const pending = rows.filter((r) => r.status === 'pending');
   return (
     <Panel title="Overtime" meta={`${pending.length} waiting · last 90 days`} flush>
-      <p className="px-5 pb-3 text-sm text-muted">Time worked beyond a full day plus the rule’s overtime threshold. Managers approve or reject it; people can’t decide their own.</p>
-      <Table caption="Overtime">
-        <thead><tr><Th>Employee</Th><Th>Day</Th><Th>Overtime</Th><Th>Status</Th><Th /></tr></thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={`${r.employee_id}-${r.work_date}`}>
-              <Td className="font-medium">{names.get(r.employee_id) ?? '—'}</Td>
-              <Td>{formatDate(r.work_date)}</Td>
-              <Td className="tabular-nums">{hours(r.minutes)}</Td>
-              <Td>{r.status === 'pending' ? <Badge tone="warning">Waiting</Badge> : r.status === 'approved' ? <Badge tone="success">Approved</Badge> : <Badge tone="danger">Rejected</Badge>}</Td>
-              <Td>{r.status === 'pending' && (
-                <div className="flex gap-1.5">
-                  <ActionForm action={decideOvertimeAction.bind(null, slug)} label={`Approve overtime for ${names.get(r.employee_id) ?? 'employee'} on ${r.work_date}`} submit="Approve" size="sm" hidden={{ employeeId: r.employee_id, workDate: r.work_date, decision: 'approve' }} className="flex" />
-                  <ActionForm action={decideOvertimeAction.bind(null, slug)} label={`Reject overtime for ${names.get(r.employee_id) ?? 'employee'} on ${r.work_date}`} submit="Reject" size="sm" variant="ghost" hidden={{ employeeId: r.employee_id, workDate: r.work_date, decision: 'reject' }} className="flex" />
-                </div>
-              )}</Td>
-            </tr>
-          ))}
-          {rows.length === 0 && <tr><Td className="py-8 text-center text-muted">No overtime in the last 90 days.</Td></tr>}
-        </tbody>
-      </Table>
+      <p className="px-5 pb-3 text-sm text-muted">Time worked beyond a full day plus the rule’s overtime threshold. Managers approve or reject it, one at a time or together; people can’t decide their own.</p>
+      <SelectBoard action={overtimeBoardAction.bind(null, slug)} label="Overtime" empty="No overtime in the last 90 days."
+        columns={['Employee', 'Day', 'Overtime', 'Status']}
+        buttons={[{ op: 'approve', label: '✓ Approve', variant: 'primary' }, { op: 'reject', label: '✗ Reject' }]}
+        rows={rows.map((r) => ({
+          value: `${r.employee_id}:${r.work_date}`, label: `${names.get(r.employee_id) ?? 'employee'} ${r.work_date}`, selectable: r.status === 'pending',
+          cells: [
+            <span key="n" className="font-medium">{names.get(r.employee_id) ?? '—'}</span>, formatDate(r.work_date), <span key="h" className="tabular-nums">{hours(r.minutes)}</span>,
+            r.status === 'pending' ? <Badge key="s" tone="warning">Waiting</Badge> : r.status === 'approved' ? <Badge key="s" tone="success">Approved</Badge> : <Badge key="s" tone="danger">Rejected</Badge>,
+          ],
+        }))} />
     </Panel>
   );
 }

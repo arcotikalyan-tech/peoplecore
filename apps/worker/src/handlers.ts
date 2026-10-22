@@ -80,6 +80,17 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       if (error) throw new Error(error.message);
       log('reports.schedules', data as Record<string, unknown>);
     },
+    'attendance.auto_clock': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_attendance_auto_clock');
+      if (error) throw new Error(error.message);
+      const r = data as { clocked_in?: number; clocked_out?: number } | null;
+      if (r?.clocked_in || r?.clocked_out) log('attendance.auto_clock', r as Record<string, unknown>);
+    },
+    'attendance.deductions': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_attendance_deductions');
+      if (error) throw new Error(error.message);
+      if ((data as { organizations?: number } | null)?.organizations) log('attendance.deductions', data as Record<string, unknown>);
+    },
     'attendance.reminders': async (_job, log) => {
       const { data, error } = await db.rpc('worker_attendance_reminders');
       if (error) throw new Error(error.message);

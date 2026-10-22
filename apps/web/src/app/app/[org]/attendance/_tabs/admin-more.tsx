@@ -1,4 +1,4 @@
-import { addDays } from '@peoplecore/shared';
+import { addDays, attendanceCycle, attendanceCycleMonth, todayIn, ZONE_SHAPE_LABELS, zoneMeasures, type LatLng, type ZoneShape } from '@peoplecore/shared';
 import { BarChart } from '@/components/ui/charts';
 import { cn } from '@/components/ui/cn';
 import { Panel, StatCard } from '@/components/ui/hub';
@@ -9,8 +9,15 @@ import { getAttendanceSetup } from '@/server/attendance';
 import { analytics, recentDevicePunches, rulesSetup, structureNames } from '@/server/attendance-ops';
 import { namesFor } from '@/server/leave';
 import { getStructure, structureOptions } from '@/server/structure';
-import { createDeviceAction, createGeofenceAction, importDevicePunchesAction, saveAttendanceSettingsAction } from '../actions';
-import { AttendanceSettingsForm, DeviceForm, DeviceImportForm, GeofenceForm } from '../attendance-forms';
+import { ActionForm } from '@/components/action-form';
+import { Badge } from '@/components/ui/surface';
+import { formatDate } from '@/lib/format';
+import { ButtonAction } from '../../settings/settings-client';
+import {
+  createDeviceAction, deleteZoneAction, importDevicePunchesAction, runPenaltiesAction, saveAttendanceSettingsAction, saveZoneAction, setZoneActiveAction, testZoneAction,
+} from '../actions';
+import { AttendanceSettingsForm, DeviceForm, DeviceImportForm } from '../attendance-forms';
+import { ZoneEditor, ZoneTest, type ZoneRow } from '../automation-client';
 import { hours } from './status';
 
 export async function AnalyticsTab({ ctx, today }: { ctx: OrgContext; today: string }) {
@@ -121,27 +128,83 @@ export async function DevicesTab({ ctx, slug }: { ctx: OrgContext; slug: string 
 export async function SettingsTab({ ctx, slug }: { ctx: OrgContext; slug: string }) {
   const [setup, structure, att] = await Promise.all([rulesSetup(ctx.org.id), getStructure(ctx.org.id), getAttendanceSetup(ctx.org.id)]);
   const locName = new Map(structure.locations.map((l) => [l.id, l.name]));
+  const locations = structureOptions(structure).locations;
   const s = setup.settings;
+  const today = todayIn(ctx.org.timezone);
+  const startDay = s?.cycle_start_day ?? 1;
+  // The cycle under way, and the one that ended most recently.
+  const curCycle = attendanceCycleMonth(today, startDay);
+  const lastCycle = `${addDays(curCycle, -1).slice(0, 7)}-01`;
+  const last = attendanceCycle(lastCycle, startDay);
+  const auto = setup.shifts.filter((r) => r.deduct_absent);
+  const zones: ZoneRow[] = att.geofences.map((g) => ({
+    id: g.id, location_id: g.location_id, name: g.name, shape: g.shape as ZoneShape, latitude: Number(g.latitude), longitude: Number(g.longitude),
+    radius_m: g.radius_m, points: (g.points as LatLng[] | null) ?? null, is_active: g.is_active,
+  }));
   return (
-    <div className="grid gap-5 xl:grid-cols-2">
-      <Panel title="Attendance settings">
-        <AttendanceSettingsForm action={saveAttendanceSettingsAction.bind(null, slug)} settings={{
-          cycle_start_day: s?.cycle_start_day ?? 1, remind_missing_checkout: s?.remind_missing_checkout ?? true, pending_digest: s?.pending_digest ?? true,
-          late_punch_alert: s?.late_punch_alert ?? false, skip_level_approval: s?.skip_level_approval ?? false, allowed_ips: s?.allowed_ips ?? [],
-        }} />
-      </Panel>
-      <Panel title="Geofences" meta="punches outside the fence are flagged for review, not refused" flush>
-        {att.geofences.length > 0 && (
-          <ul className="divide-y divide-line text-sm" aria-label="Geofences">
-            {att.geofences.map((g) => (
-              <li key={g.id} className="flex justify-between px-5 py-2.5">
-                <span className="font-medium">{g.name} · {locName.get(g.location_id) ?? 'Archived location'}</span>
-                <span className="tabular-nums text-muted">{Number(g.latitude)}, {Number(g.longitude)} · {g.radius_m} m</span>
-              </li>
-            ))}
+    <div className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-2">
+        <Panel title="Attendance settings">
+          <AttendanceSettingsForm action={saveAttendanceSettingsAction.bind(null, slug)} settings={{
+            cycle_start_day: startDay, remind_missing_checkout: s?.remind_missing_checkout ?? true, pending_digest: s?.pending_digest ?? true,
+            late_punch_alert: s?.late_punch_alert ?? false, skip_level_approval: s?.skip_level_approval ?? false, allowed_ips: s?.allowed_ips ?? [],
+            daily_summary: s?.daily_summary ?? false, punch_reminders: s?.punch_reminders ?? false, comp_off_notify_employee: s?.comp_off_notify_employee ?? false,
+            comp_off_notify_hr: s?.comp_off_notify_hr ?? false, regularize_days_back: s?.regularize_days_back ?? 60, regularize_monthly_limit: s?.regularize_monthly_limit ?? null,
+          }} />
+        </Panel>
+        <Panel title="Automatic deduction" meta="penalties and absent days, per attendance cycle">
+          <div className="space-y-4 text-sm">
+            <p className="text-muted">
+              Rules with automatic deduction get their penalties applied and absent days deducted from salary the morning after each cycle ends.
+              Other rules’ penalties are applied when you run them. Payroll picks the deductions up for the month the cycle ends in.
+            </p>
+            <p>{auto.length ? <>On for <strong>{auto.map((r) => r.name).join(', ')}</strong>.</> : 'No rule has automatic deduction on (Rules › Behaviour & anomaly).'}</p>
+            <p className="text-muted">Last cycle: {formatDate(last.from)} – {formatDate(last.to)}{s?.last_deduction_cycle ? ` · automatic deduction last ran for the ${new Date(`${s.last_deduction_cycle}T00:00:00Z`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' })} cycle` : ''}.</p>
+            <div className="flex flex-wrap gap-2">
+              <ActionForm action={runPenaltiesAction.bind(null, slug)} label="Run penalty deduction for the last cycle" submit="Run for the last cycle" size="sm" hidden={{ month: lastCycle.slice(0, 7) }} className="flex flex-col gap-2" />
+              <ActionForm action={runPenaltiesAction.bind(null, slug)} label="Run penalty deduction for the current cycle" submit="Run for the current cycle so far" size="sm" variant="secondary" hidden={{ month: curCycle.slice(0, 7) }} className="flex flex-col gap-2" />
+            </div>
+          </div>
+        </Panel>
+      </div>
+
+      <Panel title="Zones" meta="circles, rectangles and polygons per location; rules that verify the location use them" flush>
+        {zones.length === 0 ? <p className="px-5 pb-3 text-sm text-muted">No zones yet.</p> : (
+          <ul className="divide-y divide-line" aria-label="Zones">
+            {zones.map((z) => {
+              const m = zoneMeasures(z.shape, z.points, z.radius_m);
+              return (
+                <li key={z.id} className="px-5 py-3">
+                  <details>
+                    <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-3">
+                      <span>
+                        <span className="font-medium">{z.name}</span> <span className="text-xs text-muted">· {locName.get(z.location_id) ?? 'Archived location'}</span>
+                        {!z.is_active && <span className="ml-2"><Badge>Off</Badge></span>}
+                        <span className="block text-xs text-muted">{ZONE_SHAPE_LABELS[z.shape]} · {z.shape === 'circle' ? `${z.radius_m} m around ${z.latitude}, ${z.longitude}` : `${z.points?.length ?? 0} corners`} · {m.area >= 10_000 ? `${(m.area / 10_000).toFixed(2)} ha` : `${Math.round(m.area).toLocaleString('en-IN')} m²`}</span>
+                      </span>
+                      <span className="text-xs text-primary">Edit</span>
+                    </summary>
+                    <div className="mt-3 space-y-3 rounded-xl border border-line p-4">
+                      <ZoneEditor action={saveZoneAction.bind(null, slug)} locations={locations} zone={z} />
+                      <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+                        <ButtonAction action={setZoneActiveAction.bind(null, slug, z.id, !z.is_active)} aria={`${z.is_active ? 'Switch off' : 'Switch on'} zone ${z.name}`} label={z.is_active ? 'Switch off' : 'Switch on'} variant="ghost" />
+                        <ButtonAction action={deleteZoneAction.bind(null, slug, z.id)} aria={`Remove zone ${z.name}`} label="Remove" variant="ghost" />
+                      </div>
+                    </div>
+                  </details>
+                </li>
+              );
+            })}
           </ul>
         )}
-        <GeofenceForm action={createGeofenceAction.bind(null, slug)} locations={structureOptions(structure).locations} />
+        <div className="border-t border-line px-5 py-4">
+          <p className="mb-3 text-sm font-semibold">New zone</p>
+          <ZoneEditor action={saveZoneAction.bind(null, slug)} locations={locations} />
+        </div>
+      </Panel>
+
+      <Panel title="Test punch" meta="where would a check-in here fall?">
+        <ZoneTest action={testZoneAction.bind(null, slug)} locations={locations} />
       </Panel>
     </div>
   );

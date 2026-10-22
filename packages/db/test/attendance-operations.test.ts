@@ -179,7 +179,7 @@ describe('penalties', () => {
     if (lateDays.length < 3) return; // too early in the month for three past weekdays; covered on other days
     await ctx.t.asUser(f.users.hrA, async (tx) => {
       await tx.exec('reset role');
-      await tx.query('update shifts set late_marks_allowed = 1, late_penalty_days = 0.5 where id = $1', [await defaultShift(tx)]);
+      await tx.query(`update shifts set penalties_enabled = true, late_marks_allowed = 1, late_method = 'half_day' where id = $1`, [await defaultShift(tx)]);
       for (const [i, d] of lateDays.entries()) {
         await punch(tx, f.employees.peerA, d, '10:30', `lt${i}a`);
         await punch(tx, f.employees.peerA, d, '19:30', `lt${i}b`);
@@ -189,7 +189,7 @@ describe('penalties', () => {
       await as(tx, f.users.hrA);
       await tx.query('select run_attendance_penalties($1, $2)', [f.orgA, month]);
       const pen = (await tx.query<{ id: string; occurrences: number; days: string }>('select id, occurrences, days from attendance_penalties where employee_id = $1', [f.employees.peerA])).rows;
-      expect(pen).toMatchObject([{ occurrences: 2, days: '1.0' }]);
+      expect(pen).toMatchObject([{ occurrences: 2, days: '1.00' }]);
 
       // Payroll sees it.
       await tx.exec('reset role');

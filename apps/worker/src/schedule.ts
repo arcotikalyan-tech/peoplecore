@@ -14,6 +14,7 @@ export interface ScheduledJob {
  */
 export function dueJobs(now: Date): ScheduledJob[] {
   const hour = now.toISOString().slice(0, 13); // e.g. 2026-10-18T05
+  const quarter = String(Math.floor(now.getUTCMinutes() / 15) * 15).padStart(2, '0');
   return [
     { kind: 'core_hr.daily', key: `core_hr.daily:${hour}`, payload: { hour } },
     { kind: 'leave.accrual', key: `leave.accrual:${hour}`, payload: { hour } },
@@ -45,7 +46,11 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'learning.rules', key: `learning.rules:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // Timesheet reminders: missing hours at 6 pm on working days, the weekly reminder on Friday at 4 pm (local time).
     { kind: 'timesheet.reminders', key: `timesheet.reminders:${hour}`, payload: { hour } },
+    // Automatic deduction: penalties and absent days, the morning after each attendance cycle ends (local time).
+    { kind: 'attendance.deductions', key: `attendance.deductions:${hour}`, payload: { hour } },
     // Every 15 minutes: the shortest helpdesk SLA is 4 hours, so a breach is flagged within a quarter of it.
-    { kind: 'helpdesk.sla', key: `helpdesk.sla:${hour}:${String(Math.floor(now.getUTCMinutes() / 15) * 15).padStart(2, '0')}`, payload: { hour } },
+    { kind: 'helpdesk.sla', key: `helpdesk.sla:${hour}:${quarter}`, payload: { hour } },
+    // Every 15 minutes: automatic clock-in at shift starts and clock-out at shift ends.
+    { kind: 'attendance.auto_clock', key: `attendance.auto_clock:${hour}:${quarter}`, payload: { hour } },
   ];
 }

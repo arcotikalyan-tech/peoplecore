@@ -7,9 +7,11 @@ import { Table, Td, Th } from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/format';
 import type { OrgContext } from '@/server/context';
 import { getMyMonth, getPunches, getRegularizations } from '@/server/attendance';
-import { attendanceRequests, myRule } from '@/server/attendance-ops';
-import { punchAction, regularizeAction, requestAttendanceAction } from '../actions';
+import { attendanceRequests, myRule, regularizationCandidates, regularizationWindow } from '@/server/attendance-ops';
+import { bulkRegularizeAction, punchAction, regularizeAction, requestAttendanceAction } from '../actions';
 import { AttendanceRequestForm, PunchButton, RegularizeForm, RuleEditor, WorkWeekGrid } from '../attendance-forms';
+import { ruleValues } from '../rule-values';
+import { BulkRegularizeForm } from '../automation-client';
 import { clock, hours, StatusChip } from './status';
 
 interface Me { id: string }
@@ -38,9 +40,13 @@ function monthFigures(month: Month, tz: string) {
 /** The employee's own hub: today, the month, and asking for corrections, work from home or on duty. */
 export async function MyHub({ ctx, slug, me, today }: { ctx: OrgContext; slug: string; me: Me; today: string }) {
   const tz = ctx.org.timezone;
-  const [month, punches, regs, requests] = await Promise.all([
+  const [month, punches, regs, requests, regWindow] = await Promise.all([
     getMyMonth(me.id, today), getPunches(ctx.org.id, me.id, 36), getRegularizations(ctx.org.id, me.id), attendanceRequests(ctx.org.id, { employeeId: me.id }),
+    regularizationWindow(ctx.org.id),
   ]);
+  const earliest = addDays(today, -regWindow.daysBack);
+  const pendingDays = new Set(regs.filter((r) => r.status === 'pending').map((r) => r.work_date));
+  const fixable = (await regularizationCandidates(ctx.org.id, me.id, earliest, addDays(today, -1))).filter((d) => !pendingDays.has(d.work_date));
   const time = clock(tz);
   const localDate = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(iso));
   const todayPunches = punches.filter((p) => localDate(p.punched_at) === today);
@@ -83,7 +89,7 @@ export async function MyHub({ ctx, slug, me, today }: { ctx: OrgContext; slug: s
         </Panel>
       </div>
       <div className="space-y-5">
-        <Panel title="Regularize a day" meta="missed a punch? your manager approves the correction" flush>
+        <Panel title="Regularize a day" meta={`missed a punch? your manager approves the correction · up to ${regWindow.daysBack} days back${regWindow.monthlyLimit ? ` · ${regWindow.monthlyLimit} a month` : ''}`} flush>
           <RegularizeForm action={regularizeAction.bind(null, slug)} maxDate={today} />
           {regs.length > 0 && (
             <ul className="divide-y divide-line border-t border-line text-sm" aria-label="Your regularizations">
@@ -95,6 +101,12 @@ export async function MyHub({ ctx, slug, me, today }: { ctx: OrgContext; slug: s
               ))}
             </ul>
           )}
+        </Panel>
+        <Panel title="Regularize several days" meta="the same times for each day you pick" flush>
+          <BulkRegularizeForm action={bulkRegularizeAction.bind(null, slug)} days={fixable.map((d) => ({
+            date: d.work_date,
+            label: `${formatDate(d.work_date)} · ${d.punch_count % 2 === 1 ? 'missing punch' : d.status === 'absent' ? 'absent' : d.status === 'half_day' ? 'half day' : `late ${d.late_minutes} min`}`,
+          }))} />
         </Panel>
         <Panel title="Work from home or on duty" meta="your manager approves">
           <AttendanceRequestForm action={requestAttendanceAction.bind(null, slug)} minDate={addDays(today, -30)} maxDate={addDays(today, 90)} />
@@ -168,13 +180,7 @@ export async function MyRule({ ctx, me, today }: { ctx: OrgContext; me: Me; toda
   return (
     <div className="grid gap-5 xl:grid-cols-2">
       <Panel title="My attendance rule" meta="read-only; set by HR">
-        {shift ? <RuleEditor readOnly rule={{
-          id: shift.id, name: shift.name, description: shift.description, start_time: shift.start_time, end_time: shift.end_time,
-          break_minutes: shift.break_minutes, grace_minutes: shift.grace_minutes, early_grace_minutes: shift.early_grace_minutes,
-          full_day_minutes: shift.full_day_minutes, half_day_minutes: shift.half_day_minutes, verify_selfie: shift.verify_selfie,
-          verify_geofence: shift.verify_geofence, verify_ip: shift.verify_ip, overtime_after_minutes: shift.overtime_after_minutes,
-          comp_off_min_minutes: shift.comp_off_min_minutes, late_marks_allowed: shift.late_marks_allowed, late_penalty_days: Number(shift.late_penalty_days),
-        }} /> : <p className="text-sm text-muted">No rule applies yet. Ask HR.</p>}
+        {shift ? <RuleEditor readOnly rule={ruleValues(shift)} /> : <p className="text-sm text-muted">No rule applies yet. Ask HR.</p>}
       </Panel>
       <Panel title="My work week" meta={week?.name}>
         {week ? <WorkWeekGrid pattern={week.pattern} /> : <p className="text-sm text-muted">Your holiday calendar’s weekly offs apply.</p>}

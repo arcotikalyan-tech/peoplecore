@@ -119,18 +119,62 @@ export async function monthGrid(orgId: string, month: string, opts: { q?: string
 export async function penaltyLog(orgId: string, month: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.from('attendance_penalties')
-    .select('id, employee_id, cycle_month, kind, occurrences, days, detail, applied_at, reverted_at')
-    .eq('organization_id', orgId).eq('cycle_month', `${month.slice(0, 7)}-01`).order('applied_at', { ascending: false }).limit(500);
+    .select('id, employee_id, cycle_month, kind, occurrences, days, total_days, method, leave_split, detail, applied_at, reverted_at')
+    .eq('organization_id', orgId).eq('cycle_month', `${month.slice(0, 7)}-01`).gt('total_days', 0)
+    .order('applied_at', { ascending: false }).limit(1000);
   if (error) throw new Error(`Failed to load penalties (${error.code})`);
-  return data.map((p) => ({ ...p, days: Number(p.days) }));
+  return data.map((p) => ({
+    ...p, days: Number(p.days), total_days: Number(p.total_days),
+    leave_split: (p.leave_split as Array<{ leaveTypeId: string; days: number }> | null) ?? [],
+  }));
 }
 
+/** Comp-off with the day's check-in, check-out and worked time. */
 export async function compOffLog(orgId: string, from: string, to: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('comp_off_credits').select('employee_id, work_date, days, status, credited_at, reverted_at')
+  const { data, error } = await supabase.from('comp_off_credits').select('employee_id, work_date, days, status, credited_at, reverted_at, decided_at')
     .eq('organization_id', orgId).gte('work_date', from).lte('work_date', to).order('work_date', { ascending: false }).limit(500);
   if (error) throw new Error(`Failed to load comp-off (${error.code})`);
-  return data.map((c) => ({ ...c, days: Number(c.days) }));
+  const ids = [...new Set(data.map((c) => c.employee_id))];
+  const days = ids.length
+    ? (await supabase.from('attendance_days').select('employee_id, work_date, first_in, last_out, worked_minutes')
+        .in('employee_id', ids).gte('work_date', from).lte('work_date', to).limit(5000)).data ?? []
+    : [];
+  const byKey = new Map(days.map((d) => [`${d.employee_id}:${d.work_date}`, d]));
+  return data.map((c) => {
+    const d = byKey.get(`${c.employee_id}:${c.work_date}`);
+    return { ...c, days: Number(c.days), first_in: d?.first_in ?? null, last_out: d?.last_out ?? null, worked: d?.worked_minutes ?? 0 };
+  });
+}
+
+/** Paid leave types penalties can come out of. */
+export async function penaltyLeaveTypes(orgId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from('leave_types').select('id, name, code').eq('organization_id', orgId).eq('is_active', true).eq('is_paid', true).order('name');
+  return (data ?? []).map((t) => ({ value: t.id, label: t.name }));
+}
+
+/** The caller's saved views for a page. */
+export async function savedViews(orgId: string, page: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from('saved_views').select('id, name, params').eq('organization_id', orgId).eq('page', page).order('name').limit(50);
+  return (data ?? []).map((v) => ({ id: v.id, name: v.name, params: (v.params ?? {}) as Record<string, string> }));
+}
+
+/** How far back employees may regularize, and the monthly cap (attendance settings). */
+export async function regularizationWindow(orgId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from('attendance_settings').select('regularize_days_back, regularize_monthly_limit').eq('organization_id', orgId).maybeSingle();
+  return { daysBack: data?.regularize_days_back ?? 60, monthlyLimit: data?.regularize_monthly_limit ?? null };
+}
+
+/** Days someone might want to correct: absent, a missing punch, or late, from `from` to yesterday. */
+export async function regularizationCandidates(orgId: string, employeeId: string, from: string, to: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from('attendance_days').select('work_date, status, punch_count, late_minutes')
+    .eq('organization_id', orgId).eq('employee_id', employeeId).gte('work_date', from).lte('work_date', to)
+    .order('work_date', { ascending: false }).limit(120);
+  return (data ?? []).filter((d) => d.status === 'absent' || d.status === 'half_day' || d.punch_count % 2 === 1 || d.late_minutes > 0);
 }
 
 export async function overtimeLog(orgId: string, from: string, to: string) {
@@ -174,20 +218,15 @@ export async function rulesSetup(orgId: string) {
 /** The rule and work week that apply to one person today (read-only view for employees). */
 export async function myRule(orgId: string, employeeId: string, today: string) {
   const supabase = await createClient();
-  const [roster, defaults, weekAssign, defaultWeek] = await Promise.all([
-    supabase.from('roster_assignments').select('shift_id').eq('employee_id', employeeId).lte('effective_from', today)
-      .or(`effective_to.is.null,effective_to.gte.${today}`).maybeSingle(),
-    supabase.from('shifts').select('*').eq('organization_id', orgId).eq('is_default', true).maybeSingle(),
+  const [rule, weekAssign, defaultWeek] = await Promise.all([
+    supabase.rpc('attendance_rule_for', { p_employee: employeeId, p_date: today }),
     supabase.from('work_week_assignments').select('rule_id').eq('employee_id', employeeId).lte('effective_from', today).order('effective_from', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('work_week_rules').select('*').eq('organization_id', orgId).eq('is_default', true).maybeSingle(),
   ]);
-  const shift = roster.data?.shift_id
-    ? (await supabase.from('shifts').select('*').eq('id', roster.data.shift_id).maybeSingle()).data
-    : defaults.data;
   const week = weekAssign.data?.rule_id
     ? (await supabase.from('work_week_rules').select('*').eq('id', weekAssign.data.rule_id).maybeSingle()).data
     : defaultWeek.data;
-  return { shift: shift ?? null, week: week ?? null };
+  return { shift: rule.data?.[0] ?? null, week: week ?? null };
 }
 
 export async function structureNames(orgId: string) {

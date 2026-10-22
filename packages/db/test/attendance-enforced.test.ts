@@ -82,7 +82,7 @@ describe('attendance rules enforced', () => {
         ($1, $2, app.org_today($1) - 1, 'present', 1, 0), ($1, $3, app.org_today($1), 'present', 1, 25)`, [f.orgA, f.employees.icA, f.employees.icA]);
       const first = (await tx.query<{ v: { missing_checkout: number; digests: number; late_alerts: number } }>('select worker_attendance_reminders() as v')).rows[0]!.v;
       const second = (await tx.query<{ v: Record<string, number> }>('select worker_attendance_reminders() as v')).rows[0]!.v;
-      expect(second).toEqual({ missing_checkout: 0, digests: 0, late_alerts: 0 });
+      expect(second).toEqual({ missing_checkout: 0, digests: 0, late_alerts: 0, summaries: 0, punch_reminders: 0 });
       // Whether anything went out depends on the local hour (10 am / 11 am); never twice on the same day.
       expect(first.missing_checkout).toBeLessThanOrEqual(1);
       expect(first.late_alerts).toBeLessThanOrEqual(1);
