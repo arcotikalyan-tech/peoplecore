@@ -59,7 +59,7 @@ jobs:
           if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
           else echo "::notice::Supabase secrets not set; skipping migrations."; fi
       - if: steps.ready.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
       - if: steps.ready.outputs.ok == 'true'
@@ -89,7 +89,7 @@ jobs:
           if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
           else echo "::notice::Vercel secrets not set; skipping the web deploy."; fi
       - if: steps.ready.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
       - if: steps.ready.outputs.ok == 'true'

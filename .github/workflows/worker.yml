@@ -35,7 +35,7 @@ jobs:
           if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_SECRET_KEY" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
           else echo "::notice::Worker secrets not set; skipping."; fi
       - if: steps.ready.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - if: steps.ready.outputs.ok == 'true'
         uses: actions/setup-node@v4
         with:
