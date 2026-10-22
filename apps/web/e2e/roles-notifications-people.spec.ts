@@ -16,6 +16,7 @@ let orgId = '';
 let devId = '';
 let devUser = '';
 let priorBefore: number | null = null;
+let rulesBefore: Array<{ event: string; audience: string; enabled: boolean }> = [];
 
 const section = (page: Page, title: string) => page.locator('section').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
 
@@ -25,10 +26,12 @@ test.beforeAll(async () => {
   devId = dev.id;
   devUser = dev.user_id!;
   priorBefore = dev.prior_experience_months;
+  rulesBefore = (await admin.from('notification_email_rules').select('event, audience, enabled').eq('organization_id', orgId)).data ?? [];
 });
 
 test.afterAll(async () => {
   await admin.from('notification_email_rules').delete().eq('organization_id', orgId);
+  if (rulesBefore.length) await admin.from('notification_email_rules').insert(rulesBefore.map((r) => ({ ...r, organization_id: orgId })));
   await admin.from('email_outbox').delete().eq('organization_id', orgId).gte('created_at', startedAt);
   const { data: leaves } = await admin.from('leave_requests').select('id').eq('employee_id', devId).ilike('reason', `%${run}%`);
   if (leaves?.length) await admin.from('leave_requests').delete().in('id', leaves.map((l) => l.id));
@@ -63,7 +66,7 @@ test('the owner emails HR about leave applications; the email waits in the outbo
   const form = page.getByRole('form', { name: 'Email notifications' });
   await form.getByRole('checkbox', { name: 'Leave application: email hr administrators' }).check();
   await form.getByRole('button', { name: 'Save email notifications' }).click();
-  await expect(page.getByText('Email notifications saved: 1 switched on.')).toBeVisible();
+  await expect(page.getByText(/^Email notifications saved: \d+ switched on\.$/)).toBeVisible();
 
   const cl = (await admin.from('leave_types').select('id').eq('organization_id', orgId).eq('code', 'CL').single()).data!.id;
   await admin.from('leave_requests').insert({ organization_id: orgId, employee_id: devId, leave_type_id: cl, start_date: '2027-03-01', end_date: '2027-03-02', days: 2, reason: `E2E ${run}`, status: 'pending', requested_by: devUser });
