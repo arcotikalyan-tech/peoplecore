@@ -83,3 +83,10 @@ export async function signImageUrls(paths: Array<string | null | undefined>): Pr
   if (error || !data) return new Map();
   return new Map(data.flatMap((d) => (d.path && d.signedUrl ? [[d.path, d.signedUrl] as [string, string]] : [])));
 }
+
+/** A company logo's bytes (for a payslip PDF), for a logo path the caller read through RLS. Null if it can't be read. */
+export async function readLogoFile(path: string): Promise<Uint8Array | null> {
+  if (!LOGO_PATH.test(path)) throw new Error('Invalid document path');
+  const { data, error } = await createAdminClient().storage.from(IMAGE_BUCKET).download(path);
+  return error || !data ? null : new Uint8Array(await data.arrayBuffer());
+}

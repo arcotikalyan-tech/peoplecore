@@ -1,12 +1,26 @@
 /**
- * A payslip as a PDF, with no dependencies: A4, the standard Helvetica fonts (so nothing is embedded), text and
- * rules only, uncompressed. The same input always gives the same bytes; there is no creation date.
+ * A payslip as a PDF, with no dependencies: A4, the standard Helvetica fonts (so nothing is embedded), text, rules and
+ * the company logo, uncompressed apart from the logo. The same input always gives the same bytes; there is no creation
+ * date.
  *
  * The standard fonts cover Latin-1 only: other characters (for example a name in Devanagari) print as "?".
  * The on-screen payslip shows them correctly.
  */
 
 export interface PayslipLine { name: string; amount: number }
+
+/** An image ready for a PDF: a JPEG as is, or zlib-compressed 8-bit samples (with transparency, if any). */
+export interface PdfImage {
+  width: number;
+  height: number;
+  colorSpace: 'DeviceRGB' | 'DeviceGray' | 'DeviceCMYK';
+  filter: 'DCTDecode' | 'FlateDecode';
+  data: Uint8Array;
+  /** Transparency as zlib-compressed 8-bit gray samples (FlateDecode images only). */
+  alpha?: Uint8Array;
+  /** Adobe CMYK JPEGs store their samples inverted. */
+  invert?: boolean;
+}
 
 export interface PayslipDocument {
   organization: string;
@@ -20,7 +34,11 @@ export interface PayslipDocument {
   totals: { gross: number; deductions: number; net: number };
   /** Two decimals (₹1,234.00, the default) or whole rupees (Payroll › Settings › Show paise). */
   showPaise?: boolean;
+  /** The company logo, top right on the first page (at most 160 × 40 pt, its proportions kept). */
+  logo?: PdfImage | null;
 }
+
+const LOGO_BOX = { width: 160, height: 40 };
 
 const PAGE = { width: 595, height: 842, left: 56, right: 539, top: 786, bottom: 72 };
 const amountFormat = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -70,6 +88,9 @@ class Pages {
     const s = this.format(n);
     this.text(PAGE.right - numberWidth(s, size), s, size, bold);
   }
+  image(x: number, y: number, w: number, h: number) {
+    this.ops.push(`q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /Im1 Do Q`);
+  }
   rule(weight = 0.5) {
     this.ops.push(`${weight} w ${PAGE.left} ${(this.y - 6).toFixed(2)} m ${PAGE.right} ${(this.y - 6).toFixed(2)} l S`);
   }
@@ -77,6 +98,12 @@ class Pages {
 
 export function payslipPdf(doc: PayslipDocument): Uint8Array {
   const p = new Pages(doc.showPaise === false ? (n) => wholeFormat.format(n) : payslipAmount);
+  if (doc.logo) {
+    const scale = Math.min(LOGO_BOX.width / doc.logo.width, LOGO_BOX.height / doc.logo.height);
+    const [w, h] = [doc.logo.width * scale, doc.logo.height * scale];
+    // Top edge level with the top of the company name.
+    p.image(PAGE.right - w, PAGE.top + 14 - h, w, h);
+  }
   p.text(PAGE.left, doc.organization, 16, true);
   p.down(22);
   p.text(PAGE.left, `Payslip for ${payslipMonth(doc.periodMonth)}`, 12);
@@ -128,12 +155,30 @@ export function payslipPdf(doc: PayslipDocument): Uint8Array {
   p.down(40);
   p.text(PAGE.left, 'Amounts are in Indian rupees. This payslip is computer generated and needs no signature.', 8);
 
-  return assemble(p.pages);
+  return assemble(p.pages, doc.logo ?? null);
 }
 
-function assemble(pages: string[][]): Uint8Array {
-  // 1 catalog, 2 pages, 3 Helvetica, 4 Helvetica-Bold, then a page and its content stream per page.
+/** Bytes as a string of the same length (every character below 256), the form the rest of the file is built in. */
+function binary(bytes: Uint8Array) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  return s;
+}
+
+function imageObjects(img: PdfImage, id: number): string[] {
+  const common = `/Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height} /BitsPerComponent 8`;
+  const mask = img.alpha ? ` /SMask ${id + 1} 0 R` : '';
+  const decode = img.invert ? ' /Decode [1 0 1 0 1 0 1 0]' : '';
+  const objects = [`<< ${common} /ColorSpace /${img.colorSpace} /Filter /${img.filter}${decode}${mask} /Length ${img.data.length} >>\nstream\n${binary(img.data)}\nendstream`];
+  if (img.alpha) objects.push(`<< ${common} /ColorSpace /DeviceGray /Filter /FlateDecode /Length ${img.alpha.length} >>\nstream\n${binary(img.alpha)}\nendstream`);
+  return objects;
+}
+
+function assemble(pages: string[][], logo: PdfImage | null): Uint8Array {
+  // 1 catalog, 2 pages, 3 Helvetica, 4 Helvetica-Bold, then a page and its content stream per page, then the logo (and
+  // its transparency), used by the first page.
   const kids = pages.map((_, i) => `${5 + i * 2} 0 R`).join(' ');
+  const logoId = 5 + pages.length * 2;
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     `<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`,
@@ -143,10 +188,12 @@ function assemble(pages: string[][]): Uint8Array {
   for (const [i, ops] of pages.entries()) {
     const content = ops.join('\n');
     objects.push(
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.width} ${PAGE.height}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${6 + i * 2} 0 R >>`,
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.width} ${PAGE.height}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${
+        logo && i === 0 ? ` /XObject << /Im1 ${logoId} 0 R >>` : ''} >> /Contents ${6 + i * 2} 0 R >>`,
       `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
     );
   }
+  if (logo) objects.push(...imageObjects(logo, logoId));
   let pdf = '%PDF-1.4\n';
   const offsets: number[] = [];
   objects.forEach((o, i) => {
@@ -156,6 +203,6 @@ function assemble(pages: string[][]): Uint8Array {
   const xref = pdf.length;
   pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}`;
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  // Every character is Latin-1 by now, so one byte each: string offsets are byte offsets.
+  // Every character is Latin-1 (or a byte of the logo) by now, so one byte each: string offsets are byte offsets.
   return Uint8Array.from(pdf, (c) => c.charCodeAt(0));
 }
