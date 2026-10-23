@@ -24,6 +24,12 @@ test('an employee adds and removes their profile photo', async ({ page }) => {
   await expect(page.locator('header img').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Account menu' }).locator('img')).toBeVisible();
 
+  // The ID card shows the photo too (the demo's card design includes one).
+  const profile = page.url();
+  await open(page, '/app/demo/idstudio');
+  await expect(page.getByRole('region', { name: 'ID card for Dev Nair', exact: true }).getByRole('img', { name: 'Photo of Dev Nair' })).toBeVisible();
+  await open(page, profile);
+
   // Not a picture: refused, whatever the file is called.
   await form.getByLabel('Your profile photo').setInputFiles({ name: 'fake.png', mimeType: 'image/png', buffer: Buffer.from('not an image') });
   await form.getByRole('button', { name: 'Replace' }).click();

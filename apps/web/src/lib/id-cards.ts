@@ -53,6 +53,8 @@ export interface CardDesign {
 export interface CardPerson {
   id: string; name: string; code: string; designation: string | null; department: string | null; location: string | null; date_of_joining: string;
   blood_group: string | null; phone: string | null; work_email: string | null; emergency_contact: string | null; office_address: string | null;
+  /** The profile photo: a short-lived link on screen, a data: URI inside exported files; null shows initials. */
+  photo?: string | null;
 }
 
 /** A field's value for a person (the website is the company's). */

@@ -22,10 +22,12 @@ export function IdCard({ design, person, company, logoUrl, qrSvg, back = true, w
     }),
     ...design.custom_fields.map((c): [string, string] => [c.label, c.value]),
   ];
-  const photo = design.show_photo && (
-    <div aria-hidden style={{ background: design.accent_color, color: '#fff', borderRadius: t.photo === 'circle' ? '9999px' : t.photo === 'rounded' ? '10px' : '2px',
-      width: land ? '18mm' : '20mm', height: land ? '18mm' : '20mm', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '16px', flexShrink: 0,
-      border: `2px solid ${design.primary_color}` }}>{initials(person.name)}</div>
+  const frame = { borderRadius: t.photo === 'circle' ? '9999px' : t.photo === 'rounded' ? '10px' : '2px', width: land ? '18mm' : '20mm', height: land ? '18mm' : '20mm',
+    flexShrink: 0, border: `2px solid ${design.primary_color}` } as const;
+  const photo = design.show_photo && (person.photo
+    // eslint-disable-next-line @next/next/no-img-element -- a short-lived signed URL, printed at card size
+    ? <img src={person.photo} alt={`Photo of ${person.name}`} style={{ ...frame, objectFit: 'cover' }} />
+    : <div aria-hidden style={{ ...frame, background: design.accent_color, color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '16px' }}>{initials(person.name)}</div>
   );
   const header = (
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: t.align === 'center' ? 'center' : 'flex-start',

@@ -1,4 +1,5 @@
 import 'server-only';
+import { signImageUrls } from './document-storage';
 import QRCode from 'qrcode';
 import type { CardDesign, CardPerson, CustomLine } from '@/lib/id-cards';
 import { signImageUrl } from './document-storage';
@@ -18,7 +19,7 @@ export async function cardDesigns(orgId: string): Promise<CardDesign[]> {
 
 export async function cardPeople(orgId: string, filter: { ids?: string[]; departmentId?: string } = {}): Promise<CardPerson[]> {
   const supabase = await createClient();
-  let q = supabase.from('employees').select('id, employee_code, first_name, last_name, work_email, work_phone, date_of_joining, department_id, designation_id, location_id, job_title')
+  let q = supabase.from('employees').select('id, employee_code, first_name, last_name, work_email, work_phone, date_of_joining, department_id, designation_id, location_id, job_title, photo_path')
     .eq('organization_id', orgId).in('status', ['active', 'on_notice', 'pre_joining']);
   if (filter.ids) q = q.in('id', filter.ids.length ? filter.ids : ['00000000-0000-0000-0000-000000000000']);
   if (filter.departmentId) q = q.eq('department_id', filter.departmentId);
@@ -45,6 +46,7 @@ export async function cardPeople(orgId: string, filter: { ids?: string[]; depart
   const desig = new Map(structure.designations.map((d) => [d.id, d.title]));
   const loc = new Map(structure.locations.map((l) => [l.id, l.name]));
   const blood = new Map(personal.map((p) => [p.employee_id, p.blood_group]));
+  const photos = await signImageUrls(emps.map((e) => e.photo_path));
   const sos = new Map<string, string>();
   for (const c of emergency) if (!sos.has(c.employee_id)) sos.set(c.employee_id, `${c.name} · ${c.phone}`);
   return emps.map((e) => ({
@@ -52,6 +54,7 @@ export async function cardPeople(orgId: string, filter: { ids?: string[]; depart
     designation: (e.designation_id ? desig.get(e.designation_id) : null) ?? e.job_title ?? null, department: e.department_id ? dept.get(e.department_id) ?? null : null,
     location: e.location_id ? loc.get(e.location_id) ?? null : null, date_of_joining: e.date_of_joining, blood_group: blood.get(e.id) ?? null,
     phone: e.work_phone, work_email: e.work_email, emergency_contact: sos.get(e.id) ?? null, office_address: officeFor(e.location_id),
+    photo: e.photo_path ? photos.get(e.photo_path) ?? null : null,
   }));
 }
 

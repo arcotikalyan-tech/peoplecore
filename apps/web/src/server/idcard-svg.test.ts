@@ -33,6 +33,15 @@ describe('cardSvgs', () => {
     expect(back).toContain('<svg x="13" y="12" width="28" height="28"');
   });
 
+  it('puts the profile photo inside the frame when there is one, and initials otherwise', () => {
+    const withPhoto = cardSvgs({ design, person: { ...person, photo: 'data:image/png;base64,iVBORw0KGgo=' }, company: 'Example', website: null, logo: null, qrSvg: null }).front;
+    expect(withPhoto).toContain(`<clipPath id="photo-${person.id}">`);
+    expect(withPhoto).toContain('<image href="data:image/png;base64,iVBORw0KGgo="');
+    expect(withPhoto).toContain(`clip-path="url(#photo-${person.id})"`);
+    const without = cardSvgs({ design, person, company: 'Example', website: null, logo: null, qrSvg: null }).front;
+    expect(without).not.toContain('<clipPath');
+  });
+
   it('lays landscape ID cards out sideways and leaves the photo out when asked', () => {
     const { front } = cardSvgs({ design: { ...design, orientation: 'landscape', show_photo: false }, person, company: 'Example', website: null, logo: null, qrSvg: null });
     expect(front).toContain('width="86mm" height="54mm"');

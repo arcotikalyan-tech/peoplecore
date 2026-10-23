@@ -65,8 +65,16 @@ function idFront(c: SvgCardInput): string {
   if (d.show_photo) {
     const px = land ? left : centred ? W / 2 - photo / 2 : left;
     const r = t.photo === 'circle' ? photo / 2 : t.photo === 'rounded' ? 2.5 : 0.5;
-    parts.push(`<rect x="${px}" y="${y}" width="${photo}" height="${photo}" rx="${r}" fill="${d.accent_color}" stroke="${d.primary_color}" stroke-width="0.6"/>`,
-      text(px + photo / 2, y + photo / 2 + 2, initials(p.name), 5.5, { fill: '#ffffff', weight: 700, anchor: 'middle' }));
+    if (p.photo) {
+      // The photo inside the frame's shape (a data: URI, so the file keeps it), then the frame on top.
+      const clip = `photo-${p.id}`;
+      parts.push(`<clipPath id="${clip}"><rect x="${px}" y="${y}" width="${photo}" height="${photo}" rx="${r}"/></clipPath>`,
+        `<image href="${esc(p.photo)}" x="${px}" y="${y}" width="${photo}" height="${photo}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clip})"/>`,
+        `<rect x="${px}" y="${y}" width="${photo}" height="${photo}" rx="${r}" fill="none" stroke="${d.primary_color}" stroke-width="0.6"/>`);
+    } else {
+      parts.push(`<rect x="${px}" y="${y}" width="${photo}" height="${photo}" rx="${r}" fill="${d.accent_color}" stroke="${d.primary_color}" stroke-width="0.6"/>`,
+        text(px + photo / 2, y + photo / 2 + 2, initials(p.name), 5.5, { fill: '#ffffff', weight: 700, anchor: 'middle' }));
+    }
     if (land) tx = left + photo + 4;
     else y += photo + 5;
   } else y += 4;

@@ -49,7 +49,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
   const enc = new TextEncoder();
   for (const p of people) {
-    const { front, back } = cardSvgs({ design, person: p, company: company.name, website: company.website, logo, qrSvg: await cardQr(design, p, company.name) });
+    // The photo goes inside the file (a data: URI), so saved and printed cards keep it after the link expires.
+    let photo: string | null = null;
+    if (design.show_photo && p.photo) {
+      const res = await fetch(p.photo, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+      if (res?.ok) {
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        photo = `data:${bytes[0] === 0x89 ? 'image/png' : 'image/jpeg'};base64,${Buffer.from(bytes).toString('base64')}`;
+      }
+    }
+    const { front, back } = cardSvgs({ design, person: { ...p, photo }, company: company.name, website: company.website, logo, qrSvg: await cardQr(design, p, company.name) });
     const base = safe(`${p.code} ${p.name}`);
     files.push({ name: `${base} - front.svg`, data: enc.encode(front) }, { name: `${base} - back.svg`, data: enc.encode(back) });
   }
