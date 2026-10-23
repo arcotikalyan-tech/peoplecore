@@ -114,7 +114,10 @@ async function Daily({ ctx, orgBase, base, today, p }: { ctx: OrgContext; orgBas
             <tr key={r.id}>
               <Td><Link href={`${orgBase}/employees/${r.id}`} className="flex items-center gap-2.5 font-medium hover:underline"><Avatar name={r.name} size="sm" /><span>{r.name}<span className="block text-xs font-normal text-muted">{r.code}</span></span></Link></Td>
               <Td className="text-muted">{r.departmentId ? dept.get(r.departmentId) ?? '—' : '—'}</Td>
-              <Td className="tabular-nums">{time(r.firstIn)}</Td>
+              {/* In and out open the day's punches (with their check-in photos) on the person's profile. */}
+              <Td className="tabular-nums">{r.firstIn
+                ? <Link href={`${orgBase}/employees/${r.id}?tab=attendance&view=logs&date=${date}`} className="hover:underline" aria-label={`Punches of ${r.name} on ${formatDate(date)}`}>{time(r.firstIn)}</Link>
+                : time(r.firstIn)}</Td>
               <Td className="tabular-nums">{time(r.lastOut)}</Td>
               <Td className="tabular-nums">{hours(r.worked)}</Td>
               <Td className={cn('tabular-nums', r.late ? 'text-warning' : 'text-muted')}>{r.late ? `${r.late} min` : '—'}</Td>

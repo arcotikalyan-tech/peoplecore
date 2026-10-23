@@ -54,7 +54,7 @@ export async function punchesOn(orgId: string, employeeId: string, date: string)
   const supabase = await createClient();
   const from = new Date(`${date}T00:00:00Z`); from.setUTCHours(-14);
   const to = new Date(`${date}T00:00:00Z`); to.setUTCHours(38);
-  const { data, error } = await supabase.from('attendance_punches').select('id, punched_at, method, latitude, longitude')
+  const { data, error } = await supabase.from('attendance_punches').select('id, punched_at, method, latitude, longitude, selfie_path')
     .eq('organization_id', orgId).eq('employee_id', employeeId).gte('punched_at', from.toISOString()).lt('punched_at', to.toISOString()).order('punched_at');
   if (error) throw new Error(`Failed to load punches (${error.code})`);
   return data;

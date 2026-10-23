@@ -23,7 +23,7 @@ const hm = (mins: number) => `${Math.floor(mins / 60)}h ${String(mins % 60).padS
 
 /** Attendance: calendar, daily logs (punches), the rule that applies, and requests. */
 export async function AttendanceTab(p: ProfileProps) {
-  const { ctx, id, sp, today, href, base, isSelf } = p;
+  const { ctx, id, sp, today, href, base, isSelf, slug } = p;
   const view = ['calendar', 'logs', 'rule', 'requests'].includes(sp.view ?? '') ? sp.view! : 'calendar';
   const tabs = [{ key: 'calendar', label: '📅 Calendar' }, { key: 'logs', label: '📊 Logs' }, { key: 'rule', label: '📐 My Rule' }, { key: 'requests', label: '📩 My Requests' }];
   const path = href('attendance').split('?')[0]!;
@@ -97,11 +97,16 @@ export async function AttendanceTab(p: ProfileProps) {
           {punches.length === 0 ? <Empty icon="🕘" title="No attendance record for this date" /> : (
             <div className="overflow-x-auto px-5 pb-3">
               <table className="w-full text-sm" aria-label="Punches">
-                <thead className="text-left text-[11px] uppercase tracking-wider text-muted"><tr><th className="py-2">SI No</th><th>Time</th><th>Type</th><th>Location</th></tr></thead>
+                <thead className="text-left text-[11px] uppercase tracking-wider text-muted"><tr><th className="py-2">SI No</th><th>Time</th><th>Type</th><th>Location</th><th>Photo</th></tr></thead>
                 <tbody className="divide-y divide-line">
                   {punches.map((x, i) => (
                     <tr key={x.id}><td className="py-2">{i + 1}</td><td>{time(x.punched_at)}</td><td>{i % 2 === 0 ? 'In' : 'Out'} · {humanize(x.method)}</td>
-                      <td>{x.latitude !== null && x.longitude !== null ? `${Number(x.latitude).toFixed(4)}, ${Number(x.longitude).toFixed(4)}` : '—'}</td></tr>
+                      <td>{x.latitude !== null && x.longitude !== null ? `${Number(x.latitude).toFixed(4)}, ${Number(x.longitude).toFixed(4)}` : '—'}</td>
+                      <td className="py-1">{x.selfie_path ? (
+                        <a href={`/app/${slug}/attendance/selfie/${x.id}`} target="_blank" rel="noreferrer" aria-label={`Check-in photo at ${time(x.punched_at)}`}>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- a short-lived private link behind a permission check */}
+                          <img src={`/app/${slug}/attendance/selfie/${x.id}`} alt={`Check-in photo at ${time(x.punched_at)}`} className="size-10 rounded-md object-cover" loading="lazy" />
+                        </a>) : '—'}</td></tr>
                   ))}
                 </tbody>
               </table>

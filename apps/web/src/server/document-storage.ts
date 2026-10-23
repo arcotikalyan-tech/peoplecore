@@ -69,6 +69,12 @@ export async function signImageUrl(path: string): Promise<string | null> {
   return error ? null : data.signedUrl;
 }
 
+/** A short-lived link to show a check-in photo, for a path punch_selfie returned (the viewer may see that punch). */
+export async function signSelfieUrl(path: string): Promise<string | null> {
+  const { data, error } = await createAdminClient().storage.from(SELFIE_BUCKET).createSignedUrl(checkedPath(path, SELFIE_BUCKET), 300);
+  return error ? null : data.signedUrl;
+}
+
 /** Links to show profile photos and logos (an hour), for paths the viewer read through RLS. */
 export async function signImageUrls(paths: Array<string | null | undefined>): Promise<Map<string, string>> {
   const wanted = [...new Set(paths.filter((p): p is string => !!p))].map((p) => checkedPath(p, IMAGE_BUCKET));

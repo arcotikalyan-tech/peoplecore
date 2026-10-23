@@ -4,7 +4,7 @@ import { adminClient, domain, liveEnv, open, signIn, test } from './helpers';
 
 /**
  * Check-in selfies on the demo tenant, with the attendance rules asking for one: Dev opens the camera on the website
- * (Chrome's fake camera), takes the photo and checks in; the phone app's endpoint records a punch with a photo for a
+ * (Chrome's fake camera), takes the photo and checks in, and HR sees it in his daily log; the phone app's endpoint records a punch with a photo for a
  * signed-in employee and refuses a missing token or a file that isn't a photo. The rules are put back and the punches
  * and photos removed afterwards.
  */
@@ -48,6 +48,16 @@ test('on the website, the employee takes a selfie with the camera and checks in'
   await expect(page.getByText(/^Punch recorded at /)).toBeVisible();
   const { data } = await admin.from('attendance_punches').select('method, selfie_path').eq('employee_id', devId).gte('received_at', startedAt);
   expect(data!.at(-1)).toMatchObject({ method: 'web', selfie_path: expect.stringMatching(new RegExp(`^${orgId}/${devId}/`)) });
+});
+
+test('HR sees the photo with the punch in the employee’s daily log', async ({ page }) => {
+  await signIn(page, 'demo.hr');
+  await open(page, `/app/demo/employees/${devId}?tab=attendance&view=logs`);
+  const photo = page.getByRole('table', { name: 'Punches' }).getByRole('img', { name: /^Check-in photo at / }).last();
+  await expect(photo).toBeVisible();
+  const res = await page.request.get((await photo.getAttribute('src'))!);
+  expect(res.status()).toBe(200);
+  expect(res.headers()['content-type']).toMatch(/^image\//);
 });
 
 test('the phone app’s endpoint records a punch with a photo, as the signed-in employee', async ({ baseURL }) => {
