@@ -1,5 +1,6 @@
 import { hostname } from 'node:os';
 import { handlers } from './handlers.ts';
+import { drainPushes, fcmFromEnv, type PushSender } from './push.ts';
 import { runOnce, type Log } from './queue.ts';
 import { dueJobs } from './schedule.ts';
 import { serviceClient, supabaseQueue } from './supabase.ts';
@@ -19,6 +20,12 @@ const log: Log = (event, fields = {}) => console.log(JSON.stringify({ at: new Da
 const db = serviceClient();
 const queue = supabaseQueue(db);
 const registry = handlers(db);
+let push: PushSender | null = null;
+try {
+  push = fcmFromEnv();
+} catch (err) {
+  log('push.misconfigured', { error: err instanceof Error ? err.message : String(err) });
+}
 let stopping = false;
 let lastScheduled = '';
 
@@ -29,7 +36,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   });
 }
 
-log('worker.started', { pollMs });
+log('worker.started', { pollMs, push: !!push });
 while (!stopping) {
   try {
     const now = new Date();
@@ -39,6 +46,8 @@ while (!stopping) {
       for (const job of dueJobs(now)) await queue.enqueue(null, job.kind, job.payload, job.key);
       lastScheduled = period;
     }
+    // Phone pushes go out on every poll (within seconds), not on the quarter-hour schedule.
+    if (push) await drainPushes(db, push, log).catch((err: unknown) => log('push.error', { error: err instanceof Error ? err.message : String(err) }));
     const result = await runOnce(queue, registry, { worker, limit: 10, leaseSeconds: 300, timeoutMs: 240_000, log });
     if (result.claimed > 0 && Date.now() < deadline) continue; // more may be waiting
     if (once) break;
