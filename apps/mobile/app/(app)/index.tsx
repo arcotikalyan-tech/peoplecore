@@ -1,11 +1,13 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { router } from 'expo-router';
 import { evaluateSetup, type SetupFacts, type SetupProgress } from '@peoplecore/shared/org-setup';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { AppState, Linking, RefreshControl, ScrollView, Text, View } from 'react-native';
 import type { QueuedPunch } from '@/lib/punch-queue';
 import { currentPosition, newClientId, queue, sendPunch } from '@/lib/punches';
 import { takeSelfie } from '@/lib/selfie';
+import { selfieRequired } from '@/lib/selfie-rule';
 import { useSession } from '@/lib/session';
 import { SITE_URL } from '@/lib/site';
 import { supabase } from '@/lib/supabase';
@@ -25,14 +27,28 @@ export default function Today() {
   const [message, setMessage] = useState<{ tone: 'danger' | 'success' | 'muted'; text: string } | null>(null);
   const tz = workplace?.timezone ?? 'Asia/Kolkata';
 
+  // The rule is asked again before every check-in and check-out, and on each refresh, so HR switching the selfie on
+  // takes effect at once.
+  const checkSelfie = useCallback(async () => {
+    const employeeId = workplace?.employeeId;
+    if (!employeeId) return false;
+    const required = await selfieRequired(AsyncStorage, employeeId, async () => {
+      const { data, error } = await supabase.rpc('attendance_rule_for', { p_employee: employeeId, p_date: todayIn(tz) });
+      return error ? null : Boolean((data as Array<{ verify_selfie?: boolean }> | null)?.[0]?.verify_selfie);
+    });
+    setNeedsSelfie(required);
+    return required;
+  }, [workplace, tz]);
+
   const load = useCallback(async () => {
     setQueued(await queue.all());
     if (!workplace?.employeeId) return;
+    void checkSelfie();
     const start = new Date(`${todayIn(tz)}T00:00:00`).toISOString(); // device-local midnight is close enough for a list
     const { data } = await supabase.from('attendance_punches').select('id, punched_at, method')
       .eq('employee_id', workplace.employeeId).gte('punched_at', start).order('punched_at');
     setPunches(data ?? []);
-  }, [workplace, tz]);
+  }, [workplace, tz, checkSelfie]);
 
   const sync = useCallback(async () => {
     const r = await queue.sync(sendPunch);
@@ -49,10 +65,6 @@ export default function Today() {
         supabase.rpc('org_setup_status', { p_org: workplace.orgId }),
         supabase.from('org_modules').select('module, enabled').eq('organization_id', workplace.orgId),
       ]);
-      if (workplace.employeeId) {
-        const { data: rule } = await supabase.rpc('attendance_rule_for', { p_employee: workplace.employeeId, p_date: todayIn(workplace.timezone) });
-        setNeedsSelfie(Boolean((rule as Array<{ verify_selfie?: boolean }> | null)?.[0]?.verify_selfie));
-      }
       const { data: next } = await supabase.from('holidays').select('holiday_date, name, is_optional').eq('organization_id', workplace.orgId)
         .gte('holiday_date', todayIn(workplace.timezone)).order('holiday_date').limit(8);
       const seen = new Set<string>();
@@ -64,13 +76,16 @@ export default function Today() {
 
   useEffect(() => {
     void sync();
-    return NetInfo.addEventListener((state) => { if (state.isConnected) void sync(); });
+    const net = NetInfo.addEventListener((state) => { if (state.isConnected) void sync(); });
+    const front = AppState.addEventListener('change', (state) => { if (state === 'active') void sync(); });
+    return () => { net(); front.remove(); };
   }, [sync]);
 
   const punch = async () => {
     if (!workplace) return;
     setBusy(true);
     setMessage(null);
+    const selfie = await checkSelfie();
     const where = await currentPosition();
     if ('error' in where) {
       setMessage({ tone: 'danger', text: where.error });
@@ -78,7 +93,7 @@ export default function Today() {
     }
     // The rule asks for a selfie with each check-in and check-out: the front camera first.
     let photoUri: string | undefined;
-    if (needsSelfie) {
+    if (selfie) {
       const shot = await takeSelfie();
       if (!shot || 'error' in shot) {
         setMessage(shot ? { tone: 'danger', text: shot.error } : { tone: 'muted', text: 'Take a selfie to check in.' });
