@@ -13,6 +13,7 @@ import { formatDate } from '@/lib/format';
 import { getOrgContext, needsMfa } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
 import { createClient } from '@/server/supabase';
+import { appVersion } from '@/server/version';
 import { changePasswordAction, signOutOtherDevicesAction, turnOffTwoStepAction } from './account-actions';
 import { ChangePasswordForm, SignOutOthersButton, TurnOffTwoStepButton } from './account-client';
 import { requestDeletionAction } from './privacy-actions';
@@ -98,6 +99,7 @@ export default async function PreferencesPage({ params }: { params: Promise<{ or
             )}
           </Panel>
         )}
+        <p className="text-center text-xs text-muted">{appVersion(ctx.org.timezone)}</p>
       </div>
     </>
   );

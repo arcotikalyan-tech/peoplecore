@@ -22,3 +22,8 @@ export function isSupabaseConfigured(): boolean {
 export function isProduction(): boolean {
   return process.env.NODE_ENV === 'production';
 }
+
+/** The build that is live (deploy/deploy.sh sets APP_VERSION and APP_DEPLOYED_AT on the server; Vercel sets its own). */
+export function buildInfo(): { commit: string; deployedAt: string } {
+  return { commit: process.env.APP_VERSION || process.env.VERCEL_GIT_COMMIT_SHA || '', deployedAt: process.env.APP_DEPLOYED_AT || '' };
+}

@@ -7,6 +7,7 @@ import { useSession } from '@/lib/session';
 import { SITE_URL } from '@/lib/site';
 import { supabase } from '@/lib/supabase';
 import { turnOffTwoStep } from '@/lib/two-step';
+import { appVersion } from '@/lib/version';
 import { TwoStepSetup } from '@/two-step-setup';
 import { Button, Card, colors, Message, PasswordField, s, Screen } from '@/ui';
 
@@ -157,6 +158,7 @@ export default function Account() {
         </Card>
 
         <Button label="Sign out" variant="secondary" onPress={() => void signOut()} />
+        <Text style={[s.muted, { textAlign: 'center', marginTop: 12, fontSize: 12 }]}>{appVersion()}</Text>
       </Screen>
     </ScrollView>
   );

@@ -51,6 +51,8 @@ test('a person changes their password in Account settings; the old one stops wor
   await page.getByRole('menuitem', { name: 'Account settings' }).click();
   await page.waitForURL(/\/app\/demo\/preferences$/);
   await page.waitForLoadState('networkidle');
+  // Which build is live, so anyone can tell whether a change has reached them.
+  await expect(page.getByText(/^PeopleCore (version [0-9a-f]{7}|· development build)/)).toBeVisible();
 
   const form = page.getByRole('form', { name: 'Change password' });
   const fill = async (current: string) => {

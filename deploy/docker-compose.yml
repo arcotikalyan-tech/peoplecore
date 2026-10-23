@@ -7,6 +7,10 @@ services:
     image: peoplecore-web:${TAG:-latest}
     restart: unless-stopped
     env_file: .env
+    environment:
+      # Shown in Account settings, so anyone can see which build is live.
+      APP_VERSION: ${TAG:-}
+      APP_DEPLOYED_AT: ${DEPLOYED_AT:-}
     ports: ['172.18.0.1:3200:3000']
     healthcheck:
       test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
