@@ -1,4 +1,5 @@
 import NetInfo from '@react-native-community/netinfo';
+import { router } from 'expo-router';
 import { evaluateSetup, type SetupFacts, type SetupProgress } from '@peoplecore/shared/org-setup';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -116,6 +117,8 @@ export default function Today() {
           <Card title="Attendance">
             <Button label={checkedIn ? 'Check out' : 'Check in'} busy={busy} onPress={() => void punch()} />
             {needsSelfie && <Text style={[s.muted, { marginTop: 6 }]}>📸 Your company asks for a selfie with each check-in and check-out.</Text>}
+            <View style={{ height: 8 }} />
+            <Button label="Correct a day · Work from home · On duty" variant="secondary" onPress={() => router.push('/(app)/requests')} />
             {message && <Message tone={message.tone} text={message.text} />}
             <View accessibilityLabel="Today's punches" style={{ marginTop: 8 }}>
               {punches.map((p) => <View key={p.id} style={s.row}><Text>{time(p.punched_at, tz)}</Text><Text style={s.muted}>{p.method}</Text></View>)}

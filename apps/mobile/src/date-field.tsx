@@ -5,16 +5,16 @@ import { colors, s } from '@/ui';
 
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
-/** A date chosen from a month calendar (no typing); value and min are YYYY-MM-DD. */
-export function DateField({ label, value, onChange, min, placeholder = 'Choose a date', clearable }: {
-  label: string; value: string; onChange: (iso: string) => void; min?: string; placeholder?: string; clearable?: boolean;
+/** A date chosen from a month calendar (no typing); value, min and max are YYYY-MM-DD. */
+export function DateField({ label, value, onChange, min, max, placeholder = 'Choose a date', clearable }: {
+  label: string; value: string; onChange: (iso: string) => void; min?: string; max?: string; placeholder?: string; clearable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [[year, month], setMonth] = useState<[number, number]>([0, 0]);
   // Opens on the chosen date, else the earliest allowed one, else this month.
   const toggle = () => {
     if (!open) {
-      const start = value || min || new Date().toISOString().slice(0, 10);
+      const start = value || min || max || new Date().toISOString().slice(0, 10);
       setMonth([Number(start.slice(0, 4)), Number(start.slice(5, 7))]);
     }
     setOpen((o) => !o);
@@ -39,7 +39,7 @@ export function DateField({ label, value, onChange, min, placeholder = 'Choose a
               {week.map((day, i) => {
                 if (!day) return <View key={i} style={{ flex: 1, height: 36 }} />;
                 const iso = isoDate(year, month, day);
-                const off = !!min && iso < min;
+                const off = (!!min && iso < min) || (!!max && iso > max);
                 const chosen = iso === value;
                 return (
                   <Pressable key={i} accessibilityRole="button" accessibilityLabel={longDate(iso)} accessibilityState={{ disabled: off, selected: chosen }} disabled={off}
