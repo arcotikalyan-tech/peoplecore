@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { forgetPhone } from './push';
 import { supabase } from './supabase';
 import { codeNeeded } from './two-step-rules';
 
@@ -105,6 +106,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       return null;
     },
     async signOut() {
+      await forgetPhone().catch(() => undefined); // offline: the server forgets it once pushes to it fail
       await supabase.auth.signOut();
     },
   }), [loading, session, workplace, needsCode, hasAuthenticator, twoStepRequired, refresh]);

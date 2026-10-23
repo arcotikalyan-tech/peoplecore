@@ -2,6 +2,7 @@ import { PASSWORD_HINT } from '@peoplecore/shared/password';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { changePassword, type FieldErrors } from '@/lib/account';
+import { openPhoneSettings, pushState, pushSupported, turnOffPush, turnOnPush, type PushState } from '@/lib/push';
 import { useSession } from '@/lib/session';
 import { SITE_URL } from '@/lib/site';
 import { supabase } from '@/lib/supabase';
@@ -29,8 +30,10 @@ export default function Account() {
   const [message, setMessage] = useState<{ tone: 'danger' | 'success' | 'muted'; text: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmOff, setConfirmOff] = useState(false);
+  const [push, setPush] = useState<PushState | null>(null);
 
   const load = useCallback(async () => {
+    setPush(await pushState());
     if (!workplace?.employeeId) return setProfile(null);
     const { data } = await supabase.rpc('my_profile_completeness', { p_org: workplace.orgId });
     setProfile((data as Completeness | null) ?? null);
@@ -58,6 +61,15 @@ export default function Account() {
     const { error } = await supabase.auth.signOut({ scope: 'others' });
     setBusy(null);
     setMessage(error ? { tone: 'danger', text: 'That didn’t work. Try again.' } : { tone: 'success', text: 'Signed out on your other devices.' });
+  };
+  const switchPush = async (on: boolean) => {
+    setBusy('push');
+    if (on) setPush(await turnOnPush());
+    else {
+      await turnOffPush();
+      setPush('off');
+    }
+    setBusy(null);
   };
   const done = profile ? PROFILE.filter((p) => profile[p.key]).length : 0;
   const web = (path: string) => void Linking.openURL(`${SITE_URL}${path}`);
@@ -115,6 +127,29 @@ export default function Account() {
               onDone={() => { setMessage({ tone: 'success', text: 'Two-step sign-in is on.' }); void reload(); }} />
           )}
         </Card>
+
+        {pushSupported && push && (
+          <Card title={`Notifications on this phone · ${push === 'on' ? 'On' : 'Off'}`}>
+            {push === 'on' ? (
+              <>
+                <Text style={{ marginBottom: 8 }}>✓ Approvals, decisions on your requests and payslips arrive as notifications.</Text>
+                <Button label="Turn off" variant="secondary" busy={busy === 'push'} onPress={() => void switchPush(false)} />
+              </>
+            ) : push === 'blocked' ? (
+              <>
+                <Text style={[s.muted, { marginBottom: 8 }]}>Notifications for PeopleCore are blocked in your phone’s settings.</Text>
+                <Button label="Open phone settings" variant="secondary" onPress={openPhoneSettings} />
+              </>
+            ) : push === 'unavailable' ? (
+              <Text style={s.muted}>This version of the app can’t receive notifications yet. Everything still appears in your Inbox.</Text>
+            ) : (
+              <>
+                <Text style={[s.muted, { marginBottom: 8 }]}>Get approvals, decisions on your requests and payslips as notifications. Everything also appears in your Inbox.</Text>
+                <Button label="Turn on" busy={busy === 'push'} onPress={() => void switchPush(true)} />
+              </>
+            )}
+          </Card>
+        )}
 
         <Card title="Signed-in devices">
           <Text style={[s.muted, { marginBottom: 10 }]}>Signed in on a shared computer or lost a phone? Sign out everywhere except here.</Text>

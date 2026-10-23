@@ -8,3 +8,6 @@ expo-env.d.ts
 /android/
 /ios/
 /build-logs/
+
+# Firebase settings for push notifications (see app.config.js); kept out of git
+/google-services.json

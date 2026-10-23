@@ -45,3 +45,22 @@ That needs a Google Play developer account (a one-time fee) and the store listin
 
 The live Supabase project's Auth › URL configuration must allow `https://hrms.tazq.io/auth/callback?**` (the same entry
 the website's invitations use): the phone's "Forgot password?" link opens the website to choose the new password.
+
+## Push notifications (once)
+
+The phone gets a notification for each in-app notification (approvals waiting, decisions on your requests,
+payslips, …) through Firebase Cloud Messaging. Until the two pieces below exist, the app doesn't ask for permission and
+Account settings says notifications aren't available in this version; nothing else changes.
+
+1. In the Firebase console (https://console.firebase.google.com) create a project (Google Analytics is not needed).
+2. **For the app:** Project settings › General › Your apps › add an Android app with the package `in.peoplecore.app`.
+   Download `google-services.json` and put it at `apps/mobile/google-services.json` (it is git-ignored), or point
+   `GOOGLE_SERVICES_JSON` at it when building. Build the app again; it now asks for permission at the first sign-in.
+   For EAS builds, upload it as a file variable: `npx eas-cli@latest env:create --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret`.
+3. **For the server:** Project settings › Service accounts › Generate new private key. Put the downloaded JSON in the
+   worker's environment as `FCM_SERVICE_ACCOUNT` (one line, or base64: `base64 -i key.json`), in `/opt/peoplecore/.env`
+   on the server, then restart the worker (`deploy/ship.sh` does). The worker logs `"push":true` when it starts.
+   This key can send notifications to the app's users: keep it only on the server.
+
+Each person can switch notifications off for their phone in Account settings. Signing out stops notifications to that
+phone. A notification nobody could deliver within a day is dropped (the Inbox still shows it).

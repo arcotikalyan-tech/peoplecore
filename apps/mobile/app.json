@@ -45,6 +45,14 @@
           "photosPermission": false,
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#4f46e5",
+          "defaultChannel": "default"
+        }
       ]
     ],
     "experiments": {

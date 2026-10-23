@@ -1,11 +1,39 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Notifications from 'expo-notifications';
 import { Redirect, router, Tabs } from 'expo-router';
+import { useEffect } from 'react';
 import { Pressable } from 'react-native';
+import { pushSupported, syncPush } from '@/lib/push';
+import { screenFor } from '@/lib/push-links';
 import { useSession } from '@/lib/session';
 import { colors } from '@/ui';
 
 export default function AppLayout() {
   const { loading, session, needsCode } = useSession();
+  const ready = !loading && !!session && !needsCode;
+  const userId = session?.user.id;
+
+  // Signed in: register this phone for notifications (asks the first time), and again whenever its token changes.
+  useEffect(() => {
+    if (!ready || !pushSupported) return;
+    void syncPush();
+    const sub = Notifications.addPushTokenListener((t) => void syncPush(String(t.data)));
+    return () => sub.remove();
+  }, [ready, userId]);
+
+  // A tapped notification opens its screen, also when the tap started the app (handled once).
+  useEffect(() => {
+    if (!ready || !pushSupported) return;
+    const open = (r: Notifications.NotificationResponse | null) => {
+      if (!r) return;
+      router.navigate(screenFor(r.notification.request.content.data?.link));
+      Notifications.clearLastNotificationResponse();
+    };
+    open(Notifications.getLastNotificationResponse());
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    return () => sub.remove();
+  }, [ready]);
+
   if (!loading && (!session || needsCode)) return <Redirect href="/sign-in" />;
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: colors.primary, headerTitleStyle: { fontWeight: '600' } }}>
