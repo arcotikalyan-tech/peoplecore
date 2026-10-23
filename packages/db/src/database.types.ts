@@ -10076,6 +10076,13 @@ export type Database = {
         };
         Returns: { user_id: string; name: string; email: string; roles: string[]; access: string }[];
       };
+      register_push_device: {
+        Args: {
+          p_token: string;
+          p_platform: string;
+        };
+        Returns: undefined;
+      };
       release_letters: {
         Args: {
           p_letters: string[];
@@ -10837,6 +10844,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      unregister_push_device: {
+        Args: {
+          p_token: string;
+        };
+        Returns: undefined;
+      };
       upcoming_birthdays: {
         Args: {
           p_org: string;
@@ -10974,6 +10987,12 @@ export type Database = {
         };
         Returns: { id: number; organization_id: string; kind: string; payload: Json; attempts: number }[];
       };
+      worker_claim_pushes: {
+        Args: {
+          p_limit?: number;
+        };
+        Returns: { id: string; tokens: string[]; title: string; body: string; link: string; kind: string; org_slug: string; org_name: string }[];
+      };
       worker_close_organizations: {
         Args: never;
         Returns: Json;
@@ -11030,6 +11049,15 @@ export type Database = {
       worker_leave_accrual: {
         Args: never;
         Returns: Json;
+      };
+      worker_push_result: {
+        Args: {
+          p_id: string;
+          p_ok: boolean;
+          p_error?: string;
+          p_dead_tokens?: string[];
+        };
+        Returns: undefined;
       };
       worker_report_schedules: {
         Args: never;
