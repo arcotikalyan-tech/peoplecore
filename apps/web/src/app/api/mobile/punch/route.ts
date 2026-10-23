@@ -1,10 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { sniffDocumentType } from '@peoplecore/shared';
 import { toUserMessage } from '@/lib/db-errors';
-import { publicEnv } from '@/lib/env';
+import { APP_CORS, appCaller } from '@/server/app-token';
 import { removeDocumentFile, SELFIE_BUCKET, storeDocumentFile } from '@/server/document-storage';
 
 /**
@@ -25,8 +24,7 @@ const fields = z.object({
   accuracy: z.coerce.number().int().min(0).max(100000).optional(),
 });
 
-// The app sends no cookies, only its token, so any origin may call (the web build of the app runs on another origin).
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' };
+const CORS = APP_CORS;
 const reply = (status: number, body: { ok: boolean; message?: string; id?: string; permanent?: boolean }) =>
   NextResponse.json(body, { status, headers: { ...CORS, 'Cache-Control': 'no-store' } });
 
@@ -35,16 +33,9 @@ export function OPTIONS() {
 }
 
 export async function POST(request: NextRequest) {
-  const token = /^Bearer (.+)$/.exec(request.headers.get('authorization') ?? '')?.[1];
-  if (!token) return reply(401, { ok: false, message: 'Sign in again.', permanent: false });
-  const { url, publishableKey } = publicEnv();
-  const supabase = createClient(url, publishableKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: claims } = await supabase.auth.getClaims(token);
-  const userId = claims?.claims?.sub;
-  if (!userId) return reply(401, { ok: false, message: 'Sign in again.', permanent: false });
+  const caller = await appCaller(request);
+  if (!caller) return reply(401, { ok: false, message: 'Sign in again.', permanent: false });
+  const { supabase, userId } = caller;
 
   const form = await request.formData().catch(() => null);
   if (!form) return reply(400, { ok: false, message: 'Couldn’t read the punch.', permanent: true });

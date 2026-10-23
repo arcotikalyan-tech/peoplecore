@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { openPayslipPdf } from '@/lib/payslip-pdf';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
-import { Card, colors, s, Screen } from '@/ui';
+import { Button, Card, colors, Message, s, Screen } from '@/ui';
 
 interface Slip { run_id: string; period_month: string; gross: number; deductions: number; net: number }
 interface Line { code: string; name: string; kind: string; amount: number }
@@ -16,6 +17,8 @@ export default function Payslips() {
   const [slips, setSlips] = useState<Slip[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
   const emp = workplace?.employeeId;
 
   const load = useCallback(async () => {
@@ -49,6 +52,15 @@ export default function Payslips() {
                   <View key={l.code} style={s.row}><Text>{l.name}</Text><Text>{l.kind === 'deduction' ? `−${inr(l.amount)}` : inr(l.amount)}</Text></View>
                 ))}
                 <View style={s.row}><Text style={s.muted}>Gross {inr(p.gross)} · Deductions {inr(p.deductions)}</Text></View>
+                <View style={{ marginTop: 10 }}>
+                  <Button label="Download PDF" variant="secondary" busy={downloading === p.run_id} onPress={() => void (async () => {
+                    if (!workplace) return;
+                    setDownloading(p.run_id);
+                    setProblem(await openPayslipPdf(workplace.orgId, p.run_id, p.period_month.slice(0, 7)));
+                    setDownloading(null);
+                  })()} />
+                </View>
+                {problem && <Message tone="danger" text={problem} />}
               </View>
             )}
           </Card>
