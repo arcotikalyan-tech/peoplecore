@@ -9664,6 +9664,15 @@ export type Database = {
         };
         Returns: undefined;
       };
+      log_audit_export: {
+        Args: {
+          p_org: string;
+          p_row_count: number;
+          p_from?: string;
+          p_to?: string;
+        };
+        Returns: number;
+      };
       log_employee_export: {
         Args: {
           p_org: string;

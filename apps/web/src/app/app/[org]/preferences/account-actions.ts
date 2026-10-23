@@ -7,6 +7,7 @@ import { publicEnv } from '@/lib/env';
 import { passwordErrorMessage, passwordProblem } from '@/lib/password';
 import { getOrgContext } from '@/server/context';
 import { flash } from '@/server/flash';
+import { personGate } from '@/server/sign-in-limits';
 import { createClient } from '@/server/supabase';
 
 /**
@@ -26,10 +27,16 @@ export async function changePasswordAction(slug: string, _prev: ActionState, for
   if (password === current) return fix('password', 'Choose a password different from the current one');
   if (!ctx.user.email) return { ok: false, message: 'Your account has no email address to check the password against.' };
 
+  const gate = personGate(ctx.user.id, 'passwords');
+  if (gate.blocked) return fix('current', gate.blocked);
   const { url, publishableKey } = publicEnv();
   const check = createPlainClient(url, publishableKey, { auth: { persistSession: false, autoRefreshToken: false } }).auth;
   const { error: wrong } = await check.signInWithPassword({ email: ctx.user.email, password: current });
-  if (wrong) return fix('current', 'That isn’t your current password');
+  if (wrong) {
+    gate.failed();
+    return fix('current', 'That isn’t your current password');
+  }
+  gate.succeeded();
   await check.signOut({ scope: 'local' }); // end the check's own session
 
   const supabase = await createClient();

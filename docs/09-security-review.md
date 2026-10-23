@@ -40,9 +40,9 @@ These run in `corepack pnpm check` on every change; a regression fails the build
 | T8 | Prompt injection | ✅ Untrusted content is marked as data. Agents have no write tools (tiers 0–1 in use, tier 3 impossible). Evals include injection cases; resumes and receipts can only fill fields that a person checks |
 | T9 | AI leaking across users | ✅ Retrieval and analytics run as the asker; runs and suggestions are private; identifiers in questions are masked |
 | T10 | Spoofed attendance | ⏳ Mobile check-in is not built yet. Web punches are idempotent, and absences and regularizations go through approval |
-| T11 | Account takeover | ✅ Two-step sign-in required for privileged roles, enforced in the database. Supabase Auth applies its own rate limits. ⏳ Session lifetime is Supabase's default: set an inactivity timeout for the production project |
+| T11 | Account takeover | ✅ Two-step sign-in where the organization switches it on, enforced in the database. The website limits guessing (15 minutes: 5 wrong passwords per account and address, 30 per account, 100 per address; 5 wrong two-step codes or current passwords per person), and Supabase Auth applies its own per-address limits, which also cover the phone app. ⏳ Session lifetime is Supabase's default: set an inactivity timeout for the production project |
 | T12 | Webhook spoofing | n/a: no inbound integrations yet. Design rule for when they come: HMAC signature, timestamp tolerance, idempotency key |
-| T13 | Bulk export exfiltration | ✅ `employee.export` permission, each export audited with its filters |
+| T13 | Bulk export exfiltration | ✅ `employee.export` permission, each export audited with its filters; the audit log's own CSV download is recorded in it too |
 | T14 | Injection and XSS | ✅ Parameterised queries (PostgREST and RPC), zod at every boundary, React escaping, no `dangerouslySetInnerHTML`. **Fixed in this review: no Content-Security-Policy was sent.** There is now a nonce-based CSP (below) |
 | T15 | Over-retention | ✅ Retention per data class for leavers, AI prompts cleared after 30 days. ✅ Candidate consent expiry: candidates with no open or hired application are erased a per-organization number of days (365 by default) after their consent or last application activity, by a daily worker job through the same audited path as a manual erasure (migration 20261018003400, `candidate-retention.test.ts`; not yet applied to the live project) |
 | T16 | AI cost exhaustion | ✅ Per-person hourly limit and per-organization monthly token budget in the database gate |
@@ -64,7 +64,7 @@ These run in `corepack pnpm check` on every change; a regression fails the build
 
 - An independent penetration test before the first real customer.
 - An inactivity timeout and refresh-token reuse detection in the production Supabase Auth settings.
-- An edge rate limit on `/login` and `/careers` (Vercel firewall).
-- An audit-log export to write-once storage (T6).
+- An edge rate limit on `/careers`. (`/login` is limited by the website itself; an edge limit would add a second layer.)
+- Copies of the audit log in write-once storage (T6). People with `audit.read` can download it by period as CSV (Audit log › Download CSV); a scheduled copy to write-once storage is still open.
 - A no-training, zero-retention agreement with the AI provider ([ai.md](runbooks/ai.md)).
 - Tooling advisories with no patched release yet, both high severity: `braces` (GHSA-vfj7-8cjw-p6xm, via `eslint-config-next` and the mobile app's Metro bundler) and `node-forge` (GHSA-86w9-cpqp-85rv, via Expo's CLI). They run only at lint, build and dev time on our own files, and are not in the web runtime or the app bundle. The audit ignores exactly these two IDs (`auditConfig` in `pnpm-workspace.yaml`); remove each when a fix ships.

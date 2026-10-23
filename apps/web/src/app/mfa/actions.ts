@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type { ActionState } from '@/lib/action-state';
 import { safeNextPath } from '@/lib/safe-redirect';
 import { requireUser } from '@/server/context';
+import { personGate } from '@/server/sign-in-limits';
 import { createClient } from '@/server/supabase';
 
 const codeSchema = z.object({
@@ -18,11 +19,15 @@ export async function verifyMfaAction(_prev: ActionState, formData: FormData): P
   const parsed = codeSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, fieldErrors: { code: 'Enter the 6-digit code from your authenticator app.' } };
 
+  const gate = personGate((await requireUser()).id, 'codes');
+  if (gate.blocked) return { ok: false, fieldErrors: { code: gate.blocked } };
   const supabase = await createClient();
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: parsed.data.factorId, code: parsed.data.code });
   if (error) {
+    gate.failed();
     return { ok: false, fieldErrors: { code: 'That code didn’t work. Codes change every 30 seconds; enter the one shown now.' } };
   }
+  gate.succeeded();
   redirect(safeNextPath(parsed.data.next));
 }
 

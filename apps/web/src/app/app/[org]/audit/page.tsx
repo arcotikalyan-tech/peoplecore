@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { pageCount } from '@peoplecore/shared';
+import { isIsoDate, pageCount } from '@peoplecore/shared';
+import { buttonClass } from '@/components/ui/button';
 import { Card, EmptyState, PageHeader } from '@/components/ui/surface';
 import { Pagination, Table, Td, Th } from '@/components/ui/table';
 import { formatDateTime, humanize } from '@/lib/format';
-import { AUDIT_PAGE_SIZE, listAuditEvents } from '@/server/audit';
+import { AUDIT_EXPORT_MAX, AUDIT_PAGE_SIZE, listAuditEvents, type AuditRange } from '@/server/audit';
 import { requirePermission } from '@/server/context';
 import { namesForUsers } from '@/server/employees';
 
@@ -17,23 +18,47 @@ export default async function AuditPage({
   searchParams,
 }: {
   params: Promise<{ org: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; from?: string; to?: string }>;
 }) {
   const { org: slug } = await params;
   const ctx = await requirePermission(slug, 'audit.read', 'org');
-  const requested = Number.parseInt((await searchParams).page ?? '1', 10);
+  const sp = await searchParams;
+  const requested = Number.parseInt(sp.page ?? '1', 10);
   const page = Number.isFinite(requested) && requested >= 1 ? Math.min(requested, 10_000) : 1;
+  const range: AuditRange = { from: isIsoDate(sp.from ?? '') ? sp.from : undefined, to: isIsoDate(sp.to ?? '') ? sp.to : undefined };
 
-  const { rows, total } = await listAuditEvents(ctx.org.id, page);
+  const { rows, total } = await listAuditEvents(ctx.org.id, page, range, ctx.org.timezone);
   const actors = await namesForUsers(ctx.org.id, rows.map((r) => r.actor_user_id).filter((x): x is string => !!x));
   const base = `/app/${slug}/audit`;
+  const query = (extra: Record<string, string>) => {
+    const q = new URLSearchParams({ ...(range.from ? { from: range.from } : {}), ...(range.to ? { to: range.to } : {}), ...extra }).toString();
+    return q ? `?${q}` : '';
+  };
+  const tooMany = total > AUDIT_EXPORT_MAX;
 
   return (
     <>
-      <PageHeader title="Audit log" description="Append-only record of changes. Entries cannot be edited or deleted, by anyone." />
+      <PageHeader
+        title="Audit log"
+        description="Append-only record of changes. Entries cannot be edited or deleted, by anyone."
+        actions={total > 0 && !tooMany ? <a href={`${base}/export${query({})}`} download className={buttonClass('secondary')}>Download CSV</a> : undefined}
+      />
       <Card>
+        <form method="get" action={base} className="flex flex-wrap items-end gap-3 px-5 pt-4" aria-label="Choose the period">
+          <label className="text-sm">
+            <span className="mb-1 block text-muted">From</span>
+            <input type="date" name="from" defaultValue={range.from} className="h-9 rounded-md border border-line-strong bg-surface px-2 text-sm" />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-muted">To</span>
+            <input type="date" name="to" defaultValue={range.to} className="h-9 rounded-md border border-line-strong bg-surface px-2 text-sm" />
+          </label>
+          <button className="h-9 rounded-md border border-line px-3 text-sm hover:bg-subtle">Show</button>
+          {(range.from || range.to) && <Link href={base} className="h-9 px-1 text-sm leading-9 text-primary hover:underline">All dates</Link>}
+          {tooMany && <p className="w-full text-sm text-muted">{total.toLocaleString('en-IN')} entries: choose a shorter period to download them (at most {AUDIT_EXPORT_MAX.toLocaleString('en-IN')} at a time).</p>}
+        </form>
         {rows.length === 0 ? (
-          <EmptyState title="No audit events" description={page > 1 ? 'This page is past the end of the log.' : undefined} />
+          <EmptyState title="No audit events" description={page > 1 ? 'This page is past the end of the log.' : range.from || range.to ? 'Nothing was recorded in this period.' : undefined} />
         ) : (
           <>
             <Table caption="Audit events">
@@ -71,7 +96,7 @@ export default async function AuditPage({
                 })}
               </tbody>
             </Table>
-            <Pagination page={page} pageCount={pageCount(total, AUDIT_PAGE_SIZE)} total={total} hrefFor={(p) => (p > 1 ? `${base}?page=${p}` : base)} />
+            <Pagination page={page} pageCount={pageCount(total, AUDIT_PAGE_SIZE)} total={total} hrefFor={(p) => `${base}${query(p > 1 ? { page: String(p) } : {})}`} />
           </>
         )}
       </Card>
