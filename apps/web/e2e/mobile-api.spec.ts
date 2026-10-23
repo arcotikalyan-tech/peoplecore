@@ -32,11 +32,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  if (!runId) return;
-  await admin.from('payroll_runs').update({ status: 'draft' }).eq('id', runId);
-  await admin.from('payroll_line_items').delete().eq('run_id', runId);
-  await admin.from('payroll_run_employees').delete().eq('run_id', runId);
-  await admin.from('payroll_runs').delete().eq('id', runId);
+  if (runId) await admin.rpc('purge_demo_payroll_run', { p_run: runId }); // a locked run; demo tenants only
 });
 
 test('the phone app downloads the employee’s own payslip as a PDF', async ({ baseURL }) => {
