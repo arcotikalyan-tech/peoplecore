@@ -62,5 +62,11 @@ Account settings says notifications aren't available in this version; nothing el
    on the server, then restart the worker (`deploy/ship.sh` does). The worker logs `"push":true` when it starts.
    This key can send notifications to the app's users: keep it only on the server.
 
+**Set up on 2026-10-23:** Firebase project `peoplecore-hrms` (owner's Google account; separate from every other app),
+Android app `in.peoplecore.app`. The worker sends as `peoplecore-push@peoplecore-hrms.iam.gserviceaccount.com`, which
+holds only the Firebase Cloud Messaging Admin role; its key lives only in the server's `.env`. To replace the key, make
+a new one for that account (Google Cloud console › IAM › Service accounts › Keys), put it in `.env`, restart the worker,
+then delete the old key there.
+
 Each person can switch notifications off for their phone in Account settings. Signing out stops notifications to that
 phone. A notification nobody could deliver within a day is dropped (the Inbox still shows it).
