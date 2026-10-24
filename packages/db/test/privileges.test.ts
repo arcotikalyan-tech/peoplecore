@@ -25,9 +25,11 @@ describe('table privileges (least privilege, independent of Supabase defaults)',
   // Tables whose sensitive text is read only through functions, not the table: grievance texts (each handler's read
   // is audited, migration 20261018002400: the case table grants its non-text columns, the notes table nothing) and
   // why someone left (migration 20261018002800: reason and exit interview, for the employee and HR only), and AI
-  // runs (migration 20261018003000: metrics only; the prompt and output are for the service role, kept 30 days).
-  // Adding a table here needs the same review.
-  const READ_THROUGH_AUDITED_FUNCTIONS = ['ai_runs', 'grievance_notes', 'grievances', 'separations'];
+  // runs (migration 20261018003000: metrics only; the prompt and output are for the service role, kept 30 days), and
+  // grievance files (migration 20261025000100: who added a file comes only from grievance_files, which hides the
+  // reporter of an anonymous case; downloads go through the audited grievance_file). Adding a table here needs the
+  // same review.
+  const READ_THROUGH_AUDITED_FUNCTIONS = ['ai_runs', 'grievance_files', 'grievance_notes', 'grievances', 'separations'];
 
   it('signed-in users can read every table (RLS then filters rows), except the audited-read ones', async () => {
     const all = await ctx.t.db.query<{ relname: string }>(
@@ -45,6 +47,20 @@ describe('table privileges (least privilege, independent of Supabase defaults)',
     );
     expect(rows).toEqual([{ col: 'description', ok: false }, { col: 'outcome', ok: false }, { col: 'subject', ok: true }]);
     expect(await tablesWhere('authenticated', 'SELECT,INSERT,UPDATE,DELETE').then((t) => t.includes('grievance_notes'))).toBe(false);
+  });
+
+  it('who raised a grievance, and who added a file to one, are not readable through the tables (anonymous cases)', async () => {
+    const { rows } = await ctx.t.db.query<{ col: string; ok: boolean }>(
+      `select 'grievances.' || c.col as col, has_column_privilege('authenticated', 'public.grievances', c.col, 'SELECT') as ok
+         from unnest(array['reporter_id', 'anonymous']) c(col)
+       union all
+       select 'grievance_files.' || c.col, has_column_privilege('authenticated', 'public.grievance_files', c.col, 'SELECT')
+         from unnest(array['uploaded_by', 'name']) c(col)`,
+    );
+    expect(rows).toEqual([
+      { col: 'grievances.reporter_id', ok: false }, { col: 'grievances.anonymous', ok: true },
+      { col: 'grievance_files.uploaded_by', ok: false }, { col: 'grievance_files.name', ok: true },
+    ]);
   });
 
   it('AI prompts and outputs are not readable through the table', async () => {

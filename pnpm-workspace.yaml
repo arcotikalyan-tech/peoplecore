@@ -26,8 +26,12 @@ allowBuilds:
   pnpm: false
   unrs-resolver: false
 # Reviewed 2026-10-18, no patched release yet: node-forge (Expo's CLI) and braces (Metro, eslint-config-next).
+# Reviewed 2026-10-25: zod 3 (GHSA-mrhx-c7xc-m3w5, memory use on oversized input; fixed only in zod 4.6.6+) is used
+# only by @expo/cli, which validates our own config files at build time; every @expo/cli release still pins zod 3.
+# Our code uses zod 4.6.7.
 # Build, lint and dev tooling only; not in the web runtime or the app bundle. Remove each when a fix ships.
 auditConfig:
   ignoreGhsas:
     - GHSA-86w9-cpqp-85rv
     - GHSA-vfj7-8cjw-p6xm
+    - GHSA-mrhx-c7xc-m3w5

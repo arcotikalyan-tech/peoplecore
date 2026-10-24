@@ -29,6 +29,40 @@ export function RaiseGrievanceForm({ action, colleagues, today }: { action: Acti
             <SelectField idPrefix="grv2" name="respondents" label="Another person involved" options={colleagues} placeholder="No one else" defaultValue="" />
           </div>
           <p className="text-xs text-muted">People you name can never see this case, even if they work in HR.</p>
+          <label className="flex items-start gap-2 rounded-lg border border-line p-3 text-sm">
+            <input type="checkbox" name="anonymous" defaultChecked={v.anonymous === 'on'} className="mt-0.5 size-4 rounded border-line-strong accent-primary" />
+            <span>
+              <span className="font-medium">Raise it anonymously</span>
+              <span className="block text-xs text-muted">
+                The people handling it won’t see your name, here or in the audit log. You can still follow the case, reply and add files.
+                Leave names out of what you write and attach if you want to stay anonymous. Not available for POSH complaints, which the law
+                requires to come from the person affected.
+              </span>
+            </span>
+          </label>
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+/** Attaches a PDF, JPEG or PNG (5 MB at most) to a case; the people handling it can keep a file internal. */
+export function AttachGrievanceFileForm({ action, caseId, handler, anonymous }: { action: Action; caseId: string; handler: boolean; anonymous: boolean }) {
+  return (
+    <ActionForm action={action} label="Attach a file" submit="Attach" pendingLabel="Uploading…" hidden={{ caseId }} variant="secondary" size="sm"
+      className="space-y-3 border-t border-line px-5 py-4">
+      {(v, e) => (
+        <>
+          <label className="block text-sm"><span className="mb-1 block text-xs font-medium text-muted">File (PDF, JPEG or PNG, 5 MB at most)</span>
+            <input type="file" name="file" accept="application/pdf,image/jpeg,image/png" aria-label="File" className="block w-full text-sm" />
+            {e.file && <span className="mt-1 block text-xs text-danger">{e.file}</span>}</label>
+          {!handler && anonymous && <p className="text-xs text-muted">Photos and documents can carry your name or where they were taken. Check before you attach.</p>}
+          {handler && (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="internal" defaultChecked={v.internal === 'on'} className="size-4 rounded border-line-strong accent-primary" />
+              Internal (the person who raised it won’t see it)
+            </label>
+          )}
         </>
       )}
     </ActionForm>

@@ -6,11 +6,10 @@ import { createClient } from './supabase';
  * investigators). What was written is read only through `grievance_case`, which records a handler's read.
  */
 
+/** The cases the caller can see, and which they raised (`mine`): who raised a case isn't readable from the table. */
 export async function listGrievances(orgId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('grievances')
-    .select('id, number, reporter_id, category, subject, status, created_at, updated_at')
-    .eq('organization_id', orgId).order('created_at', { ascending: false }).limit(200);
+  const { data, error } = await supabase.rpc('grievance_list', { p_org: orgId });
   if (error) throw new Error(`Failed to load cases (${error.code})`);
   return data;
 }
@@ -27,6 +26,14 @@ export async function grievanceThread(caseId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('grievance_thread', { p_case: caseId });
   if (error) throw new Error(`Failed to load messages (${error.code})`);
+  return data;
+}
+
+/** Files on a case (the reporter: not handlers' internal files). On an anonymous case the reporter's files say "Person who raised it". */
+export async function grievanceFiles(caseId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('grievance_files', { p_case: caseId });
+  if (error) throw new Error(`Failed to load the case's files (${error.code})`);
   return data;
 }
 

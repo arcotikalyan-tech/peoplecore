@@ -1,13 +1,15 @@
 'use server';
 
+import { createHash, randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { todayIn } from '@peoplecore/shared';
+import { checkDocumentFile, safeFileName, todayIn } from '@peoplecore/shared';
 import { z } from 'zod';
 import { formDataAll, formValues, invalid, sqlNull, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
+import { GRIEVANCE_BUCKET, removeDocumentFile, storeDocumentFile } from '@/server/document-storage';
 import { createClient } from '@/server/supabase';
 import { CATEGORY_LABEL, type GrievanceCategory } from './labels';
 
@@ -23,6 +25,7 @@ export async function raiseGrievanceAction(orgSlug: string, _prev: ActionState, 
     subject: z.string().trim().min(3, 'Give it a short title').max(160),
     description: z.string().trim().min(20, 'Describe what happened in a few sentences').max(10000),
     incidentOn: optional(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose a date')),
+    anonymous: z.preprocess((v) => v === 'on', z.boolean()),
   }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(parsed.error, formData);
   const respondents = [...new Set(formDataAll(formData, 'respondents'))];
@@ -31,10 +34,10 @@ export async function raiseGrievanceAction(orgSlug: string, _prev: ActionState, 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('raise_grievance', {
     p_org: ctx.org.id, p_category: v.category, p_subject: v.subject, p_description: v.description,
-    p_incident_on: sqlNull(v.incidentOn), p_respondents: respondents,
+    p_incident_on: sqlNull(v.incidentOn), p_respondents: respondents, p_anonymous: v.anonymous,
   });
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
-  await flash('Submitted in confidence. You’ll hear back here.');
+  await flash(v.anonymous ? 'Submitted anonymously. The people handling it won’t see your name; you’ll hear back here.' : 'Submitted in confidence. You’ll hear back here.');
   redirect(`/app/${orgSlug}/grievances/${data}`);
 }
 
@@ -224,4 +227,48 @@ export async function deletePoshSessionAction(orgSlug: string, _prev: ActionStat
   if (error) return { ok: false, message: toUserMessage(error) };
   posh(orgSlug);
   return { ok: true, message: 'Removed.' };
+}
+
+/**
+ * Attaches a file to a case. The case must be visible to the caller and open before anything is stored; the database
+ * checks again when recording it (who may write, internal files, ten at most), and the file is removed if that refuses.
+ */
+export async function attachGrievanceFileAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  const caseId = z.uuid().safeParse(formData.get('caseId'));
+  if (!caseId.success) return { ok: false, message: 'Case not found.' };
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) return { ok: false, message: 'Choose a file.', fieldErrors: { file: 'Choose a file' } };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const check = checkDocumentFile(bytes.byteLength, bytes.subarray(0, 16));
+  if (!check.ok) return { ok: false, message: check.message, fieldErrors: { file: check.message } };
+  const supabase = await createClient();
+  const { data: found } = await supabase.from('grievances').select('id, status').eq('organization_id', ctx.org.id).eq('id', caseId.data).maybeSingle();
+  if (!found) return { ok: false, message: 'Case not found.' };
+  if (found.status === 'closed' || found.status === 'withdrawn') return { ok: false, message: 'This case is closed.' };
+  const id = randomUUID();
+  const path = `${ctx.org.id}/${found.id}/${id}`;
+  if (!(await storeDocumentFile(path, bytes, check.type, GRIEVANCE_BUCKET))) return { ok: false, message: 'The file could not be stored. Please try again.' };
+  const { error } = await supabase.rpc('add_grievance_file', {
+    p_case: found.id, p_id: id, p_name: safeFileName(file.name), p_type: check.type, p_size: bytes.byteLength,
+    p_sha256: createHash('sha256').update(bytes).digest('hex'), p_internal: formData.get('internal') === 'on',
+  });
+  if (error) {
+    await removeDocumentFile(path, GRIEVANCE_BUCKET);
+    return { ok: false, message: toUserMessage(error) };
+  }
+  revalidatePath(`/app/${orgSlug}/grievances/${found.id}`);
+  return { ok: true, message: 'File attached.' };
+}
+
+export async function removeGrievanceFileAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await getOrgContext(orgSlug);
+  const parsed = z.object({ caseId: z.uuid(), fileId: z.uuid() }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, message: 'File not found.' };
+  const supabase = await createClient();
+  const { data: path, error } = await supabase.rpc('remove_grievance_file', { p_id: parsed.data.fileId });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  if (path) await removeDocumentFile(path, GRIEVANCE_BUCKET);
+  revalidatePath(`/app/${orgSlug}/grievances/${parsed.data.caseId}`);
+  return { ok: true, message: 'File removed.' };
 }

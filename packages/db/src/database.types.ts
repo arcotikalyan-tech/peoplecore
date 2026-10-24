@@ -2994,6 +2994,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      grievance_files: {
+        Row: {
+          id: string;
+          organization_id: string;
+          grievance_id: string;
+          name: string;
+          content_type: string;
+          size_bytes: number;
+          sha256: string;
+          internal: boolean;
+          uploaded_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          organization_id: string;
+          grievance_id: string;
+          name: string;
+          content_type: string;
+          size_bytes: number;
+          sha256: string;
+          internal?: boolean;
+          uploaded_by?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          grievance_id?: string;
+          name?: string;
+          content_type?: string;
+          size_bytes?: number;
+          sha256?: string;
+          internal?: boolean;
+          uploaded_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       grievance_notes: {
         Row: {
           id: string;
@@ -3067,6 +3106,7 @@ export type Database = {
           updated_at: string;
           resolved_at: string | null;
           closed_at: string | null;
+          anonymous: boolean;
         };
         Insert: {
           id?: string;
@@ -3083,6 +3123,7 @@ export type Database = {
           updated_at?: string;
           resolved_at?: string | null;
           closed_at?: string | null;
+          anonymous?: boolean;
         };
         Update: {
           id?: string;
@@ -3099,6 +3140,7 @@ export type Database = {
           updated_at?: string;
           resolved_at?: string | null;
           closed_at?: string | null;
+          anonymous?: boolean;
         };
         Relationships: [];
       };
@@ -8822,6 +8864,18 @@ export type Database = {
         };
         Returns: string;
       };
+      add_grievance_file: {
+        Args: {
+          p_case: string;
+          p_id: string;
+          p_name: string;
+          p_type: string;
+          p_size: number;
+          p_sha256: string;
+          p_internal?: boolean;
+        };
+        Returns: undefined;
+      };
       add_grievance_note: {
         Args: {
           p_case: string;
@@ -9506,13 +9560,31 @@ export type Database = {
         Args: {
           p_case: string;
         };
-        Returns: { id: string; number: number; category: Database['public']['Enums']['grievance_category']; subject: string; description: string; incident_on: string; status: Database['public']['Enums']['grievance_status']; outcome: string; created_at: string; resolved_at: string; closed_at: string; reporter_id: string; reporter_name: string; my_role: string }[];
+        Returns: { id: string; number: number; category: Database['public']['Enums']['grievance_category']; subject: string; description: string; incident_on: string; status: Database['public']['Enums']['grievance_status']; outcome: string; created_at: string; resolved_at: string; closed_at: string; reporter_id: string; reporter_name: string; my_role: string; anonymous: boolean }[];
+      };
+      grievance_file: {
+        Args: {
+          p_id: string;
+        };
+        Returns: { path: string; name: string }[];
+      };
+      grievance_files: {
+        Args: {
+          p_case: string;
+        };
+        Returns: { id: string; name: string; content_type: string; size_bytes: number; internal: boolean; uploader_name: string; mine: boolean; created_at: string }[];
       };
       grievance_investigator_options: {
         Args: {
           p_org: string;
         };
         Returns: { user_id: string; name: string }[];
+      };
+      grievance_list: {
+        Args: {
+          p_org: string;
+        };
+        Returns: { id: string; number: number; category: Database['public']['Enums']['grievance_category']; subject: string; status: Database['public']['Enums']['grievance_status']; anonymous: boolean; created_at: string; updated_at: string; mine: boolean }[];
       };
       grievance_people: {
         Args: {
@@ -9988,6 +10060,7 @@ export type Database = {
           p_description: string;
           p_incident_on?: string;
           p_respondents?: string[];
+          p_anonymous?: boolean;
         };
         Returns: string;
       };
@@ -10114,6 +10187,12 @@ export type Database = {
       remove_expense_item: {
         Args: {
           p_item: string;
+        };
+        Returns: string;
+      };
+      remove_grievance_file: {
+        Args: {
+          p_id: string;
         };
         Returns: string;
       };

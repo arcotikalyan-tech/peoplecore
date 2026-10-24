@@ -4,7 +4,9 @@ import { adminClient, expectNotFound, open, signIn, test } from './helpers';
 /**
  * Grievances on the live demo tenant: Dev Nair raises a concern naming Rohan Iyer; HR opens it (recorded in the
  * audit log), adds an internal note and a message, investigates and resolves it; Dev sees the message and the
- * outcome but not the note; Rohan, being named, can't open the case. Removed afterwards (audit events stay).
+ * outcome but not the note; Rohan, being named, can't open the case. Then Dev raises a concern anonymously with a file:
+ * HR sees "Anonymous" and nowhere Dev's name, downloads the file and adds an internal one Dev never sees. Removed
+ * afterwards with their files (audit events stay).
  */
 test.describe.configure({ mode: 'serial' });
 
@@ -15,6 +17,9 @@ const subject = `Meeting conduct ${run}`;
 let orgId = '';
 let rohanId = '';
 let caseUrl = '';
+let anonymousUrl = '';
+const anonymousSubject = `Travel claims ${run}`;
+const PDF = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n');
 
 test.beforeAll(async () => {
   orgId = (await admin.from('organizations').select('id').eq('slug', 'demo').eq('is_demo', true).single()).data!.id;
@@ -22,6 +27,9 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  const cases = (await admin.from('grievances').select('id').eq('organization_id', orgId).like('subject', `%${run}%`)).data ?? [];
+  const files = (await admin.from('grievance_files').select('id, grievance_id').in('grievance_id', cases.map((c) => c.id))).data ?? [];
+  if (files.length) await admin.storage.from('grievance-files').remove(files.map((x) => `${orgId}/${x.grievance_id}/${x.id}`));
   await admin.from('grievances').delete().eq('organization_id', orgId).like('subject', `%${run}%`);
   await admin.from('notifications').delete().eq('organization_id', orgId).like('kind', 'grievance.%').gte('created_at', startedAt);
 });
@@ -94,4 +102,50 @@ test('the person named in the case can’t open it', async ({ page }) => {
   await expect(page.getByRole('link', { name: subject })).toHaveCount(0);
   await open(page, caseUrl);
   await expectNotFound(page);
+});
+
+test('an anonymous concern: HR never sees who raised it; files go both ways, internal ones stay with HR', async ({ browser }) => {
+  const employee = await (await browser.newContext()).newPage();
+  await signIn(employee, 'demo.employee');
+  await open(employee, '/app/demo/grievances');
+  const form = employee.getByRole('form', { name: 'Raise a concern' });
+  await form.getByLabel('What is it about?').selectOption('ethics');
+  await form.getByLabel('Title').fill(anonymousSubject);
+  await form.getByLabel('What happened?').fill('Taxi bills from a travel desk that does not exist are being claimed every month.');
+  await form.getByLabel(/Raise it anonymously/).check();
+  await form.getByRole('button', { name: 'Submit in confidence' }).click();
+  await employee.waitForURL(/\/grievances\/[0-9a-f-]{36}$/);
+  await expect(employee.getByRole('status').filter({ hasText: 'Submitted anonymously.' })).toBeVisible();
+  anonymousUrl = new URL(employee.url()).pathname;
+  const attach = employee.getByRole('form', { name: 'Attach a file' });
+  await attach.getByLabel('File').setInputFiles({ name: 'claims-summary.pdf', mimeType: 'application/pdf', buffer: PDF });
+  await attach.getByRole('button', { name: 'Attach' }).click();
+  await expect(attach.getByText('File attached.')).toBeVisible();
+
+  const hr = await (await browser.newContext()).newPage();
+  await signIn(hr, 'demo.hr');
+  await open(hr, '/app/demo/grievances');
+  await expect(hr.getByRole('table', { name: 'Cases' }).getByRole('row').filter({ hasText: anonymousSubject })).toContainText('Anonymous');
+  await open(hr, anonymousUrl);
+  await expect(hr.getByText('Anonymous', { exact: true })).toBeVisible(); // raised by
+  // Nowhere on the page outside the pick lists (which list every colleague).
+  const shown = await hr.evaluate(() => { const copy = document.body.cloneNode(true) as HTMLElement; copy.querySelectorAll('select, script, template').forEach((s) => s.remove()); return copy.innerText; });
+  expect(shown).not.toContain('Dev Nair');
+  const files = hr.getByRole('list', { name: 'Files' });
+  await expect(files.getByText('Person who raised it')).toBeVisible();
+  const download = await hr.request.get(await files.getByRole('link', { name: 'claims-summary.pdf' }).getAttribute('href') ?? '');
+  expect(download.status()).toBe(200);
+  expect((await download.body()).subarray(0, 5).toString()).toBe('%PDF-');
+  const hrAttach = hr.getByRole('form', { name: 'Attach a file' });
+  await hrAttach.getByLabel('File').setInputFiles({ name: 'finance-check.pdf', mimeType: 'application/pdf', buffer: PDF });
+  await hrAttach.getByLabel('Internal (the person who raised it won’t see it)').check();
+  await hrAttach.getByRole('button', { name: 'Attach' }).click();
+  await expect(hrAttach.getByText('File attached.')).toBeVisible();
+
+  await employee.reload();
+  await expect(employee.getByRole('list', { name: 'Files' }).getByRole('link', { name: 'claims-summary.pdf' })).toBeVisible();
+  await expect(employee.getByText('finance-check.pdf')).toHaveCount(0);
+  const caseId = anonymousUrl.split('/').pop()!;
+  const created = (await admin.from('audit_events').select('actor_user_id').eq('entity_type', 'grievances').eq('entity_id', caseId).eq('action', 'insert')).data ?? [];
+  expect(created).toEqual([{ actor_user_id: null }]);
 });

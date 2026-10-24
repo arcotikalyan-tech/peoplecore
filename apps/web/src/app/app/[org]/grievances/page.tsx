@@ -29,8 +29,8 @@ export default async function GrievancesPage({ params }: { params: Promise<{ org
   const handler = manager || ctx.can('grievance.read', 'org') || onCommittee;
   // Committee members open POSH cases in a two-step session unless the organization made two-step optional.
   const needsTwoStep = onCommittee && ctx.user.aal !== 'aal2' && controls.require_mfa;
-  const mine = cases.filter((c) => me && c.reporter_id === me.id);
-  const handling = cases.filter((c) => !me || c.reporter_id !== me.id);
+  const mine = cases.filter((c) => c.mine);
+  const handling = cases.filter((c) => !c.mine);
   const base = `/app/${slug}/grievances`;
   const now = new Date().getTime();
   const days = (iso: string) => Math.max(0, Math.floor((now - Date.parse(iso)) / 86_400_000));
@@ -62,7 +62,7 @@ export default async function GrievancesPage({ params }: { params: Promise<{ org
                       <Td className="tabular-nums text-muted">{c.number}</Td>
                       <Td className="font-medium">
                         <Link className="text-primary hover:underline" href={`${base}/${c.id}`}>{c.subject}</Link>
-                        <span className="block text-xs font-normal text-muted">{CATEGORY_LABEL[c.category]}</span>
+                        <span className="block text-xs font-normal text-muted">{CATEGORY_LABEL[c.category]}{c.anonymous ? ' · Anonymous' : ''}</span>
                       </Td>
                       <Td><Badge tone={STATUS_TONE[c.status]}>{STATUS_LABEL[c.status]}</Badge></Td>
                       <Td className="text-muted">
@@ -84,7 +84,7 @@ export default async function GrievancesPage({ params }: { params: Promise<{ org
                     <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
                       <span>
                         <Link className="font-medium text-primary hover:underline" href={`${base}/${c.id}`}>{c.subject}</Link>
-                        <span className="block text-xs text-muted">Case #{c.number} · {formatDate(c.created_at)}</span>
+                        <span className="block text-xs text-muted">Case #{c.number} · {formatDate(c.created_at)}{c.anonymous ? ' · Anonymous' : ''}</span>
                       </span>
                       <Badge tone={STATUS_TONE[c.status]}>{STATUS_LABEL[c.status]}</Badge>
                     </li>

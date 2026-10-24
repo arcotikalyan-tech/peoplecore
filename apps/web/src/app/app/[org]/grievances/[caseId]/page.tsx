@@ -7,11 +7,12 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import { POSH_ACTIONS, poshTimeline, type StepState } from '@/lib/posh';
 import { getOrgContext } from '@/server/context';
 import { colleagueOptions } from '@/server/engagement';
-import { getGrievance, grievancePeople, grievanceThread, investigatorOptions, poshSteps } from '@/server/grievances';
+import { getGrievance, grievanceFiles, grievancePeople, grievanceThread, investigatorOptions, poshSteps } from '@/server/grievances';
 import {
-  addInvestigatorAction, addRespondentAction, grievanceMessageAction, recordPoshStepAction, removeInvestigatorAction, updateGrievanceAction, withdrawGrievanceAction,
+  addInvestigatorAction, addRespondentAction, attachGrievanceFileAction, grievanceMessageAction, recordPoshStepAction, removeGrievanceFileAction,
+  removeInvestigatorAction, updateGrievanceAction, withdrawGrievanceAction,
 } from '../actions';
-import { AddPersonForm, GrievanceMessageForm, PoshStepForm, UpdateGrievanceForm, WithdrawGrievanceForm } from '../grievance-forms';
+import { AddPersonForm, AttachGrievanceFileForm, GrievanceMessageForm, PoshStepForm, UpdateGrievanceForm, WithdrawGrievanceForm } from '../grievance-forms';
 import { CATEGORY_LABEL, OPEN_STATUSES, STATUS_LABEL, STATUS_TONE } from '../labels';
 
 export const metadata: Metadata = { title: 'Grievance' };
@@ -36,8 +37,9 @@ export default async function GrievancePage({ params }: { params: Promise<{ org:
   const manager = g.my_role === 'manager';
   const open = OPEN_STATUSES.includes(g.status) || g.status === 'resolved';
   const posh = g.category === 'posh' && handler;
-  const [thread, people, investigators, colleagues, steps] = await Promise.all([
+  const [thread, files, people, investigators, colleagues, steps] = await Promise.all([
     grievanceThread(g.id),
+    grievanceFiles(g.id),
     grievancePeople(g.id),
     manager && open ? investigatorOptions(ctx.org.id) : Promise.resolve([]),
     manager && open ? colleagueOptions(ctx.org.id) : Promise.resolve([]),
@@ -51,6 +53,8 @@ export default async function GrievancePage({ params }: { params: Promise<{ org:
   const today = todayIn(tz);
   const timeline = posh ? poshTimeline({ filedOn: todayIn(tz, new Date(g.created_at)), incidentOn: g.incident_on, steps, today }) : [];
   const editable = g.status !== 'withdrawn';
+  const closed = g.status === 'closed' || g.status === 'withdrawn';
+  const size = (bytes: number) => (bytes >= 1_048_576 ? `${(bytes / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
 
   return (
     <>
@@ -59,11 +63,12 @@ export default async function GrievancePage({ params }: { params: Promise<{ org:
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           <Card>
-            <CardHeader title="What happened" description={handler ? 'Confidential. Your reading of this case is recorded in the audit log.' : undefined} />
+            <CardHeader title="What happened" description={handler ? 'Confidential. Your reading of this case is recorded in the audit log.'
+              : g.anonymous ? 'Raised anonymously: the people handling it don’t see your name.' : undefined} />
             <div className="whitespace-pre-line px-5 py-4 text-sm leading-6">{g.description}</div>
             <div className="border-t border-line px-5 py-4">
               <DetailList items={[
-                ...(handler ? [{ label: 'Raised by', value: g.reporter_name }] : []),
+                ...(handler ? [{ label: 'Raised by', value: g.anonymous ? 'Anonymous' : g.reporter_name }] : []),
                 { label: 'Raised on', value: formatDate(g.created_at) },
                 { label: 'When it happened', value: g.incident_on ? formatDate(g.incident_on) : 'Not given' },
                 { label: 'People named', value: named.length ? named.map((p) => p.name).join(', ') : 'No one' },
@@ -125,6 +130,26 @@ export default async function GrievancePage({ params }: { params: Promise<{ org:
         </div>
 
         <div className="space-y-6">
+          <Card>
+            <CardHeader title="Files" description={files.length ? undefined : 'Documents, screenshots or photos that support the case.'} />
+            {files.length > 0 && (
+              <ul className="divide-y divide-line" aria-label="Files">
+                {files.map((f) => (
+                  <li key={f.id} className={`flex flex-wrap items-center justify-between gap-2 px-5 py-2 text-sm ${f.internal ? 'bg-warning-soft' : ''}`}>
+                    <span className="min-w-0">
+                      <a className="font-medium text-primary hover:underline" href={`/app/${slug}/grievances/${g.id}/files/${f.id}`}>{f.name}</a>
+                      <span className="block text-xs text-muted">{size(f.size_bytes)} · {f.mine ? 'You' : f.uploader_name} · {formatDateTime(f.created_at, tz)}{f.internal ? ' · Internal' : ''}</span>
+                    </span>
+                    {!closed && (manager || f.mine) && (
+                      <ActionForm action={removeGrievanceFileAction.bind(null, slug)} label={`Remove ${f.name}`} submit="Remove" hidden={{ caseId: g.id, fileId: f.id }}
+                        variant="ghost" size="sm" className="inline-flex items-center gap-2" />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!closed && <AttachGrievanceFileForm action={attachGrievanceFileAction.bind(null, slug)} caseId={g.id} handler={handler} anonymous={g.anonymous} />}
+          </Card>
           {handler && open && (
             <Card>
               <CardHeader title="Update" />
