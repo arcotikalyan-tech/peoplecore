@@ -11162,6 +11162,12 @@ export type Database = {
         Args: never;
         Returns: Json;
       };
+      worker_attendance_anomalies: {
+        Args: {
+          p_since?: string;
+        };
+        Returns: Json;
+      };
       worker_attendance_auto_clock: {
         Args: {
           p_now?: string;

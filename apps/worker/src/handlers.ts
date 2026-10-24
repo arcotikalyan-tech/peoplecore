@@ -38,6 +38,13 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       if (error) throw new Error(error.message);
       log('attendance.daily', data as Record<string, unknown>);
     },
+    // Punches to question (impossible travel, a rough location, far outside the shift): flags for review, never verdicts.
+    'attendance.anomalies': async (_job, log) => {
+      const { data, error } = await db.rpc('worker_attendance_anomalies');
+      if (error) throw new Error(error.message);
+      const r = data as Record<string, number> | null;
+      if (r && Object.values(r).some((n) => n > 0)) log('attendance.anomalies', r);
+    },
     'helpdesk.sla': async (_job, log) => {
       const { data, error } = await db.rpc('worker_helpdesk_sla');
       if (error) throw new Error(error.message);

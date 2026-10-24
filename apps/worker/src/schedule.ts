@@ -20,6 +20,8 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'leave.accrual', key: `leave.accrual:${hour}`, payload: { hour } },
     // Daily: recomputes the last 7 days of attendance (absences appear the next morning, leave changes propagate).
     { kind: 'attendance.daily', key: `attendance.daily:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
+    // Attendance anomalies in the last two days' punches, flagged once each for review.
+    { kind: 'attendance.anomalies', key: `attendance.anomalies:${hour}`, payload: { hour } },
     // Overdue loans: each is reminded once, on the first run after its due date passes in the org's time zone.
     { kind: 'assets.returns', key: `assets.returns:${hour}`, payload: { hour } },
     // Approvals waiting longer than their step allows (hours, 72 by default) escalate once per step.
