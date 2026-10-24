@@ -64,7 +64,7 @@ Account settings says notifications aren't available in this version; nothing el
 
 **Set up on 2026-10-23:** Firebase project `peoplecore-hrms` (owner's Google account; separate from every other app),
 Android app `in.peoplecore.app`. The worker sends as `peoplecore-push@peoplecore-hrms.iam.gserviceaccount.com`, which
-holds only the Firebase Cloud Messaging Admin role; its key lives only in the server's `.env`. To replace the key, make
+holds only the Firebase Cloud Messaging Admin role; its key lives only in the server's `.env` (added 2026-10-24; the worker logs `"push":true`). To replace the key, make
 a new one for that account (Google Cloud console › IAM › Service accounts › Keys), put it in `.env`, restart the worker,
 then delete the old key there.
 
