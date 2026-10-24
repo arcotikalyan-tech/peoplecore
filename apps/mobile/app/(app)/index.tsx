@@ -3,6 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { router } from 'expo-router';
 import { evaluateSetup, type SetupFacts, type SetupProgress } from '@peoplecore/shared/org-setup';
 import { useCallback, useEffect, useState } from 'react';
+import { startOfDayIn, todayIn } from '@peoplecore/shared/dates';
 import { AppState, Linking, RefreshControl, ScrollView, Text, View } from 'react-native';
 import type { QueuedPunch } from '@/lib/punch-queue';
 import { currentPosition, newClientId, queue, sendPunch } from '@/lib/punches';
@@ -14,7 +15,6 @@ import { supabase } from '@/lib/supabase';
 import { Button, Card, colors, Message, s, Screen } from '@/ui';
 
 const time = (iso: string, tz: string) => new Intl.DateTimeFormat('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
-const todayIn = (tz: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
 
 export default function Today() {
   const { workplace } = useSession();
@@ -44,7 +44,7 @@ export default function Today() {
     setQueued(await queue.all());
     if (!workplace?.employeeId) return;
     void checkSelfie();
-    const start = new Date(`${todayIn(tz)}T00:00:00`).toISOString(); // device-local midnight is close enough for a list
+    const start = startOfDayIn(todayIn(tz), tz).toISOString();
     const { data } = await supabase.from('attendance_punches').select('id, punched_at, method')
       .eq('employee_id', workplace.employeeId).gte('punched_at', start).order('punched_at');
     setPunches(data ?? []);

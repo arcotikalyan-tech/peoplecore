@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { todayIn } from '@peoplecore/shared/dates';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { DateField } from '@/date-field';
 import { longDate } from '@/lib/calendar';
@@ -12,7 +13,6 @@ interface Correction { id: string; work_date: string; status: string }
 interface Away { id: string; kind: string; start_date: string; end_date: string; status: string }
 
 const STATUS: Record<string, string> = { pending: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected', cancelled: 'Cancelled' };
-const todayIn = (tz: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
 const addDays = (iso: string, n: number) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 
 /**

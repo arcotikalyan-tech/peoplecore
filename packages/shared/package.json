@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./password": "./src/password.ts",
-    "./org-setup": "./src/org-setup.ts"
+    "./org-setup": "./src/org-setup.ts",
+    "./dates": "./src/dates.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
