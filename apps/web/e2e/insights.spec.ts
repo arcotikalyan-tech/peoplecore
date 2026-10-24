@@ -29,6 +29,26 @@ test.afterAll(async () => {
 const activeCount = async () =>
   (await admin.from('employees').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).in('status', ['active', 'on_notice'])).count!;
 
+test('HR plans hiring for a growth target and gets AI summaries of the plan and the training gaps', async ({ page }) => {
+  await signIn(page, 'demo.hr');
+  await open(page, '/app/demo/insights?growth=20&months=6');
+  const plan = page.getByRole('table', { name: 'Workforce plan' });
+  await expect(plan.getByRole('row').filter({ hasText: 'Total' })).toBeVisible();
+  const totals = (await plan.getByRole('row').filter({ hasText: 'Total' }).getByRole('cell').allTextContents()).map((c) => c.trim());
+  const [now, target, leavers, hires] = totals.slice(1, 5).map((c) => Number(c.replace(/,/g, '')));
+  expect(target).toBeGreaterThan(now!); // 20% growth (rounded per department)
+  expect(hires).toBe(target! - now! + leavers!);
+  await page.getByRole('form', { name: 'Summarise the plan' }).getByRole('button', { name: 'Summarise the plan' }).click();
+  await expect(page.getByText('The plan in brief')).toBeVisible();
+  await expect(page.getByText(`means hiring ${hires}`)).toBeVisible();
+
+  await expect(page.getByRole('table', { name: 'Training gaps' })).toBeVisible();
+  if (await page.getByRole('form', { name: 'Suggest a catch-up plan' }).count()) {
+    await page.getByRole('form', { name: 'Suggest a catch-up plan' }).getByRole('button', { name: 'Suggest a catch-up plan' }).click();
+    await expect(page.getByText('Catch-up plan', { exact: true })).toBeVisible();
+  }
+});
+
 test('HR sees organization-wide reports and asks the copilot', async ({ page }) => {
   await signIn(page, 'demo.hr');
   await open(page, '/app/demo');

@@ -15,7 +15,7 @@
 | T7 | Document URL guessing/sharing | I | Private buckets. Short-lived signed URLs issued after a permission check. Object paths prefixed by org id with storage RLS | Phase 3 tests |
 | T8 | Prompt injection via resumes, receipts, tickets | T/E | Untrusted content tagged as data. Tools allowlisted per agent with permission checks executed as the actor. Tier-3 actions never automated | AI evals with injection fixtures |
 | T9 | AI leaks data across users | I | Retrieval runs through the actor's RLS client. ACL tags on KB chunks. Redaction step | AI tests |
-| T10 | Spoofed attendance (GPS spoofing, photo of photo) | S | Mock-location detection, accuracy thresholds, liveness (optional), device binding. Anomalies go to review and are never sole proof | Phase 3 |
+| T10 | Spoofed attendance (GPS spoofing, photo of photo) | S | Geofences and accuracy thresholds; hourly anomaly flags (impossible travel, rough location, far outside the rule); HR's AI photo check (looks live, matches the profile photo) as a suggestion. Anomalies go to review and are never sole proof. Device binding not built | Phase 3 |
 | T11 | Account takeover | S | Supabase Auth with MFA (TOTP) enforced for sensitive roles, session timeout, rate limiting on auth routes | Phase 1b |
 | T12 | Webhook/integration spoofing | S/T | HMAC signatures, timestamp tolerance, idempotency keys, secrets in Vault | Phase 8 |
 | T13 | Bulk export exfiltration | I | `*.export` permission, export audit events, watermarking, rate limits | Phase 2b |

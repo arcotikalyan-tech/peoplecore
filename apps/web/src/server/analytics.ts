@@ -1,4 +1,5 @@
 import 'server-only';
+import { workforcePlan } from '@peoplecore/shared';
 import type { AnalyticsPort, AnalyticsScope, HeadcountGroup } from '@peoplecore/ai';
 import { createClient } from './supabase';
 
@@ -65,18 +66,31 @@ export function analyticsPort(supabase: Client, orgId: string): AnalyticsPort {
 export async function insights(orgId: string, today: string) {
   const port = analyticsPort(await createClient(), orgId);
   const yearAgo = `${Number(today.slice(0, 4)) - 1}-${today.slice(5, 7)}-01`;
-  const [scope, departments, movements, leave] = await Promise.all([
+  const [scope, departments, movements, leave, learning] = await Promise.all([
     port.scope(),
     port.headcount(today, 'department'),
     port.movements(yearAgo, today),
     port.leave(`${today.slice(0, 4)}-01-01`, today),
+    port.learning(),
   ]);
   const months = movements.slice(-12);
   const leavers = months.reduce((s, m) => s + m.leavers, 0);
   const avg = months.length ? months.reduce((s, m) => s + m.headcountEnd, 0) / months.length : 0;
   return {
     scope, departments, months, leave,
-    joiners: months.reduce((s, m) => s + m.joiners, 0), leavers,
+    joiners: months.reduce((s, m) => s + m.joiners, 0), leavers, averageHeadcount: avg,
     attritionPct: avg ? Math.round((leavers / avg) * 1000) / 10 : null,
+    // Training gaps: courses with anyone assigned, most overdue first, then the lowest completion.
+    courses: learning.filter((c) => c.assigned > 0)
+      .map((c) => ({ ...c, completionPct: Math.round((c.completed / c.assigned) * 100) }))
+      .sort((a, b) => b.overdue - a.overdue || a.completionPct - b.completionPct).slice(0, 40),
   };
+}
+
+/** The hiring plan for a growth target over a horizon, from the headcount and attrition the person can see. */
+export function planFrom(data: Awaited<ReturnType<typeof insights>>, growthPct: number, months: number) {
+  return workforcePlan({
+    departments: data.departments.map((d) => ({ name: d.label, headcount: d.headcount })),
+    leaversLast12Months: data.leavers, averageHeadcount: data.averageHeadcount, growthPct, months,
+  });
 }

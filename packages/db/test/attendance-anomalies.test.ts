@@ -42,4 +42,38 @@ describe('attendance anomaly detector', () => {
       await expect(tx.query('select worker_attendance_anomalies()')).rejects.toMatchObject({ code: '42501' });
     });
   });
+
+  it('attendance managers flag a punch’s photo with a note, once; others can’t', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      await tx.exec('reset role');
+      const path = `${f.orgA}/${f.employees.icA}/0b9a3c52-1d4e-4f6a-9b8c-7d6e5f4a3b2c`;
+      const punch = (await tx.query<{ id: string }>(`insert into attendance_punches (organization_id, employee_id, punched_at, method, source_key, selfie_path)
+        values ($1, $2, now(), 'mobile', 'photo-1', $3) returning id`, [f.orgA, f.employees.icA, path])).rows[0]!.id;
+      const bare = (await tx.query<{ id: string }>(`insert into attendance_punches (organization_id, employee_id, punched_at, method, source_key)
+        values ($1, $2, now(), 'mobile', 'photo-2') returning id`, [f.orgA, f.employees.icA])).rows[0]!.id;
+      const as = async (user: string) => {
+        await tx.exec('reset role');
+        await tx.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: user, role: 'authenticated', aal: 'aal2' })]);
+        await tx.query(`select set_config('request.jwt.claim.sub', $1, true)`, [user]);
+        await tx.exec('set local role authenticated');
+      };
+      const fails = async (sql: string, params: unknown[]) => {
+        await tx.exec('savepoint s');
+        try { await tx.query(sql, params); } catch (e) { await tx.exec('rollback to savepoint s'); return (e as { code?: string; message: string }); }
+        throw new Error('expected to fail');
+      };
+      await as(f.users.icA);
+      expect((await fails('select flag_punch_photo($1, $2)', [punch, 'Looks like a screen'])).code).toBe('42501');
+      await as(f.users.hrA);
+      expect((await fails('select flag_punch_photo($1, $2)', [bare, 'Looks like a screen'])).message).toBe('This punch has no photo.');
+      expect((await fails('select flag_punch_photo($1, $2)', [punch, 'x'])).message).toBe('Say in a few words what looks wrong.');
+      await tx.query('select flag_punch_photo($1, $2)', [punch, 'Looks like a photo of a screen.']);
+      await tx.query('select flag_punch_photo($1, $2)', [punch, 'Again.']);
+      await tx.exec('reset role');
+      expect((await tx.query('select rule, explanation from anomaly_flags where subject_id = $1', [punch])).rows)
+        .toEqual([{ rule: 'photo_check', explanation: 'Check-in photo: Looks like a photo of a screen.' }]);
+    });
+  });
 });
+

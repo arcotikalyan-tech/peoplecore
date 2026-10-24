@@ -108,6 +108,20 @@ export async function signAnnouncementImages(paths: Array<string | null | undefi
   return new Map(data.flatMap((d) => (d.path && d.signedUrl ? [[d.path, d.signedUrl] as [string, string]] : [])));
 }
 
+/**
+ * A check-in photo's bytes, for a path punch_selfie returned (attendance.manage checked by the caller), and the
+ * employee's profile photo, for a path read through RLS: the AI photo check sends both to the model.
+ */
+export async function readSelfieAndPhoto(selfiePath: string, photoPath: string | null): Promise<{ selfie: Uint8Array | null; photo: Uint8Array | null }> {
+  const admin = createAdminClient();
+  const read = async (bucket: Bucket, path: string) => {
+    const { data, error } = await admin.storage.from(bucket).download(checkedPath(path, bucket));
+    return error || !data ? null : new Uint8Array(await data.arrayBuffer());
+  };
+  const [selfie, photo] = await Promise.all([read(SELFIE_BUCKET, selfiePath), photoPath ? read(IMAGE_BUCKET, photoPath) : Promise.resolve(null)]);
+  return { selfie, photo };
+}
+
 /** A company logo's bytes (for a payslip PDF), for a logo path the caller read through RLS. Null if it can't be read. */
 export async function readLogoFile(path: string): Promise<Uint8Array | null> {
   if (!LOGO_PATH.test(path)) throw new Error('Invalid document path');

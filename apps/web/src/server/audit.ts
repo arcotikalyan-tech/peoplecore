@@ -100,8 +100,7 @@ export async function verifyAuditArchive(orgId: string, days = 30) {
       const file = await readAuditArchive(r.path);
       if (!file) problems.push(`${r.day}: its file is missing.`);
       else {
-        let text: Buffer | null = null;
-        try { text = gunzipSync(file); } catch { text = null; }
+        const text = (() => { try { return gunzipSync(file); } catch { return null; } })();
         if (!text || sha256(text) !== r.sha256) problems.push(`${r.day}: its file was changed.`);
       }
     } else if (r.row_count !== 0 || r.sha256 !== sha256('')) problems.push(`${r.day}: its file is missing.`);

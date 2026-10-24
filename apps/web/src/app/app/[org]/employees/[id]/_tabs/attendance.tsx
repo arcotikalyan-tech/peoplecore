@@ -3,6 +3,9 @@ import { SubTabs } from '@/components/ui/hub';
 import { Badge } from '@/components/ui/surface';
 import { formatDate, humanize } from '@/lib/format';
 import { getMyMonth, getRegularizations } from '@/server/attendance';
+import { aiAvailable } from '@/server/ai';
+import { checkPunchPhotoAction, flagPunchPhotoAction } from '../../../attendance/photo-check-actions';
+import { PhotoCheck } from '../../../attendance/photo-check';
 import { attendanceRequests, myRule } from '@/server/attendance-ops';
 import { punchesOn } from '@/server/profile';
 import { Empty, Fields, Panel, type ProfileProps } from './shared';
@@ -78,6 +81,8 @@ export async function AttendanceTab(p: ProfileProps) {
     const date = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? '') && sp.date! <= today ? sp.date! : today;
     const local = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(iso));
     const punches = (await punchesOn(ctx.org.id, id, date)).filter((x) => local(x.punched_at) === date);
+    // HR can ask the AI whether a check-in photo looks live (a suggestion; they decide whether to flag it).
+    const photoCheck = !isSelf && ctx.can('attendance.manage', 'org') && punches.some((x) => x.selfie_path) && await aiAvailable(ctx);
     const day = (await getMyMonth(id, `${date.slice(0, 7)}-01`).catch(() => [] as Awaited<ReturnType<typeof getMyMonth>>)).find((d) => d.work_date === date);
     return (
       <>
@@ -106,7 +111,10 @@ export async function AttendanceTab(p: ProfileProps) {
                         <a href={`/app/${slug}/attendance/selfie/${x.id}`} target="_blank" rel="noreferrer" aria-label={`Check-in photo at ${time(x.punched_at)}`}>
                           {/* eslint-disable-next-line @next/next/no-img-element -- a short-lived private link behind a permission check */}
                           <img src={`/app/${slug}/attendance/selfie/${x.id}`} alt={`Check-in photo at ${time(x.punched_at)}`} className="size-10 rounded-md object-cover" loading="lazy" />
-                        </a>) : '—'}</td></tr>
+                        </a>) : '—'}
+                        {x.selfie_path && photoCheck && (
+                          <PhotoCheck check={checkPunchPhotoAction.bind(null, slug)} flag={flagPunchPhotoAction.bind(null, slug)} punchId={x.id} label={time(x.punched_at)} />
+                        )}</td></tr>
                   ))}
                 </tbody>
               </table>

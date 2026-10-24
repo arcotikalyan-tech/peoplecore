@@ -9629,6 +9629,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      flag_punch_photo: {
+        Args: {
+          p_punch: string;
+          p_note: string;
+        };
+        Returns: undefined;
+      };
       foreclose_loan: {
         Args: {
           p_loan: string;
