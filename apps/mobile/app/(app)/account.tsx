@@ -23,7 +23,7 @@ const PROFILE: Array<{ key: keyof Completeness; label: string }> = [
  * your password, two-step sign-in, and signing out.
  */
 export default function Account() {
-  const { session, workplace, hasAuthenticator, twoStepRequired, reload, signOut } = useSession();
+  const { session, workplace, workplaces, switchWorkplace, hasAuthenticator, twoStepRequired, reload, signOut } = useSession();
   const email = session?.user.email ?? '';
   const [profile, setProfile] = useState<Completeness | null>(null);
   const [form, setForm] = useState({ current: '', password: '', confirm: '' });
@@ -84,6 +84,20 @@ export default function Account() {
           <View style={[s.row, { borderBottomWidth: 0 }]}><Text style={s.muted}>Organization</Text><Text>{workplace?.orgName ?? '—'}</Text></View>
           {!workplace?.employeeId && <Text style={[s.muted, { marginTop: 8 }]}>Your sign-in isn’t linked to an employee profile yet. HR links it, after which you can punch in, apply for leave and see your pay.</Text>}
         </Card>
+
+        {workplaces.length > 1 && (
+          <Card title="Your organizations">
+            <Text style={[s.muted, { marginBottom: 8 }]}>You belong to more than one. The app shows one at a time.</Text>
+            {workplaces.map((o) => o.id === workplace?.orgId ? (
+              <View key={o.id} style={s.row}><Text style={{ fontWeight: '600' }}>{o.name}</Text><Text style={s.muted}>Open now</Text></View>
+            ) : (
+              <View key={o.id} style={{ marginBottom: 8 }}>
+                <Button label={`Switch to ${o.name}`} variant="secondary" busy={busy === o.id}
+                  onPress={() => { setBusy(o.id); void switchWorkplace(o.id).finally(() => setBusy(null)); }} />
+              </View>
+            ))}
+          </Card>
+        )}
 
         {profile && workplace?.employeeId && (
           <Card title={`Your profile · ${done} of ${PROFILE.length}`}>

@@ -1,8 +1,10 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { forgetPhone } from './push';
 import { supabase } from './supabase';
 import { codeNeeded } from './two-step-rules';
+import { pickWorkplace, type OrgChoice } from './workplace-choice';
 
 export interface Workplace {
   orgId: string;
@@ -17,6 +19,10 @@ interface SessionState {
   loading: boolean;
   session: Session | null;
   workplace: Workplace | null;
+  /** Every active organization the person belongs to (more than one: Account settings offers a switch). */
+  workplaces: OrgChoice[];
+  /** Opens the app in another of the person's organizations (by id or slug); remembered on this phone. */
+  switchWorkplace(org: string): Promise<void>;
   /**
    * A two-step code is needed before the app opens: the organization requires two-step for everyone, or the person
    * turned it on for themselves (the same rule as the website).
@@ -35,10 +41,17 @@ interface SessionState {
 
 const Ctx = createContext<SessionState | null>(null);
 
-async function loadWorkplace(): Promise<Workplace | null> {
-  const { data: orgs } = await supabase.rpc('my_organizations');
-  const org = (orgs as Array<{ id: string; name: string; slug: string; status: string }> | null)?.find((o) => o.status === 'active');
-  if (!org) return null;
+const CHOSEN = 'workplace.org';
+
+async function loadWorkplace(): Promise<{ workplace: Workplace | null; workplaces: OrgChoice[] }> {
+  const { data } = await supabase.rpc('my_organizations');
+  const orgs = (data as OrgChoice[] | null) ?? [];
+  const workplaces = orgs.filter((o) => o.status === 'active');
+  const org = pickWorkplace(orgs, await AsyncStorage.getItem(CHOSEN).catch(() => null));
+  return { workplace: org ? await workplaceIn(org) : null, workplaces };
+}
+
+async function workplaceIn(org: OrgChoice): Promise<Workplace> {
   const [{ data: details }, { data: user }] = await Promise.all([
     supabase.from('organizations').select('timezone').eq('id', org.id).maybeSingle(),
     supabase.auth.getUser(),
@@ -56,6 +69,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [workplace, setWorkplace] = useState<Workplace | null>(null);
+  const [workplaces, setWorkplaces] = useState<OrgChoice[]>([]);
   const [needsCode, setNeedsCode] = useState(false);
   const [hasAuthenticator, setHasAuthenticator] = useState(false);
   const [twoStepRequired, setTwoStepRequired] = useState(false);
@@ -64,6 +78,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setSession(s);
     if (!s) {
       setWorkplace(null);
+      setWorkplaces([]);
       setNeedsCode(false);
       setHasAuthenticator(false);
       setTwoStepRequired(false);
@@ -78,7 +93,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setHasAuthenticator(has);
     setTwoStepRequired(Boolean(required));
     setNeedsCode(codeNeeded({ currentLevel: aal?.currentLevel, required: Boolean(required), hasAuthenticator: has }));
-    setWorkplace(await loadWorkplace());
+    const loaded = await loadWorkplace();
+    setWorkplace(loaded.workplace);
+    setWorkplaces(loaded.workplaces);
   }, []);
 
   useEffect(() => {
@@ -88,7 +105,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const value = useMemo<SessionState>(() => ({
-    loading, session, workplace, needsCode, hasAuthenticator, twoStepRequired,
+    loading, session, workplace, workplaces, needsCode, hasAuthenticator, twoStepRequired,
+    async switchWorkplace(org) {
+      const next = workplaces.find((o) => o.id === org || o.slug === org);
+      if (!next || next.id === workplace?.orgId) return;
+      await AsyncStorage.setItem(CHOSEN, next.id).catch(() => undefined);
+      setWorkplace(await workplaceIn(next));
+    },
     async reload() {
       await refresh((await supabase.auth.getSession()).data.session);
     },
@@ -107,9 +130,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     },
     async signOut() {
       await forgetPhone().catch(() => undefined); // offline: the server forgets it once pushes to it fail
+      await AsyncStorage.removeItem(CHOSEN).catch(() => undefined);
       await supabase.auth.signOut();
     },
-  }), [loading, session, workplace, needsCode, hasAuthenticator, twoStepRequired, refresh]);
+  }), [loading, session, workplace, workplaces, needsCode, hasAuthenticator, twoStepRequired, refresh]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

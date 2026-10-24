@@ -9,7 +9,7 @@ import { useSession } from '@/lib/session';
 import { colors } from '@/ui';
 
 export default function AppLayout() {
-  const { loading, session, needsCode } = useSession();
+  const { loading, session, needsCode, workplace, switchWorkplace } = useSession();
   const ready = !loading && !!session && !needsCode;
   const userId = session?.user.id;
 
@@ -24,15 +24,17 @@ export default function AppLayout() {
   // A tapped notification opens its screen, also when the tap started the app (handled once).
   useEffect(() => {
     if (!ready || !pushSupported) return;
-    const open = (r: Notifications.NotificationResponse | null) => {
+    const open = async (r: Notifications.NotificationResponse | null) => {
       if (!r) return;
-      router.navigate(screenFor(r.notification.request.content.data?.link));
-      Notifications.clearLastNotificationResponse();
+      Notifications.clearLastNotificationResponse(); // first, so switching organization below doesn't open it twice
+      const data = r.notification.request.content.data;
+      if (typeof data?.org === 'string' && data.org !== workplace?.slug) await switchWorkplace(data.org);
+      router.navigate(screenFor(data?.link));
     };
-    open(Notifications.getLastNotificationResponse());
-    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    void open(Notifications.getLastNotificationResponse());
+    const sub = Notifications.addNotificationResponseReceivedListener((r) => void open(r));
     return () => sub.remove();
-  }, [ready]);
+  }, [ready, workplace?.slug, switchWorkplace]);
 
   if (!loading && (!session || needsCode)) return <Redirect href="/sign-in" />;
   return (
