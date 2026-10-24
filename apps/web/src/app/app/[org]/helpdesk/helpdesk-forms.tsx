@@ -145,3 +145,60 @@ export function AttachFileForm({ action, ticketId, agent }: { action: Action; ti
     </ActionForm>
   );
 }
+
+type Targets = { business_hours: boolean; day_start: string; day_end: string; urgent_hours: number; high_hours: number; normal_hours: number; low_hours: number };
+
+/** Response targets per priority, and whether they count business hours only. */
+export function HelpdeskSettingsForm({ action, settings }: { action: Action; settings: Targets }) {
+  return (
+    <ActionForm action={action} label="Response targets" submit="Save targets" className="space-y-4 px-5 py-4">
+      {(v, e) => (
+        <>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <TextField idPrefix="hds" name="urgentHours" label="Urgent (hours)" type="number" min={1} max={720} required defaultValue={v.urgentHours ?? String(settings.urgent_hours)} error={e.urgentHours} />
+            <TextField idPrefix="hds" name="highHours" label="High (hours)" type="number" min={1} max={720} required defaultValue={v.highHours ?? String(settings.high_hours)} error={e.highHours} />
+            <TextField idPrefix="hds" name="normalHours" label="Normal (hours)" type="number" min={1} max={720} required defaultValue={v.normalHours ?? String(settings.normal_hours)} error={e.normalHours} />
+            <TextField idPrefix="hds" name="lowHours" label="Low (hours)" type="number" min={1} max={720} required defaultValue={v.lowHours ?? String(settings.low_hours)} error={e.lowHours} />
+          </div>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="businessHours" defaultChecked={v.businessHours ? v.businessHours === 'on' : settings.business_hours}
+              className="mt-0.5 size-4 rounded border-line-strong accent-primary" />
+            <span>Count business hours only
+              <span className="block text-xs text-muted">The clock runs between the times below on working days. Weekly offs and holidays come from the default holiday calendar.</span></span>
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextField idPrefix="hds" name="dayStart" label="Day starts" type="time" required defaultValue={v.dayStart ?? settings.day_start.slice(0, 5)} error={e.dayStart} />
+            <TextField idPrefix="hds" name="dayEnd" label="Day ends" type="time" required defaultValue={v.dayEnd ?? settings.day_end.slice(0, 5)} error={e.dayEnd} />
+          </div>
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+const RATINGS: Array<[string, string]> = [['5', 'Excellent'], ['4', 'Good'], ['3', 'Okay'], ['2', 'Poor'], ['1', 'Very poor']];
+
+/** The requester's rating of a resolved ticket; they can change it later. */
+export function RateTicketForm({ action, ticketId, rating, comment }: { action: Action; ticketId: string; rating: number | null; comment: string | null }) {
+  return (
+    <ActionForm action={action} label="Rate the help" submit={rating ? 'Update rating' : 'Send rating'} hidden={{ ticketId }} size="sm" className="space-y-3 px-5 py-4">
+      {(v, e) => (
+        <>
+          <fieldset>
+            <legend className="mb-2 text-xs font-medium text-muted">How was the help you got?</legend>
+            <div className="flex flex-wrap gap-2">
+              {RATINGS.map(([value, label]) => (
+                <label key={value} className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary-soft">
+                  <input type="radio" name="rating" value={value} defaultChecked={(v.rating ?? (rating ? String(rating) : '')) === value} className="accent-primary" />
+                  {value} · {label}
+                </label>
+              ))}
+            </div>
+            {e.rating && <span className="mt-1 block text-xs text-danger">{e.rating}</span>}
+          </fieldset>
+          <TextAreaField idPrefix="rate" name="comment" label="Anything to add? (optional)" rows={2} defaultValue={v.comment ?? comment ?? ''} error={e.comment} />
+        </>
+      )}
+    </ActionForm>
+  );
+}

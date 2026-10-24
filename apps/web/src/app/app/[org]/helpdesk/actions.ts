@@ -168,3 +168,47 @@ export async function removeTicketFileAction(orgSlug: string, _prev: ActionState
   revalidatePath(`/app/${orgSlug}/helpdesk/${parsed.data.ticketId}`);
   return { ok: true, message: 'File removed.' };
 }
+
+const hours = z.coerce.number().int('Whole hours').min(1, 'At least 1 hour').max(720, 'At most 720 hours');
+const clock = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Choose a time');
+
+/** Response targets per priority, in business hours or around the clock (helpdesk managers). */
+export async function saveHelpdeskSettingsAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await getOrgContext(orgSlug);
+  if (!ctx.can('helpdesk.manage', 'org')) return DENIED;
+  const parsed = z.object({
+    businessHours: z.preprocess((v) => v === 'on', z.boolean()),
+    dayStart: clock, dayEnd: clock,
+    urgentHours: hours, highHours: hours, normalHours: hours, lowHours: hours,
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const v = parsed.data;
+  if (v.dayEnd.slice(0, 5) <= v.dayStart.slice(0, 5)) return { ok: false, message: 'The day ends after it starts.', fieldErrors: { dayEnd: 'After the start' }, values: formValues(formData) };
+  if (!(v.urgentHours <= v.highHours && v.highHours <= v.normalHours && v.normalHours <= v.lowHours)) {
+    return { ok: false, message: 'Give more urgent priorities the same or shorter targets.', values: formValues(formData) };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.from('helpdesk_settings').upsert({
+    organization_id: ctx.org.id, business_hours: v.businessHours, day_start: v.dayStart, day_end: v.dayEnd,
+    urgent_hours: v.urgentHours, high_hours: v.highHours, normal_hours: v.normalHours, low_hours: v.lowHours,
+  });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(`/app/${orgSlug}/helpdesk`, 'layout');
+  return { ok: true, message: 'Saved. New tickets, and tickets whose priority changes, use these targets.' };
+}
+
+/** The requester rates the help on a resolved or closed ticket (1 to 5, with an optional comment). */
+export async function rateTicketAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await getOrgContext(orgSlug);
+  const parsed = z.object({
+    ticketId: z.uuid(),
+    rating: z.coerce.number({ error: 'Choose a rating' }).int().min(1, 'Choose a rating').max(5),
+    comment: optional(z.string().trim().max(1000)),
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('rate_ticket', { p_ticket: parsed.data.ticketId, p_rating: parsed.data.rating, p_comment: sqlNull(parsed.data.comment) });
+  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  revalidatePath(`/app/${orgSlug}/helpdesk/${parsed.data.ticketId}`);
+  return { ok: true, message: 'Thank you. Your rating helps the helpdesk improve.' };
+}

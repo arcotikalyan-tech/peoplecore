@@ -3144,6 +3144,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      helpdesk_settings: {
+        Row: {
+          organization_id: string;
+          business_hours: boolean;
+          day_start: string;
+          day_end: string;
+          urgent_hours: number;
+          high_hours: number;
+          normal_hours: number;
+          low_hours: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          organization_id: string;
+          business_hours?: boolean;
+          day_start?: string;
+          day_end?: string;
+          urgent_hours?: number;
+          high_hours?: number;
+          normal_hours?: number;
+          low_hours?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          organization_id?: string;
+          business_hours?: boolean;
+          day_start?: string;
+          day_end?: string;
+          urgent_hours?: number;
+          high_hours?: number;
+          normal_hours?: number;
+          low_hours?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       hiring_plan_lines: {
         Row: {
           id: string;
@@ -7977,6 +8016,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      ticket_feedback: {
+        Row: {
+          ticket_id: string;
+          organization_id: string;
+          rating: number;
+          comment: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          ticket_id: string;
+          organization_id: string;
+          rating: number;
+          comment?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          ticket_id?: string;
+          organization_id?: string;
+          rating?: number;
+          comment?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       tickets: {
         Row: {
           id: string;
@@ -9598,6 +9664,13 @@ export type Database = {
         };
         Returns: { id: string; author_name: string; mine: boolean; body: string; internal: boolean; created_at: string }[];
       };
+      helpdesk_satisfaction: {
+        Args: {
+          p_org: string;
+          p_days?: number;
+        };
+        Returns: { responses: number; average: number; low: number }[];
+      };
       hire_application: {
         Args: {
           p_application: string;
@@ -10089,6 +10162,14 @@ export type Database = {
           p_ratings: Json;
         };
         Returns: number;
+      };
+      rate_ticket: {
+        Args: {
+          p_ticket: string;
+          p_rating: number;
+          p_comment?: string;
+        };
+        Returns: undefined;
       };
       recalculate_leave: {
         Args: {

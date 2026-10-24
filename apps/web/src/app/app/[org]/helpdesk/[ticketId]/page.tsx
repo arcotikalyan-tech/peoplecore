@@ -6,9 +6,9 @@ import { formatDateTime } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
 import { colleagueNames, colleagueOptions } from '@/server/engagement';
 import { getMyEmployee } from '@/server/employees';
-import { getTicket, getTicketCategories, ticketFiles, ticketThread } from '@/server/helpdesk';
-import { attachTicketFileAction, removeTicketFileAction, replyTicketAction, updateTicketAction } from '../actions';
-import { AttachFileForm, ReplyForm, UpdateTicketForm } from '../helpdesk-forms';
+import { getTicket, getTicketCategories, ticketFeedback, ticketFiles, ticketThread } from '@/server/helpdesk';
+import { attachTicketFileAction, rateTicketAction, removeTicketFileAction, replyTicketAction, updateTicketAction } from '../actions';
+import { AttachFileForm, RateTicketForm, ReplyForm, UpdateTicketForm } from '../helpdesk-forms';
 import { STATUS_LABEL, TICKET_TONE, isOverdue } from '../tone';
 
 export const metadata: Metadata = { title: 'Ticket' };
@@ -23,9 +23,10 @@ export default async function TicketPage({ params }: { params: Promise<{ org: st
   const isAssignee = !!me && ticket.assignee_id === me.id;
   const isRequester = !!me && ticket.requester_id === me.id;
   const agent = helpdesk || isAssignee;
-  const [thread, files, names, categories, assignees] = await Promise.all([
+  const [thread, files, feedback, names, categories, assignees] = await Promise.all([
     ticketThread(ticket.id),
     ticketFiles(ticket.id),
+    ticketFeedback(ticket.id),
     colleagueNames(ctx.org.id),
     getTicketCategories(ctx.org.id, true),
     helpdesk ? colleagueOptions(ctx.org.id) : Promise.resolve(null),
@@ -98,6 +99,21 @@ export default async function TicketPage({ params }: { params: Promise<{ org: st
               <CardHeader title="Update" />
               <UpdateTicketForm action={updateTicketAction.bind(null, slug)} ticketId={ticket.id} status={ticket.status} priority={ticket.priority}
                 assigneeId={ticket.assignee_id} assignees={assignees} />
+            </Card>
+          )}
+          {isRequester && (ticket.status === 'resolved' || closed) && (
+            <Card>
+              <CardHeader title="How did we do?" description={feedback ? `You rated this ${feedback.rating} of 5. You can change it.` : 'Rate the help you got. The helpdesk sees your rating.'} />
+              <RateTicketForm action={rateTicketAction.bind(null, slug)} ticketId={ticket.id} rating={feedback?.rating ?? null} comment={feedback?.comment ?? null} />
+            </Card>
+          )}
+          {agent && feedback && (
+            <Card>
+              <CardHeader title="Rating" />
+              <div className="px-5 py-4 text-sm">
+                <p><span className="font-semibold">{feedback.rating} of 5</span> <span className="text-muted">· {formatDateTime(feedback.updated_at, tz)}</span></p>
+                {feedback.comment && <p className="mt-1 whitespace-pre-line text-muted">{feedback.comment}</p>}
+              </div>
             </Card>
           )}
           {isRequester && !agent && !closed && (

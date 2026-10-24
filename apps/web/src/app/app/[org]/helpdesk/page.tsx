@@ -7,7 +7,7 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
 import { colleagueNames } from '@/server/engagement';
 import { getMyEmployee } from '@/server/employees';
-import { getTicketCategories, listTickets } from '@/server/helpdesk';
+import { getTicketCategories, helpdeskSatisfaction, listTickets } from '@/server/helpdesk';
 import { raiseTicketAction } from './actions';
 import { RaiseTicketForm } from './helpdesk-forms';
 import { STATUS_LABEL, TICKET_TONE, isOverdue } from './tone';
@@ -23,12 +23,13 @@ export default async function HelpdeskPage({ params, searchParams }: { params: P
   const me = await getMyEmployee(ctx.org.id, ctx.user.id);
   const agent = ctx.can('helpdesk.manage', 'org');
   const showAll = view === 'all';
-  const [categories, mine, assigned, queue, names] = await Promise.all([
+  const [categories, mine, assigned, queue, names, satisfaction] = await Promise.all([
     getTicketCategories(ctx.org.id),
     me ? listTickets(ctx.org.id, { requesterId: me.id }) : Promise.resolve([]),
     me && !agent ? listTickets(ctx.org.id, { assigneeId: me.id, open: true }) : Promise.resolve([]),
     agent ? listTickets(ctx.org.id, { open: !showAll }) : Promise.resolve([]),
     colleagueNames(ctx.org.id),
+    agent ? helpdeskSatisfaction(ctx.org.id) : Promise.resolve(null),
   ]);
   const categoryName = new Map(categories.map((c) => [c.id, c.name]));
   const base = `/app/${slug}/helpdesk`;
@@ -66,7 +67,7 @@ export default async function HelpdeskPage({ params, searchParams }: { params: P
       <PageHeader title="Helpdesk" description="Ask HR, payroll or IT for help. Each ticket has a response target set by its priority."
         actions={<>
           <ButtonLink href={`/app/${slug}/knowledge`} variant="secondary">Knowledge base</ButtonLink>
-          {agent && <ButtonLink href={`${base}/settings`} variant="secondary">Categories</ButtonLink>}
+          {agent && <ButtonLink href={`${base}/settings`} variant="secondary">Settings</ButtonLink>}
         </>} />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="space-y-6">
@@ -75,6 +76,14 @@ export default async function HelpdeskPage({ params, searchParams }: { params: P
               <CardHeader title={showAll ? 'All tickets' : 'Open tickets'}
                 actions={<Link className="text-sm text-primary hover:underline" href={showAll ? base : `${base}?view=all`}>{showAll ? 'Show open only' : 'Show all'}</Link>} />
               {table(queue, showAll ? 'All tickets' : 'Open tickets', true)}
+              {satisfaction && (
+                <p className="border-t border-line px-5 py-3 text-sm text-muted" aria-label="Satisfaction">
+                  {satisfaction.responses === 0 ? 'No ratings in the last 90 days.' : <>
+                    Satisfaction, last 90 days: <span className="font-semibold text-fg">{satisfaction.average} of 5</span> from {satisfaction.responses} rating{satisfaction.responses === 1 ? '' : 's'}
+                    {satisfaction.low > 0 && <> · {satisfaction.low} rated 1 or 2</>}
+                  </>}
+                </p>
+              )}
             </Card>
           )}
           {assigned.length > 0 && <Card><CardHeader title="Assigned to you" />{table(assigned, 'Assigned to you', true)}</Card>}

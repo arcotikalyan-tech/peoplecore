@@ -72,3 +72,32 @@ export async function ticketFiles(ticketId: string) {
   if (error) throw new Error(`Failed to load the ticket's files (${error.code})`);
   return data;
 }
+
+export const DEFAULT_HELPDESK_SETTINGS = {
+  business_hours: false, day_start: '09:30:00', day_end: '18:30:00', urgent_hours: 4, high_hours: 8, normal_hours: 24, low_hours: 72,
+};
+
+/** Response targets: hours per priority, and whether they count business hours only (defaults until saved). */
+export async function getHelpdeskSettings(orgId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('helpdesk_settings')
+    .select('business_hours, day_start, day_end, urgent_hours, high_hours, normal_hours, low_hours').eq('organization_id', orgId).maybeSingle();
+  if (error) throw new Error(`Failed to load helpdesk settings (${error.code})`);
+  return data ?? DEFAULT_HELPDESK_SETTINGS;
+}
+
+/** The requester's rating of a ticket (the requester and the ticket's agents see it). */
+export async function ticketFeedback(ticketId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('ticket_feedback').select('rating, comment, updated_at').eq('ticket_id', ticketId).maybeSingle();
+  if (error) throw new Error(`Failed to load the rating (${error.code})`);
+  return data;
+}
+
+/** Ratings over the last 90 days, for helpdesk managers. */
+export async function helpdeskSatisfaction(orgId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('helpdesk_satisfaction', { p_org: orgId, p_days: 90 }).single();
+  if (error) throw new Error(`Failed to load satisfaction (${error.code})`);
+  return data;
+}
