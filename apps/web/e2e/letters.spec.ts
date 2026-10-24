@@ -91,7 +91,11 @@ test('HR generates letters for two people at once and discards the drafts', asyn
   await pick.getByRole('checkbox').nth(1).check();
   await pick.getByRole('button', { name: 'Continue →' }).click();
   const details = page.getByRole('form', { name: 'Letter details' });
-  await details.getByLabel('Template editor').fill(`Date: {{ date }}\n\nDear {{ first name }}, this is batch ${run}.\n\nFor {{ company name }}`);
+  // Typing before the page's scripts take over is reset to the template, so wait for them and check the text stuck.
+  await page.waitForLoadState('networkidle');
+  const body = `Date: {{ date }}\n\nDear {{ first name }}, this is batch ${run}.\n\nFor {{ company name }}`;
+  await details.getByLabel('Template editor').fill(body);
+  await expect(details.getByLabel('Template editor')).toHaveValue(body);
   await details.getByRole('button', { name: 'Generate 2 letters' }).click();
   const drafts = page.getByRole('list', { name: 'Drafts' });
   await expect(drafts.getByRole('listitem')).toHaveCount(2);
