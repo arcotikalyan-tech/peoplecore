@@ -7,7 +7,7 @@ import { createClient } from './supabase';
 export async function listAnnouncements(orgId: string, employeeId: string | null) {
   const supabase = await createClient();
   const [list, acks] = await Promise.all([
-    supabase.from('announcements').select('id, title, body, department_id, location_id, requires_ack, published_at, expires_at')
+    supabase.from('announcements').select('id, title, body, image_path, department_id, location_id, requires_ack, published_at, expires_at')
       .eq('organization_id', orgId).order('published_at', { ascending: false }).limit(50),
     employeeId
       ? supabase.from('announcement_acknowledgements').select('announcement_id, acknowledged_at').eq('employee_id', employeeId)

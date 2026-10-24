@@ -12,7 +12,11 @@ export function PublishAnnouncementForm({ action, departments, locations, today 
       {(v, e) => (
         <>
           <TextField idPrefix="ann" name="title" label="Title" required placeholder="Office closed on Friday" defaultValue={v.title} error={e.title} />
-          <TextAreaField idPrefix="ann" name="body" label="Message" required rows={5} defaultValue={v.body} error={e.body} />
+          <TextAreaField idPrefix="ann" name="body" label="Message" required rows={6} defaultValue={v.body} error={e.body}
+            hint="Formatting: **bold**, *italics*, “## ” for a heading, “- ” for a bullet, “1. ” for a numbered step, [link text](https://…)." />
+          <label className="block text-sm"><span className="mb-1 block text-xs font-medium text-muted">Picture (optional: JPEG or PNG, 2 MB at most)</span>
+            <input type="file" name="picture" accept="image/jpeg,image/png" aria-label="Picture" className="block w-full text-sm" />
+            {e.picture && <span className="mt-1 block text-xs text-danger">{e.picture}</span>}</label>
           <div className="grid gap-3 sm:grid-cols-2">
             <SelectField idPrefix="ann" name="departmentId" label="Department" options={departments} placeholder="Everyone" defaultValue={v.departmentId ?? ''} />
             <SelectField idPrefix="ann" name="locationId" label="Location" options={locations} placeholder="Everywhere" defaultValue={v.locationId ?? ''} />

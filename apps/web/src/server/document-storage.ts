@@ -29,6 +29,8 @@ export const SELFIE_BUCKET = 'attendance-selfies';
 export const COMPANY_BUCKET = 'company-documents';
 /** Files on helpdesk tickets: <org uuid>/<ticket uuid>/<file uuid>. Recorded with add_ticket_attachment, signed only for ticket_file. */
 export const HELPDESK_BUCKET = 'helpdesk-attachments';
+/** Announcement pictures: <org uuid>/<announcement uuid>/<file uuid>. Stored by the publish action (announcement.manage). */
+export const ANNOUNCEMENT_BUCKET = 'announcement-images';
 /** Files on grievance cases: <org uuid>/<case uuid>/<file uuid>. Recorded with add_grievance_file, signed only for grievance_file. */
 export const GRIEVANCE_BUCKET = 'grievance-files';
 /**
@@ -39,7 +41,7 @@ export const IMAGE_BUCKET = 'profile-images';
 const LOGO_PATH = new RegExp(`^${UUID}/logo/${UUID}$`);
 /** Always named explicitly: a default bucket would silently put files in the wrong place. */
 type Bucket = typeof DOCUMENT_BUCKET | typeof RECEIPT_BUCKET | typeof LETTER_BUCKET | typeof STATUTORY_BUCKET | typeof SELFIE_BUCKET | typeof COMPANY_BUCKET
-  | typeof HELPDESK_BUCKET | typeof GRIEVANCE_BUCKET | typeof IMAGE_BUCKET;
+  | typeof HELPDESK_BUCKET | typeof GRIEVANCE_BUCKET | typeof ANNOUNCEMENT_BUCKET | typeof IMAGE_BUCKET;
 
 function checkedPath(path: string, bucket?: Bucket) {
   const shape = bucket === LETTER_BUCKET || bucket === STATUTORY_BUCKET || bucket === COMPANY_BUCKET ? LETTER_PATH : bucket === IMAGE_BUCKET && path.includes('/logo/') ? LOGO_PATH : PATH;
@@ -82,6 +84,15 @@ export async function signImageUrls(paths: Array<string | null | undefined>): Pr
   const wanted = [...new Set(paths.filter((p): p is string => !!p))].map((p) => checkedPath(p, IMAGE_BUCKET));
   if (wanted.length === 0) return new Map();
   const { data, error } = await createAdminClient().storage.from(IMAGE_BUCKET).createSignedUrls(wanted, 3600);
+  if (error || !data) return new Map();
+  return new Map(data.flatMap((d) => (d.path && d.signedUrl ? [[d.path, d.signedUrl] as [string, string]] : [])));
+}
+
+/** Links to show announcement pictures (an hour), for paths the viewer read through RLS (announcements they can see). */
+export async function signAnnouncementImages(paths: Array<string | null | undefined>): Promise<Map<string, string>> {
+  const wanted = [...new Set(paths.filter((p): p is string => !!p))].map((p) => checkedPath(p, ANNOUNCEMENT_BUCKET));
+  if (wanted.length === 0) return new Map();
+  const { data, error } = await createAdminClient().storage.from(ANNOUNCEMENT_BUCKET).createSignedUrls(wanted, 3600);
   if (error || !data) return new Map();
   return new Map(data.flatMap((d) => (d.path && d.signedUrl ? [[d.path, d.signedUrl] as [string, string]] : [])));
 }

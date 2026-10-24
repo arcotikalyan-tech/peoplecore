@@ -4,7 +4,8 @@ import { adminClient, open, signIn, test } from './helpers';
 /**
  * Engagement and services on the live demo tenant: HR publishes an announcement that the employee (Dev Nair)
  * acknowledges; Dev gives kudos; Dev raises a helpdesk ticket that HR answers (with an internal note Dev never
- * sees) and resolves; HR writes knowledge-base articles that Dev can search (drafts stay hidden). Removed afterwards.
+ * sees) and resolves; HR writes knowledge-base articles that Dev can search (drafts stay hidden). An announcement with
+ * formatting and a picture shows both, and a javascript: link stays plain text. Removed afterwards.
  */
 test.describe.configure({ mode: 'serial' });
 
@@ -18,6 +19,9 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  const pictures = (await admin.from('announcements').select('image_path').eq('organization_id', orgId).like('title', `%${run}%`)).data ?? [];
+  const paths = pictures.flatMap((p) => (p.image_path ? [p.image_path] : []));
+  if (paths.length) await admin.storage.from('announcement-images').remove(paths);
   await admin.from('announcements').delete().eq('organization_id', orgId).like('title', `%${run}%`);
   await admin.from('kudos').delete().eq('organization_id', orgId).like('message', `%${run}%`);
   await admin.from('tickets').delete().eq('organization_id', orgId).like('subject', `%${run}%`);
@@ -47,6 +51,34 @@ test('HR publishes an announcement; the employee acknowledges it', async ({ brow
 
   await hr.reload();
   await expect(hr.getByRole('region', { name: `Office closed on Diwali ${run}` }).getByText('1 acknowledged')).toBeVisible();
+});
+
+test('an announcement with formatting and a picture; unsafe links stay text', async ({ browser }) => {
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+  const title = `Office move ${run}`;
+  const hr = await (await browser.newContext()).newPage();
+  await signIn(hr, 'demo.hr');
+  await open(hr, '/app/demo/engagement');
+  const form = hr.getByRole('form', { name: 'Publish an announcement' });
+  await form.getByLabel('Title').fill(title);
+  await form.getByLabel('Message').fill('## What to pack\nWe move on **Monday**.\n- Laptops\n- Chargers\n\nDetails on [the intranet](https://example.test/move). [Click](javascript:alert(1))');
+  await form.getByLabel('Picture').setInputFiles({ name: 'office.png', mimeType: 'image/png', buffer: png });
+  await form.getByRole('button', { name: 'Publish' }).click();
+  await expect(form.getByText('Announcement published.')).toBeVisible();
+
+  const employee = await (await browser.newContext()).newPage();
+  await signIn(employee, 'demo.employee');
+  await open(employee, '/app/demo/engagement');
+  const post = employee.getByRole('region', { name: title });
+  await expect(post.getByRole('heading', { name: 'What to pack' })).toBeVisible();
+  await expect(post.locator('strong', { hasText: 'Monday' })).toBeVisible();
+  await expect(post.getByRole('listitem')).toHaveText(['Laptops', 'Chargers']);
+  await expect(post.getByRole('link', { name: 'the intranet' })).toHaveAttribute('href', 'https://example.test/move');
+  await expect(post.locator('a[href^="javascript"]')).toHaveCount(0);
+  await expect(post.getByText('[Click](javascript:alert(1))')).toBeVisible();
+  const picture = post.locator('img');
+  await expect(picture).toHaveAttribute('src', /announcement-images/);
+  await expect.poll(() => picture.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBe(1);
 });
 
 test('the employee gives kudos and everyone sees them', async ({ page }) => {

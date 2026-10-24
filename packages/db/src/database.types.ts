@@ -282,6 +282,7 @@ export type Database = {
           published_at: string;
           expires_at: string | null;
           created_by: string | null;
+          image_path: string | null;
         };
         Insert: {
           id?: string;
@@ -294,6 +295,7 @@ export type Database = {
           published_at?: string;
           expires_at?: string | null;
           created_by?: string | null;
+          image_path?: string | null;
         };
         Update: {
           id?: string;
@@ -306,6 +308,7 @@ export type Database = {
           published_at?: string;
           expires_at?: string | null;
           created_by?: string | null;
+          image_path?: string | null;
         };
         Relationships: [];
       };

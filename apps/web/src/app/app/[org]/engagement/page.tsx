@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import { todayIn } from '@peoplecore/shared';
 import { ActionForm } from '@/components/action-form';
+import { FormattedText } from '@/components/formatted-text';
 import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
 import { formatDate } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
 import { acknowledgementCounts, colleagueOptions, kudosFeed, listAnnouncements } from '@/server/engagement';
+import { signAnnouncementImages } from '@/server/document-storage';
 import { getMyEmployee } from '@/server/employees';
 import { getStructure, structureOptions } from '@/server/structure';
 import { acknowledgeAnnouncementAction, deleteAnnouncementAction, giveKudosAction, publishAnnouncementAction } from './actions';
@@ -27,6 +29,7 @@ export default async function EngagementPage({ params }: { params: Promise<{ org
   ]);
   const acks = manages ? await acknowledgementCounts(ctx.org.id, announcements.filter((a) => a.requires_ack).map((a) => a.id)) : new Map<string, number>();
   const options = structure ? structureOptions(structure) : null;
+  const pictures = await signAnnouncementImages(announcements.map((a) => a.image_path));
   const audience = (a: (typeof announcements)[number]) =>
     [a.department_id && structure?.departments.find((d) => d.id === a.department_id)?.name,
      a.location_id && structure?.locations.find((l) => l.id === a.location_id)?.name].filter(Boolean).join(' · ') || 'Everyone';
@@ -46,7 +49,11 @@ export default async function EngagementPage({ params }: { params: Promise<{ org
                   <CardHeader title={a.title}
                     description={`${formatDate(a.published_at)}${a.expires_at ? ` · until ${formatDate(new Date(Date.parse(a.expires_at) - 1).toISOString())}` : ''}${manages ? ` · ${audience(a)}` : ''}`}
                     actions={a.acknowledgedAt ? <Badge tone="success">Acknowledged</Badge> : manages && !live ? <Badge>Not showing</Badge> : undefined} />
-                  <div className="whitespace-pre-line px-5 py-4 text-sm leading-6">{a.body}</div>
+                  {a.image_path && pictures.get(a.image_path) && (
+                    // eslint-disable-next-line @next/next/no-img-element -- a short-lived signed link, not a static asset
+                    <img src={pictures.get(a.image_path)} alt="" className="max-h-80 w-full border-b border-line object-cover" />
+                  )}
+                  <FormattedText text={a.body} className="px-5 py-4 text-sm leading-6" />
                   {(a.requires_ack && me && !a.acknowledgedAt && live) || manages ? (
                     <div className="flex flex-wrap items-center gap-4 border-t border-line px-5 py-3 text-sm">
                       {a.requires_ack && me && !a.acknowledgedAt && live && (
