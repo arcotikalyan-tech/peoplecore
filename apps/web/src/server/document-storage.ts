@@ -88,6 +88,17 @@ export async function signImageUrls(paths: Array<string | null | undefined>): Pr
   return new Map(data.flatMap((d) => (d.path && d.signedUrl ? [[d.path, d.signedUrl] as [string, string]] : [])));
 }
 
+/** The audit log's daily archive (migration 20261025000400): <org uuid>/<year>/<day>.jsonl.gz, written by the worker. */
+const AUDIT_ARCHIVE_BUCKET = 'audit-archive';
+const AUDIT_ARCHIVE_PATH = new RegExp(`^${UUID}/\\d{4}/\\d{4}-\\d{2}-\\d{2}\\.jsonl\\.gz$`);
+
+/** A day's archive file, for a path audit_archive_check returned to someone holding audit.read. Null if it can't be read. */
+export async function readAuditArchive(path: string): Promise<Uint8Array | null> {
+  if (!AUDIT_ARCHIVE_PATH.test(path)) throw new Error('Invalid archive path');
+  const { data, error } = await createAdminClient().storage.from(AUDIT_ARCHIVE_BUCKET).download(path);
+  return error || !data ? null : new Uint8Array(await data.arrayBuffer());
+}
+
 /** Links to show announcement pictures (an hour), for paths the viewer read through RLS (announcements they can see). */
 export async function signAnnouncementImages(paths: Array<string | null | undefined>): Promise<Map<string, string>> {
   const wanted = [...new Set(paths.filter((p): p is string => !!p))].map((p) => checkedPath(p, ANNOUNCEMENT_BUCKET));

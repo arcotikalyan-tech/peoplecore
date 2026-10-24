@@ -1116,6 +1116,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      audit_archives: {
+        Row: {
+          id: string;
+          organization_id: string;
+          day: string;
+          row_count: number;
+          first_event_id: number | null;
+          last_event_id: number | null;
+          sha256: string;
+          prev_chain: string | null;
+          chain: string;
+          path: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          day: string;
+          row_count: number;
+          first_event_id?: number | null;
+          last_event_id?: number | null;
+          sha256: string;
+          prev_chain?: string | null;
+          chain: string;
+          path?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          day?: string;
+          row_count?: number;
+          first_event_id?: number | null;
+          last_event_id?: number | null;
+          sha256?: string;
+          prev_chain?: string | null;
+          chain?: string;
+          path?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       audit_events: {
         Row: {
           id: number;
@@ -9193,6 +9235,13 @@ export type Database = {
         };
         Returns: Database['public']['Tables']['shifts']['Row'][];
       };
+      audit_archive_check: {
+        Args: {
+          p_org: string;
+          p_days?: number;
+        };
+        Returns: { day: string; row_count: number; rows_now: number; sha256: string; prev_chain: string; chain: string; path: string }[];
+      };
       calibrate_review: {
         Args: {
           p_review: string;
@@ -11135,6 +11184,21 @@ export type Database = {
         };
         Returns: Json;
       };
+      worker_audit_archive_due: {
+        Args: {
+          p_limit?: number;
+        };
+        Returns: { organization_id: string; day: string }[];
+      };
+      worker_audit_day: {
+        Args: {
+          p_org: string;
+          p_day: string;
+          p_after?: number;
+          p_limit?: number;
+        };
+        Returns: Database['public']['Tables']['audit_events']['Row'][];
+      };
       worker_candidate_retention: {
         Args: never;
         Returns: Json;
@@ -11230,6 +11294,18 @@ export type Database = {
           p_dead_tokens?: string[];
         };
         Returns: undefined;
+      };
+      worker_record_audit_archive: {
+        Args: {
+          p_org: string;
+          p_day: string;
+          p_rows: number;
+          p_first: number;
+          p_last: number;
+          p_sha256: string;
+          p_path: string;
+        };
+        Returns: string;
       };
       worker_report_schedules: {
         Args: never;

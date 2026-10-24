@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { isIsoDate, pageCount } from '@peoplecore/shared';
+import { ActionForm } from '@/components/action-form';
 import { buttonClass } from '@/components/ui/button';
-import { Card, EmptyState, PageHeader } from '@/components/ui/surface';
+import { Card, CardHeader, EmptyState, PageHeader } from '@/components/ui/surface';
 import { Pagination, Table, Td, Th } from '@/components/ui/table';
 import { formatDateTime, humanize } from '@/lib/format';
-import { AUDIT_EXPORT_MAX, AUDIT_PAGE_SIZE, listAuditEvents, type AuditRange } from '@/server/audit';
+import { AUDIT_EXPORT_MAX, AUDIT_PAGE_SIZE, auditArchiveSummary, listAuditEvents, type AuditRange } from '@/server/audit';
 import { requirePermission } from '@/server/context';
 import { namesForUsers } from '@/server/employees';
+import { verifyAuditArchiveAction } from './actions';
 
 export const metadata: Metadata = { title: 'Audit log' };
 
@@ -27,7 +29,7 @@ export default async function AuditPage({
   const page = Number.isFinite(requested) && requested >= 1 ? Math.min(requested, 10_000) : 1;
   const range: AuditRange = { from: isIsoDate(sp.from ?? '') ? sp.from : undefined, to: isIsoDate(sp.to ?? '') ? sp.to : undefined };
 
-  const { rows, total } = await listAuditEvents(ctx.org.id, page, range, ctx.org.timezone);
+  const [{ rows, total }, archive] = await Promise.all([listAuditEvents(ctx.org.id, page, range, ctx.org.timezone), auditArchiveSummary(ctx.org.id)]);
   const actors = await namesForUsers(ctx.org.id, rows.map((r) => r.actor_user_id).filter((x): x is string => !!x));
   const base = `/app/${slug}/audit`;
   const query = (extra: Record<string, string>) => {
@@ -99,6 +101,17 @@ export default async function AuditPage({
             <Pagination page={page} pageCount={pageCount(total, AUDIT_PAGE_SIZE)} total={total} hrefFor={(p) => `${base}${query(p > 1 ? { page: String(p) } : {})}`} />
           </>
         )}
+      </Card>
+      <Card className="mt-6">
+        <CardHeader title="Daily archive"
+          description="Each day’s entries are also copied to a separate archive, with a chain of fingerprints (hashes) linking every day to the one before. Checking it shows whether any archived day was changed or removed since." />
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm">
+          <p className="text-muted">
+            {archive.latest ? <>{archive.days} day{archive.days === 1 ? '' : 's'} archived, up to {formatDateTime(`${archive.latest}T00:00:00Z`, 'UTC').split(',')[0]} (UTC).</> : 'Nothing archived yet: the first day is archived the morning after it ends (UTC).'}
+          </p>
+          <ActionForm action={verifyAuditArchiveAction.bind(null, slug)} label="Check the archive" submit="Check the last 30 days" variant="secondary" size="sm"
+            className="flex flex-wrap items-center gap-3" />
+        </div>
       </Card>
     </>
   );

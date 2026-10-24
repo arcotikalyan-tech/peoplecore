@@ -36,6 +36,8 @@ export function dueJobs(now: Date): ScheduledJob[] {
     { kind: 'recruitment.retention', key: `recruitment.retention:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // Companies whose owner asked to close them: archived on the closing day (hourly, so each time zone's day is met).
     { kind: 'org.closures', key: `org.closures:${hour}`, payload: { hour } },
+    // The audit log's daily archive: hourly, so a missed day is caught up within the hour (cheap when nothing is due).
+    { kind: 'audit.archive', key: `audit.archive:${hour}`, payload: { hour } },
     // AI prompts and outputs are kept 30 days; runs that never finished are closed.
     { kind: 'ai.retention', key: `ai.retention:${hour.slice(0, 10)}`, payload: { day: hour.slice(0, 10) } },
     // Scheduled reports: a reminder when one is due in its organization's time zone (each schedule once per period).

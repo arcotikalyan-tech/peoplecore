@@ -1,5 +1,8 @@
 import 'server-only';
+import { createHash } from 'node:crypto';
+import { gunzipSync } from 'node:zlib';
 import { addDays, startOfDayIn } from '@peoplecore/shared';
+import { readAuditArchive } from './document-storage';
 import { createClient } from './supabase';
 
 export const AUDIT_PAGE_SIZE = 50;
@@ -65,3 +68,44 @@ export async function activityForEmployee(orgId: string, employeeId: string, rel
 }
 
 export type AuditEvent = Awaited<ReturnType<typeof activityForEmployee>>[number];
+
+/** The daily archive so far: how many days are recorded and the latest (audit.read; RLS decides). */
+export async function auditArchiveSummary(orgId: string) {
+  const supabase = await createClient();
+  const { data, count, error } = await supabase.from('audit_archives').select('day, created_at', { count: 'exact' })
+    .eq('organization_id', orgId).order('day', { ascending: false }).limit(1);
+  if (error) throw new Error(`Failed to load the archive (${error.code})`);
+  return { days: count ?? 0, latest: data[0]?.day ?? null, at: data[0]?.created_at ?? null };
+}
+
+const sha256 = (data: string | Uint8Array) => createHash('sha256').update(data).digest('hex');
+
+/**
+ * Checks the last `days` archived days: each file still holds what was hashed, each chain hash follows from the day
+ * before (migration 20261025000400, app.audit_chain), and the log still has as many entries for the day as were
+ * archived. Returns what doesn't match, in plain words.
+ */
+export async function verifyAuditArchive(orgId: string, days = 30) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('audit_archive_check', { p_org: orgId, p_days: days });
+  if (error) throw new Error(`Failed to load the archive (${error.code})`);
+  const rows = [...data].reverse(); // oldest first
+  const problems: string[] = [];
+  let before: string | null = null;
+  for (const r of rows) {
+    if (before !== null && r.prev_chain !== before) problems.push(`${r.day}: doesn’t follow the day before (a day was removed or replaced).`);
+    if (sha256(`${r.prev_chain ?? ''}\n${r.day}\n${r.row_count}\n${r.sha256}`) !== r.chain) problems.push(`${r.day}: its record was altered.`);
+    if (r.rows_now !== r.row_count) problems.push(`${r.day}: the log now has ${r.rows_now} entries for this day, ${r.row_count} were archived.`);
+    if (r.path) {
+      const file = await readAuditArchive(r.path);
+      if (!file) problems.push(`${r.day}: its file is missing.`);
+      else {
+        let text: Buffer | null = null;
+        try { text = gunzipSync(file); } catch { text = null; }
+        if (!text || sha256(text) !== r.sha256) problems.push(`${r.day}: its file was changed.`);
+      }
+    } else if (r.row_count !== 0 || r.sha256 !== sha256('')) problems.push(`${r.day}: its file is missing.`);
+    before = r.chain;
+  }
+  return { checked: rows.length, from: rows[0]?.day ?? null, to: rows.at(-1)?.day ?? null, problems };
+}

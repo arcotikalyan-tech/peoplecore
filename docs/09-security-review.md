@@ -35,7 +35,7 @@ These run in `corepack pnpm check` on every change; a regression fails the build
 | T3 | Secret key in the client | ✅ Lint rule, `server-only` imports, no `NEXT_PUBLIC_` secret. A scan of the full git history found no committed keys. `.env.local` and `.demo-mfa.json` are ignored |
 | T4 | Managers seeing non-reports | ✅ Recursive reporting line with a cycle guard; tested |
 | T5 | Payroll insider fraud | ✅ Maker-checker in the database. The variance table shows approvers what changed since the last locked run |
-| T6 | Audit tampering | ✅ Append-only. ⏳ Periodic export to write-once storage is not built |
+| T6 | Audit tampering | ✅ Append-only, and copied daily to a separate archive with a hash chain (migration 20261025000400): Audit log › Daily archive › Check shows any archived day whose entries or file changed. ⏳ Truly write-once storage (an S3 bucket with Object Lock) is for the owner to add |
 | T7 | Document URL guessing | ✅ Private buckets, short-lived signed URLs after a permission check, the Storage API refused to signed-in users directly |
 | T8 | Prompt injection | ✅ Untrusted content is marked as data. Agents have no write tools (tiers 0–1 in use, tier 3 impossible). Evals include injection cases; resumes and receipts can only fill fields that a person checks |
 | T9 | AI leaking across users | ✅ Retrieval and analytics run as the asker; runs and suggestions are private; identifiers in questions are masked |
@@ -65,6 +65,6 @@ These run in `corepack pnpm check` on every change; a regression fails the build
 - An independent penetration test before the first real customer.
 - An inactivity timeout and refresh-token reuse detection in the production Supabase Auth settings.
 - An edge rate limit on `/careers`. (`/login` is limited by the website itself; an edge limit would add a second layer.)
-- Copies of the audit log in write-once storage (T6). People with `audit.read` can download it by period as CSV (Audit log › Download CSV); a scheduled copy to write-once storage is still open.
+- Copies of the audit log in write-once storage (T6). People with `audit.read` can download it by period as CSV, and the worker archives each UTC day to the private `audit-archive` bucket with a hash chain the database keeps append-only (tamper-evident). Storage can't refuse the service role, so a copy that can't be deleted at all needs an S3 bucket with Object Lock in the owner's cloud account.
 - A no-training, zero-retention agreement with the AI provider ([ai.md](runbooks/ai.md)).
 - Tooling advisories with no patched release yet, both high severity: `braces` (GHSA-vfj7-8cjw-p6xm, via `eslint-config-next` and the mobile app's Metro bundler) and `node-forge` (GHSA-86w9-cpqp-85rv, via Expo's CLI). They run only at lint, build and dev time on our own files, and are not in the web runtime or the app bundle. The audit ignores exactly these two IDs (`auditConfig` in `pnpm-workspace.yaml`); remove each when a fix ships.

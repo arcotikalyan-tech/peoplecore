@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@peoplecore/db/types';
+import { archiveAuditDays } from './audit-archive.ts';
 import { mailerFromEnv, sendBatch, type OutgoingEmail } from './email.ts';
 import type { Handlers, Log } from './queue.ts';
 
@@ -17,6 +18,10 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
       const { data, error } = await db.rpc('worker_daily_core_hr');
       if (error) throw new Error(error.message);
       log('core_hr.daily', data as Record<string, unknown>);
+    },
+    // Yesterday's audit events, per organization, to the archive (catching up on missed days, 50 at a time).
+    'audit.archive': async (_job, log) => {
+      await archiveAuditDays(db, log);
     },
     'org.closures': async (_job, log) => {
       const { data, error } = await db.rpc('worker_close_organizations');
