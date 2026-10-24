@@ -11,12 +11,14 @@ test.describe.configure({ mode: 'serial' });
 const run = Date.now().toString(36).slice(-5).toUpperCase();
 const admin = adminClient();
 let orgId = '';
-let before: Record<string, unknown> | null = null;
+type Settings = NonNullable<Awaited<ReturnType<typeof loadSettings>>['data']>;
+let before: Settings | null = null;
+const loadSettings = (org: string) => admin.from('helpdesk_settings').select('*').eq('organization_id', org).maybeSingle();
 let ticketPath = '';
 
 test.beforeAll(async () => {
   orgId = (await admin.from('organizations').select('id').eq('slug', 'demo').eq('is_demo', true).single()).data!.id;
-  before = (await admin.from('helpdesk_settings').select('*').eq('organization_id', orgId).maybeSingle()).data;
+  before = (await loadSettings(orgId)).data;
 });
 
 test.afterAll(async () => {
