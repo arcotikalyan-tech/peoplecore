@@ -237,6 +237,11 @@ describe('open check-in', () => {
         `select to_char(case when (now() - interval '2 minutes') < ((app.org_today($1) + coalesce(s.start_time, '09:00')) - interval '4 hours')::timestamp at time zone 'Asia/Kolkata'
                              then app.org_today($1) - 1 else app.org_today($1) end, 'YYYY-MM-DD') as d
            from app.shift_for($2, app.org_today($1)) s`, [f.orgA, f.employees.peerA])).rows[0]!.d;
+      // Make that day a working day whatever the calendar says (the test also runs on weekends and holidays).
+      const everyDay = (await t.db.query<{ id: string }>(`insert into work_week_rules (organization_id, name, pattern)
+        values ($1, 'Every day', array['WWWWWWW','WWWWWWW','WWWWWWW','WWWWWWW','WWWWWWW']) returning id`, [f.orgA])).rows[0]!.id;
+      await t.db.query(`insert into work_week_assignments (organization_id, employee_id, rule_id, effective_from) values ($1, $2, $3, '2024-01-01')`, [f.orgA, f.employees.peerA, everyDay]);
+      await t.db.query('delete from holidays where organization_id = $1 and holiday_date = $2', [f.orgA, today]);
       const at = `greatest(now() - interval '2 minutes', ('${today}'::date + coalesce((app.shift_for($2, '${today}')).start_time, '09:00') - interval '4 hours')::timestamp at time zone 'Asia/Kolkata')`;
       await t.db.query(`insert into attendance_punches (organization_id, employee_id, punched_at, method, source_key)
                         values ($1, $2, ${at}, 'import', 'open-in')`, [f.orgA, f.employees.peerA]);
