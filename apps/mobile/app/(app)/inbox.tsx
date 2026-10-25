@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { RefreshControl, ScrollView, TextInput, View } from 'react-native';
 import { decisionMessage, decisionProblem, refusalMessage, type Decision } from '@/lib/decisions';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
-import { Button, Card, colors, Message, s, Screen } from '@/ui';
+import { plainSpaces } from '@/lib/text-weight';
+import { Button, Card, colors, Message, s, Screen, Text } from '@/ui';
 
 interface Approval { id: string; summary: string; step_label: string | null; requested_by_name: string; created_at: string; escalated: boolean }
 interface Note { id: string; title: string; body: string | null; created_at: string; read_at: string | null }
 
-const when = (iso: string) => new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+const when = (iso: string) => plainSpaces(new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)));
 
 /** The phone's Inbox: approvals waiting for you (approve, or reject with a reason) and your notifications. */
 export default function Inbox() {

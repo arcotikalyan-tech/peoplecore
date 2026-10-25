@@ -4,17 +4,18 @@ import { router } from 'expo-router';
 import { evaluateSetup, type SetupFacts, type SetupProgress } from '@peoplecore/shared/org-setup';
 import { useCallback, useEffect, useState } from 'react';
 import { startOfDayIn, todayIn } from '@peoplecore/shared/dates';
-import { AppState, Linking, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { AppState, Linking, RefreshControl, ScrollView, View } from 'react-native';
 import type { QueuedPunch } from '@/lib/punch-queue';
 import { currentPosition, newClientId, queue, sendPunch } from '@/lib/punches';
 import { takeSelfie } from '@/lib/selfie';
 import { selfieRequired } from '@/lib/selfie-rule';
+import { plainSpaces } from '@/lib/text-weight';
 import { useSession } from '@/lib/session';
 import { SITE_URL } from '@/lib/site';
 import { supabase } from '@/lib/supabase';
-import { Button, Card, colors, Message, s, Screen } from '@/ui';
+import { Button, Card, colors, Message, s, Screen, Text } from '@/ui';
 
-const time = (iso: string, tz: string) => new Intl.DateTimeFormat('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+const time = (iso: string, tz: string) => plainSpaces(new Intl.DateTimeFormat('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(new Date(iso)));
 
 export default function Today() {
   const { workplace } = useSession();

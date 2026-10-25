@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { openPayslipPdf } from '@/lib/payslip-pdf';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
-import { Button, Card, colors, Message, s, Screen } from '@/ui';
+import { Button, Card, colors, Message, s, Screen, Text } from '@/ui';
 
 interface Slip { run_id: string; period_month: string; gross: number; deductions: number; net: number }
 interface Line { code: string; name: string; kind: string; amount: number }

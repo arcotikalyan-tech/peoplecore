@@ -1,12 +1,12 @@
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SITE_URL } from '@/lib/site';
 import { isConfigured } from '@/lib/supabase';
 import logoMark from '../assets/logo-mark.png';
 import { useSession } from '@/lib/session';
 import { TwoStepSetup } from '@/two-step-setup';
-import { Button, Card, colors, Field, Message, PasswordField, s } from '@/ui';
+import { Button, Card, colors, Field, Message, PasswordField, s, Text } from '@/ui';
 
 export default function SignIn() {
   const { session, needsCode, hasAuthenticator, signIn, verifyCode, signOut, reload } = useSession();

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { todayIn } from '@peoplecore/shared/dates';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { DateField } from '@/date-field';
 import { longDate } from '@/lib/calendar';
 import { attendanceRequestProblem, correctionProblem, normalizeTime } from '@/lib/requests';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
-import { Button, Card, colors, Field, Message, s, Screen } from '@/ui';
+import { Button, Card, colors, Field, Message, s, Screen, Text } from '@/ui';
 
 type Mode = 'correct' | 'wfh' | 'on_duty';
 interface Correction { id: string; work_date: string; status: string }

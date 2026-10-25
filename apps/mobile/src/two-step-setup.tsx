@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { confirmCode, startTwoStepSetup, type Setup } from '@/lib/two-step';
 import { groupKey } from '@/lib/two-step-rules';
-import { Button, Field, Message, s } from '@/ui';
+import { Button, Field, Message, s, Text } from '@/ui';
 
 /**
  * Setting up two-step sign-in on the phone itself: open the authenticator app with the setup link (or type the key),

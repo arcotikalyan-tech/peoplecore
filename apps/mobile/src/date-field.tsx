@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { isoDate, longDate, monthGrid, monthTitle, shiftMonth } from '@/lib/calendar';
-import { colors, s } from '@/ui';
+import { colors, s, Text } from '@/ui';
 
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 

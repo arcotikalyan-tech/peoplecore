@@ -1,6 +1,6 @@
 import { PASSWORD_HINT } from '@peoplecore/shared/password';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Linking, RefreshControl, ScrollView, View } from 'react-native';
 import { changePassword, type FieldErrors } from '@/lib/account';
 import { openPhoneSettings, pushState, pushSupported, turnOffPush, turnOnPush, type PushState } from '@/lib/push';
 import { useSession } from '@/lib/session';
@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { turnOffTwoStep } from '@/lib/two-step';
 import { appVersion } from '@/lib/version';
 import { TwoStepSetup } from '@/two-step-setup';
-import { Button, Card, colors, Message, PasswordField, s, Screen } from '@/ui';
+import { Button, Card, colors, Message, PasswordField, s, Screen, Text } from '@/ui';
 
 type Completeness = Record<'personal' | 'blood_group' | 'address' | 'emergency' | 'identity' | 'bank', boolean>;
 

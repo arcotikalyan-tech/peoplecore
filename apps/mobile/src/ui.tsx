@@ -1,6 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { Text } from './text';
+
+export { Text };
 
 /** A few accessible building blocks, matching the web app's tokens (primary, muted, danger). */
 export const colors = { bg: '#f8fafc', surface: '#ffffff', fg: '#0f172a', muted: '#64748b', line: '#e2e8f0', primary: '#4f46e5', danger: '#b91c1c', success: '#047857', warning: '#b45309' };

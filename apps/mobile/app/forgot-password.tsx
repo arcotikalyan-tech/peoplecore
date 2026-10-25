@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { requestPasswordReset } from '@/lib/account';
-import { Button, Card, colors, Field, Message, s } from '@/ui';
+import { Button, Card, colors, Field, Message, s, Text } from '@/ui';
 
 /** "Forgot password?": emails a link that opens the website to choose a new password. */
 export default function ForgotPassword() {

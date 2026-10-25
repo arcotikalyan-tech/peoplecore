@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { DateField } from '@/date-field';
 import { longDate } from '@/lib/calendar';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
-import { Button, Card, colors, Field, Message, s, Screen } from '@/ui';
+import { Button, Card, colors, Field, Message, s, Screen, Text } from '@/ui';
 
 interface Balance { leave_type_id: string; name: string; available: number; is_paid: boolean }
 interface Request { id: string; leave_type_id: string; start_date: string; end_date: string; days: number; status: string }
