@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
+import { File } from 'expo-file-system';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { classify, classifyHttp, PunchQueue, type QueuedPunch } from './punch-queue';
@@ -12,7 +13,7 @@ export const queue = new PunchQueue(AsyncStorage);
 
 /** A punch that hasn't reached the server within 30 seconds stays queued and is tried again at the next sync. */
 export function sendPunch(p: QueuedPunch) {
-  return within(send(p), 30_000, classify({ message: 'network' }));
+  return within(send(p), 30_000, { ok: false, permanent: false, message: 'The server took too long to answer.' } as const);
 }
 
 async function send(p: QueuedPunch) {
@@ -46,11 +47,14 @@ async function sendWithPhoto(p: QueuedPunch, photoUri: string) {
     if (p.longitude !== null) form.append('longitude', String(p.longitude));
     if (p.accuracyM !== null) form.append('accuracy', String(p.accuracyM));
     if (Platform.OS === 'web') form.append('selfie', await (await fetch(photoUri)).blob(), 'selfie.jpg');
-    else form.append('selfie', { uri: photoUri, name: 'selfie.jpg', type: 'image/jpeg' } as unknown as Blob);
+    // Expo's fetch reads the file itself; a bare { uri } part (React Native's old way) is refused.
+    else form.append('selfie', new File(photoUri) as unknown as Blob, 'selfie.jpg');
     const res = await fetch(`${SITE_URL}/api/mobile/punch`, { method: 'POST', body: form, headers: { Authorization: `Bearer ${token}` } });
-    return classifyHttp(res.status, (await res.json().catch(() => null)) as { ok?: boolean; message?: string; permanent?: boolean } | null);
-  } catch {
-    return classifyHttp(0, null);
+    const body = (await res.json().catch(() => null)) as { ok?: boolean; message?: string; permanent?: boolean } | null;
+    return classifyHttp(res.status, body ?? (res.ok ? null : { message: `The server answered ${res.status}.` }));
+  } catch (e) {
+    // Offline, or the request couldn't be made (the photo file gone, for one): say which.
+    return { ok: false as const, permanent: false, message: `Couldn’t reach the server (${e instanceof Error ? e.message : 'unknown error'}).` };
   }
 }
 

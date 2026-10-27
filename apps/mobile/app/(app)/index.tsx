@@ -54,7 +54,8 @@ export default function Today() {
   const sync = useCallback(async () => {
     const r = await queue.sync(sendPunch);
     if (r.sent) setMessage({ tone: 'success', text: r.sent === 1 ? 'Recorded.' : `${r.sent} punches recorded.` });
-    else if (r.waiting) setMessage({ tone: 'muted', text: 'Saved on this phone. It will be sent when you’re back online.' });
+    // Saved either way; say why it didn't go (offline, or what the server said) so a stuck punch isn't a mystery.
+    else if (r.waiting) setMessage({ tone: 'muted', text: r.reason && r.reason !== 'No connection.' ? `Saved on this phone, not sent yet: ${r.reason} Pull down to try again.` : 'Saved on this phone. It will be sent when you’re back online.' });
     await load();
   }, [load]);
 

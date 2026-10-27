@@ -62,13 +62,14 @@ export class PunchQueue {
   /**
    * Sends waiting punches in order. Stops at the first network failure (the rest wait for the next sync), drops
    * accepted ones, and keeps permanently refused ones with their reason. Punches past 72 hours can't be accepted
-   * any more; they are marked refused without a call.
+   * any more; they are marked refused without a call. `reason` is why the last try didn't get through, for the screen.
    */
-  async sync(send: (p: QueuedPunch) => Promise<SendResult>): Promise<{ sent: number; refused: number; waiting: number }> {
+  async sync(send: (p: QueuedPunch) => Promise<SendResult>): Promise<{ sent: number; refused: number; waiting: number; reason?: string }> {
     const list = await this.all();
     let sent = 0;
     let refused = 0;
     let stopped = false;
+    let reason: string | undefined;
     const keep: QueuedPunch[] = [];
     for (const p of list) {
       if (p.refused || stopped) {
@@ -88,10 +89,11 @@ export class PunchQueue {
       } else {
         keep.push(p);
         stopped = true;
+        reason = r.message;
       }
     }
     await this.save(keep);
-    return { sent, refused, waiting: keep.filter((p) => !p.refused).length };
+    return { sent, refused, waiting: keep.filter((p) => !p.refused).length, ...(reason ? { reason } : {}) };
   }
 
   /** The person has seen a refusal; forget it. */

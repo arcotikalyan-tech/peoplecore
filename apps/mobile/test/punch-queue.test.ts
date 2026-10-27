@@ -33,7 +33,7 @@ describe('offline punch queue', () => {
     };
     const calls: string[] = [];
     const send = async (p: QueuedPunch) => { calls.push(p.clientId); return answers[p.clientId] ?? { ok: true }; };
-    expect(await q.sync(send)).toEqual({ sent: 0, refused: 1, waiting: 2 });
+    expect(await q.sync(send)).toEqual({ sent: 0, refused: 1, waiting: 2, reason: 'No connection.' });
     expect(calls).toEqual(['a', 'b']); // c waits behind b
     expect((await q.all()).find((p) => p.clientId === 'a')?.refused).toBe('You are outside every office geofence.');
 
