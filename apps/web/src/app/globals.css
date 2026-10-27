@@ -328,6 +328,15 @@ body::after {
   scrollbar-color: var(--line-strong) transparent;
 }
 
+/* Waiting on the server (components/navigation-progress.tsx): a top bar that creeps towards 90%, the busy button dimmed. */
+@keyframes pc-progress { 0% { width: 0; } 20% { width: 45%; } 100% { width: 90%; } }
+.pc-progress { animation: pc-progress 8s cubic-bezier(0.1, 0.7, 0.3, 1) forwards; box-shadow: 0 0 8px var(--primary); }
+html[data-navigating], html[data-navigating] * { cursor: progress; }
+[data-busy] { opacity: 0.6; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .pc-progress { animation: none; width: 60%; }
+}
+
 /* ─── Public website (home, sign in, sign up) ─────────────────────────────────────────────────────────────── */
 @keyframes pc-float { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(3%, -4%, 0) scale(1.08); } }
 @keyframes pc-drift { 0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); } 50% { transform: translate3d(-4%, 3%, 0) rotate(8deg); } }

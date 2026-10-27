@@ -22,19 +22,23 @@ import { searchPeopleAction } from './search-actions';
 export default async function OrgLayout({ children, params }: { children: ReactNode; params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await getOrgContext(slug);
-  const [platformAdmin, unread, flashed, ai, me, view, jar] = await Promise.all([
-    isPlatformAdmin(), unreadNotificationCount(ctx.org.id), readFlash(), aiAvailable(ctx), getMyEmployee(ctx.org.id, ctx.user.id), viewModeFor(ctx), cookies(),
+  const view = await viewModeFor(ctx);
+  // Organization setup for the people who run it: next to the dashboard until it's done, then under Admin.
+  const runsSetup = view === 'admin' && (ctx.can('org.manage', 'org') || ctx.can('onboarding.manage', 'org'));
+  // One round trip for everything the shell needs (the database is a long way from the app server).
+  const [platformAdmin, unread, flashed, ai, me, jar, { data: company }, setup, off] = await Promise.all([
+    isPlatformAdmin(), unreadNotificationCount(ctx.org.id), readFlash(), aiAvailable(ctx), getMyEmployee(ctx.org.id, ctx.user.id), cookies(),
+    createClient().then((db) => db.from('company_profiles').select('logo_path').eq('organization_id', ctx.org.id).maybeSingle()),
+    runsSetup ? orgSetup(ctx.org.id) : null,
+    disabledModules(ctx.org.id),
   ]);
   const base = `/app/${slug}`;
   // The person's photo and the company logo: short-lived links, only when there is something to show.
-  const { data: company } = await (await createClient()).from('company_profiles').select('logo_path').eq('organization_id', ctx.org.id).maybeSingle();
   const images = await signImageUrls([me?.photo_path, company?.logo_path]);
   const profileHref = me ? `${base}/employees/${me.id}` : null;
   const when = (ok: boolean, item: NavItem) => (ok ? [item] : []);
   const reports = REPORTS.some((r) => canRun(ctx, r.access));
 
-  // Organization setup for the people who run it: next to the dashboard until it's done, then under Admin.
-  const setup = view === 'admin' && (ctx.can('org.manage', 'org') || ctx.can('onboarding.manage', 'org')) ? await orgSetup(ctx.org.id) : null;
   const setupItem: NavItem | null = setup
     ? { href: `${base}/setup`, label: 'Organization setup', icon: 'list-checks', ...(setup.percent < 100 ? { badge: { text: `${setup.percent}%`, label: `${setup.percent}% done` } } : {}) }
     : null;
@@ -44,7 +48,6 @@ export default async function OrgLayout({ children, params }: { children: ReactN
     ...(setupItem && setup!.percent < 100 ? [setupItem] : []),
   ] };
 
-  const off = await disabledModules(ctx.org.id);
   const nav: NavGroup[] = view === 'admin' ? [
     home,
     { label: 'People', items: [

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { cookies, headers } from 'next/headers';
+import { Suspense } from 'react';
+import { NavigationProgress } from '@/components/navigation-progress';
 import { asTheme, asWeather, COOKIE, themeBootScript } from '@/lib/theme';
 // Self-hosted (no build-time or runtime requests to Google Fonts).
 import '@fontsource-variable/inter';
@@ -22,7 +24,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
-      <body className="min-h-dvh font-sans">{children}</body>
+      <body className="min-h-dvh font-sans">
+        <Suspense fallback={null}><NavigationProgress /></Suspense>
+        {children}
+      </body>
     </html>
   );
 }

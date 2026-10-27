@@ -8,6 +8,7 @@ import { Bell, ChevronsLeft, ChevronsRight, LogOut, Menu, Search, ShieldCheck, X
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/components/ui/cn';
 import type { PersonHit } from '@/app/app/[org]/search-actions';
+import { startNavigationProgress } from '@/components/navigation-progress';
 import { NAV_ICONS } from './icons';
 import type { NavGroup, NavItem, ViewMode } from './nav-model';
 import { ThemeMenu, type Appearance } from './theme-menu';
@@ -288,7 +289,7 @@ function CommandPalette({ base, nav, search, onClose }: { base: string; nav: Nav
     ...pages.map((p) => ({ key: `n-${p.href}`, href: p.href, label: p.label, meta: 'Page', icon: p.icon })),
   ], [people, pages, base, q]);
 
-  const go = useCallback((href: string) => { onClose(); router.push(href); }, [onClose, router]);
+  const go = useCallback((href: string) => { onClose(); if (href !== location.pathname) startNavigationProgress(); router.push(href); }, [onClose, router]);
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
     else if (e.key === 'ArrowDown') { e.preventDefault(); setIndex((i) => Math.min(i + 1, results.length - 1)); }

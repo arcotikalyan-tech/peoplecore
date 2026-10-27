@@ -52,7 +52,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
   const seesPayroll = admin && (ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org'));
   const seesAttendance = admin && (ctx.can('attendance.read', 'org') || ctx.can('attendance.read', 'team'));
 
-  const [work, attention, headcount, trend, pay, snapshot, presence, exits, compliance, activity, holidays, birthdays, announcements, punches, balances, myDays, rule, setup] = await Promise.all([
+  const [work, attention, headcount, trend, pay, snapshot, presence, exits, compliance, activity, holidays, birthdays, announcements, punches, balances, myDays, rule, setup, completeness] = await Promise.all([
     myWork(orgId, me?.id ?? null, today),
     needsAttention(ctx, today),
     seesPeople ? countEmployees(orgId, { status: 'active' }) : null,
@@ -71,8 +71,8 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
     !admin && me ? getMyMonth(me.id, monthStart).catch(() => []) : [],
     me ? myRule(orgId, me.id, today).catch(() => null) : null,
     admin && (ctx.can('org.manage', 'org') || ctx.can('onboarding.manage', 'org')) ? orgSetup(orgId) : null,
+    me ? createClient().then((db) => db.rpc('my_profile_completeness', { p_org: orgId })).then((r) => r.data as unknown as Completeness | null) : null,
   ]);
-  const completeness = me ? ((await (await createClient()).rpc('my_profile_completeness', { p_org: orgId })).data as unknown as Completeness | null) : null;
 
   const localDate = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(iso));
   const time = (iso: string) => new Intl.DateTimeFormat('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(new Date(iso));

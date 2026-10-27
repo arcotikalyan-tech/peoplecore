@@ -92,7 +92,7 @@ export default async function IdStudioPage({ params, searchParams }: { params: P
               <option value="">Everyone</option>{structure.departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
             <button className="h-9 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-fg">🖨 Print cards</button>
-            <button formAction={`${base}/export`} className="h-9 rounded-lg border border-line px-3 text-sm font-medium hover:bg-subtle">⤓ Export all (SVG)</button>
+            <button formAction={`${base}/export`} data-download className="h-9 rounded-lg border border-line px-3 text-sm font-medium hover:bg-subtle">⤓ Export all (SVG)</button>
           </form>
         )}
       </header>

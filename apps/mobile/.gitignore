@@ -11,3 +11,6 @@ expo-env.d.ts
 
 # Firebase settings for push notifications (see app.config.js); kept out of git
 /google-services.json
+
+# Native module build output
+modules/*/android/build/
