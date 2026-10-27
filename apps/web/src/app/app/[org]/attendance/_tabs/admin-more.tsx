@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { addDays, attendanceCycle, attendanceCycleMonth, todayIn, ZONE_SHAPE_LABELS, zoneMeasures, type LatLng, type ZoneShape } from '@peoplecore/shared';
 import { BarChart } from '@/components/ui/charts';
 import { cn } from '@/components/ui/cn';
@@ -199,7 +200,9 @@ export async function SettingsTab({ ctx, slug }: { ctx: OrgContext; slug: string
         )}
         <div className="border-t border-line px-5 py-4">
           <p className="mb-3 text-sm font-semibold">New zone</p>
-          <ZoneEditor action={saveZoneAction.bind(null, slug)} locations={locations} />
+          {locations.length === 0
+            ? <p className="text-sm text-muted">Zones belong to a location, and there are none yet. <Link href={`/app/${slug}/company?tab=address`} className="font-medium text-primary hover:underline">Add a location in Company Profile</Link>, then come back to draw its zone.</p>
+            : <ZoneEditor action={saveZoneAction.bind(null, slug)} locations={locations} />}
         </div>
       </Panel>
 

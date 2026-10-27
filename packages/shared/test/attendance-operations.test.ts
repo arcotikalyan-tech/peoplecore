@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  attendanceCycle, attendanceCycleMonth, attendanceRequestSchema, attendanceRuleSchema, attendanceSettingsSchema, bulkRegularizationSchema, describePenalty, parseZonePoints,
+  attendanceCycle, attendanceCycleMonth, fieldErrors, attendanceRequestSchema, attendanceRuleSchema, attendanceSettingsSchema, bulkRegularizationSchema, describePenalty, parseZonePoints,
   weekPatternFromForm, workWeekSchema, zoneMeasures, zonePoints, zoneSchema,
 } from '../src/index.ts';
 
@@ -47,6 +47,10 @@ describe('attendance operations schemas', () => {
     expect(zonePoints(rect)).toEqual([[12.969, 77.589], [12.971, 77.591]]);
     expect(zoneSchema.safeParse({ shape: 'rectangle', locationId: loc, name: 'Flat', lat1: '12.969', lng1: '77.589', lat2: '12.969', lng2: '77.591' }).success).toBe(false);
     expect(zoneSchema.safeParse({ shape: 'circle', locationId: loc, name: 'HQ', latitude: '12.97', longitude: '77.59', radiusM: '10' }).success).toBe(false);
+    const noLoc = zoneSchema.safeParse({ shape: 'circle', locationId: '', name: 'HQ', latitude: '12.97', longitude: '77.59', radiusM: '100' });
+    expect(fieldErrors(noLoc.error!).locationId).toBe('Choose an option');
+    const badLoc = zoneSchema.safeParse({ shape: 'circle', locationId: 'x', name: 'HQ', latitude: '12.97', longitude: '77.59', radiusM: '100' });
+    expect(fieldErrors(badLoc.error!).locationId).toBe('Invalid identifier');
     // A 222 m × 217 m box: about 4.8 hectares.
     const box = zoneMeasures('rectangle', [[12.969, 77.589], [12.971, 77.591]], null);
     expect(Math.round(box.area / 1000)).toBe(48);

@@ -18,7 +18,8 @@ export const optionalIsoDate = z.preprocess(
   isoDate.optional(),
 );
 
-export const uuid = z.uuid('Invalid identifier');
+/** A required pick from a list: left empty it asks for a choice; anything else that isn't an id is a tampered form. */
+export const uuid = z.uuid({ error: (iss) => (iss.input === undefined || iss.input === null || iss.input === '' ? 'Choose an option' : 'Invalid identifier') });
 
 export const optionalUuid = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
