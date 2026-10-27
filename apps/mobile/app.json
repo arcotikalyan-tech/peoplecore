@@ -53,7 +53,8 @@
           "color": "#4f46e5",
           "defaultChannel": "default"
         }
-      ]
+      ],
+      "./plugins/release-signing.js"
     ],
     "experiments": {
       "typedRoutes": false
