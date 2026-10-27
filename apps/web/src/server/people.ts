@@ -67,10 +67,12 @@ export async function directorySettings(orgId: string) {
 }
 
 /** Sign-in status of linked accounts (member.manage holders see members; others get nulls). */
-export async function signInStats(orgId: string, people: Person[]) {
+export async function signInStats(orgId: string, people: Person[] | Promise<Person[]>) {
   const supabase = await createClient();
-  const { data } = await supabase.from('organization_members').select('user_id, status').eq('organization_id', orgId);
+  // Read the members while the people list is still loading: neither needs the other until the counting.
+  const [{ data }, list] = await Promise.all([supabase.from('organization_members').select('user_id, status').eq('organization_id', orgId), people]);
   if (!data) return null;
+  people = list;
   const status = new Map(data.map((m) => [m.user_id, m.status]));
   const current = people.filter((p) => p.status === 'active' || p.status === 'on_notice');
   const signedIn = current.filter((p) => p.userId && status.get(p.userId) === 'active').length;

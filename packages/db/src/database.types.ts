@@ -9245,6 +9245,14 @@ export type Database = {
         };
         Returns: Database['public']['Tables']['shifts']['Row'][];
       };
+      attendance_week_counts: {
+        Args: {
+          p_org: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: { work_date: string; at_work: number; late: number; on_leave: number; absent: number; flags: number }[];
+      };
       audit_archive_check: {
         Args: {
           p_org: string;
@@ -9454,6 +9462,16 @@ export type Database = {
           p_description?: string;
         };
         Returns: string;
+      };
+      dashboard_figures: {
+        Args: {
+          p_org: string;
+          p_me: string;
+          p_today: string;
+          p_sections: string[];
+          p_month_ends: string[];
+        };
+        Returns: Json;
       };
       decide_ai_suggestion: {
         Args: {

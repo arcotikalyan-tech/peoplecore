@@ -43,7 +43,8 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
   const hr = view === 'admin' && records;
   const manage = ctx.can('employee.update', 'org');
 
-  const people: Person[] = hr ? await peopleRecords(ctx.org.id, today) : await directory(ctx.org.id);
+  const loading = hr ? peopleRecords(ctx.org.id, today) : directory(ctx.org.id);
+  const [people, stats] = await Promise.all([loading, hr ? signInStats(ctx.org.id, loading) : null]);
   const current = people.filter((p) => CURRENT.has(p.status));
   const depts = new Set(current.map((p) => p.department).filter(Boolean));
   const locs = new Set(current.map((p) => p.location).filter(Boolean));
@@ -54,7 +55,6 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
     : [{ key: 'people', label: 'Directory', count: current.length }, { key: 'orgchart', label: 'Org Chart' }];
   const filtering = Boolean(sp.q || sp.status || sp.department || sp.flag);
   const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : filtering || !hr ? 'people' : 'overview';
-  const stats = hr ? await signInStats(ctx.org.id, people) : null;
   const href = (extra: Record<string, string>) => `${base}?${new URLSearchParams(extra).toString()}`;
   const exportQuery = new URLSearchParams(Object.entries({ q: sp.q, status: sp.status, department: sp.department }).filter(([, v]) => v) as Array<[string, string]>).toString();
 

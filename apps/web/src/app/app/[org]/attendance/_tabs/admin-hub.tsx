@@ -7,7 +7,6 @@ import { cn } from '@/components/ui/cn';
 import type { OrgContext } from '@/server/context';
 import { daySummary, peopleDay, pendingOvertimeCount, structureNames } from '@/server/attendance-ops';
 import { createClient } from '@/server/supabase';
-import { allRows } from '@/server/all-rows';
 
 const STATUS_FILTERS = [
   ['all', 'All status'], ['present', 'Present'], ['late', 'Late'], ['wfh', 'Work from home'], ['on_leave', 'On leave'], ['absent', 'Absent'], ['not_marked', 'Not marked'],
@@ -29,7 +28,7 @@ export async function AdminHub({ ctx, orgBase, base, today, pulse, q }: { ctx: O
   const supabase = await createClient();
   const count = (r: { count: number | null }) => r.count ?? 0;
   const weekAgo = addDays(today, -6);
-  const [summary, people, names, anomalies, regs, requests, overtime, week, weekFlags, pendingRegs] = await Promise.all([
+  const [summary, people, names, anomalies, regs, requests, overtime, week, pendingRegs] = await Promise.all([
     daySummary(orgId, today),
     peopleDay(orgId, today, { page: 1, q: q || undefined }),
     structureNames(orgId),
@@ -37,8 +36,8 @@ export async function AdminHub({ ctx, orgBase, base, today, pulse, q }: { ctx: O
     supabase.from('regularization_requests').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('status', 'pending'),
     supabase.from('attendance_requests').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('status', 'pending'),
     pendingOvertimeCount(orgId),
-    allRows((a, b) => supabase.from('attendance_days').select('work_date, status, late_minutes').eq('organization_id', orgId).gte('work_date', weekAgo).lte('work_date', today).order('employee_id').order('work_date').range(a, b)),
-    allRows((a, b) => supabase.from('anomaly_flags').select('created_at').eq('organization_id', orgId).gte('created_at', `${weekAgo}T00:00:00Z`).order('id').range(a, b)),
+    // Counted in the database, one row per day (reading the week's rows took a request per thousand).
+    supabase.rpc('attendance_week_counts', { p_org: orgId, p_from: weekAgo, p_to: today }),
     supabase.from('regularization_requests').select('id, employee_id, work_date, reason, created_at').eq('organization_id', orgId).eq('status', 'pending').order('created_at').limit(5),
   ]);
   const by = summary?.byStatus ?? {};
@@ -60,10 +59,8 @@ export async function AdminHub({ ctx, orgBase, base, today, pulse, q }: { ctx: O
 
   // Last 7 days for the figure trends.
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekAgo, i));
-  const wk = week.data ?? [];
-  const series = (f: (r: (typeof wk)[number]) => boolean) => days.map((d) => wk.filter((r) => r.work_date === d && f(r)).length);
-  const atWork = (s: string) => ['present', 'half_day', 'on_duty', 'wfh'].includes(s);
-  const flagSeries = days.map((d) => (weekFlags.data ?? []).filter((f) => f.created_at.slice(0, 10) === d).length);
+  const byDay = new Map((week.data ?? []).map((r) => [r.work_date, r]));
+  const series = (k: 'at_work' | 'late' | 'on_leave' | 'absent' | 'flags') => days.map((d) => Number(byDay.get(d)?.[k] ?? 0));
 
   const status = (p: (typeof people.rows)[number]) => (p.status ?? 'not_marked');
   const pulseRows = people.rows.filter((p) => {
@@ -107,11 +104,11 @@ export async function AdminHub({ ctx, orgBase, base, today, pulse, q }: { ctx: O
       </section>
 
       <section aria-label="Today’s figures" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <Figure label="Present today" value={present} note="Clocked in" icon={<UsersRound className="size-4" />} tone="success" href={`${base}?tab=hub&pulse=present`} trend={series((r) => atWork(r.status))} />
-        <Figure label="Late today" value={summary?.late ?? 0} note="Late arrivals" icon={<Clock3 className="size-4" />} tone="danger" href={`${base}?tab=hub&pulse=late`} trend={series((r) => atWork(r.status) && r.late_minutes > 0)} />
-        <Figure label="On leave" value={onLeave} note="Today" icon={<Palmtree className="size-4" />} tone="accent" href={`${base}?tab=hub&pulse=on_leave`} trend={series((r) => r.status === 'on_leave')} />
-        <Figure label="Absent" value={absent} note="No record today" icon={<CalendarX2 className="size-4" />} tone="warning" href={`${base}?tab=hub&pulse=absent`} trend={series((r) => r.status === 'absent')} />
-        <Figure label="Anomalies" value={count(anomalies)} note="need review" icon={<AlertTriangle className="size-4" />} tone="info" href={`${base}?tab=approvals`} trend={flagSeries} />
+        <Figure label="Present today" value={present} note="Clocked in" icon={<UsersRound className="size-4" />} tone="success" href={`${base}?tab=hub&pulse=present`} trend={series('at_work')} />
+        <Figure label="Late today" value={summary?.late ?? 0} note="Late arrivals" icon={<Clock3 className="size-4" />} tone="danger" href={`${base}?tab=hub&pulse=late`} trend={series('late')} />
+        <Figure label="On leave" value={onLeave} note="Today" icon={<Palmtree className="size-4" />} tone="accent" href={`${base}?tab=hub&pulse=on_leave`} trend={series('on_leave')} />
+        <Figure label="Absent" value={absent} note="No record today" icon={<CalendarX2 className="size-4" />} tone="warning" href={`${base}?tab=hub&pulse=absent`} trend={series('absent')} />
+        <Figure label="Anomalies" value={count(anomalies)} note="need review" icon={<AlertTriangle className="size-4" />} tone="info" href={`${base}?tab=approvals`} trend={series('flags')} />
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
