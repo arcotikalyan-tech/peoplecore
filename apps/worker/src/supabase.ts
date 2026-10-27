@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Json } from '@peoplecore/db/types';
 import type { ClaimedJob, QueueClient } from './queue.ts';
+import { timedFetch } from './timed-fetch.ts';
 
 /**
  * Service-role client (bypasses RLS). The worker only calls functions that are granted to service_role
@@ -10,7 +11,8 @@ export function serviceClient(): SupabaseClient<Database> {
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) throw new Error('Set SUPABASE_URL and SUPABASE_SECRET_KEY (see apps/worker/.env.example).');
-  return createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  // Generous: a job's database function may work through a whole organization; the job's own limit is 4 minutes.
+  return createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: timedFetch(120_000) } });
 }
 
 export function supabaseQueue(db: SupabaseClient<Database>): QueueClient {

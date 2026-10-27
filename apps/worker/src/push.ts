@@ -2,6 +2,7 @@ import { createSign } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@peoplecore/db/types';
 import type { Log } from './queue.ts';
+import { timedFetch } from './timed-fetch.ts';
 
 /** One push the database queued (migration 20261023000100), as worker_claim_pushes returns it. */
 export interface OutgoingPush {
@@ -39,7 +40,7 @@ interface ServiceAccount {
  * Firebase Cloud Messaging from FCM_SERVICE_ACCOUNT (the service account's JSON, as is or base64-encoded). Null when
  * it isn't configured: pushes then wait in the queue and expire after a day.
  */
-export function fcmFromEnv(env: NodeJS.ProcessEnv = process.env, fetchImpl: typeof fetch = fetch): PushSender | null {
+export function fcmFromEnv(env: NodeJS.ProcessEnv = process.env, fetchImpl: typeof fetch = timedFetch(10_000)): PushSender | null {
   const raw = env.FCM_SERVICE_ACCOUNT?.trim();
   if (!raw) return null;
   const account = JSON.parse(raw.startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8')) as Partial<ServiceAccount>;

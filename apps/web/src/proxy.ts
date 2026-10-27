@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { DATABASE_TIMEOUT_MS, timedFetch } from '@/lib/timed-fetch';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isProduction, isSupabaseConfigured, publicEnv } from '@/lib/env';
 
@@ -51,6 +52,7 @@ export async function proxy(request: NextRequest) {
 
   const { url, publishableKey } = publicEnv();
   const supabase = createServerClient(url, publishableKey, {
+    global: { fetch: timedFetch(DATABASE_TIMEOUT_MS) },
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {

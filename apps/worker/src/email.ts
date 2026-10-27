@@ -27,7 +27,8 @@ export interface Mailer {
 export function mailerFromEnv(env: NodeJS.ProcessEnv = process.env): Mailer | null {
   if (!env.SMTP_URL) return null;
   return {
-    transport: nodemailer.createTransport(env.SMTP_URL),
+    // Nodemailer waits up to 2 minutes to connect and 10 for a reply by default; a stuck mail server would hold the worker.
+    transport: nodemailer.createTransport({ url: env.SMTP_URL, connectionTimeout: 15_000, greetingTimeout: 10_000, socketTimeout: 30_000 }),
     from: env.EMAIL_FROM || 'PeopleCore <no-reply@peoplecore.app>',
     appUrl: env.APP_URL ? env.APP_URL.replace(/\/+$/, '') : null,
   };

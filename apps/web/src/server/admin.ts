@@ -2,6 +2,7 @@ import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@peoplecore/db/types';
 import { publicEnv } from '@/lib/env';
+import { DATABASE_TIMEOUT_MS, timedFetch } from '@/lib/timed-fetch';
 
 /**
  * Service-role client, authenticated with the project's *secret* key. BYPASSES ROW LEVEL SECURITY.
@@ -16,5 +17,6 @@ export function createAdminClient() {
   }
   return createClient<Database>(publicEnv().url, secretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: timedFetch(DATABASE_TIMEOUT_MS) },
   });
 }

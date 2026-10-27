@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@peoplecore/db/types';
 import { publicEnv } from '@/lib/env';
+import { DATABASE_TIMEOUT_MS, timedFetch } from '@/lib/timed-fetch';
 
 /**
  * Supabase client acting as the signed-in user (publishable key + session cookie). Every query is subject
@@ -14,6 +15,7 @@ export async function createClient() {
   const cookieStore = await cookies();
   const { url, publishableKey } = publicEnv();
   return createServerClient<Database>(url, publishableKey, {
+    global: { fetch: timedFetch(DATABASE_TIMEOUT_MS) },
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (toSet) => {
