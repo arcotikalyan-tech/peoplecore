@@ -97,15 +97,21 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
     'notifications.email': async (_job, log) => {
       const mailer = mailerFromEnv();
       if (!mailer) return;  // not configured: emails wait in the outbox and expire after two days
-      const { data, error } = await db.rpc('worker_claim_emails', { p_limit: 50 });
-      if (error) throw new Error(error.message);
-      const emails = (data ?? []) as OutgoingEmail[];
-      if (emails.length === 0) return;
-      const r = await sendBatch(emails, mailer, async (id, ok, message) => {
-        const { error: e } = await db.rpc('worker_email_result', { p_id: id, p_ok: ok, p_error: message ?? undefined });
-        if (e) throw new Error(e.message);
-      });
-      log('notifications.email', r);
+      // Batches of 50 until the outbox is empty or three minutes have passed (the job may run four), so publishing
+      // payslips to a thousand people goes out in one run rather than 50 every quarter of an hour.
+      const until = Date.now() + 180_000;
+      while (Date.now() < until) {
+        const { data, error } = await db.rpc('worker_claim_emails', { p_limit: 50 });
+        if (error) throw new Error(error.message);
+        const emails = (data ?? []) as OutgoingEmail[];
+        if (emails.length === 0) return;
+        const r = await sendBatch(emails, mailer, async (id, ok, message) => {
+          const { error: e } = await db.rpc('worker_email_result', { p_id: id, p_ok: ok, p_error: message ?? undefined });
+          if (e) throw new Error(e.message);
+        });
+        log('notifications.email', r);
+        if (emails.length < 50) return;
+      }
     },
     'notifications.celebrations': async (_job, log) => {
       const { data, error } = await db.rpc('worker_celebration_emails');

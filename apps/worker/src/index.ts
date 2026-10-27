@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs';
 import { hostname } from 'node:os';
 import { handlers } from './handlers.ts';
 import { drainPushes, fcmFromEnv, type PushSender } from './push.ts';
@@ -36,8 +37,13 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   });
 }
 
+/** Touched on every pass; the container's health check reads its age (deploy/docker-compose.yml). */
+const HEARTBEAT = process.env.WORKER_HEARTBEAT_FILE ?? '/tmp/peoplecore-worker-alive';
+const beat = () => { try { writeFileSync(HEARTBEAT, new Date().toISOString()); } catch { /* the check then reports it */ } };
+
 log('worker.started', { pollMs, push: !!push });
 while (!stopping) {
+  if (!once) beat();
   try {
     const now = new Date();
     // Once per quarter hour; hourly and daily jobs are deduplicated by their idempotency keys.
@@ -48,7 +54,9 @@ while (!stopping) {
     }
     // Phone pushes go out on every poll (within seconds), not on the quarter-hour schedule.
     if (push) await drainPushes(db, push, log).catch((err: unknown) => log('push.error', { error: err instanceof Error ? err.message : String(err) }));
-    const result = await runOnce(queue, registry, { worker, limit: 10, leaseSeconds: 300, timeoutMs: 240_000, log });
+    // One job per claim: its lease (5 minutes) then covers the job's own limit (4). A batch claimed at once ran one
+    // after another, so later jobs' leases could run out before they started and another worker would take them too.
+    const result = await runOnce(queue, registry, { worker, limit: 1, leaseSeconds: 300, timeoutMs: 240_000, log });
     if (result.claimed > 0 && Date.now() < deadline) continue; // more may be waiting
     if (once) break;
   } catch (err) {
