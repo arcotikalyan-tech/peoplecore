@@ -79,13 +79,37 @@ export async function signSelfieUrl(path: string): Promise<string | null> {
   return error ? null : data.signedUrl;
 }
 
+/**
+ * Signed photo and logo links, reused while they have more than ten minutes left. Every page shows the logo and the
+ * person's photo: signing them afresh cost a trip to storage per page and gave the browser a new address each time, so
+ * it could never reuse the picture. A link is only handed out for a path the caller already read (as before), and a new
+ * picture always has a new path (uploads never overwrite), so a remembered link never shows an old one.
+ */
+const signedImages = new Map<string, { url: string; until: number }>();
+const SIGNED_FOR_S = 3600;
+const REUSE_MS = (SIGNED_FOR_S - 600) * 1000;
+const MAX_REMEMBERED = 5000;
+
 /** Links to show profile photos and logos (an hour), for paths the viewer read through RLS. */
 export async function signImageUrls(paths: Array<string | null | undefined>): Promise<Map<string, string>> {
   const wanted = [...new Set(paths.filter((p): p is string => !!p))].map((p) => checkedPath(p, IMAGE_BUCKET));
-  if (wanted.length === 0) return new Map();
-  const { data, error } = await createAdminClient().storage.from(IMAGE_BUCKET).createSignedUrls(wanted, 3600);
-  if (error || !data) return new Map();
-  return new Map(data.flatMap((d) => (d.path && d.signedUrl ? [[d.path, d.signedUrl] as [string, string]] : [])));
+  const now = Date.now();
+  const out = new Map<string, string>();
+  for (const p of wanted) {
+    const hit = signedImages.get(p);
+    if (hit && hit.until > now) out.set(p, hit.url);
+  }
+  const missing = wanted.filter((p) => !out.has(p));
+  if (missing.length === 0) return out;
+  const { data, error } = await createAdminClient().storage.from(IMAGE_BUCKET).createSignedUrls(missing, SIGNED_FOR_S);
+  if (error || !data) return out;
+  if (signedImages.size + missing.length > MAX_REMEMBERED) signedImages.clear();
+  for (const d of data) {
+    if (!d.path || !d.signedUrl) continue;
+    out.set(d.path, d.signedUrl);
+    signedImages.set(d.path, { url: d.signedUrl, until: now + REUSE_MS });
+  }
+  return out;
 }
 
 /** The audit log's daily archive (migration 20261025000400): <org uuid>/<year>/<day>.jsonl.gz, written by the worker. */
