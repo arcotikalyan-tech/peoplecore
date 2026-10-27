@@ -86,25 +86,27 @@ export default function Today() {
     if (!workplace) return;
     setBusy(true);
     setMessage(null);
-    const selfie = await checkSelfie();
-    const where = await currentPosition();
-    if ('error' in where) {
-      setMessage({ tone: 'danger', text: where.error });
-      return setBusy(false);
-    }
-    // The rule asks for a selfie with each check-in and check-out: the front camera first.
-    let photoUri: string | undefined;
-    if (selfie) {
-      const shot = await takeSelfie();
-      if (!shot || 'error' in shot) {
-        setMessage(shot ? { tone: 'danger', text: shot.error } : { tone: 'muted', text: 'Take a selfie to check in.' });
-        return setBusy(false);
+    try {
+      const selfie = await checkSelfie();
+      const where = await currentPosition();
+      if ('error' in where) return setMessage({ tone: 'danger', text: where.error });
+      // The rule asks for a selfie with each check-in and check-out: the front camera first.
+      let photoUri: string | undefined;
+      if (selfie) {
+        const shot = await takeSelfie();
+        if (!shot || 'error' in shot) {
+          return setMessage(shot ? { tone: 'danger', text: shot.error } : { tone: 'muted', text: 'Take a selfie to check in.' });
+        }
+        photoUri = shot.uri;
       }
-      photoUri = shot.uri;
+      await queue.add({ clientId: newClientId(), orgId: workplace.orgId, ...where, ...(photoUri ? { photoUri } : {}) });
+      await sync();
+    } catch {
+      setMessage({ tone: 'danger', text: 'Something went wrong. Try again.' });
+    } finally {
+      // Whatever happened, the button never keeps spinning.
+      setBusy(false);
     }
-    await queue.add({ clientId: newClientId(), orgId: workplace.orgId, ...where, ...(photoUri ? { photoUri } : {}) });
-    await sync();
-    setBusy(false);
   };
 
   const pending = queued.filter((q) => !q.refused);

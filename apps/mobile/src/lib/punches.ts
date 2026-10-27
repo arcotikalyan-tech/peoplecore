@@ -5,11 +5,17 @@ import { Platform } from 'react-native';
 import { classify, classifyHttp, PunchQueue, type QueuedPunch } from './punch-queue';
 import { SITE_URL } from './site';
 import { supabase } from './supabase';
+import { within } from './timeout';
 
 /** The device's queue (AsyncStorage) and how a punch reaches the server (record_punch, method 'mobile'). */
 export const queue = new PunchQueue(AsyncStorage);
 
-export async function sendPunch(p: QueuedPunch) {
+/** A punch that hasn't reached the server within 30 seconds stays queued and is tried again at the next sync. */
+export function sendPunch(p: QueuedPunch) {
+  return within(send(p), 30_000, classify({ message: 'network' }));
+}
+
+async function send(p: QueuedPunch) {
   if (p.photoUri) return sendWithPhoto(p, p.photoUri);
   try {
     const { error } = await supabase.rpc('record_punch', {
@@ -55,7 +61,11 @@ async function sendWithPhoto(p: QueuedPunch, photoUri: string) {
 export async function currentPosition(): Promise<{ latitude: number; longitude: number; accuracyM: number } | { error: string }> {
   const perm = await Location.requestForegroundPermissionsAsync();
   if (perm.status !== 'granted') return { error: 'Allow location access to check in. Your office uses it to confirm you were on site.' };
-  const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+  if (!(await within(Location.hasServicesEnabledAsync(), 3000, true))) return { error: 'Turn on Location in your phone’s settings to check in.' };
+  // A precise fix can take a long time indoors (or never come): wait a while, then use one from the last two minutes.
+  const pos = await within(Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }), 15_000, null)
+    ?? await within(Location.getLastKnownPositionAsync({ maxAge: 120_000 }), 3000, null);
+  if (!pos) return { error: 'Couldn’t find your location. Move closer to a window or step outside, then try again.' };
   if (pos.mocked) return { error: 'A mock location app is on. Turn it off to check in.' };
   const accuracy = Math.round(pos.coords.accuracy ?? 9999);
   if (accuracy > 500) return { error: 'Your location is too rough right now. Move closer to a window and try again.' };
