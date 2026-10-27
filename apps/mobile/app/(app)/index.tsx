@@ -18,7 +18,9 @@ import { Button, Card, colors, Message, s, Screen, Text } from '@/ui';
 const time = (iso: string, tz: string) => plainSpaces(new Intl.DateTimeFormat('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(new Date(iso)));
 
 export default function Today() {
-  const { workplace } = useSession();
+  const { workplace, session } = useSession();
+  // On a shared phone each person sees and sends only their own saved punches.
+  const userId = session?.user.id;
   const [setup, setSetup] = useState<SetupProgress | null>(null);
   const [needsSelfie, setNeedsSelfie] = useState(false);
   const [holidays, setHolidays] = useState<Array<{ holiday_date: string; name: string; is_optional: boolean }>>([]);
@@ -42,22 +44,23 @@ export default function Today() {
   }, [workplace, tz]);
 
   const load = useCallback(async () => {
-    setQueued(await queue.all());
+    setQueued(userId ? await queue.all(userId) : []);
     if (!workplace?.employeeId) return;
     void checkSelfie();
     const start = startOfDayIn(todayIn(tz), tz).toISOString();
     const { data } = await supabase.from('attendance_punches').select('id, punched_at, method')
       .eq('employee_id', workplace.employeeId).gte('punched_at', start).order('punched_at');
     setPunches(data ?? []);
-  }, [workplace, tz, checkSelfie]);
+  }, [workplace, tz, checkSelfie, userId]);
 
   const sync = useCallback(async () => {
-    const r = await queue.sync(sendPunch);
+    if (!userId) return;
+    const r = await queue.sync(sendPunch, userId);
     if (r.sent) setMessage({ tone: 'success', text: r.sent === 1 ? 'Recorded.' : `${r.sent} punches recorded.` });
     // Saved either way; say why it didn't go (offline, or what the server said) so a stuck punch isn't a mystery.
     else if (r.waiting) setMessage({ tone: 'muted', text: r.reason && r.reason !== 'No connection.' ? `Saved on this phone, not sent yet: ${r.reason} Pull down to try again.` : 'Saved on this phone. It will be sent when you’re back online.' });
     await load();
-  }, [load]);
+  }, [load, userId]);
 
   // Organization setup, for the owner and HR (org_setup_status is empty for everyone else).
   useEffect(() => {
@@ -67,8 +70,14 @@ export default function Today() {
         supabase.rpc('org_setup_status', { p_org: workplace.orgId }),
         supabase.from('org_modules').select('module, enabled').eq('organization_id', workplace.orgId),
       ]);
-      const { data: next } = await supabase.from('holidays').select('holiday_date, name, is_optional').eq('organization_id', workplace.orgId)
-        .gte('holiday_date', todayIn(workplace.timezone)).order('holiday_date').limit(8);
+      // The person's own calendar (their location's, else the organization's default), not every location's.
+      const { data: mine } = await supabase.rpc('my_holiday_calendar', { p_org: workplace.orgId });
+      const calendar = (mine as string | null)
+        ?? (await supabase.from('holiday_calendars').select('id').eq('organization_id', workplace.orgId).is('location_id', null).limit(1).maybeSingle()).data?.id;
+      const { data: next } = calendar
+        ? await supabase.from('holidays').select('holiday_date, name, is_optional').eq('organization_id', workplace.orgId).eq('calendar_id', calendar)
+          .gte('holiday_date', todayIn(workplace.timezone)).order('holiday_date').limit(8)
+        : { data: [] };
       const seen = new Set<string>();
       setHolidays(((next ?? []) as Array<{ holiday_date: string; name: string; is_optional: boolean }>).filter((h) => !seen.has(h.holiday_date + h.name) && seen.add(h.holiday_date + h.name)).slice(0, 4));
       const off = new Set(((modules ?? []) as Array<{ module: string; enabled: boolean }>).filter((m) => !m.enabled).map((m) => m.module));
@@ -100,7 +109,7 @@ export default function Today() {
         }
         photoUri = shot.uri;
       }
-      await queue.add({ clientId: newClientId(), orgId: workplace.orgId, ...where, ...(photoUri ? { photoUri } : {}) });
+      await queue.add({ clientId: newClientId(), userId, orgId: workplace.orgId, ...where, ...(photoUri ? { photoUri } : {}) });
       await sync();
     } catch {
       setMessage({ tone: 'danger', text: 'Something went wrong. Try again.' });

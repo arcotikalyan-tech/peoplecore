@@ -19,6 +19,7 @@ import {
   AssignKraForm, FeedbackRequestForm, GiveFeedbackForm, GoalForm, GoalProgressForm, KraForm, PmsSettingsForm, ReviewForm, SkillForm, SkillRatingForm, SmallAction,
 } from './performance-forms';
 import { requireModule } from '@/server/modules';
+import { allRows } from '@/server/all-rows';
 
 export const metadata: Metadata = { title: 'Performance' };
 
@@ -185,7 +186,7 @@ async function PmsHub({ ctx, base, labels }: { ctx: OrgContext; base: string; la
   const supabase = await createClient();
   const [cycles, reviews, goals] = await Promise.all([
     getCycles(ctx.org.id), getTeamReviews(ctx.org.id, null),
-    supabase.from('goals').select('cycle_id, progress, status').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
+    allRows((a, b) => supabase.from('goals').select('cycle_id, progress, status').eq('organization_id', ctx.org.id).order('id').range(a, b)).then((r) => r.data ?? []),
   ]);
   const cycle = cycles.find((c) => c.status === 'active' || c.status === 'calibration') ?? cycles[0];
   const rs = cycle ? reviews.filter((r) => r.cycle_id === cycle.id) : [];

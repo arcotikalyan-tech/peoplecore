@@ -62,6 +62,21 @@ describe('record_punch', () => {
     });
   });
 
+  it('takes the server’s time for a punch sent now, and flags one more than 5 minutes old', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.icA, async (tx) => {
+      // A clock 4 minutes behind doesn't move the punch.
+      const now = (await tx.query<{ id: string }>(`select record_punch('client-clock-1', now() - interval '4 minutes', 'mobile') as id`)).rows[0]!.id;
+      expect((await tx.query<{ ok: boolean }>(`select punched_at = now() as ok from attendance_punches where id = $1`, [now])).rows[0]!.ok).toBe(true);
+      // 20 minutes back: kept (it may have been made offline) but flagged.
+      const back = (await tx.query<{ id: string }>(`select record_punch('client-clock-2', now() - interval '20 minutes', 'mobile') as id`)).rows[0]!.id;
+      await tx.exec('reset role');
+      expect((await tx.query<{ rule: string }>(`select rule from anomaly_flags where subject_id = $1`, [now])).rows).toEqual([]);
+      expect((await tx.query<{ rule: string; explanation: string }>(`select rule, explanation from anomaly_flags where subject_id = $1`, [back])).rows)
+        .toEqual([{ rule: 'late_sync', explanation: 'Punch sent 20 minute(s) after the time it gives (offline device, or a changed clock).' }]);
+    });
+  });
+
   it('refuses future punches, stale offline punches, device methods and people without an employee record', async () => {
     const { f } = ctx;
     await ctx.t.asUser(f.users.icA, async (tx) => {
@@ -138,6 +153,25 @@ describe('attendance days', () => {
     }
   });
 
+  it('unpaid leave from Friday to Monday is 2 unpaid days, not 4: the weekend stays a weekend', async () => {
+    const { f, t } = ctx;
+    await t.db.exec('begin');
+    try {
+      const fri = (await t.db.query<{ d: string }>(`select to_char(date_trunc('week', app.org_today($1)) - interval '10 days', 'YYYY-MM-DD') as d`, [f.orgA])).rows[0]!.d;
+      const mon = (await t.db.query<{ d: string }>(`select to_char($1::date + 3, 'YYYY-MM-DD') as d`, [fri])).rows[0]!.d;
+      const lwp = (await t.db.query<{ id: string }>(`insert into leave_types (organization_id, code, name, is_paid) values ($1, 'LWP', 'Leave without pay', false) returning id`, [f.orgA])).rows[0]!.id;
+      await t.db.query(`insert into leave_requests (organization_id, employee_id, leave_type_id, start_date, end_date, days, status, requested_by)
+                        values ($1, $2, $3, $4, $5, 2, 'approved', $6)`, [f.orgA, f.employees.icA, lwp, fri, mon, f.users.icA]);
+      await t.db.query(`select app.compute_attendance_day($1, d::date) from generate_series($2::date, $3::date, interval '1 day') d`, [f.employees.icA, fri, mon]);
+      const days = (await t.db.query<{ status: string; leave_days: string; leave_paid: boolean | null }>(
+        'select status, leave_days, leave_paid from attendance_days where employee_id = $1 and work_date between $2 and $3 order by work_date', [f.employees.icA, fri, mon])).rows;
+      expect(days.map((d) => d.status)).toEqual(['on_leave', 'weekly_off', 'weekly_off', 'on_leave']);
+      expect(days.filter((d) => d.leave_paid === false).reduce((s, d) => s + Number(d.leave_days), 0)).toBe(2);
+    } finally {
+      await t.db.exec('rollback');
+    }
+  });
+
   it('assigns night-shift punches to the day the shift starts', async () => {
     const { f, t } = ctx;
     const d = weekdays[1]!;
@@ -151,6 +185,26 @@ describe('attendance days', () => {
       await punch(tx, f.employees.leadA, d, '22:05', 'n1');
       await punch(tx, f.employees.leadA, next, '06:10', 'n2');
       expect(await dayRow(tx, f.employees.leadA, d)).toMatchObject({ status: 'present', worked_minutes: 425, punch_count: 2 });
+
+      // A regularized night (22:00 to 06:00) puts the check-out on the next morning; so does a check-out alone.
+      const day2 = weekdays[3]!;
+      const day3 = weekdays[4]!;
+      const reg = async (date: string, inTime: string | null, outTime: string) => {
+        const id = (await t.db.query<{ id: string }>(`insert into regularization_requests (organization_id, employee_id, work_date, check_in, check_out, reason, requested_by)
+                                                     values ($1, $2, $3, $4, $5, 'Forgot', $6) returning id`, [f.orgA, f.employees.leadA, date, inTime, outTime, f.users.leadA])).rows[0]!.id;
+        await t.db.query(`select app.on_regularization_decided($1, 'approved')`, [id]);
+      };
+      await reg(day2, '22:00', '06:00');
+      // On a day shift, check-out before check-in is still refused.
+      await t.db.exec('savepoint day_shift');
+      await expect(t.db.query(`insert into regularization_requests (organization_id, employee_id, work_date, check_in, check_out, reason, requested_by)
+                               values ($1, $2, $3, '18:00', '09:00', 'Wrong way round', $4)`, [f.orgA, f.employees.icA, day2, f.users.icA]))
+        .rejects.toThrow('Check-out must be after check-in (only a shift that runs past midnight ends the next morning).');
+      await t.db.exec('rollback to savepoint day_shift');
+      expect(await dayRow(tx, f.employees.leadA, day2)).toMatchObject({ status: 'present', worked_minutes: 420, punch_count: 2 });
+      await punch(tx, f.employees.leadA, day3, '22:00', 'n3');
+      await reg(day3, null, '06:00');
+      expect(await dayRow(tx, f.employees.leadA, day3)).toMatchObject({ status: 'present', worked_minutes: 420, punch_count: 2 });
     } finally {
       await t.db.exec('rollback');
     }

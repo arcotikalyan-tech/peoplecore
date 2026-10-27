@@ -1,6 +1,7 @@
 import 'server-only';
 import { legalName } from '@peoplecore/shared';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /**
  * Data for the People workspace (Kredily's directory: overview, people, org chart, lifecycle, insights, settings).
@@ -24,8 +25,8 @@ const years = (from: string | null, today: string) => from ? Math.max(0, (Date.p
 export async function peopleRecords(orgId: string, today: string): Promise<Person[]> {
   const supabase = await createClient();
   const [emps, depts, desigs, locs] = await Promise.all([
-    supabase.from('employees').select('id, employee_code, first_name, middle_name, last_name, status, department_id, designation_id, location_id, work_email, work_phone, date_of_joining, date_of_exit, probation_end_date, confirmed_on, manager_employee_id, user_id, employment_type')
-      .eq('organization_id', orgId).order('first_name').order('last_name').limit(3000),
+    allRows((a, b) => supabase.from('employees').select('id, employee_code, first_name, middle_name, last_name, status, department_id, designation_id, location_id, work_email, work_phone, date_of_joining, date_of_exit, probation_end_date, confirmed_on, manager_employee_id, user_id, employment_type')
+      .eq('organization_id', orgId).order('first_name').order('last_name').order('id').range(a, b)),
     supabase.from('departments').select('id, name').eq('organization_id', orgId),
     supabase.from('designations').select('id, title').eq('organization_id', orgId),
     supabase.from('locations').select('id, name').eq('organization_id', orgId),
@@ -48,7 +49,7 @@ export async function peopleRecords(orgId: string, today: string): Promise<Perso
 /** The colleague directory for any member (only the fields the organization shows). */
 export async function directory(orgId: string, q?: string): Promise<Person[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('people_directory', { p_org: orgId, p_query: q || undefined, p_limit: 2000 });
+  const { data, error } = await allRows((a, b) => supabase.rpc('people_directory', { p_org: orgId, p_query: q || undefined, p_limit: 100_000 }).range(a, b));
   if (error) throw new Error(`Failed to load the directory (${error.code})`);
   return (data ?? []).map((r) => ({
     id: r.id, code: null, name: r.name, status: 'active', department: r.department, departmentId: null, designation: r.designation, designationId: null,

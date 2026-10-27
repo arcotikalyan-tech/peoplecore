@@ -1,12 +1,12 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
-import { canonicalJson, computePayslip, ENGINE_VERSION, ruleSetSchema, type EmployeeInput, compareRuns, type VarianceRow } from '@peoplecore/payroll';
+import { canonicalJson, computePayslip, ENGINE_VERSION, resultsDigestSource, ruleSetSchema, type EmployeeInput, compareRuns, type VarianceRow } from '@peoplecore/payroll';
 import { createClient } from './supabase';
 
 /**
  * Payroll on the server. The deterministic engine runs here on inputs the database assembles
  * (payroll_run_inputs); results are stored with a SHA-256 fingerprint of those inputs. Approval recomputes
- * the fingerprint from the current inputs, so a checker approves exactly what they could reproduce.
+ * the run from the current inputs and names both fingerprints, so a checker approves exactly what they reproduced.
  */
 export interface RunInputs {
   runId: string;
@@ -26,6 +26,11 @@ export async function fetchInputs(runId: string): Promise<{ inputs: RunInputs; h
 export function computeAll(inputs: RunInputs) {
   const rules = ruleSetSchema.parse(inputs.ruleSet.rules);
   return inputs.employees.map((e) => ({ ...computePayslip(e, rules, { month: inputs.month }), input: e }));
+}
+
+/** The results' fingerprint; approval needs it to match what was stored (app.payroll_results_digest). */
+export function resultsHash(results: ReturnType<typeof computeAll>) {
+  return createHash('sha256').update(resultsDigestSource(results)).digest('hex');
 }
 
 export { ENGINE_VERSION };

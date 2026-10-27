@@ -17,6 +17,7 @@ import {
   ButtonAction, CdEntryForm, CdSettingsForm, CoverageForm, EndorsementPicker, MyCover, PolicyForm, ReconcileForm, SumInsuredForm, UploadForm, type PickRow, type Policy,
 } from './insurance-client';
 import { requireModule } from '@/server/modules';
+import { allRows } from '@/server/all-rows';
 
 export const metadata: Metadata = { title: 'Insurance' };
 
@@ -100,8 +101,8 @@ async function Management({ slug, base, sp, policy, cd, tz }: { slug: string; ba
     supabase.from('employees').select('id, employee_code, first_name, last_name, employment_type, date_of_joining, status').eq('organization_id', ctx.org.id).neq('status', 'exited').order('employee_code').then((r) => r.data ?? []),
     supabase.from('insurance_coverage').select('employee_id, covered, sum_insured').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
     supabase.from('employee_personal').select('employee_id, gender').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
-    supabase.from('insurance_cd_entries').select('id, entry_date, kind, amount, lives, sync_id, reference, note, created_at').eq('organization_id', ctx.org.id)
-      .order('entry_date').order('created_at').limit(2000).then((r) => r.data ?? []),
+    allRows((a, b) => supabase.from('insurance_cd_entries').select('id, entry_date, kind, amount, lives, sync_id, reference, note, created_at').eq('organization_id', ctx.org.id)
+      .order('entry_date').order('created_at').order('id').range(a, b)).then((r) => r.data ?? []),
   ]);
   const lastSync = syncs[0] ?? null;
   const balance = entries.reduce((sum, e) => sum + Number(e.amount), 0);

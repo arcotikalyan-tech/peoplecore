@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { fieldErrors, parseDeviceCsvRows, regularizationSchema, shiftSchema } from '../src/index.ts';
 
 describe('regularizationSchema', () => {
-  it('needs at least one time, in order', () => {
+  it('needs at least one time; a check-out before check-in is left to the database (night shifts)', () => {
     expect(regularizationSchema.parse({ workDate: '2026-10-12', checkIn: '09:30', checkOut: '', reason: 'Forgot' }).checkOut).toBeUndefined();
     const none = regularizationSchema.safeParse({ workDate: '2026-10-12', checkIn: '', checkOut: '', reason: 'Forgot' });
     expect(none.success || fieldErrors(none.error)).toEqual({ checkIn: 'Give a check-in time, a check-out time, or both' });
-    const order = regularizationSchema.safeParse({ workDate: '2026-10-12', checkIn: '18:00', checkOut: '09:00', reason: 'x' });
-    expect(order.success || fieldErrors(order.error)).toEqual({ checkOut: 'Check-out must be after check-in' });
+    expect(regularizationSchema.safeParse({ workDate: '2026-10-12', checkIn: '22:00', checkOut: '06:00', reason: 'Night' }).success).toBe(true);
+    const same = regularizationSchema.safeParse({ workDate: '2026-10-12', checkIn: '09:00', checkOut: '09:00', reason: 'Same' });
+    expect(same.success || fieldErrors(same.error)).toEqual({ checkOut: 'Check-out can’t be the same as check-in' });
   });
 });
 

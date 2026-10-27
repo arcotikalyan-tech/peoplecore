@@ -22,7 +22,8 @@ export const punchSchema = z.object({
 export const regularizationSchema = z
   .object({ workDate: isoDate, checkIn: optionalTime, checkOut: optionalTime, reason: requiredText(500, 'Reason') })
   .refine((v) => v.checkIn || v.checkOut, { path: ['checkIn'], message: 'Give a check-in time, a check-out time, or both' })
-  .refine((v) => !v.checkIn || !v.checkOut || v.checkOut > v.checkIn, { path: ['checkOut'], message: 'Check-out must be after check-in' });
+  // A check-out at or before the check-in is the next morning for a night shift; the database checks the shift.
+  .refine((v) => !v.checkIn || !v.checkOut || v.checkOut !== v.checkIn, { path: ['checkOut'], message: 'Check-out can’t be the same as check-in' });
 
 export const shiftSchema = z
   .object({
@@ -277,7 +278,8 @@ export const bulkRegularizationSchema = z
     reason: requiredText(500, 'Reason'),
   })
   .refine((v) => v.checkIn || v.checkOut, { path: ['checkIn'], message: 'Give a check-in time, a check-out time, or both' })
-  .refine((v) => !v.checkIn || !v.checkOut || v.checkOut > v.checkIn, { path: ['checkOut'], message: 'Check-out must be after check-in' });
+  // A check-out at or before the check-in is the next morning for a night shift; the database checks the shift.
+  .refine((v) => !v.checkIn || !v.checkOut || v.checkOut !== v.checkIn, { path: ['checkOut'], message: 'Check-out can’t be the same as check-in' });
 
 /** The cycle a day belongs to, named by the first of the month it ends in (on or after day N > 1: next month's cycle). */
 export function attendanceCycleMonth(date: string, startDay: number): string {

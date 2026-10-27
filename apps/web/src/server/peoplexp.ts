@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** PeopleXP reads. RLS decides: posts by audience, wallets and pulse answers only for their owner (and admins for wallets). */
 
@@ -33,8 +34,8 @@ export interface Recognition { id: string; post_id: string; from_employee_id: st
 
 export async function recognitions(orgId: string, sinceIso: string): Promise<Recognition[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from('pxp_recognitions').select('id, post_id, from_employee_id, badge_id, points, message, status, created_at')
-    .eq('organization_id', orgId).gte('created_at', sinceIso).order('created_at', { ascending: false }).limit(5000);
+  const { data } = await allRows((a, b) => supabase.from('pxp_recognitions').select('id, post_id, from_employee_id, badge_id, points, message, status, created_at')
+    .eq('organization_id', orgId).gte('created_at', sinceIso).order('created_at', { ascending: false }).order('id').range(a, b));
   const ids = (data ?? []).map((r) => r.id);
   const recips: Array<{ recognition_id: string; employee_id: string }> = [];
   for (let i = 0; i < ids.length; i += 500) {

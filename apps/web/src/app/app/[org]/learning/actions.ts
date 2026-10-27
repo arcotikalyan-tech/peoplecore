@@ -9,6 +9,7 @@ import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { createClient } from '@/server/supabase';
 import { FORMAT_LABEL, type CourseFormat } from './labels';
+import { allRows } from '@/server/all-rows';
 
 /** Learning actions. The database decides who may assign, record and cancel. */
 
@@ -58,10 +59,11 @@ export async function assignCourseAction(orgSlug: string, _prev: ActionState, fo
   const v = parsed.data;
   const ids = new Set(formDataAll(formData, 'employeeIds').filter((x) => z.uuid().safeParse(x).success));
   const supabase = await createClient();
-  if (v.departmentId) {
+  const dept = v.departmentId;
+  if (dept) {
     // RLS limits this to people the caller can see; assign_course then checks each one.
-    const { data, error } = await supabase.from('employees').select('id').eq('organization_id', ctx.org.id)
-      .eq('department_id', v.departmentId).neq('status', 'exited').limit(5000);
+    const { data, error } = await allRows((a, b) => supabase.from('employees').select('id').eq('organization_id', ctx.org.id)
+      .eq('department_id', dept).neq('status', 'exited').order('id').range(a, b));
     if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
     for (const e of data) ids.add(e.id);
   }

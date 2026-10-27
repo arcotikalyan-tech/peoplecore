@@ -2,6 +2,7 @@ import 'server-only';
 import type { ApplicationStage } from '@peoplecore/shared';
 import { getInterviews, getOffers, type InterviewView, type OfferView } from './recruitment';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** Hiring OS reads across all of the organization's jobs. RLS decides what each person sees. */
 
@@ -16,8 +17,8 @@ export async function hiringData(orgId: string) {
   const [jobs, apps] = await Promise.all([
     supabase.from('job_requisitions').select('id, code, title, status, openings, department_id, hiring_manager_employee_id, is_published, created_at')
       .eq('organization_id', orgId).order('created_at', { ascending: false }).limit(1000),
-    supabase.from('applications').select('id, stage, stage_changed_at, created_at, created_by, requisition_id, candidate_id, converted_employee_id')
-      .eq('organization_id', orgId).order('created_at', { ascending: false }).limit(20_000),
+    allRows((a, b) => supabase.from('applications').select('id, stage, stage_changed_at, created_at, created_by, requisition_id, candidate_id, converted_employee_id')
+      .eq('organization_id', orgId).order('created_at', { ascending: false }).order('id').range(a, b)),
   ]);
   if (jobs.error || apps.error) throw new Error('Failed to load hiring data');
   const candidateIds = [...new Set(apps.data.map((a) => a.candidate_id))];

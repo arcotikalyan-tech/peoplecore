@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** Workflow definitions, versions and runs (workflow.manage only; RLS returns nothing to anyone else). */
 
@@ -15,8 +16,8 @@ export async function listWorkflows(orgId: string) {
   const [defs, versions, runs] = await Promise.all([
     supabase.from('workflow_definitions').select('id, name, trigger_event, is_active, current_version_id, updated_at').eq('organization_id', orgId).order('name'),
     supabase.from('workflow_versions').select('id, version').eq('organization_id', orgId),
-    supabase.from('workflow_runs').select('definition_id, status').eq('organization_id', orgId)
-      .gte('started_at', new Date(Date.now() - 30 * 86_400_000).toISOString()).limit(5000),
+    allRows((a, b) => supabase.from('workflow_runs').select('definition_id, status').eq('organization_id', orgId)
+      .gte('started_at', new Date(Date.now() - 30 * 86_400_000).toISOString()).order('id').range(a, b)),
   ]);
   if (defs.error || versions.error || runs.error) throw new Error('Failed to load workflows');
   const version = new Map(versions.data.map((v) => [v.id, v.version]));

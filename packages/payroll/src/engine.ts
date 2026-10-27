@@ -5,7 +5,7 @@ import type { RuleSet } from './rules.ts';
  * rule set always produce the same payslip. Every amount is rounded to whole rupees, line by line, so totals
  * are exact sums of the lines.
  */
-export const ENGINE_VERSION = 'payroll-engine/1.3.0'; // 1.1: one-off adjustments; 1.2: old regime and declarations, wage-based pay, TDS override; 1.3: adjustments that are ESI/PT wages (overtime)
+export const ENGINE_VERSION = 'payroll-engine/1.4.0'; // 1.1: one-off adjustments; 1.2: old regime and declarations, wage-based pay, TDS override; 1.3: adjustments that are ESI/PT wages (overtime); 1.4: the PF and ESI wages it used, for the statutory files
 
 export interface ComponentInput {
   code: string;
@@ -92,6 +92,8 @@ export interface Payslip {
   employerCost: number;
   exceptions: Exception[];
   tax: { projectedAnnualTaxable: number; annualTax: number; monthsRemaining: number; regime?: 'old' | 'new'; exemptions?: number; deductions?: number } | null;
+  /** The wages PF and ESI were worked out on (0 where they don't apply): the PF ECR and ESI return report these. */
+  statutoryWages: { pf: number; esi: number };
 }
 
 const rupees = (n: number) => Math.round(n);
@@ -193,8 +195,10 @@ export function computePayslip(input: EmployeeInput, rules: RuleSet, period: Per
   // Provident fund (employee and employer), on PF wages up to the ceiling.
   const deductions: Line[] = [];
   const employer: Line[] = [];
+  const statutoryWages = { pf: 0, esi: 0 };
   if (input.statutory.pf && pfWage > 0) {
     const base = rules.pf.capAtCeiling ? Math.min(pfWage, rules.pf.wageCeiling) : pfWage;
+    statutoryWages.pf = base;
     const employeePf = rupees(base * rules.pf.employeeRate);
     const eps = rupees(Math.min(base, rules.pf.wageCeiling) * rules.pf.employerEpsRate);
     const employerTotal = rupees(base * rules.pf.employerTotalRate);
@@ -211,6 +215,7 @@ export function computePayslip(input: EmployeeInput, rules: RuleSet, period: Per
   const esiApplies = input.statutory.esi ?? contractedGross <= rules.esi.grossCeiling;
   if (esiApplies && gross > 0) {
     const wages = gross - nonWageEarnings;
+    statutoryWages.esi = wages;
     deductions.push({ code: 'ESI', name: 'Employees’ state insurance', kind: 'deduction', amount: Math.ceil(wages * rules.esi.employeeRate) });
     employer.push({ code: 'ESI_ER', name: 'Employer ESI', kind: 'employer', amount: Math.ceil(wages * rules.esi.employerRate) });
   }
@@ -280,6 +285,7 @@ export function computePayslip(input: EmployeeInput, rules: RuleSet, period: Per
     employerCost: gross + employer.reduce((s, l) => s + l.amount, 0),
     exceptions,
     tax: taxInfo,
+    statutoryWages,
   };
 }
 

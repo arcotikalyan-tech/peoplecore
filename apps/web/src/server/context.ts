@@ -25,6 +25,18 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   };
 });
 
+/**
+ * Whether this session came from an emailed link (a "Forgot password" or HR's reset link) in the last hour: only then
+ * may a password be replaced without the current one. A browser simply left signed in doesn't qualify.
+ */
+const EMAIL_LINK = new Set(['recovery', 'otp', 'magiclink', 'invite']);
+export async function isRecoverySession(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const amr = (data?.claims?.amr ?? []) as Array<string | { method?: string; timestamp?: number }>;
+  return amr.some((m) => typeof m === 'object' && EMAIL_LINK.has(m.method ?? '') && (m.timestamp ?? 0) * 1000 > Date.now() - 3_600_000);
+}
+
 export async function requireUser(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) redirect('/login');

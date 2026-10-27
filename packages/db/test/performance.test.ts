@@ -42,6 +42,27 @@ describe('goals', () => {
 });
 
 describe('review cycle', () => {
+  it('with self-appraisal switched off, the manager reviews straight away', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      const cycle = (await tx.query<{ id: string }>(
+        `insert into review_cycles (organization_id, name, period_start, period_end) values ($1, 'H1 no self', '2025-04-01', '2025-09-30') returning id`, [f.orgA])).rows[0]!.id;
+      await tx.query('select activate_review_cycle($1)', [cycle]);
+      const review = (await tx.query<{ id: string }>('select id from reviews where cycle_id = $1 and employee_id = $2', [cycle, f.employees.icA])).rows[0]!.id;
+      await as(tx, f.users.leadA);
+      // Self-appraisal on (the default): the manager waits for the self review.
+      expect((await view(tx, review)).can_manager_review).toBe(false);
+      expect((await failure(tx, `select submit_manager_review($1, 3::smallint, 'Steady half; good ownership.')`, [review])).message)
+        .toBe('The manager review opens after the self review, while the cycle is active.');
+      await tx.exec('reset role');
+      await tx.query(`insert into pms_settings (organization_id, self_appraisal) values ($1, false)
+                      on conflict (organization_id) do update set self_appraisal = false`, [f.orgA]);
+      await as(tx, f.users.leadA);
+      expect((await view(tx, review)).can_manager_review).toBe(true);
+      await tx.query(`select submit_manager_review($1, 3::smallint, 'Steady half; good ownership.')`, [review]);
+    });
+  });
+
   it('self review → manager review → calibration → shared; the employee sees the manager’s part only when shared', async () => {
     const { f } = ctx;
     await ctx.t.asUser(f.users.hrA, async (tx) => {

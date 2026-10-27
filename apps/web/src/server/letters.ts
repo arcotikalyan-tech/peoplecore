@@ -3,6 +3,7 @@ import { legalName } from '@peoplecore/shared';
 import { formatDate } from '@/lib/format';
 import { signImageUrl } from './document-storage';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** Letters reads. RLS: HR (letter.manage) sees everything; employees see self-serve templates, their own released letters and requests. */
 
@@ -57,8 +58,8 @@ export async function letterById(id: string) {
 /** Employees HR can generate letters for (current and recently exited). */
 export async function letterPeople(orgId: string) {
   const supabase = await createClient();
-  const { data } = await supabase.from('employees').select('id, employee_code, first_name, middle_name, last_name, status, department_id, designation_id')
-    .eq('organization_id', orgId).in('status', ['active', 'on_notice', 'pre_joining', 'exited']).order('first_name').limit(5000);
+  const { data } = await allRows((a, b) => supabase.from('employees').select('id, employee_code, first_name, middle_name, last_name, status, department_id, designation_id')
+    .eq('organization_id', orgId).in('status', ['active', 'on_notice', 'pre_joining', 'exited']).order('first_name').order('id').range(a, b));
   return (data ?? []).map((e) => ({ id: e.id, code: e.employee_code, name: legalName(e), status: e.status }));
 }
 

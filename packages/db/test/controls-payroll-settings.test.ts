@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import type { Transaction } from '@electric-sql/pglite';
-import { canonicalJson, computePayslip, ENGINE_VERSION, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
+import { canonicalJson, computePayslip, ENGINE_VERSION, resultsDigestSource, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
 import { pgError, useDatabase } from './setup.ts';
 
 /** Kredily second pass, batch 1: directory access, company-change notices, closing the company, payroll settings, payouts. */
@@ -207,7 +207,7 @@ describe('payouts', () => {
       const hash = createHash('sha256').update(canonicalJson(inputs)).digest('hex');
       await tx.query('select store_payroll_results($1, $2, $3, $4)', [run, ENGINE_VERSION, hash, JSON.stringify(results)]);
       await as(tx, f.users.ownerA);
-      await tx.query('select approve_payroll_run($1, $2)', [run, hash]);
+      await tx.query('select approve_payroll_run($1, $2, $3)', [run, hash, createHash('sha256').update(resultsDigestSource(results)).digest('hex')]);
       await tx.query('select lock_payroll_run($1)', [run]);
 
       expect((await tx.query<{ n: number }>(`select set_payout_mode($1, $2, 'cash') as n`, [run, [f.employees.peerA]])).rows[0]!.n).toBe(1);

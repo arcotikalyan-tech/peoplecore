@@ -24,6 +24,30 @@ describe('offline punch queue', () => {
     expect(await q.sync(async () => { throw new Error('nothing to send'); })).toEqual({ sent: 0, refused: 0, waiting: 0 });
   });
 
+  it('on a shared phone, only the person who made a punch sees and sends it', async () => {
+    const q = new PunchQueue(memory(), () => T0);
+    await q.add({ ...punch('mine'), userId: 'ana' });
+    await q.add({ ...punch('theirs'), userId: 'ben' });
+    await q.add(punch('before-update')); // saved before punches were kept per person
+    expect((await q.all('ben')).map((p) => p.clientId)).toEqual(['theirs', 'before-update']);
+    const sent: string[] = [];
+    expect(await q.sync(async (p) => { sent.push(p.clientId); return { ok: true }; }, 'ben')).toEqual({ sent: 2, refused: 0, waiting: 0 });
+    expect(sent).toEqual(['theirs', 'before-update']);
+    expect((await q.all()).map((p) => p.clientId)).toEqual(['mine']); // Ana's waits for Ana
+  });
+
+  it('a punch added while a sync is sending isn’t lost', async () => {
+    const q = new PunchQueue(memory(), () => T0);
+    await q.add(punch('a'));
+    let release!: () => void;
+    const slow = new Promise<void>((r) => { release = r; });
+    const syncing = q.sync(async () => { await slow; return { ok: true }; });
+    await q.add(punch('b')); // tapped Check out while 'a' was still on its way
+    release();
+    expect(await syncing).toEqual({ sent: 1, refused: 0, waiting: 1 });
+    expect((await q.all()).map((p) => p.clientId)).toEqual(['b']);
+  });
+
   it('stops at a network failure and retries later; keeps permanent refusals with their reason', async () => {
     const q = new PunchQueue(memory(), () => T0);
     for (const id of ['a', 'b', 'c']) await q.add(punch(id));

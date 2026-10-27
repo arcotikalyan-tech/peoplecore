@@ -1,6 +1,7 @@
 import 'server-only';
 import { escapeLikePattern, legalName } from '@peoplecore/shared';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /**
  * Attendance hub reads (migration 20261019000100). Everything goes through the caller's RLS: HR sees the
@@ -102,7 +103,7 @@ export async function monthGrid(orgId: string, month: string, opts: { q?: string
   if (people.error) throw new Error(`Failed to load people (${people.error.code})`);
   const ids = people.data.map((p) => p.id);
   const days = ids.length
-    ? await supabase.from('attendance_days').select('employee_id, work_date, status').gte('work_date', first).lte('work_date', last).in('employee_id', ids).limit(5000)
+    ? await allRows((a, b) => supabase.from('attendance_days').select('employee_id, work_date, status').gte('work_date', first).lte('work_date', last).in('employee_id', ids).order('employee_id').order('work_date').range(a, b))
     : { data: [], error: null };
   if (days.error) throw new Error(`Failed to load attendance (${days.error.code})`);
   const grid = new Map<string, Map<string, string>>();
@@ -137,8 +138,8 @@ export async function compOffLog(orgId: string, from: string, to: string) {
   if (error) throw new Error(`Failed to load comp-off (${error.code})`);
   const ids = [...new Set(data.map((c) => c.employee_id))];
   const days = ids.length
-    ? (await supabase.from('attendance_days').select('employee_id, work_date, first_in, last_out, worked_minutes')
-        .in('employee_id', ids).gte('work_date', from).lte('work_date', to).limit(5000)).data ?? []
+    ? (await allRows((a, b) => supabase.from('attendance_days').select('employee_id, work_date, first_in, last_out, worked_minutes')
+        .in('employee_id', ids).gte('work_date', from).lte('work_date', to).order('employee_id').order('work_date').range(a, b))).data ?? []
     : [];
   const byKey = new Map(days.map((d) => [`${d.employee_id}:${d.work_date}`, d]));
   return data.map((c) => {

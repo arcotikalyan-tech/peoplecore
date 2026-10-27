@@ -17,7 +17,8 @@ export function correctionProblem(r: { date: string; checkIn: string; checkOut: 
   if (!r.checkIn && !r.checkOut) return 'Give a check-in time, a check-out time, or both.';
   if (r.checkIn && !TIME.test(r.checkIn)) return 'Write the check-in time like 09:30.';
   if (r.checkOut && !TIME.test(r.checkOut)) return 'Write the check-out time like 18:30.';
-  if (r.checkIn && r.checkOut && r.checkOut <= r.checkIn) return 'Check-out must be after check-in.';
+  // Earlier than check-in is the next morning for a night shift; the server checks the shift.
+  if (r.checkIn && r.checkOut && r.checkOut === r.checkIn) return 'Check-out can’t be the same as check-in.';
   if (r.reason.trim().length < 3) return 'Say why the day needs correcting.';
   return null;
 }

@@ -1,6 +1,7 @@
 import 'server-only';
 import type { ApplicationStage } from '@peoplecore/shared';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** Recruitment reads. RLS decides visibility (org-wide recruiters/HR; managers for their line's requisitions). */
 
@@ -10,7 +11,7 @@ export async function listRequisitions(orgId: string) {
     supabase.from('job_requisitions')
       .select('id, code, title, status, openings, department_id, hiring_manager_employee_id, created_at')
       .eq('organization_id', orgId).order('created_at', { ascending: false }).limit(500),
-    supabase.from('applications').select('requisition_id, stage').eq('organization_id', orgId).limit(20_000),
+    allRows((a, b) => supabase.from('applications').select('requisition_id, stage').eq('organization_id', orgId).order('id').range(a, b)),
   ]);
   if (reqs.error || apps.error) throw new Error('Failed to load requisitions');
   const counts = new Map<string, { active: number; hired: number }>();

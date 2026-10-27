@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import type { Transaction } from '@electric-sql/pglite';
-import { canonicalJson, computePayslip, ENGINE_VERSION, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
+import { canonicalJson, computePayslip, ENGINE_VERSION, resultsDigestSource, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
 import { useDatabase } from './setup.ts';
 
 const ctx = useDatabase();
@@ -33,7 +33,7 @@ async function compute(tx: Transaction, run: string) {
   const results = inputs.employees.map((e) => ({ ...computePayslip(e, rules, { month: inputs.month }), input: e }));
   const hash = createHash('sha256').update(canonicalJson(inputs)).digest('hex');
   await tx.query('select store_payroll_results($1, $2, $3, $4)', [run, ENGINE_VERSION, hash, JSON.stringify(results)]);
-  return { inputs, results, hash };
+  return { inputs, results, hash, digest: createHash('sha256').update(resultsDigestSource(results)).digest('hex') };
 }
 
 const monthOffset = async (tx: Transaction, org: string, months: number) =>
@@ -90,9 +90,9 @@ describe('salary assignment and revisions', () => {
 
       // Pay last month at the old salary and lock it.
       const run = (await tx.query<{ id: string }>('select create_payroll_run($1, $2) as id', [f.orgA, lastMonth])).rows[0]!.id;
-      const { hash } = await compute(tx, run);
+      const { hash, digest } = await compute(tx, run);
       await as(tx, f.users.ownerA);
-      await tx.query('select approve_payroll_run($1, $2)', [run, hash]);
+      await tx.query('select approve_payroll_run($1, $2, $3)', [run, hash, digest]);
       await tx.query('select lock_payroll_run($1)', [run]);
 
       // Revision to 60,000 from two months ago: one locked month (last month) is owed 10,000 more, full month paid.
@@ -140,7 +140,7 @@ describe('run inputs', () => {
         [f.orgA, month, f.employees.peerA]);
 
       const run = (await tx.query<{ id: string }>('select create_payroll_run($1, $2) as id', [f.orgA, month])).rows[0]!.id;
-      const { inputs, results, hash } = await compute(tx, run);
+      const { inputs, results, hash, digest } = await compute(tx, run);
       const ic = inputs.employees.find((e) => e.employeeId === f.employees.icA)!;
       expect(ic.daysInPeriod - ic.payableDays).toBe(3);
       expect(ic.tdsOverride).toBe(1234);
@@ -148,7 +148,7 @@ describe('run inputs', () => {
       expect(inputs.employees.find((e) => e.employeeId === f.employees.peerA)!.onHold).toBe(true);
 
       await as(tx, f.users.ownerA);
-      await tx.query('select approve_payroll_run($1, $2)', [run, hash]);
+      await tx.query('select approve_payroll_run($1, $2, $3)', [run, hash, digest]);
       await as(tx, f.users.payrollA);
       expect((await failure(tx, `update payroll_employee_inputs set lop_days = 0 where employee_id = $1`, [f.employees.icA])).message)
         .toBe('This month’s payroll is already approved; its inputs can’t change.');
@@ -170,7 +170,7 @@ describe('run inputs', () => {
       // Statutory rows: payroll staff only, and every download is in the export log.
       await as(tx, f.users.payrollA);
       const rows = (await tx.query<{ employee_code: string; pf_employee: string; pf_wages: string }>('select employee_code, pf_employee, pf_wages from payroll_statutory_rows($1, $2)', [run, 'pf_ecr'])).rows;
-      expect(rows.find((r) => r.employee_code === 'A-003')).toMatchObject({ pf_employee: '1800.00', pf_wages: '15000' });
+      expect(rows.find((r) => r.employee_code === 'A-003')).toMatchObject({ pf_employee: '1800.00', pf_wages: '15000.00' });
       expect((await failure(tx, 'select * from payroll_statutory_rows($1, $2)', [run, 'nope'])).message).toBe('Unknown report.');
       const log = (await tx.query<{ report: string }>('select report from payroll_export_log($1)', [f.orgA])).rows.map((r) => r.report);
       expect(log).toEqual(expect.arrayContaining(['pf_ecr', 'bank_advice']));
@@ -192,10 +192,10 @@ describe('run inputs', () => {
         values ($1, $2, $3, 2.5, 'approved', $4) returning id`, [f.orgA, f.employees.icA, type, f.users.icA])).rows[0]!.id;
       await as(tx, f.users.payrollA);
       const run = (await tx.query<{ id: string }>('select create_payroll_run($1, $2) as id', [f.orgA, month])).rows[0]!.id;
-      const { results, hash } = await compute(tx, run);
+      const { results, hash, digest } = await compute(tx, run);
       expect(results.find((r) => r.employeeId === f.employees.icA)!.lines.find((l) => l.code === 'LEAVE_ENC')!.amount).toBe(2500);
       await as(tx, f.users.ownerA);
-      await tx.query('select approve_payroll_run($1, $2)', [run, hash]);
+      await tx.query('select approve_payroll_run($1, $2, $3)', [run, hash, digest]);
       await tx.query('select lock_payroll_run($1)', [run]);
       await tx.exec('reset role');
       expect((await tx.query<{ r: string }>('select payroll_run_id as r from leave_encashments where id = $1', [enc])).rows[0]!.r).toBe(run);

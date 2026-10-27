@@ -64,6 +64,7 @@ describe('payslips', () => {
     // Employer: 12% of 15,000 = 1,800, of which EPS 8.33% = 1,250 (1,249.50 rounded) and EPF 550; EDLI 75; admin 75.
     expect([amount(slip, 'EPF_ER'), amount(slip, 'EPS_ER'), amount(slip, 'EDLI_ER'), amount(slip, 'PFADM_ER')]).toEqual([550, 1250, 75, 75]);
     expect(slip.employerCost).toBe(50000 + 1950);
+    expect(slip.statutoryWages).toEqual({ pf: 15000, esi: 0 }); // what the PF ECR reports: the capped wage
     expect(slip.exceptions).toEqual([]);
   });
 
@@ -91,6 +92,7 @@ describe('payslips', () => {
     const slip = computePayslip(employee({ components: salary(10000, 4000, 4000), daysInPeriod: 30, payableDays: 30 }), rules, { month: '2026-11' });
     expect([amount(slip, 'PF'), amount(slip, 'ESI'), amount(slip, 'ESI_ER'), amount(slip, 'PT')]).toEqual([1200, 135, 585, 0]);
     expect(slip.net).toBe(16665);
+    expect(slip.statutoryWages).toEqual({ pf: 10000, esi: 18000 });
   });
 
   it('E: reimbursements are paid but neither taxed nor counted for PT or ESI', () => {

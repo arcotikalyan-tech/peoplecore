@@ -16,7 +16,8 @@ describe('toUserMessage', () => {
 });
 
 describe('safeNextPath', () => {
-  it.each([['/app/demo', '/app/demo'], ['//evil.example', '/app'], ['https://evil.example', '/app'], ['/\\evil', '/app'], [undefined, '/app']])(
+  it.each([['/app/demo', '/app/demo'], ['/app/demo?tab=leave#x', '/app/demo?tab=leave#x'], ['//evil.example', '/app'], ['https://evil.example', '/app'],
+    ['/\\evil', '/app'], ['/\t/evil.example', '/app'], ['/\n/evil.example', '/app'], ['/%2F%2Fevil.example', '/%2F%2Fevil.example'], [undefined, '/app']])(
     '%s → %s',
     (input, expected) => expect(safeNextPath(input)).toBe(expected),
   );

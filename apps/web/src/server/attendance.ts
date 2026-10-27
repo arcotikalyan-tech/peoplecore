@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** Attendance reads. RLS limits everything to the caller's attendance.read scope. */
 
@@ -19,8 +20,8 @@ export async function getDays(orgId: string, filter: { employeeId?: string; from
     .select('employee_id, work_date, status, first_in, last_out, worked_minutes, late_minutes, punch_count, leave_days, is_regularized')
     .eq('organization_id', orgId).gte('work_date', filter.from).lte('work_date', filter.to);
   if (filter.employeeId) q = q.eq('employee_id', filter.employeeId);
-  const { data, error } = await q.order('work_date', { ascending: false }).limit(2000);
-  if (error) throw new Error(`Failed to load attendance (${error.code})`);
+  const { data, error } = await allRows((a, b) => q.order('work_date', { ascending: false }).order('employee_id').range(a, b));
+  if (error || !data) throw new Error(`Failed to load attendance (${error?.code})`);
   return data;
 }
 

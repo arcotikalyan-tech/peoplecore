@@ -5659,6 +5659,8 @@ export type Database = {
           taxable: number;
           exceptions: Json;
           has_blocking: boolean;
+          pf_wages: number | null;
+          esi_wages: number | null;
         };
         Insert: {
           organization_id: string;
@@ -5675,6 +5677,8 @@ export type Database = {
           taxable: number;
           exceptions?: Json;
           has_blocking?: boolean;
+          pf_wages?: number | null;
+          esi_wages?: number | null;
         };
         Update: {
           organization_id?: string;
@@ -5691,6 +5695,8 @@ export type Database = {
           taxable?: number;
           exceptions?: Json;
           has_blocking?: boolean;
+          pf_wages?: number | null;
+          esi_wages?: number | null;
         };
         Relationships: [];
       };
@@ -5892,18 +5898,21 @@ export type Database = {
           require_mfa_for_admins: boolean;
           updated_at: string;
           updated_by: string | null;
+          trusted_proxy_ips: string[];
         };
         Insert: {
           id?: boolean;
           require_mfa_for_admins?: boolean;
           updated_at?: string;
           updated_by?: string | null;
+          trusted_proxy_ips?: string[];
         };
         Update: {
           id?: boolean;
           require_mfa_for_admins?: boolean;
           updated_at?: string;
           updated_by?: string | null;
+          trusted_proxy_ips?: string[];
         };
         Relationships: [];
       };
@@ -9169,6 +9178,7 @@ export type Database = {
         Args: {
           p_run: string;
           p_inputs_hash: string;
+          p_results_hash: string;
         };
         Returns: undefined;
       };

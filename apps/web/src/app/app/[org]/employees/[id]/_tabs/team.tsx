@@ -2,13 +2,14 @@ import Link from 'next/link';
 import { Avatar } from '@/components/ui/avatar';
 import { createClient } from '@/server/supabase';
 import { Empty, Panel, type ProfileProps } from './shared';
+import { allRows } from '@/server/all-rows';
 
 interface Row { id: string; name: string; designation: string | null; manager_id: string | null }
 
 /** Team: the reporting line up from this person, and their direct reports. From the colleague directory. */
 export async function TeamTab({ ctx, base, id, employee, isSelf }: ProfileProps) {
   const supabase = await createClient();
-  const { data } = await supabase.rpc('people_directory', { p_org: ctx.org.id, p_limit: 2000 });
+  const { data } = await allRows((a, b) => supabase.rpc('people_directory', { p_org: ctx.org.id, p_limit: 100_000 }).range(a, b));
   const people = new Map<string, Row>((data ?? []).map((r) => [r.id, r]));
   const canOpen = ctx.can('employee.read', 'org') || ctx.can('employee.read', 'team');
 

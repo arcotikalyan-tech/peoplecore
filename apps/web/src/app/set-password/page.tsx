@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { AuthLayout } from '@/components/marketing/auth-layout';
 import { safeNextPath } from '@/lib/safe-redirect';
-import { getSessionUser } from '@/server/context';
+import { getSessionUser, isRecoverySession } from '@/server/context';
 import { createClient } from '@/server/supabase';
 import { SetPasswordForm } from './set-password-form';
 
@@ -19,7 +19,8 @@ export default async function SetPasswordPage({ searchParams }: { searchParams: 
   const next = safeNextPath(sp.next);
   const supabase = await createClient();
   const { data: needsPassword } = await supabase.rpc('my_needs_password');
-  const reset = sp.reason === 'reset';
+  // Replacing a password without the current one needs a session from a reset link (else Preferences › Change password).
+  const reset = sp.reason === 'reset' && (await isRecoverySession());
   if (!needsPassword && !reset) redirect(next);
   return (
     <AuthLayout title={reset ? 'Choose a new password' : 'Welcome to PeopleCore'}

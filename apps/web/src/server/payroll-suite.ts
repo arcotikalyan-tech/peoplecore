@@ -1,6 +1,7 @@
 import 'server-only';
 import { legalName } from '@peoplecore/shared';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /**
  * Data for the payroll workspace (Kredily's Payroll: hub, run, register, payout, people & salaries, declarations,
@@ -72,8 +73,8 @@ export async function payrollPeople(orgId: string, month: string): Promise<Payro
   const supabase = await createClient();
   const end = monthEnd(month);
   const [emps, depts, desigs, locs, recs] = await Promise.all([
-    supabase.from('employees').select('id, employee_code, first_name, middle_name, last_name, status, date_of_joining, date_of_exit, department_id, designation_id, location_id, user_id')
-      .eq('organization_id', orgId).neq('status', 'pre_joining').lte('date_of_joining', end).order('employee_code').limit(2000),
+    allRows((a, b) => supabase.from('employees').select('id, employee_code, first_name, middle_name, last_name, status, date_of_joining, date_of_exit, department_id, designation_id, location_id, user_id')
+      .eq('organization_id', orgId).neq('status', 'pre_joining').lte('date_of_joining', end).order('employee_code').order('id').range(a, b)),
     supabase.from('departments').select('id, name').eq('organization_id', orgId),
     supabase.from('designations').select('id, name:title').eq('organization_id', orgId),
     supabase.from('locations').select('id, name').eq('organization_id', orgId),
@@ -201,7 +202,7 @@ export async function exportLog(orgId: string) {
 export async function lockedLineTotals(orgId: string, runIds: string[]) {
   if (runIds.length === 0) return [];
   const supabase = await createClient();
-  const { data } = await supabase.from('payroll_line_items').select('run_id, code, name, kind, amount, employee_id').eq('organization_id', orgId).in('run_id', runIds).limit(20000);
+  const { data } = await allRows((a, b) => supabase.from('payroll_line_items').select('run_id, code, name, kind, amount, employee_id').eq('organization_id', orgId).in('run_id', runIds).order('id').range(a, b));
   return (data ?? []).map((l) => ({ ...l, amount: Number(l.amount) }));
 }
 

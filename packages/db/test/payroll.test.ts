@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import type { Transaction } from '@electric-sql/pglite';
-import { canonicalJson, computePayslip, ENGINE_VERSION, IN_FY2025_26, payrollJournal, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
+import { canonicalJson, computePayslip, ENGINE_VERSION, IN_FY2025_26, payrollJournal, resultsDigestSource, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
 import { pgError, useDatabase } from './setup.ts';
 
 const ctx = useDatabase();
@@ -33,7 +33,7 @@ async function compute(tx: Transaction, run: string) {
   const results = inputs.employees.map((e) => ({ ...computePayslip(e, rules, { month: inputs.month }), input: e }));
   const hash = createHash('sha256').update(canonicalJson(inputs)).digest('hex');
   await tx.query('select store_payroll_results($1, $2, $3, $4)', [run, ENGINE_VERSION, hash, JSON.stringify(results)]);
-  return { inputs, results, hash };
+  return { inputs, results, hash, digest: createHash('sha256').update(resultsDigestSource(results)).digest('hex') };
 }
 
 const salary = async (tx: Transaction, employee: string, from: string, basic: number, hra: number, special: number) => {
@@ -88,7 +88,7 @@ describe('payroll runs', () => {
       const run = (await tx.query<{ id: string }>('select create_payroll_run($1, $2) as id', [f.orgA, month])).rows[0]!.id;
       expect((await failure(tx, 'select create_payroll_run($1, $2)', [f.orgA, month])).message).toMatch(/^There is already a payroll run for /);
 
-      const { inputs, results, hash } = await compute(tx, run);
+      const { inputs, results, hash, digest } = await compute(tx, run);
       const ic = inputs.employees.find((e) => e.employeeId === f.employees.icA)!;
       expect(ic.payableDays).toBe(ic.daysInPeriod); // absences aren't LOP unless the run says so
       expect(ic.components.map((c) => c.code)).toEqual(['BASIC', 'HRA', 'SPECIAL']);
@@ -101,11 +101,22 @@ describe('payroll runs', () => {
       const stored = (await tx.query<{ total_net: string; status: string; employee_count: number }>('select total_net, status, employee_count from payroll_runs where id = $1', [run])).rows[0]!;
       expect(stored).toEqual({ total_net: String(results.reduce((s, r) => s + r.net, 0).toFixed(2)), status: 'computed', employee_count: inputs.employees.length });
 
-      // The preparer can't approve; the checker must have verified the same inputs.
-      expect((await failure(tx, 'select approve_payroll_run($1, $2)', [run, hash])).message).toBe('The person who prepared a payroll run can’t approve it.');
+      // Results stored straight through the function (not what the engine gives for these inputs) can't be approved,
+      // even with the right inputs fingerprint: the checker's recomputed results must match.
+      const tampered = results.map((r) => r.employeeId !== f.employees.icA ? r
+        : { ...r, lines: r.lines.map((l) => (l.code === 'BASIC' ? { ...l, amount: l.amount + 5000 } : l)) });
+      await tx.query('select store_payroll_results($1, $2, $3, $4)', [run, ENGINE_VERSION, hash, JSON.stringify(tampered)]);
       await as(tx, f.users.ownerA);
-      expect((await failure(tx, 'select approve_payroll_run($1, $2)', [run, 'f'.repeat(64)])).message).toBe('The results don’t match the inputs you verified. Recompute and check again.');
-      await tx.query('select approve_payroll_run($1, $2)', [run, hash]);
+      expect((await failure(tx, 'select approve_payroll_run($1, $2, $3)', [run, hash, digest])).message)
+        .toBe('The stored payslips don’t match what these inputs give. Recompute the run and check again.');
+      await as(tx, f.users.payrollA);
+      await tx.query('select store_payroll_results($1, $2, $3, $4)', [run, ENGINE_VERSION, hash, JSON.stringify(results)]);
+
+      // The preparer can't approve; the checker must have verified the same inputs.
+      expect((await failure(tx, 'select approve_payroll_run($1, $2, $3)', [run, hash, digest])).message).toBe('The person who prepared a payroll run can’t approve it.');
+      await as(tx, f.users.ownerA);
+      expect((await failure(tx, 'select approve_payroll_run($1, $2, $3)', [run, 'f'.repeat(64), digest])).message).toBe('The results don’t match the inputs you verified. Recompute and check again.');
+      await tx.query('select approve_payroll_run($1, $2, $3)', [run, hash, digest]);
       await tx.exec('reset role');
       expect((await failure(tx, `update payroll_line_items set amount = 1 where run_id = $1`, [run])).message).toBe('This payroll run is approved and its results can’t change.');
       expect((await failure(tx, `update payroll_runs set approved_by = prepared_by where id = $1`, [run])).code).toBe('23514'); // maker = checker, on the row
@@ -180,9 +191,9 @@ describe('payroll runs', () => {
 
       // A blocking exception (here: an unknown PT state) stops approval.
       await tx.query(`insert into employee_statutory_profiles (organization_id, employee_id, pt_state) values ($1, $2, 'ZZ')`, [f.orgA, f.employees.icA]);
-      const { hash } = await compute(tx, strict);
+      const { hash, digest } = await compute(tx, strict);
       await as(tx, f.users.ownerA);
-      expect((await failure(tx, 'select approve_payroll_run($1, $2)', [strict, hash])).message).toBe('Resolve the blocking exceptions before approving.');
+      expect((await failure(tx, 'select approve_payroll_run($1, $2, $3)', [strict, hash, digest])).message).toBe('Resolve the blocking exceptions before approving.');
     });
   });
 
@@ -195,7 +206,7 @@ describe('payroll runs', () => {
         `insert into payroll_adjustments (organization_id, employee_id, code, name, kind, amount, taxable, reason)
          values ($1, $2, 'ARREAR', 'Salary arrears', 'earning', 6000, true, 'Revision effective last month') returning id`, [f.orgA, f.employees.icA])).rows[0]!.id;
       const run = (await tx.query<{ id: string }>('select create_payroll_run($1, $2) as id', [f.orgA, month])).rows[0]!.id;
-      const { results, hash } = await compute(tx, run);
+      const { results, hash, digest } = await compute(tx, run);
       const ic = results.find((r) => r.employeeId === f.employees.icA)!;
       expect(ic.lines.find((l) => l.code === 'ARREAR')?.amount).toBe(6000);
       expect(ic.gross).toBe(56000);
@@ -203,7 +214,7 @@ describe('payroll runs', () => {
       await as(tx, f.users.hrA);
       expect((await tx.query('select 1 from payroll_adjustments')).rows).toHaveLength(0); // payroll staff only
       await as(tx, f.users.ownerA);
-      await tx.query('select approve_payroll_run($1, $2)', [run, hash]);
+      await tx.query('select approve_payroll_run($1, $2, $3)', [run, hash, digest]);
       await tx.query('select lock_payroll_run($1)', [run]);
       expect((await tx.query<{ r: string }>('select applied_run_id as r from payroll_adjustments where id = $1', [adj])).rows[0]!.r).toBe(run);
 

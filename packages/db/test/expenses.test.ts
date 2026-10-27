@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { Transaction } from '@electric-sql/pglite';
-import { canonicalJson, computePayslip, ENGINE_VERSION, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
+import { canonicalJson, computePayslip, ENGINE_VERSION, resultsDigestSource, ruleSetSchema, type EmployeeInput } from '@peoplecore/payroll';
 import { pgError, useDatabase } from './setup.ts';
 
 const ctx = useDatabase();
@@ -28,9 +28,19 @@ async function failure(tx: Transaction, sql: string, params: unknown[] = []): Pr
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const claim = async (tx: Transaction, title: string) =>
   (await tx.query<{ id: string }>('select create_expense_claim($1, $2) as id', [ctx.f.orgA, title])).rows[0]!.id;
-const item = (tx: Transaction, c: string, cat: string, amount: number, receipt: string | null = null, daysAgo = 3) =>
-  tx.query(`select add_expense_item($1, $2, $3, current_date - $4::int, $5, 'Shop', null, $6, $7)`,
-    [c, randomUUID(), cats[cat], daysAgo, amount, receipt ? 'receipt.pdf' : null, receipt ? hash(receipt) : null]);
+/** The app stores a receipt in storage first; the database checks it is there. */
+const storeReceipt = async (tx: Transaction, c: string, id: string) => {
+  const org = (await tx.query<{ o: string }>('select organization_id as o from expense_claims where id = $1', [c])).rows[0]!.o;
+  await tx.exec('reset role');
+  await tx.query(`insert into storage.objects (bucket_id, name) values ('expense-receipts', $1)`, [`${org}/${c}/${id}`]);
+  await tx.exec('set local role authenticated');
+};
+const item = async (tx: Transaction, c: string, cat: string, amount: number, receipt: string | null = null, daysAgo = 3) => {
+  const id = randomUUID();
+  if (receipt) await storeReceipt(tx, c, id);
+  return tx.query(`select add_expense_item($1, $2, $3, current_date - $4::int, $5, 'Shop', null, $6, $7)`,
+    [c, id, cats[cat], daysAgo, amount, receipt ? 'receipt.pdf' : null, receipt ? hash(receipt) : null]);
+};
 const approvalOf = async (tx: Transaction, c: string) =>
   (await tx.query<{ a: string }>('select approval_request_id as a from expense_claims where id = $1', [c])).rows[0]!.a;
 
@@ -47,6 +57,9 @@ describe('expense claims', () => {
       const c = await claim(tx, 'Client visit');
       await item(tx, c, 'CONVEYANCE', 450); // no receipt needed
       expect((await failure(tx, `select add_expense_item($1, $2, $3, current_date, 900, null, null, null, null)`, [c, randomUUID(), cats.MEALS])).message).toBe('Meals needs a receipt.');
+      // A made-up fingerprint with no file behind it isn't a receipt.
+      expect((await failure(tx, `select add_expense_item($1, $2, $3, current_date, 900, null, null, 'r.pdf', $4)`, [c, randomUUID(), cats.MEALS, hash('nothing stored')])).message)
+        .toBe('The receipt didn’t arrive. Please attach it again.');
       expect((await failure(tx, `select add_expense_item($1, $2, $3, current_date, 6000, null, null, 'r.pdf', $4)`, [c, randomUUID(), cats.MEALS, hash('x')])).message).toBe('Meals items are limited to ₹5000.');
       expect((await failure(tx, `select add_expense_item($1, $2, $3, current_date + 2, 100, null, null, null, null)`, [c, randomUUID(), cats.CONVEYANCE])).message).toBe('Expenses can’t be dated in the future.');
       await item(tx, c, 'MEALS', 1200.5, 'dinner-receipt');
@@ -125,8 +138,18 @@ describe('expense claims', () => {
       await tx.query('select store_payroll_results($1, $2, $3, $4)', [run, ENGINE_VERSION, fingerprint, JSON.stringify(results)]);
       expect((await tx.query<{ amount: string }>(`select amount from payroll_line_items where run_id = $1 and employee_id = $2 and code = 'REIMB'`, [run, f.employees.icA])).rows)
         .toEqual([{ amount: '800.00' }]);
+
+      // A second open run would pay the same claim again: refused until this one is locked or cancelled.
+      const early = (await tx.query<{ id: string }>(`select create_payroll_run($1, ($2::date + interval '1 month')::date) as id`, [f.orgA, month])).rows[0]!.id;
+      const earlyInputs = (await tx.query<{ i: typeof inputs }>('select payroll_run_inputs($1) as i', [early])).rows[0]!.i;
+      const earlyResults = earlyInputs.employees.map((e) => ({ ...computePayslip(e, rules, { month: earlyInputs.month }), input: e }));
+      expect((await failure(tx, 'select store_payroll_results($1, $2, $3, $4)',
+        [early, ENGINE_VERSION, createHash('sha256').update(canonicalJson(earlyInputs)).digest('hex'), JSON.stringify(earlyResults)])).message)
+        .toMatch(/^Some reimbursements, adjustments or leave encashments are already in the .+ payroll run\./);
+      await tx.query(`select cancel_payroll_run($1)`, [early]);
+
       await as(tx, f.users.ownerA);
-      await tx.query('select approve_payroll_run($1, $2)', [run, fingerprint]);
+      await tx.query('select approve_payroll_run($1, $2, $3)', [run, fingerprint, createHash('sha256').update(resultsDigestSource(results)).digest('hex')]);
       await tx.query('select lock_payroll_run($1)', [run]);
       const paid = (await tx.query<{ status: string; paid_run_id: string }>('select status, paid_run_id from expense_claims where id = $1', [c])).rows[0]!;
       expect(paid).toEqual({ status: 'paid', paid_run_id: run });

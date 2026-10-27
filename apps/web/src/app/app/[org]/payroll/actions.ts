@@ -9,7 +9,7 @@ import { toUserMessage } from '@/lib/db-errors';
 import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { runAi } from '@/server/ai';
-import { computeAll, ENGINE_VERSION, fetchInputs, getRun, runVariance } from '@/server/payroll';
+import { computeAll, ENGINE_VERSION, fetchInputs, getRun, resultsHash, runVariance } from '@/server/payroll';
 import { createClient } from '@/server/supabase';
 import { monthLabel } from './format';
 
@@ -47,14 +47,14 @@ export async function computeRunAction(orgSlug: string, _prev: ActionState, form
   }
 }
 
-/** The checker reproduces the run from the current inputs; approval names that fingerprint. */
+/** The checker reproduces the run from the current inputs; approval names the inputs' and results' fingerprints. */
 export async function approveRunAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   await getOrgContext(orgSlug);
   const id = runId.parse(formData.get('runId'));
   try {
-    const { hash } = await fetchInputs(id);
+    const { inputs, hash } = await fetchInputs(id);
     const supabase = await createClient();
-    const { error } = await supabase.rpc('approve_payroll_run', { p_run: id, p_inputs_hash: hash });
+    const { error } = await supabase.rpc('approve_payroll_run', { p_run: id, p_inputs_hash: hash, p_results_hash: resultsHash(computeAll(inputs)) });
     if (error) return err(error);
     revalidatePath(`/app/${orgSlug}/payroll`, 'layout');
     await flash('Approved. Lock the run to release payslips.');

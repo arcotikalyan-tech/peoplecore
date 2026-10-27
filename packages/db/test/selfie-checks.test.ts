@@ -52,8 +52,12 @@ describe('check-in photos', () => {
       expect(await flags(withPhoto)).not.toContain('no_selfie');
       expect((await tx.query<{ p: string }>('select selfie_path as p from attendance_punches where id = $1', [withPhoto])).rows[0]!.p).toBe(photo);
 
-      const without = await punch(`mob-${randomUUID()}`, 'mobile', null);
-      expect(await flags(without)).toContain('no_selfie');
+      // Sent now without one: refused. Made offline half an hour ago without one: counts, flagged for review.
+      expect((await failure(tx, `select record_punch($1, null, 'mobile', null, null, null, $2)`, [`mob-${randomUUID()}`, f.orgA])).message)
+        .toBe('Your attendance rule needs a selfie to check in.');
+      const without = (await tx.query<{ id: string }>(`select record_punch($1, now() - interval '30 minutes', 'mobile', null, null, null, $2) as id`,
+        [`mob-${randomUUID()}`, f.orgA])).rows[0]!.id;
+      expect(await flags(without)).toEqual(expect.arrayContaining(['no_selfie', 'late_sync']));
 
       const msg = async (path: string, method = 'mobile') =>
         (await failure(tx, `select record_punch($1, null, $2::punch_method, null, null, null, $3, null, $4)`, [`x-${randomUUID()}`, method, f.orgA, path])).message;

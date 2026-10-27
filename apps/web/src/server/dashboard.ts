@@ -1,6 +1,8 @@
 import 'server-only';
+import type { Database } from '@peoplecore/db/types';
 import type { OrgContext } from './context';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /**
  * The dashboard's role cards: what is waiting for the person, and for HR and payroll what needs attention.
@@ -108,12 +110,8 @@ export async function exitsSince(orgId: string, from: string, to: string) {
     .gte('date_of_exit', from).lte('date_of_exit', to));
 }
 
-export async function upcomingHolidays(orgId: string, today: string, limit = 4) {
-  const supabase = await createClient();
-  const { data } = await supabase.from('holidays').select('id, holiday_date, name, is_optional').eq('organization_id', orgId)
-    .gte('holiday_date', today).order('holiday_date').limit(limit);
-  return data ?? [];
-}
+/** The next holidays on the signed-in person's own calendar (their location's, else the organization's default). */
+export { upcomingHolidays } from './leave-ops';
 
 /**
  * Today's attendance snapshot with names (Kredily's Late arrival / On leave / Absent columns), over the active
@@ -122,8 +120,8 @@ export async function upcomingHolidays(orgId: string, today: string, limit = 4) 
 export async function attendanceSnapshot(orgId: string, today: string) {
   const supabase = await createClient();
   const [emps, days] = await Promise.all([
-    supabase.from('employees').select('id, first_name, last_name').eq('organization_id', orgId).in('status', ['active', 'on_notice']).order('first_name').limit(2000),
-    supabase.from('attendance_days').select('employee_id, status, late_minutes').eq('organization_id', orgId).eq('work_date', today).limit(5000),
+    allRows((a, b) => supabase.from('employees').select('id, first_name, last_name').eq('organization_id', orgId).in('status', ['active', 'on_notice']).order('first_name').order('id').range(a, b)),
+    allRows((a, b) => supabase.from('attendance_days').select('employee_id, status, late_minutes').eq('organization_id', orgId).eq('work_date', today).order('employee_id').range(a, b)),
   ]);
   const people = (emps.data ?? []).map((e) => ({ id: e.id, name: [e.first_name, e.last_name].filter(Boolean).join(' ') }));
   const byId = new Map((days.data ?? []).map((d) => [d.employee_id, d]));
@@ -138,40 +136,45 @@ export async function attendanceSnapshot(orgId: string, today: string) {
 /** Average presence this month: days at work over expected working days so far (excluding offs and holidays). */
 export async function averagePresence(orgId: string, from: string, to: string) {
   const supabase = await createClient();
-  const rows = (await supabase.from('attendance_days').select('status').eq('organization_id', orgId).gte('work_date', from).lte('work_date', to).limit(100000)).data ?? [];
-  const expected = rows.filter((r) => !['weekly_off', 'holiday'].includes(r.status)).length;
-  const worked = rows.reduce((s, r) => s + (['present', 'wfh', 'on_duty'].includes(r.status) ? 1 : r.status === 'half_day' ? 0.5 : 0), 0);
-  return expected ? Math.round((worked / expected) * 100) : null;
+  // Counted in the database: reading the rows would stop at PostgREST's 1,000.
+  const days = (statuses: Array<Database['public']['Enums']['attendance_status']>) => supabase.from('attendance_days').select('employee_id', { count: 'exact', head: true })
+    .eq('organization_id', orgId).gte('work_date', from).lte('work_date', to).in('status', statuses);
+  const [expectedDays, atWork, halfDays] = await Promise.all([
+    supabase.from('attendance_days').select('employee_id', { count: 'exact', head: true }).eq('organization_id', orgId)
+      .gte('work_date', from).lte('work_date', to).not('status', 'in', '(weekly_off,holiday)'),
+    days(['present', 'wfh', 'on_duty']), days(['half_day']),
+  ]);
+  const expected = count(expectedDays) ?? 0;
+  return expected ? Math.round((((count(atWork) ?? 0) + (count(halfDays) ?? 0) * 0.5) / expected) * 100) : null;
 }
 
-export type ComplianceState = 'Compliant' | 'Not assessed' | 'Attention';
-
 /**
- * Statutory compliance from the latest locked payroll run (payroll staff only; RLS returns nothing otherwise):
- * PF and ESI deducted where they apply, PF within the wage ceiling, PT and TDS
- * deducted (TDS is computed every run). With no locked run a line is "Not assessed"; the score counts only assessed lines.
+ * What the latest locked payroll deducted (payroll staff only; RLS returns nothing otherwise): how many people had PF,
+ * ESI, PT and TDS taken, and how many had PF above 12% of the ₹15,000 wage ceiling (fine if they opted in, worth a
+ * look). Counted in the database. It says what was deducted, not whether that was right for each person: filings and
+ * eligibility are on the Statutory page.
  */
-export async function complianceStatus(orgId: string) {
+export async function payrollDeductions(orgId: string) {
   const supabase = await createClient();
   const run = (await supabase.from('payroll_runs').select('id, period_month, employee_count').eq('organization_id', orgId).eq('status', 'locked')
     .order('period_month', { ascending: false }).limit(1).maybeSingle()).data;
-  const lines: Array<{ label: string; state: ComplianceState }> = [];
-  if (!run) {
-    for (const label of ['PF', 'PF wage ceiling', 'ESI', 'ESI eligibility', 'PT', 'TDS']) lines.push({ label, state: 'Not assessed' });
-    return { run: null, lines, score: null as number | null };
-  }
-  const items = (await supabase.from('payroll_line_items').select('employee_id, code, amount').eq('run_id', run.id).in('code', ['PF', 'ESI', 'PT', 'TDS']).limit(20000)).data ?? [];
-  const has = (code: string) => items.some((i) => i.code === code && Number(i.amount) > 0);
-  const pfMax = Math.max(0, ...items.filter((i) => i.code === 'PF').map((i) => Number(i.amount)));
-  lines.push({ label: 'PF', state: has('PF') ? 'Compliant' : 'Not assessed' });
-  // 12% of the ₹15,000 wage ceiling; more means someone's PF isn't capped (fine if they opted in, worth a look).
-  lines.push({ label: 'PF wage ceiling', state: has('PF') ? (pfMax <= 1800 ? 'Compliant' : 'Attention') : 'Not assessed' });
-  lines.push({ label: 'ESI', state: has('ESI') ? 'Compliant' : 'Not assessed' });
-  lines.push({ label: 'ESI eligibility', state: has('ESI') ? 'Compliant' : 'Not assessed' });
-  lines.push({ label: 'PT', state: has('PT') ? 'Compliant' : 'Not assessed' });
-  lines.push({ label: 'TDS', state: 'Compliant' });
-  const assessed = lines.filter((l) => l.state !== 'Not assessed');
-  return { run, lines, score: assessed.length ? Math.round((assessed.filter((l) => l.state === 'Compliant').length / assessed.length) * 100) : null };
+  if (!run) return { run: null, lines: [], toCheck: 0 };
+  const people = (code: string, above = 0) => supabase.from('payroll_line_items').select('employee_id', { count: 'exact', head: true })
+    .eq('run_id', run.id).eq('code', code).gt('amount', above);
+  const [pf, esi, pt, tds, overCeiling] = await Promise.all([people('PF'), people('ESI'), people('PT'), people('TDS'), people('PF', 1800)]);
+  const of = (r: Awaited<typeof pf>) => `${count(r) ?? 0} of ${run.employee_count}`;
+  const over = count(overCeiling) ?? 0;
+  return {
+    run,
+    lines: [
+      { label: 'PF deducted', value: of(pf), attention: false },
+      { label: 'PF above the wage ceiling', value: over ? `${over} to check` : 'None', attention: over > 0 },
+      { label: 'ESI deducted', value: of(esi), attention: false },
+      { label: 'PT deducted', value: of(pt), attention: false },
+      { label: 'TDS deducted', value: of(tds), attention: false },
+    ],
+    toCheck: over,
+  };
 }
 
 /** Recent payroll activity: runs and what happened to them, newest first. */

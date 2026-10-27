@@ -13,7 +13,8 @@ describe('attendance requests on the phone', () => {
     expect(correctionProblem(ok, '2026-10-23')).toBeNull();
     expect(correctionProblem({ ...ok, date: '2026-10-23' }, '2026-10-23')).toBe('You can correct days before today.');
     expect(correctionProblem({ ...ok, checkIn: '', checkOut: '' }, '2026-10-23')).toBe('Give a check-in time, a check-out time, or both.');
-    expect(correctionProblem({ ...ok, checkOut: '09:00' }, '2026-10-23')).toBe('Check-out must be after check-in.');
+    expect(correctionProblem({ ...ok, checkOut: '09:30' }, '2026-10-23')).toBe('Check-out can’t be the same as check-in.');
+    expect(correctionProblem({ ...ok, checkIn: '22:00', checkOut: '06:00' }, '2026-10-23')).toBeNull(); // a night shift
     expect(correctionProblem({ ...ok, checkIn: '25:00' }, '2026-10-23')).toBe('Write the check-in time like 09:30.');
     expect(correctionProblem({ ...ok, reason: '' }, '2026-10-23')).toBe('Say why the day needs correcting.');
   });

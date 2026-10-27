@@ -65,8 +65,11 @@ describe('attendance rules enforced', () => {
       expect((await failure(tx, punch(`12.97, 77.59, 10, p_ip => '203.0.113.10', p_selfie_path => '${f.orgA}/${f.employees.peerA}/00000000-0000-4000-8000-0000000000aa'`), [f.orgA])).message).toContain('Invalid selfie');
       const ok = (await tx.query<{ id: string }>(`select record_punch('punch-okay-123', null, 'web', 12.97, 77.59, 10, p_ip => '203.0.113.10', p_selfie_path => $2, p_org => $1) as id`, [f.orgA, selfie])).rows[0]!.id;
       expect((await tx.query<{ s: string }>('select punch_selfie($1) as s', [ok])).rows[0]!.s).toBe(selfie);
-      // A phone punch without a selfie (an offline one) counts, and is flagged for review.
-      const mobile = (await tx.query<{ id: string }>(`select record_punch('punch-mobile-12', null, 'mobile', 12.97, 77.59, 10, p_org => $1) as id`, [f.orgA])).rows[0]!.id;
+      // A phone punch sent now needs the selfie too; one made offline without it counts, and is flagged for review.
+      expect((await failure(tx, `select record_punch('punch-mobile-11', null, 'mobile', 12.97, 77.59, 10, p_org => $1)`, [f.orgA])).message).toContain('selfie');
+      // Reported accuracy counts for at most 150 m: claiming 900 m doesn't stretch the zone to ~360 m past its edge.
+      expect((await failure(tx, punch(`12.975, 77.59, 900, p_ip => '203.0.113.10', p_selfie_path => '${selfie}'`), [f.orgA])).message).toContain('outside the workplace');
+      const mobile = (await tx.query<{ id: string }>(`select record_punch('punch-mobile-12', now() - interval '30 minutes', 'mobile', 12.97, 77.59, 10, p_org => $1) as id`, [f.orgA])).rows[0]!.id;
       await tx.exec('reset role');
       expect((await tx.query(`select 1 from anomaly_flags where subject_id = $1 and rule = 'no_selfie'`, [mobile])).rows).toHaveLength(1);
       await as(tx, f.users.peerA);

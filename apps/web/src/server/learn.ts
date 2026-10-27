@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** Learn (L&D cockpit) reads. RLS decides: HR sees everything, managers their line, learners their own. */
 
@@ -16,7 +17,7 @@ export async function learnEnrollments(orgId: string, employeeId?: string) {
   let q = supabase.from('course_enrollments').select('id, course_id, employee_id, source, mandatory, due_on, status, started_at, completed_at, valid_until, created_at')
     .eq('organization_id', orgId);
   if (employeeId) q = q.eq('employee_id', employeeId);
-  const { data } = await q.order('created_at', { ascending: false }).limit(10000);
+  const { data } = await allRows((a, b) => q.order('created_at', { ascending: false }).order('id').range(a, b));
   return data ?? [];
 }
 

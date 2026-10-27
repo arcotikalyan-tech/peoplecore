@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /**
  * Assets and system access. RLS: asset managers see the inventory and every register; a system's owner sees its
@@ -20,11 +21,11 @@ export async function listAssets(orgId: string, filter: { status?: AssetStatus; 
     if (term) q = q.or(`tag.ilike.%${term}%,name.ilike.%${term}%,serial_number.ilike.%${term}%,category.ilike.%${term}%`);
   }
   const [assets, open] = await Promise.all([
-    q.order('tag').limit(2000),
-    supabase.from('asset_assignments').select('id, asset_id, employee_id, due_back_on, acknowledged_at')
-      .eq('organization_id', orgId).is('returned_at', null).limit(5000),
+    allRows((a, b) => q.order('tag').order('id').range(a, b)),
+    allRows((a, b) => supabase.from('asset_assignments').select('id, asset_id, employee_id, due_back_on, acknowledged_at')
+      .eq('organization_id', orgId).is('returned_at', null).order('id').range(a, b)),
   ]);
-  if (assets.error || open.error) throw new Error('Failed to load assets');
+  if (!assets.data || !open.data) throw new Error('Failed to load assets');
   const holder = new Map(open.data.map((a) => [a.asset_id, a]));
   return assets.data.map((a) => ({
     ...a, category_id: a.category_id ?? '', purchase_cost: a.purchase_cost === null ? null : Number(a.purchase_cost), issue: holder.get(a.id) ?? null,
@@ -35,8 +36,8 @@ export type AssetRow = Awaited<ReturnType<typeof listAssets>>[number];
 /** How many assets are in each status, for the summary tiles. */
 export async function assetCounts(orgId: string): Promise<Record<AssetStatus, number>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('assets').select('status').eq('organization_id', orgId).limit(20000);
-  if (error) throw new Error(`Failed to count assets (${error.code})`);
+  const { data, error } = await allRows((a, b) => supabase.from('assets').select('status').eq('organization_id', orgId).order('id').range(a, b));
+  if (error || !data) throw new Error(`Failed to count assets (${error?.code})`);
   const counts = Object.fromEntries(ASSET_STATUSES.map((s) => [s, 0])) as Record<AssetStatus, number>;
   for (const r of data) counts[r.status] += 1;
   return counts;

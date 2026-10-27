@@ -7,6 +7,7 @@ import { cn } from '@/components/ui/cn';
 import type { OrgContext } from '@/server/context';
 import { daySummary, peopleDay, pendingOvertimeCount, structureNames } from '@/server/attendance-ops';
 import { createClient } from '@/server/supabase';
+import { allRows } from '@/server/all-rows';
 
 const STATUS_FILTERS = [
   ['all', 'All status'], ['present', 'Present'], ['late', 'Late'], ['wfh', 'Work from home'], ['on_leave', 'On leave'], ['absent', 'Absent'], ['not_marked', 'Not marked'],
@@ -36,8 +37,8 @@ export async function AdminHub({ ctx, orgBase, base, today, pulse, q }: { ctx: O
     supabase.from('regularization_requests').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('status', 'pending'),
     supabase.from('attendance_requests').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).eq('status', 'pending'),
     pendingOvertimeCount(orgId),
-    supabase.from('attendance_days').select('work_date, status, late_minutes').eq('organization_id', orgId).gte('work_date', weekAgo).lte('work_date', today).limit(20000),
-    supabase.from('anomaly_flags').select('created_at').eq('organization_id', orgId).gte('created_at', `${weekAgo}T00:00:00Z`).limit(5000),
+    allRows((a, b) => supabase.from('attendance_days').select('work_date, status, late_minutes').eq('organization_id', orgId).gte('work_date', weekAgo).lte('work_date', today).order('employee_id').order('work_date').range(a, b)),
+    allRows((a, b) => supabase.from('anomaly_flags').select('created_at').eq('organization_id', orgId).gte('created_at', `${weekAgo}T00:00:00Z`).order('id').range(a, b)),
     supabase.from('regularization_requests').select('id, employee_id, work_date, reason, created_at').eq('organization_id', orgId).eq('status', 'pending').order('created_at').limit(5),
   ]);
   const by = summary?.byStatus ?? {};

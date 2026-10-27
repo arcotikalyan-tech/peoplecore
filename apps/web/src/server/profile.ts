@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** My Profile reads. Everything goes through RLS (or own-only functions), so a tab shows only what the viewer may see. */
 
@@ -89,6 +90,6 @@ export async function noticeDaysFor(orgId: string, employmentType: string) {
 /** A colleague's name from the directory (for people who can't read the colleague's record, e.g. their manager). */
 export async function directoryName(orgId: string, employeeId: string) {
   const supabase = await createClient();
-  const { data } = await supabase.rpc('people_directory', { p_org: orgId, p_limit: 2000 });
+  const { data } = await allRows((a, b) => supabase.rpc('people_directory', { p_org: orgId, p_limit: 100_000 }).range(a, b));
   return (data ?? []).find((r) => r.id === employeeId)?.name ?? null;
 }

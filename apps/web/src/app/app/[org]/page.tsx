@@ -12,7 +12,7 @@ import { myRule } from '@/server/attendance-ops';
 import { orgControls } from '@/server/modules';
 import { getOrgContext } from '@/server/context';
 import {
-  attendanceSnapshot, averagePresence, complianceStatus, exitsSince, headcountTrend, myWork, needsAttention, payrollActivity, payrollTrend,
+  attendanceSnapshot, averagePresence, exitsSince, headcountTrend, myWork, needsAttention, payrollActivity, payrollDeductions, payrollTrend,
   upcomingBirthdays, upcomingHolidays,
 } from '@/server/dashboard';
 import { listAnnouncements } from '@/server/engagement';
@@ -61,7 +61,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
     seesAttendance ? attendanceSnapshot(orgId, today) : null,
     seesAttendance ? averagePresence(orgId, monthStart, today) : null,
     seesPeople ? exitsSince(orgId, addDays(today, -30), today) : null,
-    seesPayroll ? complianceStatus(orgId) : null,
+    seesPayroll ? payrollDeductions(orgId) : null,
     seesPayroll ? payrollActivity(orgId) : [],
     upcomingHolidays(orgId, today, 8),
     upcomingBirthdays(orgId, 45),
@@ -146,7 +146,8 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
           <section aria-label="Key figures" className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-5">
             {headcount !== null && <Kpi label="Headcount" value={headcount.toLocaleString('en-IN')} note="active employees" tone="primary" href={`${base}/employees?status=active`} />}
             {pay && <Kpi label="Monthly payroll" value={pay.latest ? inr(Number(pay.latest.total_net)) : '—'} note={pay.latest ? `${shortMonth(pay.latest.period_month)} · net payout` : 'no locked run yet'} tone="success" href={`${base}/payroll`} />}
-            {compliance && <Kpi label="Compliance score" value={compliance.score === null ? '—' : `${compliance.score}%`} note="PF · ESI · PT · TDS" tone="warning" href={`${base}/payroll`} />}
+            {compliance && <Kpi label="Statutory deductions" value={!compliance.run ? '—' : compliance.toCheck ? `${compliance.toCheck} to check` : 'Taken'}
+              note={compliance.run ? `PF · ESI · PT · TDS in ${shortMonth(compliance.run.period_month)}` : 'No locked payroll yet'} tone="warning" href={`${base}/statutory`} />}
             {snapshot && <Kpi label="Avg presence" value={presence === null ? '—' : `${presence}%`} note="this month" tone="info" href={`${base}/attendance?tab=analytics`} />}
             {headcount !== null && <Kpi label="Attrition (30d)" value={attrition === null ? '—' : `${Number(attrition.toFixed(1))}%`} note="terminations / headcount" tone="danger" href={`${base}/separations`} />}
             {headcount === null && <Kpi label="Waiting for you" value={String(work.approvals ?? 0)} note="approvals" tone="primary" href={`${base}/inbox`} />}
@@ -233,17 +234,18 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
 
         {compliance && (
           <div className="grid gap-5 lg:grid-cols-2">
-            <Card title="⚖️ Compliance Status" meta={compliance.run ? `from ${shortMonth(compliance.run.period_month)} payroll` : undefined}>
-              <ul className="space-y-2.5 text-sm" aria-label="Compliance status">
-                {compliance.lines.map((l) => (
-                  <li key={l.label} className="flex justify-between gap-3">
-                    <span>{l.label}</span>
-                    <span className={cn(l.state === 'Compliant' ? 'font-medium text-success' : l.state === 'Attention' ? 'font-medium text-warning' : 'text-muted')}>
-                      {l.state === 'Compliant' ? '✓ ' : ''}{l.state}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+            <Card title="⚖️ Statutory deductions" meta={compliance.run ? `${shortMonth(compliance.run.period_month)} payroll` : undefined}>
+              {compliance.run ? (
+                <ul className="space-y-2.5 text-sm" aria-label="Statutory deductions">
+                  {compliance.lines.map((l) => (
+                    <li key={l.label} className="flex justify-between gap-3">
+                      <span>{l.label}</span>
+                      <span className={cn('tabular-nums', l.attention ? 'font-medium text-warning' : 'text-muted')}>{l.value}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-sm text-muted">Shown once a payroll month is locked.</p>}
+              <Link href={`${base}/statutory`} className="mt-3 inline-block text-sm font-medium text-primary hover:underline">Filings and challans →</Link>
             </Card>
             <Card title="🕐 Recent Activity" meta="payroll">
               {activity.length === 0 ? <p className="text-sm text-muted">No payroll activity recorded yet</p> : (

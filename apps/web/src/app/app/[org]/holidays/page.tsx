@@ -12,6 +12,7 @@ import { viewModeFor } from '@/server/view';
 import { addHolidayAction, chooseOptionalAction, copyYearAction, deleteCalendarAction, importHolidaysAction, removeHolidayAction, saveCalendarAction } from './actions';
 import { CalendarForm, HolidayForm, ImportHolidaysForm, SmallAction } from './holidays-client';
 import { requireModule } from '@/server/modules';
+import { allRows } from '@/server/all-rows';
 
 export const metadata: Metadata = { title: 'Holidays' };
 
@@ -102,10 +103,10 @@ async function CalendarTab({ slug, base, sp, today, calendar, extra }: { slug: s
   const supabase = await createClient();
   const [holidays, leaves, requests, types] = await Promise.all([
     supabase.from('holidays').select('holiday_date, name, is_optional').eq('calendar_id', calendar.id).gte('holiday_date', from).lte('holiday_date', to).then((r) => r.data ?? []),
-    supabase.from('leave_requests').select('employee_id, leave_type_id, start_date, end_date, status').eq('organization_id', ctx.org.id)
-      .in('status', ['approved', 'pending']).lte('start_date', to).gte('end_date', from).limit(2000).then((r) => r.data ?? []),
-    supabase.from('attendance_requests').select('employee_id, kind, start_date, end_date, status').eq('organization_id', ctx.org.id)
-      .in('status', ['approved', 'pending']).lte('start_date', to).gte('end_date', from).limit(2000).then((r) => r.data ?? []),
+    allRows((a, b) => supabase.from('leave_requests').select('employee_id, leave_type_id, start_date, end_date, status').eq('organization_id', ctx.org.id)
+      .in('status', ['approved', 'pending']).lte('start_date', to).gte('end_date', from).order('id').range(a, b)).then((r) => r.data ?? []),
+    allRows((a, b) => supabase.from('attendance_requests').select('employee_id, kind, start_date, end_date, status').eq('organization_id', ctx.org.id)
+      .in('status', ['approved', 'pending']).lte('start_date', to).gte('end_date', from).order('id').range(a, b)).then((r) => r.data ?? []),
     supabase.from('leave_types').select('id, name').eq('organization_id', ctx.org.id).then((r) => r.data ?? []),
   ]);
   const names = await employeeNames(ctx.org.id, [...leaves, ...requests].map((l) => l.employee_id));

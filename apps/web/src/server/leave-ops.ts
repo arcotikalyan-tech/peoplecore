@@ -1,6 +1,7 @@
 import 'server-only';
 import { legalName, leaveCycleStart } from '@peoplecore/shared';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /**
  * Leave operations reads (migration 20261019000300): settings, rules with their current policy and assignments,
@@ -57,8 +58,8 @@ export async function getRules(orgId: string, today: string) {
 export async function leaveEmployees(orgId: string) {
   const supabase = await createClient();
   const [emps, depts] = await Promise.all([
-    supabase.from('employees').select('id, employee_code, first_name, middle_name, last_name, department_id, manager_employee_id, location_id, status, user_id')
-      .eq('organization_id', orgId).neq('status', 'exited').order('first_name').limit(2000),
+    allRows((a, b) => supabase.from('employees').select('id, employee_code, first_name, middle_name, last_name, department_id, manager_employee_id, location_id, status, user_id')
+      .eq('organization_id', orgId).neq('status', 'exited').order('first_name').order('id').range(a, b)),
     supabase.from('departments').select('id, name').eq('organization_id', orgId),
   ]);
   const dept = new Map((depts.data ?? []).map((d) => [d.id, d.name]));
@@ -80,9 +81,9 @@ export async function getBalanceSheet(orgId: string, cycleStart: string, employe
 
 export async function getLedger(employeeId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('leave_ledger').select('id, leave_type_id, entry_date, kind, days, note')
-    .eq('employee_id', employeeId).order('entry_date').order('id').limit(5000);
-  if (error) throw new Error(`Failed to load the leave ledger (${error.code})`);
+  const { data, error } = await allRows((a, b) => supabase.from('leave_ledger').select('id, leave_type_id, entry_date, kind, days, note')
+    .eq('employee_id', employeeId).order('entry_date').order('id').range(a, b));
+  if (error || !data) throw new Error(`Failed to load the leave ledger (${error?.code})`);
   return data.map((r) => ({ ...r, days: Number(r.days) }));
 }
 
@@ -156,16 +157,32 @@ export async function teamCalendar(orgId: string, from: string, to: string) {
   return data ?? [];
 }
 
+/**
+ * The signed-in person's holiday calendar (their location's, else the organization's default). Holidays are per
+ * calendar, so lists without it showed every location's holidays.
+ */
+export async function myHolidayCalendar(orgId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: mine } = await supabase.rpc('my_holiday_calendar', { p_org: orgId });
+  if (mine) return mine as string;
+  const { data } = await supabase.from('holiday_calendars').select('id').eq('organization_id', orgId).is('location_id', null).limit(1).maybeSingle();
+  return data?.id ?? null;
+}
+
 export async function upcomingHolidays(orgId: string, from: string, limit = 6) {
   const supabase = await createClient();
-  const { data } = await supabase.from('holidays').select('id, holiday_date, name, is_optional').eq('organization_id', orgId)
+  const calendar = await myHolidayCalendar(orgId);
+  if (!calendar) return [];
+  const { data } = await supabase.from('holidays').select('id, holiday_date, name, is_optional').eq('organization_id', orgId).eq('calendar_id', calendar)
     .gte('holiday_date', from).order('holiday_date').limit(limit);
   return data ?? [];
 }
 
 export async function holidaysBetween(orgId: string, from: string, to: string) {
   const supabase = await createClient();
-  const { data } = await supabase.from('holidays').select('id, holiday_date, name, is_optional').eq('organization_id', orgId)
+  const calendar = await myHolidayCalendar(orgId);
+  if (!calendar) return [];
+  const { data } = await supabase.from('holidays').select('id, holiday_date, name, is_optional').eq('organization_id', orgId).eq('calendar_id', calendar)
     .gte('holiday_date', from).lte('holiday_date', to).order('holiday_date');
   return data ?? [];
 }
