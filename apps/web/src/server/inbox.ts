@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { createClient } from './supabase';
 
 /** The signed-in user's inbox: approvals they can decide, their open tasks and their notifications. */
@@ -10,10 +11,13 @@ export async function unreadNotificationCount(orgId: string): Promise<number> {
   return error ? 0 : (count ?? 0); // the badge is a convenience; never break the page over it
 }
 
+/** The approvals the caller can decide, once per request (the leave page counts them and its hub lists them). */
+export const myPendingApprovals = cache(async (orgId: string) => (await createClient()).rpc('my_pending_approvals', { p_org: orgId }));
+
 export async function getInbox(orgId: string, myEmployeeId: string | null) {
   const supabase = await createClient();
   const [approvals, notifications, tasks] = await Promise.all([
-    supabase.rpc('my_pending_approvals', { p_org: orgId }),
+    myPendingApprovals(orgId),
     supabase.from('notifications').select('id, kind, title, body, link, read_at, created_at')
       .eq('organization_id', orgId).order('created_at', { ascending: false }).limit(50),
     myEmployeeId

@@ -7,7 +7,7 @@ import { HubHeader, HubTabs } from '@/components/ui/hub';
 import { EmptyState } from '@/components/ui/surface';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
-import { getInbox } from '@/server/inbox';
+import { myPendingApprovals } from '@/server/inbox';
 import { getLeaveSettings, leaveCycle } from '@/server/leave-ops';
 import { viewModeFor } from '@/server/view';
 import { AccrualsTab, AdminHub, ApprovalsTab, BalancesTab, RulesTab, SettingsTab } from './_tabs/admin';
@@ -30,13 +30,13 @@ export default async function LeavePage({ params, searchParams }: { params: Prom
   await requireModule(ctx.org.id, 'leave');
   if (!ctx.can('leave.read')) notFound();
   const today = todayIn(ctx.org.timezone);
-  const [me, view, settings] = await Promise.all([getMyEmployee(ctx.org.id, ctx.user.id), viewModeFor(ctx), getLeaveSettings(ctx.org.id)]);
+  const [me, view, settings, approvals] = await Promise.all([getMyEmployee(ctx.org.id, ctx.user.id), viewModeFor(ctx), getLeaveSettings(ctx.org.id), myPendingApprovals(ctx.org.id)]);
   const base = `/app/${slug}/leave`;
   const seesOthers = ctx.can('leave.read', 'org') || ctx.can('leave.read', 'team');
   const manage = ctx.can('leave.manage', 'org');
   const admin = view === 'admin' && seesOthers;
   const cycle = leaveCycle(today, settings.year_start_month);
-  const pending = admin ? (await getInbox(ctx.org.id, me?.id ?? null)).approvals.filter((a) => a.subject_type === 'leave_request').length : 0;
+  const pending = admin ? (approvals.data ?? []).filter((a) => a.subject_type === 'leave_request').length : 0;
 
   const adminTabs = [
     { key: 'hub', label: '✦ Hub' }, { key: 'approvals', label: 'Approvals', count: pending },

@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { legalName, leaveCycleStart } from '@peoplecore/shared';
 import { createClient } from './supabase';
 import { allRows } from './all-rows';
@@ -9,12 +10,13 @@ import { allRows } from './all-rows';
  * what each caller sees; the functions used here check scope themselves.
  */
 
-export async function getLeaveSettings(orgId: string) {
+/** Once per request: the leave page and its tabs each need them. */
+export const getLeaveSettings = cache(async (orgId: string) => {
   const supabase = await createClient();
   const { data } = await supabase.from('leave_settings').select('year_start_month, carry_forward_expiry, skip_level_approval, donation_enabled, accrual_start')
     .eq('organization_id', orgId).maybeSingle();
   return data ?? { year_start_month: 1, carry_forward_expiry: 'never', skip_level_approval: false, donation_enabled: false, accrual_start: null };
-}
+});
 
 /** The leave year containing `today`: its first and last day and a label like "2026-27" (or "2026"). */
 export function leaveCycle(today: string, startMonth: number) {
