@@ -1,9 +1,9 @@
+import { LogoLoader } from '@/components/logo-loader';
+
 export default function Loading() {
   return (
-    <div aria-busy="true" aria-label="Loading" className="animate-pulse space-y-4">
-      <div className="h-8 w-48 rounded-md bg-subtle" />
-      <div className="h-4 w-72 rounded-md bg-subtle" />
-      <div className="h-64 rounded-lg bg-subtle" />
+    <div role="status" aria-busy="true" aria-label="Loading" className="grid min-h-[50vh] place-items-center">
+      <LogoLoader label="Loading…" />
     </div>
   );
 }

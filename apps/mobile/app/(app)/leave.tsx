@@ -4,7 +4,7 @@ import { DateField } from '@/date-field';
 import { longDate } from '@/lib/calendar';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
-import { Button, Card, colors, Field, Message, s, Screen, Text } from '@/ui';
+import { Button, Card, colors, Field, LogoLoader, Message, s, Screen, Text } from '@/ui';
 
 interface Balance { leave_type_id: string; name: string; available: number; is_paid: boolean }
 interface Request { id: string; leave_type_id: string; start_date: string; end_date: string; days: number; status: string }
@@ -23,14 +23,16 @@ export default function Leave() {
   const [message, setMessage] = useState<{ tone: 'danger' | 'success'; text: string } | null>(null);
   const emp = workplace?.employeeId;
 
+  const [loaded, setLoaded] = useState(false);
   const load = useCallback(async () => {
-    if (!emp) return;
+    if (!emp) { setLoaded(true); return; }
     const [b, r] = await Promise.all([
       supabase.rpc('leave_balances', { p_employee: emp }),
       supabase.from('leave_requests').select('id, leave_type_id, start_date, end_date, days, status').eq('employee_id', emp).order('start_date', { ascending: false }).limit(20),
     ]);
     setBalances(((b.data ?? []) as Balance[]).map((x) => ({ ...x, available: Number(x.available) })));
     setRequests(((r.data ?? []) as Request[]).map((x) => ({ ...x, days: Number(x.days) })));
+    setLoaded(true);
   }, [emp]);
   useEffect(() => { void load(); }, [load]);
 
@@ -55,6 +57,7 @@ export default function Leave() {
   const name = (id: string) => balances.find((b) => b.leave_type_id === id)?.name ?? 'Leave';
 
   if (!emp) return <Screen><Text style={s.muted}>No employee profile is linked to your account.</Text></Screen>;
+  if (!loaded) return <LogoLoader />;
   return (
     <ScrollView>
       <Screen>

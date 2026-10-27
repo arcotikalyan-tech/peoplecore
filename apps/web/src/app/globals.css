@@ -333,8 +333,31 @@ body::after {
 .pc-progress { animation: pc-progress 8s cubic-bezier(0.1, 0.7, 0.3, 1) forwards; box-shadow: 0 0 8px var(--primary); }
 html[data-navigating], html[data-navigating] * { cursor: progress; }
 [data-busy] { opacity: 0.6; pointer-events: none; }
+/* The logo loader (components/logo-loader.tsx): an arc in the mark's purple, blue and teal turning round it, the mark
+   breathing. Over the page while a click waits on the server (`.pc-cover`), and on loading pages. */
+.pc-loader { position: relative; display: grid; place-items: center; width: 5.5rem; height: 5.5rem; }
+.pc-loader::before, .pc-loader::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; }
+.pc-loader::before { border: 4px solid var(--line); }
+.pc-loader::after {
+  background: conic-gradient(from 0deg, transparent 0 25%, #8b5cf6 45%, #1a6dff 70%, #12c9b0 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  animation: pc-spin 1s linear infinite;
+}
+.pc-loader img { position: relative; width: 2.75rem; height: 2.75rem; animation: pc-breathe 1.8s ease-in-out infinite; }
+@keyframes pc-spin { to { transform: rotate(360deg); } }
+@keyframes pc-breathe { 50% { transform: scale(0.92); } }
+.pc-cover {
+  position: fixed; z-index: 90; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--canvas) 70%, transparent);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  animation: pc-fade-in 0.2s ease both;
+}
+@keyframes pc-fade-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .pc-progress { animation: none; width: 60%; }
+  .pc-loader::after { animation-duration: 3s; }
+  .pc-loader img, .pc-cover { animation: none; }
 }
 
 /* ─── Public website (home, sign in, sign up) ─────────────────────────────────────────────────────────────── */

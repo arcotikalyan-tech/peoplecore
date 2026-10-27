@@ -7,6 +7,7 @@ import { open, signIn, test } from './helpers';
  * Read-only: nothing is changed.
  */
 const bar = (page: Page) => page.getByRole('progressbar', { name: 'Loading', exact: true });
+const cover = (page: Page) => page.getByTestId('loading-cover');
 const slow = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 test('a sidebar link shows the loading bar until the page arrives', async ({ page }) => {
@@ -15,8 +16,11 @@ test('a sidebar link shows the loading bar until the page arrives', async ({ pag
   await page.route(/\/app\/demo\/holidays/, async (route) => { await slow(1500); await route.continue(); });
   await page.getByRole('link', { name: 'Holidays', exact: true }).first().click();
   await expect(bar(page)).toBeVisible();
+  // A noticeable wait after a press: the logo loader covers the page area, not the sidebar.
+  await expect(cover(page)).toBeVisible();
   await page.waitForURL(/\/app\/demo\/holidays/);
   await expect(bar(page)).toBeHidden();
+  await expect(cover(page)).toBeHidden();
 });
 
 test('a filter form marks the page busy and dims its button', async ({ page }) => {
@@ -45,5 +49,8 @@ test('a server action shows the bar until it answers', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+k');
   await page.getByRole('dialog', { name: 'Search' }).getByRole('textbox', { name: 'Search' }).fill('Nair');
   await expect(bar(page)).toBeVisible();
+  // Typing is not a press: search keeps to the bar, the page stays uncovered.
+  await page.waitForTimeout(600);
+  await expect(cover(page)).toHaveCount(0);
   await expect(bar(page)).toBeHidden({ timeout: 10_000 });
 });

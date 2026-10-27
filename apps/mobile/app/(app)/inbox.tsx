@@ -4,7 +4,7 @@ import { decisionMessage, decisionProblem, refusalMessage, type Decision } from 
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import { plainSpaces } from '@/lib/text-weight';
-import { Button, Card, colors, Message, s, Screen, Text } from '@/ui';
+import { Button, Card, colors, LogoLoader, Message, s, Screen, Text } from '@/ui';
 
 interface Approval { id: string; summary: string; step_label: string | null; requested_by_name: string; created_at: string; escalated: boolean }
 interface Note { id: string; title: string; body: string | null; created_at: string; read_at: string | null }
@@ -20,14 +20,16 @@ export default function Inbox() {
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: 'danger' | 'success'; text: string } | null>(null);
 
+  const [loaded, setLoaded] = useState(false);
   const load = useCallback(async () => {
-    if (!workplace) return;
+    if (!workplace) { setLoaded(true); return; }
     const [{ data: pending }, { data: recent }] = await Promise.all([
       supabase.rpc('my_pending_approvals', { p_org: workplace.orgId }),
       supabase.from('notifications').select('id, title, body, created_at, read_at').eq('organization_id', workplace.orgId).order('created_at', { ascending: false }).limit(30),
     ]);
     setApprovals((pending ?? []) as Approval[]);
     setNotes((recent ?? []) as Note[]);
+    setLoaded(true);
   }, [workplace]);
   useEffect(() => { void load(); }, [load]);
 
@@ -48,6 +50,7 @@ export default function Inbox() {
   };
   const unread = notes.filter((n) => !n.read_at).length;
 
+  if (!loaded) return <LogoLoader />;
   return (
     <ScrollView keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={false} onRefresh={() => void load()} />}>
       <Screen>

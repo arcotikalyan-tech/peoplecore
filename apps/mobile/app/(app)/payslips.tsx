@@ -3,7 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { openPayslipPdf } from '@/lib/payslip-pdf';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
-import { Button, Card, colors, Message, s, Screen, Text } from '@/ui';
+import { Button, Card, colors, LogoLoader, Message, s, Screen, Text } from '@/ui';
 
 interface Slip { run_id: string; period_month: string; gross: number; deductions: number; net: number }
 interface Line { code: string; name: string; kind: string; amount: number }
@@ -21,11 +21,13 @@ export default function Payslips() {
   const [problem, setProblem] = useState<string | null>(null);
   const emp = workplace?.employeeId;
 
+  const [loaded, setLoaded] = useState(false);
   const load = useCallback(async () => {
-    if (!emp) return;
+    if (!emp) { setLoaded(true); return; }
     const { data } = await supabase.from('payroll_run_employees').select('run_id, period_month, gross, deductions, net')
       .eq('employee_id', emp).order('period_month', { ascending: false }).limit(24);
     setSlips(((data ?? []) as Slip[]).map((x) => ({ ...x, gross: Number(x.gross), deductions: Number(x.deductions), net: Number(x.net) })));
+    setLoaded(true);
   }, [emp]);
   useEffect(() => { void load(); }, [load]);
 
@@ -36,6 +38,7 @@ export default function Payslips() {
     setLines(((data ?? []) as Line[]).map((l) => ({ ...l, amount: Number(l.amount) })));
   };
 
+  if (!loaded) return <LogoLoader />;
   return (
     <ScrollView>
       <Screen>

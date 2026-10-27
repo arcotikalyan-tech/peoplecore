@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, ActivityIndicator, Animated, Easing, Image, Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import logoMark from '../assets/logo-mark.png';
 import { Text } from './text';
 
 export { Text };
@@ -60,6 +61,33 @@ export function PasswordField({ label, error, ...input }: Omit<TextInputProps, '
   );
 }
 
+/** The logo with an arc in its purple, blue and teal turning round it, as on the website. Slower when the phone asks
+ * for less motion. */
+export function LogoLoader({ label = 'Loading…' }: { label?: string }) {
+  const turn = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    let loop: Animated.CompositeAnimation | undefined;
+    let stopped = false;
+    void AccessibilityInfo.isReduceMotionEnabled().catch(() => false).then((reduce) => {
+      if (stopped) return;
+      loop = Animated.loop(Animated.timing(turn, { toValue: 1, duration: reduce ? 3000 : 1000, easing: Easing.linear, useNativeDriver: true }));
+      loop.start();
+    });
+    return () => { stopped = true; loop?.stop(); };
+  }, [turn]);
+  const rotate = turn.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  return (
+    <View accessible accessibilityRole="progressbar" accessibilityLabel={label} style={s.loader}>
+      <View style={s.loaderRing}>
+        <View style={[StyleSheet.absoluteFill, s.loaderTrack]} />
+        <Animated.View style={[StyleSheet.absoluteFill, s.loaderArc, { transform: [{ rotate }] }]} />
+        <Image source={logoMark} style={{ width: 44, height: 44 }} />
+      </View>
+      <Text style={[s.muted, { fontWeight: '500' }]}>{label}</Text>
+    </View>
+  );
+}
+
 export function Message({ tone, text }: { tone: 'danger' | 'success' | 'muted'; text: string }) {
   return <Text accessibilityLiveRegion="polite" style={{ color: tone === 'danger' ? colors.danger : tone === 'success' ? colors.success : colors.muted, marginVertical: 8 }}>{text}</Text>;
 }
@@ -75,5 +103,9 @@ export const s = StyleSheet.create({
   input: { borderWidth: 1, borderColor: colors.line, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, color: colors.fg, backgroundColor: '#fff' },
   error: { color: colors.danger, fontSize: 12, marginTop: 4 },
   muted: { color: colors.muted, fontSize: 13 },
+  loader: { flex: 1, minHeight: 240, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loaderRing: { width: 88, height: 88, alignItems: 'center', justifyContent: 'center' },
+  loaderTrack: { borderRadius: 44, borderWidth: 4, borderColor: colors.line },
+  loaderArc: { borderRadius: 44, borderWidth: 4, borderTopColor: '#8b5cf6', borderRightColor: '#1a6dff', borderBottomColor: '#12c9b0', borderLeftColor: 'transparent' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
 });
