@@ -5,10 +5,11 @@ import { buildFixture, type Fixture } from './fixtures.ts';
 /** Per-file database: migrations + fixture. Each test runs in a rolled-back transaction via asUser. */
 export function useDatabase() {
   const ctx = {} as { t: TestDatabase; f: Fixture };
+  // No timeout of its own: vitest.config.ts's hookTimeout (sized for a busy machine) applies.
   beforeAll(async () => {
     ctx.t = await createTestDatabase();
     ctx.f = await buildFixture(ctx.t);
-  }, 60_000);
+  });
   afterAll(async () => ctx.t?.close());
   return ctx;
 }

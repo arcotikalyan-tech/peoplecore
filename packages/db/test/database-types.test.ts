@@ -6,7 +6,7 @@ import { generateDatabaseTypes } from '../src/gen-types.ts';
 let t: TestDatabase;
 beforeAll(async () => {
   t = await createTestDatabase();
-}, 60_000);
+});
 afterAll(async () => t?.close());
 
 describe('database.types.ts', () => {
