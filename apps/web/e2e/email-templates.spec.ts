@@ -63,6 +63,7 @@ test('the platform admin rewords the invitation and changes the layout; the next
   const since = new Date(Date.now() - 1000);
   const invite = hr.locator('form').filter({ has: hr.getByRole('button', { name: 'Send invitation' }) });
   await invite.getByLabel('Work email').fill(invitee);
+  await invite.getByRole('radio', { name: /^No employee record/ }).check();
   await invite.getByRole('button', { name: 'Send invitation' }).click();
   await expect(hr.getByText(`Invitation emailed to ${invitee}.`, { exact: false })).toBeVisible();
   const mail = await linkFromLatestEmail(invitee, since, /\/auth\/callback\?token_hash=/);
