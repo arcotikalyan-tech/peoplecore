@@ -53,7 +53,6 @@ export async function createDesignationAction(orgSlug: string, _prev: ActionStat
   const { error } = await supabase.from('designations').insert({
     organization_id: ctx.org.id,
     title: parsed.data.title,
-    level: parsed.data.level ?? null,
   });
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   revalidatePath(`/app/${orgSlug}`, 'layout');
@@ -113,7 +112,7 @@ export async function updateDesignationAction(orgSlug: string, _prev: ActionStat
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('designations')
-    .update({ title: parsed.data.title, level: parsed.data.level ?? null })
+    .update({ title: parsed.data.title })
     .eq('organization_id', ctx.org.id)
     .eq('id', parsed.data.id)
     .select('id');

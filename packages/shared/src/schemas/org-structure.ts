@@ -27,7 +27,6 @@ export type CreateDepartmentInput = z.infer<typeof createDepartmentSchema>;
 
 export const createDesignationSchema = z.object({
   title: requiredText(120, 'Title'),
-  level: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.coerce.number().int().min(0).max(50).optional()),
 });
 export type CreateDesignationInput = z.infer<typeof createDesignationSchema>;
 

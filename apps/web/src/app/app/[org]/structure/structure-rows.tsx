@@ -109,17 +109,16 @@ export function DepartmentRow({
 
 export function DesignationRow({
   item, actions,
-}: RowProps & { item: { id: string; title: string; level: number | null; archived_at: string | null; employees: number } }) {
+}: RowProps & { item: { id: string; title: string; archived_at: string | null; employees: number } }) {
   return (
     <Row
       kind="designation" id={item.id} name={item.title} archived={!!item.archived_at} actions={actions}
       cells={<>
         <Td className="font-medium">{item.title}</Td>
-        <Td className="tabular-nums text-muted">{item.level ?? '—'}</Td>
         {usedBy(item.employees)}
       </>}
       editor={(onDone) => actions && (
-        <DesignationForm action={actions.update} onDone={onDone} initial={{ id: item.id, title: item.title, level: item.level }} />
+        <DesignationForm action={actions.update} onDone={onDone} initial={{ id: item.id, title: item.title }} />
       )}
     />
   );

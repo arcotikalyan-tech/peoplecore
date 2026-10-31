@@ -6,7 +6,7 @@ export async function getStructure(orgId: string) {
   const supabase = await createClient();
   const [departments, designations, locations, legalEntities] = await Promise.all([
     supabase.from('departments').select('id, code, name, parent_id').eq('organization_id', orgId).is('archived_at', null).order('name'),
-    supabase.from('designations').select('id, title, level').eq('organization_id', orgId).is('archived_at', null).order('title'),
+    supabase.from('designations').select('id, title').eq('organization_id', orgId).is('archived_at', null).order('title'),
     supabase.from('locations').select('id, code, name, city, state_code').eq('organization_id', orgId).is('archived_at', null).order('name'),
     supabase.from('legal_entities').select('id, name').eq('organization_id', orgId).is('archived_at', null).order('name'),
   ]);
@@ -41,7 +41,7 @@ export async function getStructureOverview(orgId: string) {
   const supabase = await createClient();
   const [departments, designations, locations, usage] = await Promise.all([
     supabase.from('departments').select('id, code, name, parent_id, archived_at').eq('organization_id', orgId).order('name'),
-    supabase.from('designations').select('id, title, level, archived_at').eq('organization_id', orgId).order('title'),
+    supabase.from('designations').select('id, title, archived_at').eq('organization_id', orgId).order('title'),
     supabase.from('locations').select('id, code, name, city, state_code, archived_at').eq('organization_id', orgId).order('name'),
     supabase.rpc('structure_usage', { p_org: orgId }),
   ]);

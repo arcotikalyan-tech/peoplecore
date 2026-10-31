@@ -207,7 +207,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
               </>
             ) : (
               <Panel title="Grades">
-                {(grades ?? []).length === 0 ? <p className="mb-4 text-sm text-muted">No grades yet. Grades group designations into levels (L1, L2…).</p> : (
+                {(grades ?? []).length === 0 ? <p className="mb-4 text-sm text-muted">No grades yet. Grades rank designations, such as L1 and L2.</p> : (
                   <ul className="mb-4 divide-y divide-line">{(grades ?? []).map((g) => <li key={g.id} className="flex items-center justify-between py-2 text-sm"><span><b>{g.name}</b> <span className="text-muted">{g.description}</span></span><span className="flex items-center gap-3"><span className="text-xs text-muted">{(desigs ?? []).filter((d) => d.grade_id === g.id).length} designations</span>{remove('grades', g.id, g.name)}</span></li>)}</ul>
                 )}
                 {manage && <GradeForm action={saveGradeAction.bind(null, slug)} />}

@@ -122,10 +122,10 @@ export async function DesignationsSection({ ctx, slug }: { ctx: Ctx; slug: strin
             <CardHeader title="Designations" description={`${desigs.length} active`} />
             <Table caption="Designations">
               <thead>
-                <tr><Th>Title</Th><Th>Level</Th><Th>People</Th>{actionsTh}</tr>
+                <tr><Th>Title</Th><Th>People</Th>{actionsTh}</tr>
               </thead>
               <tbody>
-                {desigs.length === 0 && <EmptyRow cols={4} text="No designations yet." />}
+                {desigs.length === 0 && <EmptyRow cols={3} text="No designations yet." />}
                 {desigs.map((d) => (
                   <DesignationRow key={d.id} item={d} actions={desigActions} />
                 ))}

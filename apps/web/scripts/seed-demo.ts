@@ -143,13 +143,13 @@ async function main() {
   );
   const deptId = (code: string) => departments.find((d) => d.code === code)!.id;
 
-  const designationSpecs = [
-    ['Chief Executive Officer', 10], ['Engineering Manager', 7], ['Senior Software Engineer', 5], ['Software Engineer', 4],
-    ['HR Manager', 6], ['HR Executive', 3], ['Finance Manager', 6], ['Payroll Executive', 3],
-    ['Sales Manager', 6], ['Sales Executive', 3], ['Operations Associate', 2],
-  ] as const;
+  const designationTitles = [
+    'Chief Executive Officer', 'Engineering Manager', 'Senior Software Engineer', 'Software Engineer',
+    'HR Manager', 'HR Executive', 'Finance Manager', 'Payroll Executive',
+    'Sales Manager', 'Sales Executive', 'Operations Associate',
+  ];
   const designations = must(
-    await db.from('designations').insert(designationSpecs.map(([title, level]) => ({ organization_id: orgId, title, level }))).select('id, title'),
+    await db.from('designations').insert(designationTitles.map((title) => ({ organization_id: orgId, title }))).select('id, title'),
     'create designations',
   );
   const desigId = (title: string) => designations.find((d) => d.title === title)!.id;

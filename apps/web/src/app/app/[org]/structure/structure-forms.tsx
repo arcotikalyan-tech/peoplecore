@@ -61,7 +61,7 @@ export function DepartmentForm({
   );
 }
 
-export function DesignationForm({ action, initial, onDone }: FormProps<{ title: string; level: number | null }>) {
+export function DesignationForm({ action, initial, onDone }: FormProps<{ title: string }>) {
   const [state, formAction] = useActionState(action, initialActionState);
   useCloseOnSuccess(state, onDone);
   const v = state.values ?? {};
@@ -71,9 +71,8 @@ export function DesignationForm({ action, initial, onDone }: FormProps<{ title: 
     <form action={formAction} noValidate className={formClass} aria-label={initial ? `Edit designation ${initial.title}` : 'Add designation'}>
       {!(initial && state.ok) && <FormMessage state={state} />}
       {initial && <input type="hidden" name="id" value={initial.id} />}
-      <div className="grid gap-3 sm:grid-cols-[1fr_120px_auto] sm:items-end">
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <TextField idPrefix={p} name="title" label="Title" required placeholder="Senior Engineer" defaultValue={v.title ?? initial?.title} error={e.title} />
-        <TextField idPrefix={p} name="level" label="Level" type="number" min={0} max={50} inputMode="numeric" defaultValue={v.level ?? initial?.level ?? ''} error={e.level} />
         <Buttons editing={!!initial} onDone={onDone} />
       </div>
     </form>
