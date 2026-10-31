@@ -4383,7 +4383,7 @@ export type Database = {
           carry_forward_expiry?: string;
           skip_level_approval?: boolean;
           donation_enabled?: boolean;
-          accrual_start?: string;
+          accrual_start: string;
           updated_by?: string | null;
           updated_at?: string;
           last_nudged_at?: string | null;

@@ -241,6 +241,18 @@ describe('accrual and lapse', () => {
     }
   });
 
+  it('a new organization accrues from the first of its own month, not UTC’s', async () => {
+    const { db } = ctx.t;
+    await db.exec('begin');
+    try {
+      const org = (await db.query<{ id: string }>(`insert into organizations (name, slug, is_demo, timezone) values ('Line Islands', 'line-islands', true, 'Pacific/Kiritimati') returning id`)).rows[0]!.id;
+      const { rows } = await db.query(`select 1 from leave_settings where organization_id = $1 and accrual_start = date_trunc('month', app.org_today($1))::date`, [org]);
+      expect(rows).toHaveLength(1);
+    } finally {
+      await db.exec('rollback');
+    }
+  });
+
   it('skips probation for EL, people who joined after the 15th, and people who have not joined', async () => {
     const { db } = ctx.t;
     const { f } = ctx;

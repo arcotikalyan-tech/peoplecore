@@ -147,12 +147,12 @@ describe('loans', () => {
       await tx.query(`select decide_approval($1, 'approve')`, [reqC]);
       await as(tx, f.users.payrollA);
       await tx.query(`select decide_approval($1, 'approve')`, [reqC]);
-      await tx.query(`select disburse_loan($1, 'payroll', null, date_trunc('month', current_date)::date)`, [c]);
+      await tx.query(`select disburse_loan($1, 'payroll', null, date_trunc('month', app.org_today($2))::date)`, [c, f.orgA]);
       expect((await tx.query<{ kind: string; amount: string }>(`select kind, amount from payroll_adjustments where code = 'LOAN_DISBURSAL'`)).rows)
         .toEqual([{ kind: 'earning', amount: '5000.00' }]);
       await tx.exec('reset role');
       const run = (await tx.query<{ id: string }>(`insert into payroll_runs (organization_id, period_month, rule_set_id)
-        values ($1, date_trunc('month', current_date)::date, (select id from statutory_rule_sets limit 1)) returning id`, [f.orgA])).rows[0]!.id;
+        values ($1, date_trunc('month', app.org_today($1))::date, (select id from statutory_rule_sets limit 1)) returning id`, [f.orgA])).rows[0]!.id;
       await tx.query(`update payroll_adjustments set applied_run_id = $1`, [run]);
       expect((await tx.query<{ status: string; note: string }>('select status, closure_note as note from loans where id = $1', [c])).rows[0])
         .toEqual({ status: 'closed', note: 'Repaid through payroll' });
