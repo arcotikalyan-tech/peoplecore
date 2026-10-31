@@ -21,3 +21,4 @@ export * from './india-places.ts';
 export * from './password.ts';
 export * from './org-setup.ts';
 export * from './workforce-plan.ts';
+export * from './email.ts';

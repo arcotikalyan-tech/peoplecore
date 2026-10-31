@@ -6,12 +6,18 @@ const INVITE_WAIT_MS = 20_000;
 
 export type FindOrInviteResult = { ok: true; userId: string; invited: boolean } | { ok: false; message: string };
 
+/** Who the invitation is from, for its email (the send-email hook reads it from the new user's metadata). */
+export interface Invitation {
+  organization: string;
+  inviter: string | null;
+}
+
 /**
  * Finds an auth user by email, or sends a Supabase invitation. Uses the service-role client.
  *
  * AUTHORIZATION: the caller must already have verified the actor is a platform administrator.
  */
-export async function findOrInviteUser(email: string, redirectTo: string): Promise<FindOrInviteResult> {
+export async function findOrInviteUser(email: string, redirectTo: string, invitation?: Invitation): Promise<FindOrInviteResult> {
   const admin = createAdminClient();
   const target = email.toLowerCase();
 
@@ -28,13 +34,16 @@ export async function findOrInviteUser(email: string, redirectTo: string): Promi
   // waiting after a while. If the email does go out later, inviting again finds the new user and just adds them.
   let timer: ReturnType<typeof setTimeout> | undefined;
   const slow = new Promise<'slow'>((resolve) => { timer = setTimeout(() => resolve('slow'), INVITE_WAIT_MS); });
-  const result = await Promise.race([admin.auth.admin.inviteUserByEmail(target, { redirectTo }), slow]).finally(() => clearTimeout(timer));
+  const result = await Promise.race([admin.auth.admin.inviteUserByEmail(target, {
+    redirectTo,
+    data: invitation ? { invited_to: invitation.organization, invited_by: invitation.inviter } : undefined,
+  }), slow]).finally(() => clearTimeout(timer));
   if (result === 'slow') {
     return { ok: false, message: 'The email server is taking too long to answer. Wait a minute, then invite them again: if the first invitation went out, they’re simply added.' };
   }
   const { data, error } = result;
   if (error || !data.user) {
-    return { ok: false, message: 'Could not send the invitation. Check the Supabase Auth email settings.' };
+    return { ok: false, message: 'Could not send the invitation email. Try again in a minute; if it keeps failing, a platform administrator should check the email settings.' };
   }
   return { ok: true, userId: data.user.id, invited: true };
 }

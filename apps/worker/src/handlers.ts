@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@peoplecore/db/types';
+import { layoutFromRow } from '@peoplecore/shared/email';
 import { archiveAuditDays } from './audit-archive.ts';
 import { mailerFromEnv, sendBatch, type OutgoingEmail } from './email.ts';
 import type { Handlers, Log } from './queue.ts';
@@ -95,8 +96,13 @@ export function handlers(db: SupabaseClient<Database>): Handlers {
     },
     // Queued notification emails (migration 20261022000200), over SMTP when it is configured.
     'notifications.email': async (_job, log) => {
-      const mailer = mailerFromEnv();
-      if (!mailer) return;  // not configured: emails wait in the outbox and expire after two days
+      const smtp = mailerFromEnv();
+      if (!smtp) return;  // not configured: emails wait in the outbox and expire after two days
+      // The layout platform admins set (Platform › Email templates), read once per run.
+      const { data: layout, error: layoutError } = await db.from('platform_email_layout')
+        .select('brand_name, accent_color, logo_url, show_brand_name, footer_text, support_email, address').maybeSingle();
+      if (layoutError) throw new Error(layoutError.message);
+      const mailer = { ...smtp, layout: layoutFromRow(layout) };
       // Batches of 50 until the outbox is empty or three minutes have passed (the job may run four), so publishing
       // payslips to a thousand people goes out in one run rather than 50 every quarter of an hour.
       const until = Date.now() + 180_000;

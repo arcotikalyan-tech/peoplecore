@@ -299,6 +299,9 @@ importers:
       next:
         specifier: 16.4.2
         version: 16.4.2(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.64.1)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      nodemailer:
+        specifier: 10.0.16
+        version: 10.0.16
       qrcode:
         specifier: 1.5.4
         version: 1.5.4
@@ -351,6 +354,9 @@ importers:
       '@peoplecore/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@peoplecore/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@supabase/supabase-js':
         specifier: 2.118.0
         version: 2.118.0

@@ -1,4 +1,5 @@
 import nodemailer, { type Transporter } from 'nodemailer';
+import { DEFAULT_EMAIL_LAYOUT, emailSender, renderEmail, type EmailLayout } from '@peoplecore/shared/email';
 
 /** One email the database queued (email_outbox, migration 20261022000200), as worker_claim_emails returns it. */
 export interface OutgoingEmail {
@@ -18,6 +19,8 @@ export interface Mailer {
   transport: Pick<Transporter, 'sendMail'>;
   from: string;
   appUrl: string | null;
+  /** The layout platform admins set (platform_email_layout); the default until it is read. */
+  layout?: EmailLayout;
 }
 
 /**
@@ -34,8 +37,6 @@ export function mailerFromEnv(env: NodeJS.ProcessEnv = process.env): Mailer | nu
   };
 }
 
-const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-
 const FOOTER = 'You get this email because of your role. An administrator can change these emails in Settings › Notifications.';
 const FOOTERS: Record<string, string> = {
   helpdesk_reply: 'You get this email because you’re on this helpdesk ticket. An administrator can change these emails in Settings › Notifications.',
@@ -45,19 +46,20 @@ const FOOTERS: Record<string, string> = {
   signup_alert: 'You get this email because you’re a PeopleCore platform administrator.',
 };
 
-/** The message for one queued email: plain text and a light HTML version, with a link into the app when known. */
-export function compose(e: OutgoingEmail, m: Pick<Mailer, 'from' | 'appUrl'>) {
+/** The message for one queued email in the shared layout: the subject as heading, the text, and a button into the app. */
+export function compose(e: OutgoingEmail, m: Pick<Mailer, 'from' | 'appUrl' | 'layout'>) {
+  const layout = m.layout ?? DEFAULT_EMAIL_LAYOUT;
   // Workspace emails link into the organization; platform emails (no organization) into the console.
   const link = e.link && m.appUrl ? (e.org_slug ? `${m.appUrl}/app/${encodeURIComponent(e.org_slug)}${e.link}` : `${m.appUrl}${e.link}`) : null;
-  const footer = (e.event && FOOTERS[e.event]) || FOOTER;
-  const from = e.org_name ? `${e.org_name} on PeopleCore.` : 'PeopleCore.';
-  const text = [e.body, link ? `Open in PeopleCore: ${link}` : null, `— ${from} ${footer}`].filter(Boolean).join('\n\n');
-  const html = [
-    `<p style="font:15px/1.5 system-ui,sans-serif;color:#111827">${escapeHtml(e.body).replace(/\r?\n/g, '<br>')}</p>`,
-    link ? `<p><a href="${escapeHtml(link)}" style="font:14px system-ui,sans-serif;color:#4f46e5">Open in PeopleCore</a></p>` : '',
-    `<p style="font:12px/1.5 system-ui,sans-serif;color:#6b7280">${escapeHtml(from)} ${escapeHtml(footer)}</p>`,
-  ].join('');
-  return { from: m.from, to: e.to_email, subject: e.subject, text, html };
+  const r = renderEmail(layout, {
+    subject: e.subject,
+    heading: e.subject,
+    body: e.body,
+    button: link ? { label: `Open in ${layout.brandName}`, url: link } : null,
+    organization: e.org_name,
+    reason: (e.event && FOOTERS[e.event]) || FOOTER,
+  }, { appUrl: m.appUrl });
+  return { from: emailSender(m.from, layout.brandName), to: e.to_email, subject: r.subject, text: r.text, html: r.html };
 }
 
 /** Sends a batch; each email's outcome is reported back so it is marked sent, retried later or given up on. */

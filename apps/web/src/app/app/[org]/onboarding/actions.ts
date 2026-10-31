@@ -9,6 +9,7 @@ import { findOrInviteUser } from '@/server/admin-users';
 import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
+import { invitationFrom } from '@/server/invitation';
 import { createClient } from '@/server/supabase';
 
 /** Onboarding and policy actions; the database checks onboarding.manage / policy.manage and membership. */
@@ -142,11 +143,12 @@ export async function activateEmployeesAction(orgSlug: string, _prev: ActionStat
   if (!role) return { ok: false, message: 'You can’t grant the Employee role.' };
   const origin = (await headers()).get('origin') ?? '';
   let invited = 0; const problems: string[] = [];
+  const invitation = await invitationFrom(ctx);
   for (const e of emps ?? []) {
     if (e.user_id) continue;
     if (!e.work_email) { problems.push('someone has no work email'); continue; }
     // Authorization was checked above; only now is the secret-key client used (CLAUDE.md).
-    const account = await findOrInviteUser(e.work_email, `${origin}/auth/callback?next=/app`);
+    const account = await findOrInviteUser(e.work_email, `${origin}/auth/callback?next=/app`, invitation);
     if (!account.ok) { problems.push(account.message); continue; }
     const { error } = await supabase.rpc('add_member', { p_org: ctx.org.id, p_user_id: account.userId, p_role_ids: [role.id], p_employee_id: e.id });
     if (error) { problems.push(toUserMessage(error)); continue; }

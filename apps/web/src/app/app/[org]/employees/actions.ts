@@ -7,9 +7,10 @@ import { changeAssignmentSchema, createEmployeeSchema, todayIn } from '@peopleco
 import { formValues, invalid, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { findOrInviteUser } from '@/server/admin-users';
-import { getOrgContext } from '@/server/context';
+import { getOrgContext, type OrgContext } from '@/server/context';
 import { flash } from '@/server/flash';
 import { toChangeAssignmentArgs, toCreateEmployeeArgs } from '@/server/employee-args';
+import { invitationFrom } from '@/server/invitation';
 import { createClient } from '@/server/supabase';
 
 /**
@@ -27,7 +28,7 @@ export async function createEmployeeAction(orgSlug: string, _prev: ActionState, 
   const { data: id, error } = await supabase.rpc('create_employee', toCreateEmployeeArgs(ctx.org.id, parsed.data));
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
 
-  if (formData.get('invite') === 'on' && parsed.data.workEmail && ctx.can('member.manage', 'org')) await flash(await inviteNewEmployee(ctx.org.id, id, parsed.data.workEmail));
+  if (formData.get('invite') === 'on' && parsed.data.workEmail && ctx.can('member.manage', 'org')) await flash(await inviteNewEmployee(ctx, id, parsed.data.workEmail));
   revalidatePath(`/app/${orgSlug}`, 'layout');
   redirect(`/app/${orgSlug}/employees/${id}?created=1`);
 }
@@ -37,7 +38,8 @@ export async function createEmployeeAction(orgSlug: string, _prev: ActionState, 
  * login"). A record whose work email is already a member's sign-in was linked as it was saved, so nothing is sent.
  * Returns what happened, for the confirmation.
  */
-async function inviteNewEmployee(orgId: string, employeeId: string, email: string): Promise<string> {
+async function inviteNewEmployee(ctx: OrgContext, employeeId: string, email: string): Promise<string> {
+  const orgId = ctx.org.id;
   const supabase = await createClient();
   const { data: emp } = await supabase.from('employees').select('user_id').eq('id', employeeId).maybeSingle();
   if (emp?.user_id) return `Employee added and linked to their existing sign-in (${email}).`;
@@ -46,7 +48,7 @@ async function inviteNewEmployee(orgId: string, employeeId: string, email: strin
   if (!role) return 'Employee added. You can’t grant the Employee role, so no invitation was sent.';
   // Authorization (member.manage, the grantable role) is checked above; only now is the secret-key client used.
   const origin = (await headers()).get('origin') ?? '';
-  const account = await findOrInviteUser(email, `${origin}/auth/callback?next=/app`);
+  const account = await findOrInviteUser(email, `${origin}/auth/callback?next=/app`, await invitationFrom(ctx));
   if (!account.ok) return `Employee added. The invitation wasn’t sent: ${account.message}`;
   const { error } = await supabase.rpc('add_member', { p_org: orgId, p_user_id: account.userId, p_role_ids: [role.id], p_employee_id: employeeId });
   if (error) return `Employee added. They couldn’t be added as a member: ${toUserMessage(error)}`;

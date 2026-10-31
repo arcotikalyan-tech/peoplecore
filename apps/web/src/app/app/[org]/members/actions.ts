@@ -11,6 +11,7 @@ import { toUserMessage } from '@/lib/db-errors';
 import { findOrInviteUser } from '@/server/admin-users';
 import { getOrgContext } from '@/server/context';
 import { toCreateEmployeeArgs } from '@/server/employee-args';
+import { invitationFrom } from '@/server/invitation';
 import { createClient } from '@/server/supabase';
 
 const DENIED: ActionState = { ok: false, message: 'You don’t have permission to manage members.' };
@@ -78,7 +79,7 @@ export async function inviteMemberAction(orgSlug: string, _prev: ActionState, fo
 
   // Authorization has been checked above; only now is the secret-key client used (CLAUDE.md).
   const origin = (await headers()).get('origin') ?? '';
-  const account = await findOrInviteUser(email, `${origin}/auth/callback?next=/app`);
+  const account = await findOrInviteUser(email, `${origin}/auth/callback?next=/app`, await invitationFrom(ctx));
   if (!account.ok) return failedAfterRecord(record === 'new' ? `the invitation wasn’t sent: ${account.message}` : account.message);
 
   const { error } = await supabase.rpc('add_member', {
