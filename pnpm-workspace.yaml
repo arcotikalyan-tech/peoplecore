@@ -25,13 +25,21 @@ minimumReleaseAgeExclude:
 allowBuilds:
   pnpm: false
   unrs-resolver: false
+# Expo's CLI pins node-forge 1.4.0; 1.4.2 fixes the advisories published 2026-10-27 (PEM, PKCS#12, TLS).
+overrides:
+  node-forge: 1.4.2
 # Reviewed 2026-10-18, no patched release yet: node-forge (Expo's CLI) and braces (Metro, eslint-config-next).
 # Reviewed 2026-10-25: zod 3 (GHSA-mrhx-c7xc-m3w5, memory use on oversized input; fixed only in zod 4.6.6+) is used
 # only by @expo/cli, which validates our own config files at build time; every @expo/cli release still pins zod 3.
 # Our code uses zod 4.6.7.
 # Build, lint and dev tooling only; not in the web runtime or the app bundle. Remove each when a fix ships.
+# Reviewed 2026-10-31, the exception: decode-uri-component 0.2.2 (GHSA-qr28-fpjm-wq7f, slow decoding of long
+# percent-encoded runs) is in the phone app's router (expo-router → query-string 7). The fix, 0.5.1, is ES-module only
+# and query-string 7 loads it with require(), so it can't be forced. Worst case a crafted link opened on a phone makes
+# that app hang; no server is affected. Remove when Expo's router moves off query-string 7.
 auditConfig:
   ignoreGhsas:
     - GHSA-86w9-cpqp-85rv
     - GHSA-vfj7-8cjw-p6xm
     - GHSA-mrhx-c7xc-m3w5
+    - GHSA-qr28-fpjm-wq7f
