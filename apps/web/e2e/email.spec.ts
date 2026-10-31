@@ -59,6 +59,7 @@ test('HR invites a new person, who accepts from the email and lands in the organ
   const since = new Date(Date.now() - 1000);
   const invite = hr.locator('form').filter({ has: hr.getByRole('button', { name: 'Send invitation' }) });
   await invite.getByLabel('Work email').fill(invitee);
+  await invite.getByRole('radio', { name: /^No employee record/ }).check();
   await invite.getByRole('button', { name: 'Send invitation' }).click();
   await expect(hr.getByText(`Invitation emailed to ${invitee}.`, { exact: false })).toBeVisible();
 
@@ -86,6 +87,7 @@ test("an invitation from Supabase's default template (session in the URL fragmen
   await open(hr, '/app/demo/members');
   const invite = hr.locator('form').filter({ has: hr.getByRole('button', { name: 'Send invitation' }) });
   await invite.getByLabel('Work email').fill(plainInvitee);
+  await invite.getByRole('radio', { name: /^No employee record/ }).check();
   await invite.getByRole('button', { name: 'Send invitation' }).click();
   await expect(hr.getByText(`Invitation emailed to ${plainInvitee}.`, { exact: false })).toBeVisible();
 

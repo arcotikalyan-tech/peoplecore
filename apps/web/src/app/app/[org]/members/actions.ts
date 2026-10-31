@@ -10,6 +10,7 @@ import { publicEnv } from '@/lib/env';
 import { toUserMessage } from '@/lib/db-errors';
 import { findOrInviteUser } from '@/server/admin-users';
 import { getOrgContext } from '@/server/context';
+import { toCreateEmployeeArgs } from '@/server/employee-args';
 import { createClient } from '@/server/supabase';
 
 const DENIED: ActionState = { ok: false, message: 'You don’t have permission to manage members.' };
@@ -27,27 +28,58 @@ function inviteValues(formData: FormData) {
 export async function inviteMemberAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await authorize(orgSlug);
   if (!ctx) return DENIED;
+  const field = (name: string) => formData.get(name) ?? undefined;
   const parsed = inviteMemberSchema.safeParse({
     email: formData.get('email'),
     roleIds: formDataAll(formData, 'roleIds'),
-    employeeId: formData.get('employeeId') ?? undefined,
+    record: field('record'),
+    employeeId: field('employeeId'),
+    firstName: field('firstName'),
+    lastName: field('lastName'),
+    dateOfJoining: field('dateOfJoining'),
   });
   if (!parsed.success) return { ...invalid(parsed.error, formData), values: inviteValues(formData) };
-  const { email, roleIds, employeeId } = parsed.data;
+  const { email, roleIds, record } = parsed.data;
+  const failed = (message: string): ActionState => ({ ok: false, message, values: inviteValues(formData) });
+  if (record === 'new' && !ctx.can('employee.create')) return failed('You don’t have permission to add employees.');
   const supabase = await createClient();
 
   // Refuse roles the inviter can't grant *before* any invitation email goes out.
   const { data: grantable, error: grantableError } = await supabase.rpc('grantable_roles', { p_org: ctx.org.id });
-  if (grantableError) return { ok: false, message: toUserMessage(grantableError), values: inviteValues(formData) };
+  if (grantableError) return failed(toUserMessage(grantableError));
   const allowed = new Set(grantable.map((r) => r.id));
-  if (!roleIds.every((id) => allowed.has(id))) {
-    return { ok: false, message: 'You can’t grant one or more of the selected roles.', values: inviteValues(formData) };
+  if (!roleIds.every((id) => allowed.has(id))) return failed('You can’t grant one or more of the selected roles.');
+
+  // A new employee record is saved before any invitation goes out, so a record that can't be saved sends nothing.
+  let employeeId = record === 'existing' ? parsed.data.employeeId : undefined;
+  if (record === 'new') {
+    const { data: members, error: membersError } = await supabase.rpc('org_members', { p_org: ctx.org.id });
+    if (membersError) return failed(toUserMessage(membersError));
+    const member = members.find((m) => m.email?.toLowerCase() === email);
+    if (member?.employee_id) return failed(`${email} already has access here, linked to ${member.employee_name ?? 'an employee record'}.`);
+
+    const { data: id, error } = await supabase.rpc('create_employee', toCreateEmployeeArgs(ctx.org.id, {
+      firstName: parsed.data.firstName!, lastName: parsed.data.lastName, workEmail: email, employmentType: 'permanent', dateOfJoining: parsed.data.dateOfJoining!,
+    }));
+    if (error) return failed(toUserMessage(error));
+    revalidatePath(`/app/${orgSlug}`, 'layout');
+    // A member with that sign-in email is linked to the new record as it is saved: there's no one to invite.
+    if (member) {
+      return member.status === 'suspended'
+        ? { ok: true, message: `Employee record added. ${email} is suspended here, so it isn’t linked yet: link it from their row once they’re active again.` }
+        : { ok: true, message: `${email} already had access here. Their employee record is added and linked, so they can punch in, apply for leave and be paid.` };
+    }
+    employeeId = id;
   }
+  // From here on a new record already exists: if the invitation fails, offer it as an existing record so a retry links it.
+  const failedAfterRecord = (message: string): ActionState => record === 'new'
+    ? { ok: false, message: `Their employee record was added, but ${message}`, values: { ...inviteValues(formData), record: 'existing', employeeId: employeeId! } }
+    : failed(message);
 
   // Authorization has been checked above; only now is the secret-key client used (CLAUDE.md).
   const origin = (await headers()).get('origin') ?? '';
   const account = await findOrInviteUser(email, `${origin}/auth/callback?next=/app`);
-  if (!account.ok) return { ok: false, message: account.message, values: inviteValues(formData) };
+  if (!account.ok) return failedAfterRecord(record === 'new' ? `the invitation wasn’t sent: ${account.message}` : account.message);
 
   const { error } = await supabase.rpc('add_member', {
     p_org: ctx.org.id,
@@ -55,14 +87,15 @@ export async function inviteMemberAction(orgSlug: string, _prev: ActionState, fo
     p_role_ids: roleIds,
     p_employee_id: employeeId,
   });
-  if (error) return { ok: false, message: toUserMessage(error), values: inviteValues(formData) };
+  if (error) return failedAfterRecord(record === 'new' ? `they couldn’t be given access: ${toUserMessage(error)}` : toUserMessage(error));
 
   revalidatePath(`/app/${orgSlug}/members`);
+  const added = record === 'new' ? ' Their employee record is added under Employees.' : '';
   return {
     ok: true,
     message: account.invited
-      ? `Invitation emailed to ${email}. They get access after signing in from that email.`
-      : `${email} already has a PeopleCore sign-in and was added. Access starts the next time they open PeopleCore.`,
+      ? `Invitation emailed to ${email}. They get access after signing in from that email.${added}`
+      : `${email} already has a PeopleCore sign-in and was added. Access starts the next time they open PeopleCore.${added}`,
   };
 }
 

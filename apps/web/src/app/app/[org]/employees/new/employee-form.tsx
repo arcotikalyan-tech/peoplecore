@@ -15,6 +15,8 @@ interface Props {
   options: { departments: Option[]; designations: Option[]; locations: Option[]; legalEntities: Option[]; managers: Option[] };
   /** The creator may also invite people to sign in (member.manage). */
   canInvite?: boolean;
+  /** Values to start with (a work email from Users & roles). */
+  initial?: Record<string, string>;
 }
 
 const employmentTypes = EMPLOYMENT_TYPES.map((t) => ({ value: t, label: EMPLOYMENT_TYPE_LABELS[t] }));
@@ -32,9 +34,9 @@ function Section({ title, description, children }: { title: string; description:
   );
 }
 
-export function EmployeeForm({ action, cancelHref, options, canInvite }: Props) {
+export function EmployeeForm({ action, cancelHref, options, canInvite, initial }: Props) {
   const [state, formAction] = useActionState(action, initialActionState);
-  const v = state.values ?? {};
+  const v = state.values ?? initial ?? {};
   const e = state.fieldErrors ?? {};
 
   return (

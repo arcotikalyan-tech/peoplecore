@@ -267,7 +267,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
         )}
 
         {!me && !admin && (
-          <EmptyState title="Nothing to show yet" description="Your HR team hasn’t linked an employee profile to your account." />
+          <EmptyState title="Nothing to show yet" description={`Your HR team hasn’t added your employee record yet, so you can’t punch in, apply for leave or see your pay. Ask them to add you under Employees with your work email${ctx.user.email ? ` (${ctx.user.email})` : ''}.`} />
         )}
       </div>
 

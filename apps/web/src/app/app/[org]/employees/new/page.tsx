@@ -9,8 +9,10 @@ import { EmployeeForm } from './employee-form';
 
 export const metadata: Metadata = { title: 'Add employee' };
 
-export default async function NewEmployeePage({ params }: { params: Promise<{ org: string }> }) {
+export default async function NewEmployeePage({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<{ workEmail?: string }> }) {
   const { org: slug } = await params;
+  // Users & roles links here for a sign-in without a record: the same work email links the record to it as it's saved.
+  const { workEmail } = await searchParams;
   const ctx = await requirePermission(slug, 'employee.create');
   const [structure, managers] = await Promise.all([getStructure(ctx.org.id), managerOptions(ctx.org.id)]);
   const base = `/app/${slug}/employees`;
@@ -27,6 +29,7 @@ export default async function NewEmployeePage({ params }: { params: Promise<{ or
         cancelHref={base}
         options={{ ...structureOptions(structure), managers }}
         canInvite={ctx.can('member.manage', 'org')}
+        initial={typeof workEmail === 'string' ? { workEmail: workEmail.slice(0, 254) } : undefined}
       />
     </>
   );

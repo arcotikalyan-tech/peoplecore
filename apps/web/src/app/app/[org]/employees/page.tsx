@@ -4,12 +4,13 @@ import { notFound } from 'next/navigation';
 import { todayIn } from '@peoplecore/shared';
 import { buttonClass } from '@/components/ui/button';
 import { HubTabs, Panel } from '@/components/ui/hub';
-import { Badge } from '@/components/ui/surface';
+import { Alert, Badge } from '@/components/ui/surface';
 import { Avatar } from '@/components/ui/avatar';
 import { BarChart } from '@/components/ui/charts';
 import { formatDate } from '@/lib/format';
 import { getOrgContext } from '@/server/context';
 import { employeeNames } from '@/server/employees';
+import { membersWithoutRecord } from '@/server/members';
 import { createClient } from '@/server/supabase';
 import { decideDeletionAction } from '../preferences/privacy-actions';
 import { DecideDeletionForm } from '../preferences/privacy-client';
@@ -44,7 +45,12 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
   const manage = ctx.can('employee.update', 'org');
 
   const loading = hr ? peopleRecords(ctx.org.id, today) : directory(ctx.org.id);
-  const [people, stats] = await Promise.all([loading, hr ? signInStats(ctx.org.id, loading) : null]);
+  const [people, stats, withoutRecord] = await Promise.all([
+    loading,
+    hr ? signInStats(ctx.org.id, loading) : null,
+    // A warning only: if it can't be read, the page still loads without it.
+    hr && ctx.can('member.manage', 'org') && ctx.can('employee.create') ? membersWithoutRecord(ctx.org.id).catch(() => []) : [],
+  ]);
   const current = people.filter((p) => CURRENT.has(p.status));
   const depts = new Set(current.map((p) => p.department).filter(Boolean));
   const locs = new Set(current.map((p) => p.location).filter(Boolean));
@@ -75,6 +81,19 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
           </div>
         )}
       </header>
+      {withoutRecord.length > 0 && (
+        <div className="mb-4">
+          <Alert tone="warning" title={`${withoutRecord.length === 1 ? '1 person has' : `${withoutRecord.length} people have`} the Employee role but no employee record`}>
+            <p>They can sign in, but they aren’t listed here and can’t punch in, apply for leave or be paid until they have one. Adding it with the same work email links it to their sign-in.</p>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {withoutRecord.slice(0, 8).map((email) => (
+                <li key={email}><Link href={`${base}/new?workEmail=${encodeURIComponent(email)}`} className={buttonClass('secondary', 'sm')}>Add record for {email}</Link></li>
+              ))}
+              {withoutRecord.length > 8 && <li><Link href={`/app/${slug}/members`} className="text-primary hover:underline">{withoutRecord.length - 8} more in Users & roles</Link></li>}
+            </ul>
+          </Alert>
+        </div>
+      )}
       <HubTabs base={base} label="Employee sections" tabs={tabs} current={tab} />
 
       {tab === 'overview' && <Overview slug={slug} base={base} today={today} people={people} href={href} />}

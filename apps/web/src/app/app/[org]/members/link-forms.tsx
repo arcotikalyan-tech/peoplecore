@@ -13,7 +13,6 @@ function Result({ state }: { state: ActionState }) {
 /** Links a member's sign-in to an employee record that has none yet. */
 export function LinkEmployeeForm({ action, memberId, email, options }: { action: Action; memberId: string; email: string; options: Array<{ value: string; label: string }> }) {
   const [state, formAction] = useActionState(action, initialActionState);
-  if (options.length === 0) return <p className="text-xs text-muted">No employee record. Add one under People (same work email links it).</p>;
   return (
     <form action={formAction} aria-label={`Link ${email} to an employee record`} className="mt-1 flex flex-wrap items-center gap-1.5">
       <input type="hidden" name="memberId" value={memberId} />

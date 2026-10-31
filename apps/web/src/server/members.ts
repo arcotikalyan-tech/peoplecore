@@ -45,3 +45,19 @@ export async function memberSignInStatus(orgId: string) {
   if (error) throw new Error(`Failed to load sign-in status (${error.code})`);
   return new Map(data.map((r) => [r.member_id, r]));
 }
+
+/**
+ * Members with the Employee role but no employee record (member managers only): they can sign in, but can't punch in,
+ * apply for leave or be paid, and aren't under Employees.
+ */
+export async function membersWithoutRecord(orgId: string) {
+  const supabase = await createClient();
+  const [members, role] = await Promise.all([
+    supabase.rpc('org_members', { p_org: orgId }),
+    supabase.from('roles').select('id').eq('organization_id', orgId).eq('key', 'employee').maybeSingle(),
+  ]);
+  if (members.error || role.error) throw new Error('Failed to load members');
+  if (!role.data) return [];
+  const employeeRole = role.data.id;
+  return members.data.filter((m) => m.status !== 'suspended' && !m.employee_id && m.email && m.role_ids.includes(employeeRole)).map((m) => m.email!);
+}

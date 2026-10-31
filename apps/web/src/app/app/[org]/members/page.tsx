@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { todayIn } from '@peoplecore/shared';
 import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
 import { Table, Td, Th } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
@@ -26,6 +28,7 @@ export default async function MembersPage({ params }: { params: Promise<{ org: s
     memberSignInStatus(ctx.org.id),
   ]);
   const canLink = ctx.can('employee.update', 'org');
+  const canCreate = ctx.can('employee.create');
 
   const roleName = new Map(roles.map((r) => [r.id, r.name]));
   const grantable = new Set(grantableIds);
@@ -61,9 +64,20 @@ export default async function MembersPage({ params }: { params: Promise<{ org: s
                           <span>Employee: {m.employee_name}</span>
                           {canLink && (manageable || isSelf) && <MemberButton action={unlinkEmployeeAction.bind(null, slug)} memberId={m.member_id} label="Unlink" aria={`Unlink ${m.email} from ${m.employee_name}`} />}
                         </div>
-                      ) : canLink && (manageable || isSelf) ? (
-                        <LinkEmployeeForm action={linkEmployeeAction.bind(null, slug)} memberId={m.member_id} email={m.email ?? ''} options={employees} />
-                      ) : <div className="text-xs text-muted">No employee record</div>}
+                      ) : (
+                        <>
+                          {/* Without a record they can sign in but not punch in, apply for leave or be paid, and aren't under Employees. */}
+                          <div className={`text-xs ${employeeRole && m.role_ids.includes(employeeRole.id) ? 'text-warning' : 'text-muted'}`}>
+                            No employee record{employeeRole && m.role_ids.includes(employeeRole.id) ? ': they can’t punch in, apply for leave or be paid' : ''}.
+                            {canCreate && (manageable || isSelf) && m.email && (
+                              <> <Link href={`/app/${slug}/employees/new?workEmail=${encodeURIComponent(m.email)}`} className="font-medium text-primary hover:underline">Add employee record</Link></>
+                            )}
+                          </div>
+                          {canLink && (manageable || isSelf) && employees.length > 0 && (
+                            <LinkEmployeeForm action={linkEmployeeAction.bind(null, slug)} memberId={m.member_id} email={m.email ?? ''} options={employees} />
+                          )}
+                        </>
+                      )}
                     </Td>
                     <Td>
                       <div className="flex max-w-56 flex-wrap gap-1">
@@ -110,12 +124,13 @@ export default async function MembersPage({ params }: { params: Promise<{ org: s
           </Table>
         </Card>
         <Card className="self-start">
-          <CardHeader title="Invite someone" description="Existing PeopleCore users are added straight away; new people get an email invitation." />
+          <CardHeader title="Invite someone" description="Existing PeopleCore users are added straight away; new people get an email invitation. Adding an employee under Employees invites them too." />
           <InviteForm
             action={inviteMemberAction.bind(null, slug)}
             roles={roles.filter((r) => grantable.has(r.id)).map((r) => ({ value: r.id, label: r.name, description: r.description }))}
             defaultRoleIds={employeeRole ? [employeeRole.id] : []}
             employees={employees}
+            newRecordDate={canCreate ? todayIn(ctx.org.timezone) : undefined}
             rolesHint={ownerLevel ? undefined : 'HR administrator, payroll, auditor and owner roles can only be granted by an owner.'}
           />
         </Card>

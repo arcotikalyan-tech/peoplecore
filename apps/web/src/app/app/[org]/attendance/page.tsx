@@ -95,7 +95,7 @@ export default async function AttendancePage({ params, searchParams }: { params:
           {tab === 'settings' && <SettingsTab ctx={ctx} slug={slug} />}
         </>
       ) : !me ? (
-        <EmptyState title="No employee record" description="Your account isn’t linked to an employee record, so there’s no attendance to show." />
+        <EmptyState title="No employee record" description={`Your sign-in isn’t linked to an employee record yet, so you can’t punch in. Ask HR to add you under Employees with your work email${ctx.user.email ? ` (${ctx.user.email})` : ''}: it links to this sign-in straight away.`} />
       ) : (
         <>
           {tab === 'hub' && <MyHub ctx={ctx} slug={slug} me={me} today={today} />}

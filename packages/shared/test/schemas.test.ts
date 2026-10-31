@@ -57,6 +57,24 @@ describe('inviteMemberSchema', () => {
     if (!r.success) expect(fieldErrors(r.error)).toHaveProperty('roleIds', 'Choose at least one role');
   });
   it('treats an empty employee selection as none', () => {
-    expect(inviteMemberSchema.parse({ email: 'a@example.test', roleIds: [role], employeeId: '' }).employeeId).toBeUndefined();
+    const v = inviteMemberSchema.parse({ email: 'a@example.test', roleIds: [role], employeeId: '' });
+    expect(v.employeeId).toBeUndefined();
+    expect(v.record).toBe('none');
+  });
+  it('reads an employee id without a choice as that existing record', () => {
+    expect(inviteMemberSchema.parse({ email: 'a@example.test', roleIds: [role], employeeId: role }).record).toBe('existing');
+  });
+  it('needs a first name and joining date for a new record, and a pick for an existing one', () => {
+    const r = inviteMemberSchema.safeParse({ email: 'a@example.test', roleIds: [role], record: 'new', firstName: ' ', dateOfJoining: '' });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(fieldErrors(r.error)).toHaveProperty('firstName', 'First name is required');
+      expect(fieldErrors(r.error)).toHaveProperty('dateOfJoining');
+    }
+    const ok = inviteMemberSchema.parse({ email: 'a@example.test', roleIds: [role], record: 'new', firstName: 'Asha', dateOfJoining: '2026-11-02' });
+    expect(ok).toMatchObject({ record: 'new', firstName: 'Asha', dateOfJoining: '2026-11-02' });
+    const existing = inviteMemberSchema.safeParse({ email: 'a@example.test', roleIds: [role], record: 'existing' });
+    expect(existing.success).toBe(false);
+    if (!existing.success) expect(fieldErrors(existing.error)).toHaveProperty('employeeId', 'Choose their employee record');
   });
 });
