@@ -36,17 +36,22 @@ export async function loadEmailTemplates(db: SupabaseClient<Database>): Promise<
 
 /** How long the send-email hook reuses what it read: Supabase gives the hook five seconds, and most calls need none. */
 const CACHE_MS = 60_000;
-let cached: { at: number; value: EmailTemplates } | null = null;
+
+// On globalThis, not in a module variable: Next.js bundles route handlers and server actions separately, so a module
+// variable cleared by the console's save action would not be the one the hook reads.
+const KEY: unique symbol = Symbol.for('peoplecore.emailTemplates');
+const store = globalThis as typeof globalThis & { [KEY]?: { at: number; value: EmailTemplates } | null };
 
 /** The templates for the send-email hook, read at most once a minute (and again after a platform admin saves). */
 export async function cachedEmailTemplates(db: SupabaseClient<Database>): Promise<EmailTemplates> {
+  const cached = store[KEY];
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
   const value = await loadEmailTemplates(db);
-  if (value.complete) cached = { at: Date.now(), value };
+  if (value.complete) store[KEY] = { at: Date.now(), value };
   return value;
 }
 
 /** After a change in the console, so the next email uses it. */
 export function forgetCachedEmailTemplates() {
-  cached = null;
+  store[KEY] = null;
 }
