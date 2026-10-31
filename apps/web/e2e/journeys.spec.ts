@@ -164,23 +164,42 @@ test('the manager sees the new report but cannot edit; an employee cannot see th
   await expect(page.getByText(person.last)).toHaveCount(0);
 });
 
-test('the platform admin creates a tenant and cannot see inside it', async ({ page }) => {
+test('the platform admin creates a tenant with a plan, edits it, and cannot see inside it', async ({ page }) => {
   await signIn(page, 'demo.platform');
   await expect(page.getByText('You’re not a member of any organization yet')).toBeVisible();
   await open(page, '/platform');
+  await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Platform' }).getByRole('link', { name: 'Organizations' }).click();
+  await page.getByRole('link', { name: 'New organization' }).click();
 
   await page.getByLabel('Organization name').fill(tenant.name);
-  // Accessible name (what screen readers announce) excludes the visual "required" asterisk.
-  await page.getByRole('textbox', { name: 'URL', exact: true }).fill(tenant.slug);
+  // The URL follows the name until it's changed by hand. Accessible names exclude the visual "required" asterisk.
+  const url = page.getByRole('textbox', { name: 'URL', exact: true });
+  await expect(url).toHaveValue(`e2e-org-${run.toLowerCase()}`);
+  await url.fill(tenant.slug);
+  await page.getByRole('combobox', { name: 'Plan', exact: true }).selectOption('starter');
   await page.getByRole('button', { name: 'Create organization' }).click();
 
-  await expect(page.getByText(`Organization “${tenant.name}” created.`)).toBeVisible();
-  await expect(page.getByRole('cell', { name: `/app/${tenant.slug}` })).toBeVisible();
+  await expect(page.getByText(`Organization “${tenant.name}” created at /app/${tenant.slug}.`)).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: tenant.name })).toBeVisible();
+  await expect(page.getByText(/^Starter · Trial · 1[34] days left$/)).toBeVisible();
   const { data: roles } = await admin
     .from('roles')
     .select('key, organizations!inner(slug)')
     .eq('organizations.slug', tenant.slug);
   expect(roles!.map((r) => r.key).sort()).toEqual([...ROLE_KEYS].sort()); // every standard role, seeded for the new tenant
+
+  // Edited once added: its name, then its plan.
+  await page.getByLabel('Organization name').fill(`${tenant.name} Ltd`);
+  await page.getByRole('button', { name: 'Save details' }).click();
+  await expect(page.getByText('Organization details saved.')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: `${tenant.name} Ltd` })).toBeVisible();
+  await page.getByText('Change plan or billing', { exact: true }).click();
+  await page.getByRole('combobox', { name: 'Plan', exact: true }).selectOption('growth');
+  await page.getByRole('combobox', { name: 'Status', exact: true }).selectOption('active');
+  await page.getByRole('button', { name: 'Save plan and billing' }).click();
+  await expect(page.getByText('Plan and billing saved.')).toBeVisible();
+  await expect(page.getByText('Growth · Active', { exact: true })).toBeVisible();
 
   await open(page, `/app/${tenant.slug}`);
   await expectNotFound(page);
@@ -189,11 +208,12 @@ test('the platform admin creates a tenant and cannot see inside it', async ({ pa
 test('suspending an organization locks its members out until it is reactivated', async ({ browser }) => {
   const platform = await (await browser.newContext()).newPage();
   await signIn(platform, 'demo.platform');
-  await open(platform, '/platform');
-  const demoRow = platform.getByRole('row').filter({ hasText: 'PeopleCore Demo (synthetic data)' });
-  await demoRow.getByRole('button', { name: 'Suspend' }).click();
-  await demoRow.getByRole('button', { name: 'Confirm suspension' }).click();
-  await expect(demoRow.getByText('suspended', { exact: true })).toBeVisible();
+  await open(platform, '/platform/organizations');
+  await platform.getByRole('link', { name: 'PeopleCore Demo (synthetic data)' }).click();
+  const access = platform.getByRole('region', { name: 'Access' });
+  await access.getByRole('button', { name: 'Suspend' }).click();
+  await access.getByRole('button', { name: 'Confirm suspension' }).click();
+  await expect(access.getByText('Suspended: nobody in it can sign in.')).toBeVisible();
 
   // demo.hr turned two-step on for themselves, so the code is asked at sign-in even while nothing applies.
   const hr = await (await browser.newContext()).newPage();
@@ -218,9 +238,9 @@ test('suspending an organization locks its members out until it is reactivated',
     await other.getByRole('button', { name: 'Sign in', exact: true }).click();
     await other.waitForURL(/\/app(\/|$|\?)/);
 
-    await demoRow.getByRole('button', { name: 'Reactivate' }).click();
-    await demoRow.getByRole('button', { name: 'Confirm reactivation' }).click();
-    await expect(demoRow.getByText('active', { exact: true })).toBeVisible();
+    await access.getByRole('button', { name: 'Reactivate' }).click();
+    await access.getByRole('button', { name: 'Confirm reactivation' }).click();
+    await expect(access.getByRole('button', { name: 'Suspend' })).toBeVisible();
 
     // The HR-admin role applies again as soon as the organization is reactivated.
     await open(other, '/app/demo/employees');

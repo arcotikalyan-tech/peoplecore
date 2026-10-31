@@ -77,7 +77,7 @@ Roles are per-org and editable by org owners, except `owner`, which can't lose `
 ¹¹ Not granted to employees. Workspace members log their own time; an employee's reporting manager approves (and, if the settings allow, logs or corrects) their time without `timesheet.manage`. Nobody approves their own time.
 ¹² Not granted to employees. Everyone posts to the PeopleXP feed, recognises colleagues within the daily limits, redeems their own points and sees their own pulse answers; `peoplexp.manage` approves high-value recognitions, fulfils rewards, adjusts points and sees pulse summaries (groups of three or more only).
 
-Platform super-admins are **not** org members by default (tested). They manage tenants through `/platform`. Time-boxed support access will use an audited `member_roles.valid_until` grant; the mechanism exists and is tested, the support-access workflow is Phase 1b.
+Platform super-admins are **not** org members by default (tested). They manage tenants through `/platform`: create organizations (with a plan), edit their name, URL, time zone and country, change plans and billing, add or remove owners (never the last), suspend and reactivate, and add or remove other platform admins (an existing account; never themselves). Each goes through a `platform_*` function that checks `app.is_platform_admin()` (two-step included when the platform requires it) and is audited. They see counts and owners' emails for every organization (`platform_org_overview`, `platform_org_detail`), never data inside one, except the summary an owner opens through support access. A plan's modules and employee limit apply to the organization (`org_plan_modules`, `app.enforce_employee_limit`).
 
 ## Who can grant which role (enforced in the database)
 

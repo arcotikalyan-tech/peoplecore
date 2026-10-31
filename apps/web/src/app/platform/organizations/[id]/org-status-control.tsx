@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import { SubmitButton } from '@/components/submit-button';
 import { Button } from '@/components/ui/button';
 import { initialActionState } from '@/lib/action-state';
-import { setOrganizationStatusAction } from './actions';
+import { setOrganizationStatusAction } from '../../actions';
 
 /** Suspend / reactivate with an explicit confirmation step (suspension cuts off every member at once). */
 export function OrgStatusControl({ orgId, name, status }: { orgId: string; name: string; status: 'active' | 'suspended' | 'archived' }) {

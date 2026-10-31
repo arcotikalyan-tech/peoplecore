@@ -5,8 +5,9 @@ import { z } from 'zod';
 import { type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { EMAIL_AUDIENCES, EMAIL_EVENTS, PERSON_EMAIL_RULES } from '@/lib/email-rules';
-import { MODULES, NOTIFICATION_CATEGORIES } from '@/lib/modules';
+import { MODULES, NOTIFICATION_CATEGORIES, outsidePlan } from '@/lib/modules';
 import { getOrgContext } from '@/server/context';
+import { planModules } from '@/server/modules';
 import { flash } from '@/server/flash';
 import { createClient } from '@/server/supabase';
 
@@ -19,7 +20,9 @@ export async function saveModulesAction(slug: string, _prev: ActionState, formDa
   const ctx = await getOrgContext(slug);
   if (!ctx.can('org.manage', 'org')) return DENIED;
   const on = new Set(formData.getAll('module').map(String));
-  const rows = MODULES.map((m) => ({ organization_id: ctx.org.id, module: m.key, enabled: on.has(m.key), updated_at: new Date().toISOString() }));
+  // Modules outside the plan aren't the organization's to switch: their own setting stays as it was.
+  const outside = new Set(outsidePlan(await planModules(ctx.org.id)));
+  const rows = MODULES.filter((m) => !outside.has(m.key)).map((m) => ({ organization_id: ctx.org.id, module: m.key, enabled: on.has(m.key), updated_at: new Date().toISOString() }));
   const supabase = await createClient();
   const { error } = await supabase.from('org_modules').upsert(rows);
   if (error) return { ok: false, message: toUserMessage(error) };

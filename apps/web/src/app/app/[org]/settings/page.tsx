@@ -3,11 +3,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { HubTabs, Panel } from '@/components/ui/hub';
 import { Badge } from '@/components/ui/surface';
-import { formatDateTime } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { EMAIL_AUDIENCES, EMAIL_EVENTS, EMAIL_STATUS_LABELS, PERSON_EMAIL_RULES } from '@/lib/email-rules';
-import { MODULES, NOTIFICATION_CATEGORIES } from '@/lib/modules';
+import { MODULES, NOTIFICATION_CATEGORIES, outsidePlan } from '@/lib/modules';
 import { getOrgContext, type OrgContext } from '@/server/context';
-import { disabledModules, orgControls } from '@/server/modules';
+import { disabledModules, orgControls, planModules } from '@/server/modules';
 import { orgSetup } from '@/server/setup';
 import { SetupChecklist } from '../setup/checklist';
 import { createClient } from '@/server/supabase';
@@ -38,7 +38,8 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   const owner = ctx.can('role.manage', 'org');
   const tabs = [
     { key: 'hub', label: '✦ Hub' }, { key: 'setup', label: 'Organization setup' }, { key: 'roles', label: 'Roles & permissions' }, { key: 'modules', label: 'Module selector' },
-    { key: 'controls', label: 'Controls' }, { key: 'notifications', label: 'Notifications' }, ...(owner ? [{ key: 'support', label: 'Support access' }] : []),
+    { key: 'controls', label: 'Controls' }, { key: 'notifications', label: 'Notifications' }, { key: 'plan', label: 'Plan' },
+    ...(owner ? [{ key: 'support', label: 'Support access' }] : []),
   ];
   const tab = tabs.some((t) => t.key === sp.tab) ? sp.tab! : 'hub';
   return (
@@ -51,12 +52,15 @@ export default async function SettingsPage({ params, searchParams }: { params: P
       {tab === 'modules' && (
         <Panel title="Module selector" meta="Switched-off modules disappear from navigation for everyone; their data is kept.">
           {await (async () => {
-            const off = await disabledModules(ctx.org.id);
+            const [off, plan] = await Promise.all([disabledModules(ctx.org.id), planModules(ctx.org.id)]);
+            const outside = new Set(outsidePlan(plan));
             return <ToggleList action={saveModulesAction.bind(null, slug)} label="Modules" name="module" submit="Save modules"
-              items={MODULES.map((m) => ({ key: m.key, label: m.label, group: m.group, on: !off.has(m.key) }))} />;
+              items={MODULES.map((m) => ({ key: m.key, label: m.label, group: m.group, on: !off.has(m.key), locked: outside.has(m.key),
+                note: outside.has(m.key) ? 'Not in your plan' : undefined }))} />;
           })()}
         </Panel>
       )}
+      {tab === 'plan' && <PlanTab orgId={ctx.org.id} />}
       {tab === 'controls' && <ControlsTab slug={slug} ctx={ctx} owner={ctx.can('role.manage', 'org')} />}
       {tab === 'notifications' && await (async () => {
         const supabase = await createClient();
@@ -315,5 +319,37 @@ async function ControlsTab({ slug, ctx, owner }: { slug: string; ctx: OrgContext
         </Panel>
       )}
     </div>
+  );
+}
+
+interface MySubscription {
+  plan: string; description: string | null; status: 'trialing' | 'active' | 'past_due' | 'cancelled'; billing_cycle: 'monthly' | 'annual';
+  trial_ends_at: string | null; paid_until: string | null; employee_limit: number | null; employees: number; modules: string[] | null;
+}
+
+const SUBSCRIPTION_WORDS = { trialing: 'Free trial', active: 'Active', past_due: 'Payment due', cancelled: 'Cancelled' } as const;
+
+/** The organization's PeopleCore plan (set by PeopleCore): what it includes and how much of it is used. Read-only here. */
+async function PlanTab({ orgId }: { orgId: string }) {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('my_subscription', { p_org: orgId });
+  const sub = data as MySubscription | null;
+  if (!sub) {
+    return <Panel title="Plan"><p className="text-sm text-muted">No plan is set for this organization: every module is available and there’s no employee limit.</p></Panel>;
+  }
+  const outside = MODULES.filter((m) => outsidePlan(sub.modules).includes(m.key));
+  return (
+    <Panel title={`${sub.plan} plan`} meta={SUBSCRIPTION_WORDS[sub.status]}>
+      {sub.description && <p className="mb-4 text-sm text-muted">{sub.description}</p>}
+      <dl className="grid gap-4 text-sm sm:grid-cols-3">
+        <div><dt className="text-xs text-muted">Employees</dt><dd className="text-lg font-semibold tabular-nums">{sub.employees}{sub.employee_limit ? ` of ${sub.employee_limit}` : ''}</dd>
+          {sub.employee_limit && sub.employees >= sub.employee_limit && <dd className="text-xs text-danger">At the limit: adding employees is paused.</dd>}</div>
+        <div><dt className="text-xs text-muted">{sub.status === 'trialing' ? 'Trial ends' : 'Paid until'}</dt>
+          <dd className="text-lg font-semibold">{formatDate(sub.status === 'trialing' ? sub.trial_ends_at : sub.paid_until)}</dd></div>
+        <div><dt className="text-xs text-muted">Billing</dt><dd className="text-lg font-semibold">{sub.billing_cycle === 'annual' ? 'Yearly' : 'Monthly'}</dd></div>
+      </dl>
+      <p className="mt-4 text-sm">{outside.length ? `Not included: ${outside.map((m) => m.label).join(', ')}.` : 'Every module is included.'}</p>
+      <p className="mt-3 text-xs text-muted">To change your plan, add more employees or ask about billing, contact PeopleCore support.</p>
+    </Panel>
   );
 }

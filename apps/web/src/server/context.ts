@@ -3,6 +3,7 @@ import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { hasGrant, type Grant, type PermissionKey, type PermissionScope } from '@peoplecore/shared';
 import type { Tables } from '@peoplecore/db/types';
+import { outsidePlan } from '@/lib/modules';
 import { createClient } from './supabase';
 
 export interface SessionUser {
@@ -90,10 +91,15 @@ interface ShellBundle {
   /** No password yet (invited, or email links only): they choose one before anything else. */
   needs_password?: boolean;
   disabled_modules: string[];
+  /** Modules the organization's plan includes; null: every module. */
+  plan_modules: string[] | null;
 }
 
 /** What getOrgContext already learned this request, so isPlatformAdmin / disabledModules / needsMfa skip their own queries. */
-export const requestShell = cache(() => ({ platformAdmin: undefined as boolean | undefined, needsMfa: undefined as boolean | undefined, disabled: new Map<string, Set<string>>() }));
+export const requestShell = cache(() => ({
+  platformAdmin: undefined as boolean | undefined, needsMfa: undefined as boolean | undefined,
+  disabled: new Map<string, Set<string>>(), plans: new Map<string, string[] | null>(),
+}));
 
 /**
  * Resolves the organization from the URL slug *through RLS*: a slug the user isn't a member of
@@ -121,7 +127,9 @@ export const getOrgContext = cache(async (slug: string): Promise<OrgContext> => 
     if (mine?.some((o) => o.slug === slug && o.status !== 'active')) redirect(`/app?suspended=${encodeURIComponent(slug)}`);
     notFound();
   }
-  shell.disabled.set(org.id, new Set(bundle.disabled_modules));
+  // Off for the organization: switched off in Settings, or outside its plan.
+  shell.disabled.set(org.id, new Set([...bundle.disabled_modules, ...outsidePlan(bundle.plan_modules)]));
+  shell.plans.set(org.id, bundle.plan_modules ?? null);
 
   const grants = bundle.grants;
   // Platform admins can see the organization row but are not members: no grants → no tenant access.

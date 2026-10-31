@@ -23,7 +23,8 @@ Legend: ✅ built in the current slice · 🔜 next phase · 📋 planned.
 | ✅ `role_permissions` | role, permission_key, scope (`org`/`team`/`self`) |
 | ✅ `member_roles` | member, role, granted_by, valid_until (for delegation/time-boxed access) |
 | ✅ `audit_events` | org, actor_user_id, action, entity_type, entity_id, before/after jsonb diff, request id. **Append-only** (trigger blocks UPDATE/DELETE) |
-| 📋 `org_entitlements` | org, feature_key, limit. Subscription limits |
+| ✅ `platform_plans` | code, name, price per employee, flat price, annual discount, employee limit, included modules (null: all), trial days, active. Global; readable by everyone signed in, changed by platform admins |
+| ✅ `organization_subscriptions` | org (key), plan, status (trialing/active/past_due/cancelled), billing cycle, employee-limit and price overrides, trial end, paid until, billing email, notes. Platform admins only; owners see their own through `my_subscription` |
 | 📋 `access_reviews`, `approval_delegations` | Periodic access recertification, out-of-office delegation |
 
 ## Org structure (Phase 1–2)

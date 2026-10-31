@@ -11,7 +11,7 @@ const check = 'size-4 rounded border-line-strong accent-primary';
 
 export function ToggleList({ action, label, name, items, submit }: {
   action: Action; label: string; name: string; submit: string;
-  items: Array<{ key: string; label: string; note?: string; on: boolean; group?: string }>;
+  items: Array<{ key: string; label: string; note?: string; on: boolean; group?: string; locked?: boolean }>;
 }) {
   const [state, formAction] = useActionState(action, initialActionState);
   const groups = [...new Set(items.map((i) => i.group ?? ''))];
@@ -23,8 +23,8 @@ export function ToggleList({ action, label, name, items, submit }: {
           {g && <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">{g}</legend>}
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {items.filter((i) => (i.group ?? '') === g).map((i) => (
-              <label key={i.key} className="flex items-start gap-2 rounded-xl border border-line p-3 text-sm has-[:checked]:border-primary/50">
-                <input type="checkbox" name={name} value={i.key} defaultChecked={i.on} className={`${check} mt-0.5`} />
+              <label key={i.key} className={`flex items-start gap-2 rounded-xl border border-line p-3 text-sm has-[:checked]:border-primary/50 ${i.locked ? 'opacity-60' : ''}`}>
+                <input type="checkbox" name={name} value={i.key} defaultChecked={i.on} disabled={i.locked} className={`${check} mt-0.5`} />
                 <span><span className="block font-medium">{i.label}</span>{i.note && <span className="block text-xs text-muted">{i.note}</span>}</span>
               </label>
             ))}

@@ -28,6 +28,13 @@ export const MODULES = [
 ] as const;
 export type ModuleKey = (typeof MODULES)[number]['key'];
 
+/** Modules an organization's plan leaves out (platform plans); null or undefined: the plan includes every module. */
+export function outsidePlan(planModules: readonly string[] | null | undefined): string[] {
+  if (!planModules) return [];
+  const included = new Set(planModules);
+  return MODULES.filter((m) => !included.has(m.key)).map((m) => m.key);
+}
+
 export const NOTIFICATION_CATEGORIES = [
   ['approval', 'Approvals', 'Requests waiting for a decision, and decisions made'],
   ['leave', 'Leave', 'Leave requests, balances and encashment'],

@@ -5373,6 +5373,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      organization_subscriptions: {
+        Row: {
+          organization_id: string;
+          plan_code: string;
+          status: Database['public']['Enums']['subscription_status'];
+          billing_cycle: Database['public']['Enums']['billing_cycle'];
+          employee_limit: number | null;
+          price_per_employee: number | null;
+          trial_ends_at: string | null;
+          paid_until: string | null;
+          billing_email: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          organization_id: string;
+          plan_code: string;
+          status?: Database['public']['Enums']['subscription_status'];
+          billing_cycle?: Database['public']['Enums']['billing_cycle'];
+          employee_limit?: number | null;
+          price_per_employee?: number | null;
+          trial_ends_at?: string | null;
+          paid_until?: string | null;
+          billing_email?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          organization_id?: string;
+          plan_code?: string;
+          status?: Database['public']['Enums']['subscription_status'];
+          billing_cycle?: Database['public']['Enums']['billing_cycle'];
+          employee_limit?: number | null;
+          price_per_employee?: number | null;
+          trial_ends_at?: string | null;
+          paid_until?: string | null;
+          billing_email?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       organizations: {
         Row: {
           id: string;
@@ -5892,6 +5940,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      platform_plans: {
+        Row: {
+          code: string;
+          name: string;
+          description: string | null;
+          price_per_employee: number | null;
+          base_price: number;
+          annual_discount_pct: number;
+          max_employees: number | null;
+          modules: string[] | null;
+          trial_days: number;
+          is_active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          code: string;
+          name: string;
+          description?: string | null;
+          price_per_employee?: number | null;
+          base_price?: number;
+          annual_discount_pct?: number;
+          max_employees?: number | null;
+          modules?: string[] | null;
+          trial_days?: number;
+          is_active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          code?: string;
+          name?: string;
+          description?: string | null;
+          price_per_employee?: number | null;
+          base_price?: number;
+          annual_discount_pct?: number;
+          max_employees?: number | null;
+          modules?: string[] | null;
+          trial_days?: number;
+          is_active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       platform_settings: {
         Row: {
           id: boolean;
@@ -5899,6 +5998,7 @@ export type Database = {
           updated_at: string;
           updated_by: string | null;
           trusted_proxy_ips: string[];
+          default_plan_code: string;
         };
         Insert: {
           id?: boolean;
@@ -5906,6 +6006,7 @@ export type Database = {
           updated_at?: string;
           updated_by?: string | null;
           trusted_proxy_ips?: string[];
+          default_plan_code?: string;
         };
         Update: {
           id?: boolean;
@@ -5913,6 +6014,7 @@ export type Database = {
           updated_at?: string;
           updated_by?: string | null;
           trusted_proxy_ips?: string[];
+          default_plan_code?: string;
         };
         Relationships: [];
       };
@@ -10030,6 +10132,12 @@ export type Database = {
         };
         Returns: { review_id: string; cycle_id: string; cycle_name: string; cycle_status: Database['public']['Enums']['cycle_status']; status: Database['public']['Enums']['review_status']; self_review_due: string }[];
       };
+      my_subscription: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
+      };
       nudge_leave: {
         Args: {
           p_org: string;
@@ -10041,6 +10149,12 @@ export type Database = {
           p_org: string;
         };
         Returns: { member_id: string; user_id: string; email: string; status: Database['public']['Enums']['member_status']; joined_at: string; last_sign_in_at: string; role_ids: string[]; employee_id: string; employee_name: string }[];
+      };
+      org_plan_modules: {
+        Args: {
+          p_org: string;
+        };
+        Returns: unknown;
       };
       org_setup_status: {
         Args: {
@@ -10113,6 +10227,89 @@ export type Database = {
           p_org: string;
         };
         Returns: { employee_id: string; has_pan: boolean; has_uan: boolean; has_aadhaar: boolean; has_bank: boolean }[];
+      };
+      platform_activity: {
+        Args: {
+          p_org?: string;
+          p_limit?: number;
+        };
+        Returns: { id: number; occurred_at: string; organization_id: string; actor_email: string; action: string; entity_type: string; entity_id: string; changes: Json }[];
+      };
+      platform_add_admin: {
+        Args: {
+          p_email: string;
+        };
+        Returns: string;
+      };
+      platform_add_owner: {
+        Args: {
+          p_org: string;
+          p_user: string;
+        };
+        Returns: undefined;
+      };
+      platform_admin_list: {
+        Args: never;
+        Returns: { user_id: string; email: string; added_at: string; last_sign_in_at: string }[];
+      };
+      platform_create_organization: {
+        Args: {
+          p_name: string;
+          p_slug: string;
+          p_owner_user_id: string;
+          p_plan: string;
+          p_trial_days?: number;
+          p_billing_email?: string;
+        };
+        Returns: string;
+      };
+      platform_org_detail: {
+        Args: {
+          p_org: string;
+        };
+        Returns: Json;
+      };
+      platform_org_overview: {
+        Args: never;
+        Returns: { id: string; name: string; slug: string; status: Database['public']['Enums']['org_status']; is_demo: boolean; created_at: string; timezone: string; country_code: string; plan_code: string; plan_name: string; subscription_status: Database['public']['Enums']['subscription_status']; billing_cycle: Database['public']['Enums']['billing_cycle']; trial_ends_at: string; paid_until: string; employee_limit: number; price_per_employee: number; base_price: number; annual_discount_pct: number; billing_email: string; employees: number; members: number; active_members_30d: number; last_sign_in_at: string; owner_emails: string[] }[];
+      };
+      platform_remove_admin: {
+        Args: {
+          p_user: string;
+        };
+        Returns: undefined;
+      };
+      platform_remove_owner: {
+        Args: {
+          p_org: string;
+          p_user: string;
+        };
+        Returns: undefined;
+      };
+      platform_set_subscription: {
+        Args: {
+          p_org: string;
+          p_plan: string;
+          p_status: Database['public']['Enums']['subscription_status'];
+          p_billing_cycle: Database['public']['Enums']['billing_cycle'];
+          p_employee_limit: number;
+          p_price_per_employee: number;
+          p_trial_ends_at: string;
+          p_paid_until: string;
+          p_billing_email: string;
+          p_notes: string;
+        };
+        Returns: undefined;
+      };
+      platform_update_organization: {
+        Args: {
+          p_org: string;
+          p_name: string;
+          p_slug: string;
+          p_timezone: string;
+          p_country_code: string;
+        };
+        Returns: undefined;
       };
       policy_acknowledgement_status: {
         Args: {
@@ -10817,6 +11014,12 @@ export type Database = {
         };
         Returns: number;
       };
+      set_platform_default_plan: {
+        Args: {
+          p_plan: string;
+        };
+        Returns: undefined;
+      };
       set_platform_require_mfa: {
         Args: {
           p_on: boolean;
@@ -11395,6 +11598,7 @@ export type Database = {
       attendance_request_kind: 'wfh' | 'on_duty';
       attendance_status: 'present' | 'half_day' | 'absent' | 'on_leave' | 'weekly_off' | 'holiday' | 'not_marked' | 'wfh' | 'on_duty';
       bank_account_type: 'savings' | 'current' | 'salary';
+      billing_cycle: 'monthly' | 'annual';
       candidate_source: 'careers_site' | 'referral' | 'agency' | 'job_board' | 'direct' | 'other';
       component_kind: 'earning' | 'deduction';
       course_format: 'online' | 'classroom' | 'video' | 'reading' | 'external';
@@ -11433,6 +11637,7 @@ export type Database = {
       separation_status: 'submitted' | 'approved' | 'completed' | 'rejected' | 'withdrawn' | 'cancelled';
       separation_type: 'resignation' | 'termination' | 'retirement' | 'contract_end' | 'other';
       structure_calc: 'percent_of_gross' | 'percent_of_basic' | 'fixed' | 'balance';
+      subscription_status: 'trialing' | 'active' | 'past_due' | 'cancelled';
       task_status: 'open' | 'done' | 'cancelled';
       ticket_priority: 'low' | 'normal' | 'high' | 'urgent';
       ticket_status: 'open' | 'in_progress' | 'waiting' | 'resolved' | 'closed';
