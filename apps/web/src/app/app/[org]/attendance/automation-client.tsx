@@ -221,7 +221,13 @@ export function BulkRegularizeForm({ action, days }: { action: Action; days: Arr
   const [picked, setPicked] = useState<string[]>([]);
   const v = state.ok ? {} : (state.values ?? {});
   const e = state.fieldErrors ?? {};
-  if (days.length === 0) return <p className="px-5 py-4 text-sm text-muted">No days need correcting in the window you can regularize.</p>;
+  // Keeps the confirmation when the days just requested were the last ones to correct.
+  if (days.length === 0) return (
+    <div className="space-y-3 px-5 py-4">
+      <FormMessage state={state} />
+      <p className="text-sm text-muted">No days need correcting in the window you can regularize.</p>
+    </div>
+  );
   return (
     <form action={formAction} noValidate aria-label="Regularize several days" className="space-y-4 px-5 py-4">
       <FormMessage state={state} />
