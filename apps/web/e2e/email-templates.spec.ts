@@ -66,7 +66,8 @@ test('the platform admin rewords the invitation and changes the layout; the next
   await invite.getByRole('button', { name: 'Send invitation' }).click();
   await expect(hr.getByText(`Invitation emailed to ${invitee}.`, { exact: false })).toBeVisible();
   const mail = await linkFromLatestEmail(invitee, since, /\/auth\/callback\?token_hash=/);
-  expect(mail.subject).toBe(`Welcome aboard PeopleCore Demo (synthetic data) ${run}`);
+  const { data: org } = await admin.from('organizations').select('name').eq('slug', 'demo').single();
+  expect(mail.subject).toBe(`Welcome aboard ${org!.name} ${run}`);
   expect(mail.html).toContain('background:#0a66f0');
   expect(mail.text).toContain(`Acme people team ${run}`);
 

@@ -58,7 +58,8 @@ begin
     footer_text = btrim(p_footer_text),  -- '' is no footer line; null is the default
     support_email = nullif(lower(btrim(p_support_email)), ''),
     address = nullif(btrim(p_address), ''),
-    updated_at = now(), updated_by = auth.uid();
+    updated_at = now(), updated_by = auth.uid()
+  where id;  -- the one row (Supabase's safeupdate refuses an UPDATE without WHERE)
   insert into public.audit_events (organization_id, actor_user_id, action, entity_type, entity_id, changes)
   select null, auth.uid(), 'update', 'platform_email_layout', null,
          jsonb_build_object('brand_name', l.brand_name, 'accent_color', l.accent_color, 'logo_url', l.logo_url,

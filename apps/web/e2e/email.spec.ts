@@ -65,9 +65,10 @@ test('HR invites a new person, who accepts from the email and lands in the organ
 
   // Sent by the app in the shared layout (Supabase's send-email hook), naming the organization.
   const { subject, link, html, text } = await linkFromLatestEmail(invitee, since, /\/auth\/callback\?token_hash=/);
-  expect(subject).toBe('You’re invited to join PeopleCore Demo (synthetic data) on PeopleCore');
+  const { data: org } = await admin.from('organizations').select('name').eq('slug', 'demo').single();
+  expect(subject).toBe(`You’re invited to join ${org!.name} on PeopleCore`);
   expect(html).toContain('>Accept invitation</a>');
-  expect(text).toContain('has invited you to PeopleCore, where PeopleCore Demo (synthetic data) manages leave');
+  expect(text).toContain(`has invited you to PeopleCore, where ${org!.name} manages leave`);
   expect(text).toContain(`Accept invitation: ${link}`);
 
   const guest = await (await browser.newContext()).newPage();

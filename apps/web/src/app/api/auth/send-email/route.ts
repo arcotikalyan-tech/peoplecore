@@ -3,7 +3,7 @@ import { accountEmail } from '@peoplecore/shared';
 import { publicEnv } from '@/lib/env';
 import { createAdminClient } from '@/server/admin';
 import { hookEmails, verifyHookSignature, type HookPayload } from '@/server/auth-email-hook';
-import { loadEmailTemplates } from '@/server/email-templates';
+import { cachedEmailTemplates } from '@/server/email-templates';
 import { appUrl, EmailNotConfigured, hookSecret, sendEmail } from '@/server/mailer';
 
 /**
@@ -15,8 +15,13 @@ import { appUrl, EmailNotConfigured, hookSecret, sendEmail } from '@/server/mail
 
 export const dynamic = 'force-dynamic';
 
-/** Supabase waits five seconds for the hook; sending that takes longer finishes after the reply. */
-const WAIT_MS = 4_000;
+/**
+ * Supabase waits five seconds from signing the request. If it gives up, it discards the link's token, so an email sent
+ * after that would carry a dead link: past this budget the hook replies (and sending finishes in the background), and
+ * with too little of it left it sends nothing and lets Supabase report the failure.
+ */
+const BUDGET_MS = 4_000;
+const MIN_LEFT_MS = 700;
 const MAX_BODY = 64 * 1024;
 
 const fail = (status: number, message: string) => NextResponse.json({ error: { http_code: status, message } }, { status });
@@ -27,6 +32,11 @@ export function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const received = Date.now();
+  // Time already spent before the handler ran (network, a busy server), from the signature's timestamp in whole seconds;
+  // counted as at most three seconds so a server clock that runs a little ahead can't eat the whole budget.
+  const before = Math.min(Math.max(received - Number(request.headers.get('webhook-timestamp')) * 1000, 0), 3_000) || 0;
+  const signedAt = received - before;
   const secret = hookSecret();
   if (!secret) return fail(500, 'The send-email hook isn’t set up on the app server (SEND_EMAIL_HOOK_SECRET).');
   const body = await request.text();
@@ -47,11 +57,16 @@ export async function POST(request: NextRequest) {
 
   // AUTHORIZATION: only Supabase Auth holds the secret the signature was checked against. The service role only reads
   // the platform's email layout and templates (no tenant data).
-  const templates = await loadEmailTemplates(createAdminClient());
+  const templates = await cachedEmailTemplates(createAdminClient());
+  const waitMs = BUDGET_MS - (Date.now() - signedAt);
+  if (waitMs < MIN_LEFT_MS) {
+    console.error('email.auth_too_slow', { ms: Date.now() - signedAt });
+    return fail(504, 'The app took too long to answer. Try again.');
+  }
   try {
     await Promise.all(emails.map((e) => {
       const message = accountEmail(e.key, templates.text(e.key), { ...e.values, brand: templates.layout.brandName }, { link: e.link, code: e.code });
-      return sendEmail(e.to, templates.layout, message, { waitMs: WAIT_MS });
+      return sendEmail(e.to, templates.layout, message, { waitMs });
     }));
   } catch (err) {
     if (err instanceof EmailNotConfigured) return fail(500, err.message);

@@ -8,6 +8,7 @@ import {
 import { formValues, type ActionState } from '@/lib/action-state';
 import { toUserMessage } from '@/lib/db-errors';
 import { getSessionUser, isVerifiedPlatformAdmin } from '@/server/context';
+import { forgetCachedEmailTemplates } from '@/server/email-templates';
 import { appUrl, EmailNotConfigured, sendEmail } from '@/server/mailer';
 import { createClient } from '@/server/supabase';
 import { sampleMessage, sampleValues } from './samples';
@@ -51,6 +52,7 @@ export async function saveEmailLayoutAction(_prev: ActionState, formData: FormDa
     p_footer_text: l.footerText, p_support_email: l.supportEmail ?? '', p_address: l.address ?? '',
   });
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  forgetCachedEmailTemplates();
   revalidatePath('/platform/emails');
   return { ok: true, message: 'Layout saved. Every email from now on uses it.' };
 }
@@ -67,6 +69,7 @@ export async function saveEmailTemplateAction(_prev: ActionState, formData: Form
     p_key: key, p_subject: t.subject, p_heading: t.heading, p_body: t.body, p_button_label: t.button ?? '', p_note: t.note ?? '',
   });
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
+  forgetCachedEmailTemplates();
   revalidatePath('/platform/emails');
   return { ok: true, message: `${ACCOUNT_EMAILS[key].label} saved.` };
 }
@@ -78,6 +81,7 @@ export async function resetEmailTemplateAction(_prev: ActionState, formData: For
   const supabase = await createClient();
   const { error } = await supabase.rpc('platform_reset_email_template', { p_key: key });
   if (error) return { ok: false, message: toUserMessage(error) };
+  forgetCachedEmailTemplates();
   revalidatePath('/platform/emails');
   return { ok: true, message: `${ACCOUNT_EMAILS[key].label} is back to the standard text.` };
 }
