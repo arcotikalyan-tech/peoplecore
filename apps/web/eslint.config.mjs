@@ -18,6 +18,8 @@ export default [
   { files: ['src/lib/env.ts'], rules: { 'no-restricted-properties': 'off' } },
   // The AI provider key is read only in the AI module, server side.
   { files: ['src/server/ai.ts'], rules: { 'no-restricted-properties': 'off' } },
+  // The mailbox password (SMTP_URL) and the send-email hook's secret are read only in the mailer module, server side.
+  { files: ['src/server/mailer.ts'], rules: { 'no-restricted-properties': 'off' } },
   // Command-line scripts report their results on stdout.
   { files: ['scripts/**/*.ts'], rules: { 'no-console': 'off' } },
 ];

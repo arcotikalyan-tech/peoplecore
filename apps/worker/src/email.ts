@@ -44,6 +44,9 @@ const FOOTERS: Record<string, string> = {
   payslip: 'You get this email because your payslip was published. An administrator can change these emails in Settings › Notifications.',
   signup_received: 'You get this email because someone asked for a PeopleCore workspace with this address.',
   signup_alert: 'You get this email because you’re a PeopleCore platform administrator.',
+  member_added: 'You get this email because you were given access to this organization.',
+  workspace_ready: 'You get this email because you own this new workspace.',
+  platform_admin_added: 'You get this email because you were made a PeopleCore platform administrator.',
 };
 
 /** The message for one queued email in the shared layout: the subject as heading, the text, and a button into the app. */

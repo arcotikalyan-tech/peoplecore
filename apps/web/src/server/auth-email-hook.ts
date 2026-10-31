@@ -67,19 +67,25 @@ function verifyLink(supabaseUrl: string, tokenHash: string, type: string, redire
  * already checked against its allowed URLs, or the app's own address.
  */
 function inviteLink(tokenHash: string, redirectTo: string | null | undefined, appUrl: string | null): string | null {
-  let target: URL | null = null;
+  let origin: string | null = null;
+  let next: string | null = null;
   try {
     const r = redirectTo ? new URL(redirectTo) : null;
-    if (r && /^https?:$/.test(r.protocol)) target = r.pathname === '/auth/callback' ? r : new URL('/auth/callback?next=/app', r.origin);
+    if (r && /^https?:$/.test(r.protocol)) {
+      origin = r.origin;
+      if (r.pathname === '/auth/callback') next = r.searchParams.get('next');
+    }
   } catch {
-    target = null;
+    origin = null;
   }
-  if (!target && appUrl) target = new URL('/auth/callback?next=/app', appUrl);
-  if (!target) return null;
-  target.searchParams.set('token_hash', tokenHash);
-  target.searchParams.set('type', 'invite');
-  if (!target.searchParams.get('next')) target.searchParams.set('next', '/app');
-  return target.toString();
+  origin ??= appUrl ? new URL(appUrl).origin : null;
+  if (!origin) return null;
+  // The same shape as the earlier Supabase template: /auth/callback?token_hash=…&type=invite&next=…
+  const link = new URL('/auth/callback', origin);
+  link.searchParams.set('token_hash', tokenHash);
+  link.searchParams.set('type', 'invite');
+  link.searchParams.set('next', next || '/app');
+  return link.toString();
 }
 
 const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null);

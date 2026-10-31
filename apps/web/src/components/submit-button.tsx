@@ -12,6 +12,7 @@ export function SubmitButton({
   name,
   value,
   disabled,
+  formAction,
 }: {
   children: React.ReactNode;
   pendingLabel?: string;
@@ -23,10 +24,12 @@ export function SubmitButton({
   name?: string;
   value?: string;
   disabled?: boolean;
+  /** A second action for the same form (e.g. "Send me a test" next to "Save"). */
+  formAction?: React.ComponentProps<'button'>['formAction'];
 }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant={variant} size={size} name={name} value={value} disabled={pending || disabled} aria-live="polite" aria-label={ariaLabel}>
+    <Button type="submit" variant={variant} size={size} name={name} value={value} formAction={formAction} disabled={pending || disabled} aria-live="polite" aria-label={ariaLabel}>
       {pending ? pendingLabel : children}
     </Button>
   );

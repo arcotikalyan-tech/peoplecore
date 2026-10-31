@@ -4,7 +4,7 @@ import { publicEnv } from '@/lib/env';
 import { createAdminClient } from '@/server/admin';
 import { hookEmails, verifyHookSignature, type HookPayload } from '@/server/auth-email-hook';
 import { loadEmailTemplates } from '@/server/email-templates';
-import { appUrl, EmailNotConfigured, sendEmail } from '@/server/mailer';
+import { appUrl, EmailNotConfigured, hookSecret, sendEmail } from '@/server/mailer';
 
 /**
  * Supabase Auth's send-email hook (Authentication › Hooks › Send Email, HTTPS): every invitation, password reset,
@@ -27,7 +27,7 @@ export function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.SEND_EMAIL_HOOK_SECRET;
+  const secret = hookSecret();
   if (!secret) return fail(500, 'The send-email hook isn’t set up on the app server (SEND_EMAIL_HOOK_SECRET).');
   const body = await request.text();
   if (body.length > MAX_BODY) return fail(413, 'Too large.');

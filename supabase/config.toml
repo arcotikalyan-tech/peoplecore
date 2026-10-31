@@ -107,8 +107,8 @@ openai_api_key = "env(OPENAI_API_KEY)"
 enabled = true
 # Port to use for the email testing server web interface.
 port = 54324
-# Uncomment to expose additional ports for testing user applications that send emails.
-# smtp_port = 54325
+# The web app sends account emails (the send-email hook below) and test emails here: SMTP_URL=smtp://127.0.0.1:54325.
+smtp_port = 54325
 # pop3_port = 54326
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
@@ -246,17 +246,20 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Invitations link to the app's /auth/callback with a token hash (the server can't read the default
-# template's URL fragment). The live project must use the same template: see docs/runbooks/email.md.
-[auth.email.template.invite]
-subject = "You’ve been invited to PeopleCore"
-content_path = "./supabase/templates/invite.html"
-
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true
 # subject = "Your password has been changed"
 # content_path = "./supabase/templates/password_changed_notification.html"
+
+# Every auth email (invitation, password reset, sign-in link, email change, code) is handed to the web app, which sends
+# it in the layout and words platform admins set (Platform › Email templates). The web app must run on :3000 with
+# SEND_EMAIL_HOOK_SECRET set to this same value and SMTP_URL pointing at the test inbox above. This secret is for the
+# local stack only; the live project has its own (docs/runbooks/email.md).
+[auth.hook.send_email]
+enabled = true
+uri = "http://host.docker.internal:3000/api/auth/send-email"
+secrets = "v1,whsec_bjpEwfM7yUTRqJpALUT30/r77WuuJIMzAtu/4ohQUMo="
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.

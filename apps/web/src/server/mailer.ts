@@ -28,7 +28,19 @@ export function appUrl(): string | null {
   return process.env.APP_URL ? process.env.APP_URL.replace(/\/+$/, '') : null;
 }
 
-export const isEmailConfigured = () => Boolean(process.env.SMTP_URL);
+/** The secret Supabase signs its send-email hook requests with ("v1,whsec_…"); null when not set. */
+export const hookSecret = () => process.env.SEND_EMAIL_HOOK_SECRET || null;
+
+const envFrom = () => process.env.EMAIL_FROM || 'PeopleCore <no-reply@peoplecore.app>';
+
+/** What the console shows about sending: a mail server, the hook's secret, and the sender's address. */
+export function emailStatus(): { smtp: boolean; hook: boolean; fromAddress: string | null } {
+  return {
+    smtp: Boolean(process.env.SMTP_URL),
+    hook: Boolean(process.env.SEND_EMAIL_HOOK_SECRET),
+    fromAddress: process.env.EMAIL_FROM ? emailSender(process.env.EMAIL_FROM, 'x').address : null,
+  };
+}
 
 /**
  * Renders the message in the layout and sends it. With `waitMs`, stops waiting after that long and lets the send
@@ -38,7 +50,7 @@ export const isEmailConfigured = () => Boolean(process.env.SMTP_URL);
 export async function sendEmail(to: string, layout: EmailLayout, message: EmailMessage, opts: { waitMs?: number } = {}): Promise<'sent' | 'sending'> {
   const r = renderEmail(layout, message, { appUrl: appUrl() });
   const sending = transport().sendMail({
-    from: emailSender(process.env.EMAIL_FROM || 'PeopleCore <no-reply@peoplecore.app>', layout.brandName),
+    from: emailSender(envFrom(), layout.brandName),
     to, subject: r.subject, text: r.text, html: r.html,
   });
   if (!opts.waitMs) {

@@ -9,11 +9,19 @@ import { totp } from '../scripts/lib/totp';
  * (`browser.newContext()`), so one long serial run doesn't pile up dozens of open pages until the browser gives
  * out. (Failure screenshots are taken when a test ends, so nothing is lost.)
  */
-export const test = base.extend<{ closeStaleContexts: void }>({
+export const test = base.extend<{ closeStaleContexts: void }, { warmEmailHook: void }>({
   closeStaleContexts: [async ({ browser }, use) => {
     await Promise.all(browser.contexts().map((c) => c.close().catch(() => undefined)));
     await use();
   }, { auto: true }],
+  // The dev server compiles a route the first time it's asked for, which can take longer than the five seconds Supabase
+  // gives its send-email hook; ask for it once before any test sends an account email.
+  // eslint-disable-next-line no-empty-pattern -- Playwright fixtures must destructure their first argument
+  warmEmailHook: [async ({}, use, info) => {
+    const baseURL = info.project.use.baseURL;
+    if (baseURL) await fetch(`${baseURL}/api/auth/send-email`).catch(() => undefined);
+    await use();
+  }, { scope: 'worker', auto: true }],
 });
 
 export const domain = process.env.DEMO_EMAIL_DOMAIN ?? 'example.test';

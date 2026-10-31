@@ -57,6 +57,11 @@ jobs:
             # Synthetic accounts in a throwaway database: a fresh random password per run.
             echo "DEMO_USER_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=')"
             echo "MAILPIT_URL=${MAILPIT_URL:-${INBUCKET_URL:-http://127.0.0.1:54324}}"
+            # Account emails: Supabase hands them to the app (send-email hook, local secret from config.toml), which
+            # sends them to the test inbox's SMTP port.
+            echo "SMTP_URL=smtp://127.0.0.1:54325"
+            echo 'EMAIL_FROM="PeopleCore <no-reply@peoplecore.example.test>"'
+            echo "SEND_EMAIL_HOOK_SECRET=$(sed -n 's/^secrets = "\(v1,whsec_[^"]*\)"$/\1/p' supabase/config.toml)"
             # The AI journeys use the deterministic test provider (no model, no key).
             echo "AI_PROVIDER=mock"
           } > apps/web/.env.local

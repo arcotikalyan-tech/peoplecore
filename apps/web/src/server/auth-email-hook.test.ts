@@ -39,14 +39,14 @@ describe('hookEmails', () => {
       { user_metadata: { invited_to: 'Acme Ltd', invited_by: 'Ravi Kumar' } }), ctx);
     expect(e).toEqual({
       to: 'asha@example.test', key: 'invite', code: null,
-      link: 'https://hr.example.test/auth/callback?next=%2Fapp&token_hash=hash1&type=invite',
+      link: 'https://hr.example.test/auth/callback?token_hash=hash1&type=invite&next=%2Fapp',
       values: { email: 'asha@example.test', organization: 'Acme Ltd', inviter: 'Ravi Kumar' },
     });
     // Supabase fell back to its Site URL: the app's callback on that address.
     expect(hookEmails(payload('invite', { token_hash: 'h', redirect_to: 'https://hr.example.test' }), ctx)[0]!.link)
-      .toBe('https://hr.example.test/auth/callback?next=%2Fapp&token_hash=h&type=invite');
+      .toBe('https://hr.example.test/auth/callback?token_hash=h&type=invite&next=%2Fapp');
     expect(hookEmails(payload('invite', { token_hash: 'h', redirect_to: null }), ctx)[0]!.link)
-      .toBe('https://hr.example.test/auth/callback?next=%2Fapp&token_hash=h&type=invite');
+      .toBe('https://hr.example.test/auth/callback?token_hash=h&type=invite&next=%2Fapp');
     expect(hookEmails(payload('invite', { token_hash: 'h', redirect_to: 'javascript:alert(1)' }), ctx)[0]!.link).toMatch(/^https:\/\/hr\.example\.test\//);
   });
 

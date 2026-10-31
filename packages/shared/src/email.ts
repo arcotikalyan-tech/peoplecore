@@ -234,7 +234,7 @@ export type EmailValues = Partial<Record<EmailVariable, string | null>>;
 export function fillVariables(text: string, values: EmailValues): string {
   return text.replace(VARIABLE, (whole, name: string) => {
     if (!Object.hasOwn(FALLBACKS, name)) return whole;
-    const v = values[name as EmailVariable]?.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim();
+    const v = values[name as EmailVariable]?.replace(/\p{Cc}+/gu, ' ').trim();
     return v || FALLBACKS[name as EmailVariable];
   });
 }
