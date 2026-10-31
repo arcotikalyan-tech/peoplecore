@@ -8,6 +8,7 @@ import {
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { SelectField, TextField, type Option } from '@/components/ui/fields';
+import { PlaceFields } from '@/components/ui/place-fields';
 import { initialActionState, type ActionState } from '@/lib/action-state';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -127,8 +128,8 @@ export function AddressesForm({ action, defaults }: { action: Action; defaults: 
         <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Current address</legend>
         <TextField idPrefix="ad" name="addressLine1" label="Address line 1" className="sm:col-span-3" defaultValue={val('addressLine1')} error={e.addressLine1} />
         <TextField idPrefix="ad" name="addressLine2" label="Address line 2" className="sm:col-span-3" defaultValue={val('addressLine2')} error={e.addressLine2} />
-        <TextField idPrefix="ad" name="city" label="City" defaultValue={val('city')} error={e.city} />
-        <TextField idPrefix="ad" name="stateCode" label="State" placeholder="KA" defaultValue={val('stateCode')} error={e.stateCode} />
+        <PlaceFields idPrefix="ad" names={{ state: 'stateCode', city: 'city' }} stateAs="code"
+          values={{ state: val('stateCode'), city: val('city') }} errors={{ state: e.stateCode, city: e.city }} />
         <TextField idPrefix="ad" name="postalCode" label="PIN code" defaultValue={val('postalCode')} error={e.postalCode} />
       </fieldset>
       <label className="flex items-center gap-2 text-sm">
@@ -141,8 +142,8 @@ export function AddressesForm({ action, defaults }: { action: Action; defaults: 
           <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Permanent address</legend>
           <TextField idPrefix="pa" name="permAddressLine1" label="Permanent address line 1" className="sm:col-span-3" defaultValue={val('permAddressLine1')} error={e.permAddressLine1} />
           <TextField idPrefix="pa" name="permAddressLine2" label="Permanent address line 2" className="sm:col-span-3" defaultValue={val('permAddressLine2')} error={e.permAddressLine2} />
-          <TextField idPrefix="pa" name="permCity" label="Permanent city" defaultValue={val('permCity')} error={e.permCity} />
-          <TextField idPrefix="pa" name="permStateCode" label="Permanent state" defaultValue={val('permStateCode')} error={e.permStateCode} />
+          <PlaceFields idPrefix="pa" names={{ state: 'permStateCode', city: 'permCity' }} stateAs="code" labels={{ state: 'Permanent state', city: 'Permanent city' }}
+            values={{ state: val('permStateCode'), city: val('permCity') }} errors={{ state: e.permStateCode, city: e.permCity }} />
           <TextField idPrefix="pa" name="permPostalCode" label="Permanent PIN code" defaultValue={val('permPostalCode')} error={e.permPostalCode} />
         </fieldset>
       )}

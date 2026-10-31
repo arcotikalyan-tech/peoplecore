@@ -1369,6 +1369,7 @@ export type Database = {
           country: string;
           pincode: string | null;
           created_at: string;
+          same_as_registered: boolean;
         };
         Insert: {
           id?: string;
@@ -1382,6 +1383,7 @@ export type Database = {
           country?: string;
           pincode?: string | null;
           created_at?: string;
+          same_as_registered?: boolean;
         };
         Update: {
           id?: string;
@@ -1395,6 +1397,7 @@ export type Database = {
           country?: string;
           pincode?: string | null;
           created_at?: string;
+          same_as_registered?: boolean;
         };
         Relationships: [];
       };

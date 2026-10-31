@@ -79,9 +79,15 @@ const addressSchema = z.object({
 export async function saveAddressAction(slug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await getOrgContext(slug);
   const id = z.uuid().safeParse(formData.get('addressId'));
-  const p = addressSchema.safeParse(Object.fromEntries(formData));
-  if (!p.success) return invalid(p.error, formData);
-  const row = { ...Object.fromEntries(Object.entries(p.data).map(([k, v]) => [k, v ?? null])), organization_id: ctx.org.id } as never;
+  let fields: Record<string, unknown>;
+  if (formData.get('kind') === 'corporate' && formData.get('sameAsRegistered') === 'yes') {
+    fields = { kind: 'corporate', same_as_registered: true }; // the database copies the registered office and keeps it in step
+  } else {
+    const p = addressSchema.safeParse(Object.fromEntries(formData));
+    if (!p.success) return invalid(p.error, formData);
+    fields = { ...Object.fromEntries(Object.entries(p.data).map(([k, v]) => [k, v ?? null])), same_as_registered: false };
+  }
+  const row = { ...fields, organization_id: ctx.org.id } as never;
   const supabase = await createClient();
   const { error } = id.success
     ? await supabase.from('company_addresses').update(row).eq('organization_id', ctx.org.id).eq('id', id.data)

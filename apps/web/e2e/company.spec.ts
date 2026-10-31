@@ -3,7 +3,7 @@ import { adminClient, open, signIn, test } from './helpers';
 
 /**
  * Company Profile on the demo tenant: HR edits company details and statutory IDs (a bad PAN is refused), adds the
- * registered office and a director, and creates a custom employee field that then appears on a profile. Restored after.
+ * registered office (the corporate office set to the same) and a director, and creates a custom employee field that then appears on a profile. Restored after.
  */
 test.describe.configure({ mode: 'serial' });
 
@@ -15,12 +15,12 @@ const field = `E2E shirt ${Date.now()}`;
 test.beforeAll(async () => {
   orgId = (await admin.from('organizations').select('id').eq('slug', 'demo').eq('is_demo', true).single()).data!.id;
   before = (await admin.from('company_profiles').select('*').eq('organization_id', orgId).maybeSingle()).data;
-  await admin.from('company_addresses').delete().eq('organization_id', orgId).eq('kind', 'registered');
+  await admin.from('company_addresses').delete().eq('organization_id', orgId).in('kind', ['registered', 'corporate']);
 });
 
 test.afterAll(async () => {
   if (before) await admin.from('company_profiles').update(before as never).eq('organization_id', orgId);
-  await admin.from('company_addresses').delete().eq('organization_id', orgId).eq('kind', 'registered');
+  await admin.from('company_addresses').delete().eq('organization_id', orgId).in('kind', ['registered', 'corporate']);
   await admin.from('company_officers').delete().eq('organization_id', orgId).eq('name', 'E2E Director');
   await admin.from('employee_custom_fields').delete().eq('organization_id', orgId).eq('label', field);
 });
@@ -52,10 +52,20 @@ test('HR maintains the company profile, statutory IDs, offices, directors and cu
   await open(page, '/app/demo/company?tab=address');
   const reg = page.getByRole('form', { name: 'Registered office' });
   await reg.getByLabel('Address line 1').fill('1 Example Road');
-  await reg.getByLabel('City').fill('Bengaluru');
+  await expect(reg.getByLabel('Country')).toHaveValue('India');
+  await reg.getByLabel('State').selectOption('Karnataka');
+  await reg.getByRole('combobox', { name: 'City', exact: true }).selectOption('Bengaluru');
   await reg.getByRole('button', { name: 'Add address' }).click();
   await expect(page.getByText('Address saved.').first()).toBeVisible();
-  await expect(page.getByText('1 Example Road')).toBeVisible();
+  await expect(page.getByText('Bengaluru, Karnataka, India')).toBeVisible();
+
+  // The corporate office can be the registered one.
+  const corp = page.getByRole('form', { name: 'Corporate office' });
+  await corp.getByRole('switch', { name: 'Same as registered office' }).check({ force: true });
+  await expect(corp.getByLabel('Address line 1')).toHaveCount(0);
+  await corp.getByRole('button', { name: 'Add address' }).click();
+  await expect(page.getByText('Same as registered', { exact: true })).toBeVisible();
+  await expect(page.getByText('1 Example Road')).toHaveCount(2);
 
   await open(page, '/app/demo/company?tab=fields');
   const cf = page.getByRole('form', { name: 'Create field' });

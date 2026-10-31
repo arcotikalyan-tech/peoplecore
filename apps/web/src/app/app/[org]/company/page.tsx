@@ -138,6 +138,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
         const corp = addresses?.find((a) => a.kind === 'corporate');
         const custom = (addresses ?? []).filter((a) => a.kind === 'custom' || a.kind === 'branch');
         const show = (a: NonNullable<typeof reg>) => <p className="text-sm">{[a.line1, a.line2].filter(Boolean).join(', ')}<br />{[a.city, a.state, a.country, a.pincode].filter(Boolean).join(', ')}</p>;
+        const regText = reg ? [reg.line1, reg.line2, reg.city, reg.state, reg.country, reg.pincode].filter(Boolean).join(', ') : undefined;
         return (
           <div className="space-y-5">
             <div className="grid gap-5 lg:grid-cols-2">
@@ -145,9 +146,9 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
                 {reg && sp.edit !== 'registered' ? <>{show(reg)}{manage && <Link href={`${base}?tab=address&edit=registered`} className="mt-3 inline-block text-sm text-primary">✎ Edit</Link>}</>
                   : manage ? <AddressForm action={saveAddressAction.bind(null, slug)} kind="registered" label="Registered office" address={reg} /> : <p className="text-sm text-muted">Not added yet.</p>}
               </Panel>
-              <Panel title="Corporate office">
+              <Panel title="Corporate office" action={corp?.same_as_registered && <span className="rounded-full bg-subtle px-2 py-0.5 text-[10px] font-semibold text-muted">Same as registered</span>}>
                 {corp && sp.edit !== 'corporate' ? <>{show(corp)}{manage && <span className="mt-3 flex gap-3"><Link href={`${base}?tab=address&edit=corporate`} className="text-sm text-primary">✎ Edit</Link>{remove('company_addresses', corp.id, 'corporate office')}</span>}</>
-                  : manage ? <AddressForm action={saveAddressAction.bind(null, slug)} kind="corporate" label="Corporate office" address={corp} /> : <p className="text-sm text-muted">Not added yet.</p>}
+                  : manage ? <AddressForm action={saveAddressAction.bind(null, slug)} kind="corporate" label="Corporate office" address={corp} registered={regText} /> : <p className="text-sm text-muted">Not added yet.</p>}
               </Panel>
             </div>
             <Panel title="Custom addresses">

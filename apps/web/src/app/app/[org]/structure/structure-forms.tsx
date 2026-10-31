@@ -5,6 +5,7 @@ import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { Button } from '@/components/ui/button';
 import { SelectField, TextField, type Option } from '@/components/ui/fields';
+import { PlaceFields } from '@/components/ui/place-fields';
 import { initialActionState, type ActionState } from '@/lib/action-state';
 
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -91,11 +92,11 @@ export function LocationForm({
     <form action={formAction} noValidate className={formClass} aria-label={initial ? `Edit location ${initial.name}` : 'Add location'}>
       {!(initial && state.ok) && <FormMessage state={state} />}
       {initial && <input type="hidden" name="id" value={initial.id} />}
-      <div className="grid gap-3 sm:grid-cols-[110px_1fr_1fr_90px_auto] sm:items-end">
+      <div className="grid gap-3 sm:grid-cols-[100px_1fr_1fr_1fr_auto] sm:items-end">
         <TextField idPrefix={p} name="code" label="Code" required placeholder="BLR" defaultValue={v.code ?? initial?.code} error={e.code} />
         <TextField idPrefix={p} name="name" label="Location name" required placeholder="Bengaluru office" defaultValue={v.name ?? initial?.name} error={e.name} />
-        <TextField idPrefix={p} name="city" label="City" defaultValue={v.city ?? initial?.city ?? ''} error={e.city} />
-        <TextField idPrefix={p} name="stateCode" label="State" placeholder="KA" defaultValue={v.stateCode ?? initial?.stateCode ?? ''} error={e.stateCode} />
+        <PlaceFields idPrefix={p} names={{ state: 'stateCode', city: 'city' }} stateAs="code"
+          values={{ state: v.stateCode ?? initial?.stateCode, city: v.city ?? initial?.city }} errors={{ state: e.stateCode, city: e.city }} />
         <Buttons editing={!!initial} onDone={onDone} />
       </div>
     </form>

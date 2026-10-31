@@ -1,4 +1,4 @@
-import { GENDER_LABELS, legalName, MARITAL_STATUS_LABELS } from '@peoplecore/shared';
+import { GENDER_LABELS, legalName, MARITAL_STATUS_LABELS, stateName } from '@peoplecore/shared';
 import { EditableSection } from '@/components/editable-section';
 import { Card, CardHeader } from '@/components/ui/surface';
 import { formatDate } from '@/lib/format';
@@ -30,9 +30,9 @@ export async function PersonalTab(p: ProfileProps & { personal: Personal }) {
     permSameAsCurrent: v.perm_same_as_current, permAddressLine1: v.perm_address_line1, permAddressLine2: v.perm_address_line2,
     permCity: v.perm_city, permStateCode: v.perm_state_code, permPostalCode: v.perm_postal_code,
   }).map(([k, x]) => [k, str(x)]));
-  const current = address([v.address_line1, v.address_line2, v.city, v.state_code, v.postal_code]);
+  const current = address([v.address_line1, v.address_line2, v.city, stateName(v.state_code as string | null), v.postal_code]);
   const permanent = v.perm_same_as_current ? (current ? `${current} (same as current)` : 'Same as current')
-    : address([v.perm_address_line1, v.perm_address_line2, v.perm_city, v.perm_state_code, v.perm_postal_code]);
+    : address([v.perm_address_line1, v.perm_address_line2, v.perm_city, stateName(v.perm_state_code as string | null), v.perm_postal_code]);
 
   const custom = await (async () => {
     const supabase = await createClient();

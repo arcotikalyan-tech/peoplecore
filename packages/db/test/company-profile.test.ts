@@ -37,6 +37,36 @@ describe('company profile', () => {
     });
   });
 
+  it('a corporate office set to "same as registered" copies the registered office and follows it', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      const corporate = async () => (await tx.query(`select line1, city, state, pincode, same_as_registered from company_addresses
+        where organization_id = $1 and kind = 'corporate'`, [f.orgA])).rows[0];
+      expect((await failure(tx, `insert into company_addresses (organization_id, kind, same_as_registered) values ($1, 'corporate', true)`, [f.orgA])).message)
+        .toBe('Add the registered office first.');
+      await tx.query(`insert into company_addresses (organization_id, kind, line1, city, state, pincode) values ($1, 'registered', 'Sector 6, Example Layout', 'Bengaluru', 'Karnataka', '560102')`, [f.orgA]);
+      await tx.query(`insert into company_addresses (organization_id, kind, same_as_registered) values ($1, 'corporate', true)`, [f.orgA]);
+      expect(await corporate()).toEqual({ line1: 'Sector 6, Example Layout', city: 'Bengaluru', state: 'Karnataka', pincode: '560102', same_as_registered: true });
+
+      await tx.query(`update company_addresses set line1 = '2nd Floor, Example Road', city = 'Mysuru', pincode = '570001' where organization_id = $1 and kind = 'registered'`, [f.orgA]);
+      expect(await corporate()).toMatchObject({ line1: '2nd Floor, Example Road', city: 'Mysuru', pincode: '570001' });
+      await tx.query(`update company_addresses set city = 'Pune' where organization_id = $1 and kind = 'corporate'`, [f.orgA]);
+      expect(await corporate()).toMatchObject({ city: 'Mysuru' });
+      expect((await failure(tx, `insert into company_addresses (organization_id, kind, line1, city, same_as_registered) values ($1, 'custom', 'Warehouse Road', 'Hosur', true)`, [f.orgA])).code)
+        .toBe('23514');
+
+      // Switched off, it keeps its own address.
+      await tx.query(`update company_addresses set same_as_registered = false, city = 'Pune' where organization_id = $1 and kind = 'corporate'`, [f.orgA]);
+      await tx.query(`update company_addresses set city = 'Mangaluru' where organization_id = $1 and kind = 'registered'`, [f.orgA]);
+      expect(await corporate()).toMatchObject({ city: 'Pune', same_as_registered: false });
+
+      // Removing the registered office leaves the last copy.
+      await tx.query(`update company_addresses set same_as_registered = true where organization_id = $1 and kind = 'corporate'`, [f.orgA]);
+      await tx.query(`delete from company_addresses where organization_id = $1 and kind = 'registered'`, [f.orgA]);
+      expect(await corporate()).toMatchObject({ city: 'Mangaluru', same_as_registered: false });
+    });
+  });
+
   it('custom fields: values are checked against the type; employees edit only fields marked editable', async () => {
     const { f } = ctx;
     await ctx.t.asUser(f.users.hrA, async (tx) => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useCallback, useState, type ReactNode } from 'react';
-import type { StructureKind } from '@peoplecore/shared';
+import { stateName, type StructureKind } from '@peoplecore/shared';
 import { SubmitButton } from '@/components/submit-button';
 import { Button } from '@/components/ui/button';
 import type { Option } from '@/components/ui/fields';
@@ -135,7 +135,7 @@ export function LocationRow({
       cells={<>
         <Td className="font-mono text-xs">{item.code}</Td>
         <Td className="font-medium">{item.name}</Td>
-        <Td className="text-muted">{[item.city, item.state_code].filter(Boolean).join(', ') || '—'}</Td>
+        <Td className="text-muted">{[item.city, stateName(item.state_code)].filter(Boolean).join(', ') || '—'}</Td>
         {usedBy(item.employees)}
       </>}
       editor={(onDone) => actions && (

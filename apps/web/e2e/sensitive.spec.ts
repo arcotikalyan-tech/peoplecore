@@ -71,13 +71,14 @@ test('HR edits work details and personal details', async ({ page }) => {
 
   const addresses = section(page, 'Addresses');
   await addresses.getByRole('button', { name: 'Edit' }).click();
-  await addresses.getByLabel('City', { exact: true }).fill('Mysuru');
+  await addresses.getByLabel('State', { exact: true }).selectOption('Karnataka');
+  await addresses.getByLabel('City', { exact: true }).selectOption('Mysuru');
   await addresses.getByText('Permanent address is the same as current').click();
   await addresses.getByRole('button', { name: 'Save addresses' }).click();
-  await expect(addresses.getByText('Mysuru (same as current)', { exact: false })).toBeVisible();
+  await expect(addresses.getByText('Mysuru, Karnataka (same as current)', { exact: false })).toBeVisible();
 
-  const { data } = await admin.from('employee_personal').select('date_of_birth, city, blood_group, perm_same_as_current').eq('employee_id', subjectId).single();
-  expect(data).toEqual({ date_of_birth: '1993-08-21', city: 'Mysuru', blood_group: 'O+', perm_same_as_current: true });
+  const { data } = await admin.from('employee_personal').select('date_of_birth, city, state_code, blood_group, perm_same_as_current').eq('employee_id', subjectId).single();
+  expect(data).toEqual({ date_of_birth: '1993-08-21', city: 'Mysuru', state_code: 'KA', blood_group: 'O+', perm_same_as_current: true });
 });
 
 test('HR records identity numbers; they show masked, and viewing them in full is audited', async ({ page }) => {

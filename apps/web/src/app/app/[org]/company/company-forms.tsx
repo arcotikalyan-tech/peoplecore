@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { ActionForm } from '@/components/action-form';
+import { FormResetScope } from '@/components/form-reset-scope';
 import { SelectField, TextField } from '@/components/ui/fields';
+import { PlaceFields } from '@/components/ui/place-fields';
 import type { ActionState } from '@/lib/action-state';
 import { ENTITY_TYPES, INDUSTRIES } from './company-data';
 
@@ -62,25 +64,55 @@ export function StatutoryForm({ action, p }: { action: Action; p: Profile }) {
   );
 }
 
-export function AddressForm({ action, kind, address, label }: {
-  action: Action; kind: 'registered' | 'corporate' | 'branch' | 'custom'; label: string;
-  address?: { id: string; label: string | null; line1: string; line2: string | null; city: string; state: string | null; country: string; pincode: string | null };
+interface Address {
+  id: string; label: string | null; line1: string; line2: string | null; city: string; state: string | null; country: string; pincode: string | null;
+  same_as_registered?: boolean;
+}
+
+/** `registered` (the registered office, written out) offers the corporate office a "same as registered office" switch. */
+export function AddressForm({ action, kind, address, label, registered }: {
+  action: Action; kind: 'registered' | 'corporate' | 'branch' | 'custom'; label: string; address?: Address; registered?: string;
 }) {
-  const id = `ad${address?.id.slice(0, 6) ?? kind}`;
   return (
     <ActionForm action={action} label={label} submit={address ? 'Save address' : 'Add address'} size="sm" hidden={{ kind, addressId: address?.id ?? '' }} className="space-y-3">
-      {(v, e) => (
+      {(v, e) => <FormResetScope><AddressFields kind={kind} address={address} registered={registered} v={v} e={e} /></FormResetScope>}
+    </ActionForm>
+  );
+}
+
+function AddressFields({ kind, address, registered, v, e }: {
+  kind: string; address?: Address; registered?: string; v: Record<string, string>; e: Record<string, string>;
+}) {
+  const id = `ad${address?.id.slice(0, 6) ?? kind}`;
+  const [same, setSame] = useState(registered !== undefined && (v.sameAsRegistered ? v.sameAsRegistered === 'yes' : !!address?.same_as_registered));
+  return (
+    <div className="space-y-3">
+      {registered !== undefined && (
+        <>
+          <input type="hidden" name="sameAsRegistered" value={same ? 'yes' : 'no'} />
+          <label className="flex cursor-pointer items-center justify-between gap-4">
+            <span className="text-sm font-medium">Same as registered office</span>
+            <span className="relative inline-flex">
+              <input type="checkbox" checked={same} onChange={(ev) => setSame(ev.target.checked)} className="peer sr-only" role="switch" aria-label="Same as registered office" />
+              <span aria-hidden="true" className="h-6 w-11 rounded-full bg-line-strong transition-colors peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40" />
+              <span aria-hidden="true" className="absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+            </span>
+          </label>
+        </>
+      )}
+      {same ? (
+        <p className="rounded-md bg-subtle px-3 py-2.5 text-sm text-muted">{registered}<span className="mt-1 block text-xs">Changes to the registered office apply here too.</span></p>
+      ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {kind === 'custom' || kind === 'branch' ? <TextField idPrefix={id} name="label" label="Name" placeholder="Warehouse" defaultValue={v.label ?? address?.label ?? ''} /> : null}
           <TextField idPrefix={id} name="line1" label="Address line 1" required defaultValue={v.line1 ?? address?.line1 ?? ''} error={e.line1} className="sm:col-span-2" />
           <TextField idPrefix={id} name="line2" label="Address line 2" defaultValue={v.line2 ?? address?.line2 ?? ''} className="sm:col-span-2" />
-          <TextField idPrefix={id} name="city" label="City" required defaultValue={v.city ?? address?.city ?? ''} error={e.city} />
-          <TextField idPrefix={id} name="state" label="State" defaultValue={v.state ?? address?.state ?? ''} />
-          <TextField idPrefix={id} name="country" label="Country" defaultValue={v.country ?? address?.country ?? 'India'} />
-          <TextField idPrefix={id} name="pincode" label="PIN code" defaultValue={v.pincode ?? address?.pincode ?? ''} error={e.pincode} />
+          <PlaceFields idPrefix={id} names={{ country: 'country', state: 'state', city: 'city' }} stateAs="name" cityRequired
+            values={{ country: v.country ?? address?.country, state: v.state ?? address?.state, city: v.city ?? address?.city }} errors={{ state: e.state, city: e.city }} />
+          <TextField idPrefix={id} name="pincode" label="PIN code" inputMode="numeric" defaultValue={v.pincode ?? address?.pincode ?? ''} error={e.pincode} />
         </div>
       )}
-    </ActionForm>
+    </div>
   );
 }
 
