@@ -13,6 +13,13 @@ export function monthGrid(year: number, month: number): Array<Array<number | nul
   return Array.from({ length: cells.length / 7 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
 }
 
+/** The date `n` days later (or earlier, for a negative n). */
+export function addDays(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 /** The month before or after, as [year, month]. */
 export function shiftMonth(year: number, month: number, by: number): [number, number] {
   const d = new Date(Date.UTC(year, month - 1 + by, 1));

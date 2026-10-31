@@ -4,6 +4,28 @@ _Last updated: 2026-10-31 (invitations add the employee record; load test and fi
 
 **Invitations add the employee record (2026-10-31, owner's report: an employee invited from Users & roles had signed in but wasn't under Employees and couldn't punch in):** a sign-in (Users & roles) and an employee record (Employees) are separate, and the invite form only made the sign-in, so someone could hold the Employee role with no record: not listed, no punching in, leave or pay. The invite form now asks for the record: add a new one (first name, last name, joining date; saved before any email goes out, and for an email that is already a member here it is linked to that sign-in instead), link one already under Employees, or none (an accountant, an auditor). If the invitation fails after the record is saved, the form offers that record to link on retry. Users & roles marks members without a record (in amber when they hold the Employee role) with **Add employee record**, which opens Add employee with the work email filled in (the same email links the record to the sign-in as it is saved). Employees lists everyone with the Employee role but no record, each with an "Add record" button (member managers who can add employees). The attendance page and dashboard tell such a person to ask HR to add them with their work email. No migration. Tests: `schemas.test.ts`, `e2e/members.spec.ts` (invite with a record; the Employees warning and adding the record links it), `e2e/email.spec.ts`.
 
+**Phone app redesign (2026-10-31, owner's report: "no proper dashboard, no proper settings, not professional"):** market research on Indian (Keka, greytHR, Zoho People, Darwinbox, PeopleStrong, HROne, Pocket HRMS) and global HRMS apps (Workday, SuccessFactors, Personio, BambooHR, Factorial), with Material 3, Apple HIG and NN/g guidance, is in [docs/13-mobile-app.md](docs/13-mobile-app.md).
+- **Navigation:** the app is rebuilt on it, with five labelled tabs: Home · Attendance · Leave · Inbox · Me. Tabs whose module is switched off are hidden.
+- **Home:** the Inbox badge counts only approvals; unread notifications show on Home's bell. Home is a real dashboard, in this order:
+  - check-in card: shift, times, worked against a full day, check-out confirmed first;
+  - needs your attention: top approvals, days to correct, announcements to acknowledge, profile;
+  - quick actions;
+  - leave balance;
+  - the month's totals;
+  - who's out;
+  - latest payslip, net pay hidden until Show;
+  - holidays, birthdays and announcements.
+- **New screens:**
+  - Attendance: a status-tinted month calendar with day details and "Correct this day".
+  - Leave: balances, upcoming and history with cancel.
+  - Inbox: approvals with reject-with-reason, and notifications that open their screen.
+  - Me: profile card, grouped settings, sign-out confirmed.
+  - Opened from the tabs: Apply for leave (half days, teammates already away), Payslips (financial-year totals) and Payslip, Holidays, Directory (call or email), Announcements (acknowledge), My profile, Sign-in & security, Change password, Two-step, Notifications, Appearance (Automatic / Light / Dark), About.
+- **Design system:** `src/theme.tsx` holds the website's tokens, indigo light and coral dark. `src/ui/` holds the components: buttons, cards, grouped list rows, avatars, pills, banners, empty and error states, skeletons, segmented control, chips, fields, sheets, toasts.
+- **Data:** `useLoad` gives skeleton, then data or error, and refreshes on focus. Home and Attendance share the check-in state (`src/lib/today.tsx`).
+- **Tests:** unit tests for formatting and worked time.
+- **No database changes.**
+
 **Designations without Level (2026-10-31):** the owner found the numeric Level (0–50) on a designation unclear, and nothing used it. The Designations form now asks only for the title and the table shows Title and People; Grades are the one way to rank designations. The `designations.level` column stays in the database (nullable, no longer read or written) so no data is dropped.
 
 **Load test and fixes (2026-10-27):** a production build driven by autocannon against the local stack (1, 10, 25 and 50 people at once per page, 15 s each) found the HR dashboard failing under load: 38 database requests per load queued behind PostgREST's 10 connections and hit the 8 s statement limit (at 25 people 38 of 600 loads failed, the slowest 1% took 3.7 s; at 50, 27% failed). Its counts now come from one request, `dashboard_figures` (security invoker, only the sections the caller sees); at 25 people none fail and the slowest 1% take 0.45 s (the few failures left at 50 are the local gateway's 512 connections, not the app). The attendance hub counts its week in the database (`attendance_week_counts`); `allRows` reads pages in doubling rounds of up to 8 (50,000 rows in about 9 trips instead of 50); the leave page reads its settings and pending approvals once; photo and logo links are reused for 50 minutes; indexes for a person's payslips and leave history (migrations 20261027190000–190200, `dashboard-figures.test.ts`). Every database call has a time limit (20 s on the website, 2 minutes in the worker, 10 s for Firebase, 15 s to reach the mail server); the worker sends queued email until the outbox is empty, claims one job at a time and has a health check; container logs are capped. At 50,000 employees every dashboard and directory query takes 1–20 ms. Not changed: bulk leave approvals stay one at a time (approving two requests of one person at once could pass a balance check twice); the Employees workspace still reads the whole list for its tabs; 17 other screens read lists page by page (now in parallel rounds).

@@ -1,5 +1,5 @@
 /** The phone screens a notification can open. */
-export type PushScreen = '/(app)' | '/(app)/inbox' | '/(app)/leave' | '/(app)/payslips';
+export type PushScreen = '/(app)/(tabs)' | '/(app)/(tabs)/inbox' | '/(app)/(tabs)/leave' | '/(app)/(tabs)/attendance' | '/(app)/payslips' | '/(app)/announcements';
 
 /**
  * Where tapping a notification takes you: its link names a website page; the phone opens its own screen for that
@@ -8,8 +8,9 @@ export type PushScreen = '/(app)' | '/(app)/inbox' | '/(app)/leave' | '/(app)/pa
 export function screenFor(link: unknown): PushScreen {
   const path = typeof link === 'string' ? link.split('?')[0]! : '';
   const first = path.split('/')[1] ?? '';
-  if (first === 'leave') return '/(app)/leave';
+  if (first === 'leave') return '/(app)/(tabs)/leave';
   if (first === 'payslips') return '/(app)/payslips';
-  if (first === 'attendance') return '/(app)';
-  return '/(app)/inbox';
+  if (first === 'attendance') return '/(app)/(tabs)/attendance';
+  if (first === 'engagement') return '/(app)/announcements';
+  return '/(app)/(tabs)/inbox';
 }

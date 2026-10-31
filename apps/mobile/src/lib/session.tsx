@@ -13,13 +13,15 @@ export interface Workplace {
   timezone: string;
   employeeId: string | null;
   employeeName: string | null;
+  /** Modules the organization switched off (Settings › Module selector): their tabs and shortcuts are hidden. */
+  off: string[];
 }
 
 interface SessionState {
   loading: boolean;
   session: Session | null;
   workplace: Workplace | null;
-  /** Every active organization the person belongs to (more than one: Account settings offers a switch). */
+  /** Every active organization the person belongs to (more than one: Me offers a switch). */
   workplaces: OrgChoice[];
   /** Opens the app in another of the person's organizations (by id or slug); remembered on this phone. */
   switchWorkplace(org: string): Promise<void>;
@@ -52,9 +54,10 @@ async function loadWorkplace(): Promise<{ workplace: Workplace | null; workplace
 }
 
 async function workplaceIn(org: OrgChoice): Promise<Workplace> {
-  const [{ data: details }, { data: user }] = await Promise.all([
+  const [{ data: details }, { data: user }, { data: modules }] = await Promise.all([
     supabase.from('organizations').select('timezone').eq('id', org.id).maybeSingle(),
     supabase.auth.getUser(),
+    supabase.from('org_modules').select('module, enabled').eq('organization_id', org.id),
   ]);
   const { data: me } = user.user
     ? await supabase.from('employees').select('id, first_name, last_name').eq('organization_id', org.id).eq('user_id', user.user.id).maybeSingle()
@@ -62,6 +65,7 @@ async function workplaceIn(org: OrgChoice): Promise<Workplace> {
   return {
     orgId: org.id, orgName: org.name, slug: org.slug, timezone: (details?.timezone as string | undefined) ?? 'Asia/Kolkata',
     employeeId: me?.id ?? null, employeeName: me ? [me.first_name, me.last_name].filter(Boolean).join(' ') : null,
+    off: ((modules ?? []) as Array<{ module: string; enabled: boolean }>).filter((m) => !m.enabled).map((m) => m.module),
   };
 }
 

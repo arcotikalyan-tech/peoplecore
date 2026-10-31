@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** Which build of the app this is (version, commit, build date; stamped by app.config.js), for Account settings. */
+/** Which build of the app this is (version, commit, build date; stamped by app.config.js), for Me and About. */
 export function appVersion(): string {
   const config = Constants.expoConfig;
   const build = config?.extra?.build as { commit?: string | null; builtAt?: string } | undefined;

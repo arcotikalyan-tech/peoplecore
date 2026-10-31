@@ -1,8 +1,24 @@
 # PeopleCore mobile (Expo)
 
-The employee app: check in and out with location, request and cancel leave, see payslips. Built with Expo SDK 57
-and expo-router. It talks to Supabase as the signed-in person with the **publishable key only**; row-level
-security decides what they see, exactly as on the web.
+The employee app, built with Expo SDK 57 and expo-router. Its five tabs:
+- **Home**: a dashboard: check-in, what needs you, quick actions, leave, the month, who's out, payslip, holidays, birthdays, announcements.
+- **Attendance**: today's punches, a month calendar, corrections, work from home and on duty.
+- **Leave**: balances, apply, cancel, who's away.
+- **Inbox**: approvals and notifications.
+- **Me**: profile, payslips, directory, settings.
+
+The design and the research behind it are in [docs/13-mobile-app.md](../../docs/13-mobile-app.md).
+
+It talks to Supabase as the signed-in person with the **publishable key only**; row-level security decides what they see, exactly as on the web.
+
+## Code layout
+
+- `app/(app)/(tabs)/`: the five tabs. `app/(app)/*.tsx` holds the screens they open, with the stack's header and back button; forms are modals.
+- `src/theme.tsx`: the website's design tokens (indigo light, coral dark), spacing, radii and the type scale. Light, dark or automatic, from Me › Appearance.
+- `src/ui/`: the components. Screens import everything from `@/ui` and never use raw colors. Lint refuses react-native's `Text`.
+- `src/lib/use-load.ts`: a screen's data: skeleton, then data or error, refreshed whenever the screen comes back into view.
+- `src/lib/today.tsx`: today's check-in state, shared by Home and Attendance.
+- `src/lib/counts.tsx`: the badge counts.
 
 ## Run it
 

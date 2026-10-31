@@ -8,7 +8,7 @@ export interface OrgChoice {
 
 /**
  * The organization the app opens in: the one chosen last on this phone while it is still active, else the first
- * active one. People in more than one switch in Account settings (or by tapping another organization's notification).
+ * active one. People in more than one switch under Me › Switch organization (or by tapping another organization's notification).
  */
 export function pickWorkplace(orgs: OrgChoice[] | null | undefined, preferred: string | null): OrgChoice | null {
   const active = (orgs ?? []).filter((o) => o.status === 'active');

@@ -1,74 +1,79 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { openPayslipPdf } from '@/lib/payslip-pdf';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { View } from 'react-native';
+import { inr, monthYear } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
-import { Button, Card, colors, LogoLoader, Message, s, Screen, Text } from '@/ui';
+import { must, useLoad } from '@/lib/use-load';
+import { Button, Card, EmptyState, ErrorState, ListGroup, ListRow, Page, SkeletonList, space, Text } from '@/ui';
 
 interface Slip { run_id: string; period_month: string; gross: number; deductions: number; net: number }
-interface Line { code: string; name: string; kind: string; amount: number }
 
-const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
-const month = (iso: string) => new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+/** India's financial year (April to March) a month falls in, as "2026–27". */
+const fy = (iso: string) => {
+  const y = Number(iso.slice(0, 4));
+  const start = Number(iso.slice(5, 7)) >= 4 ? y : y - 1;
+  return `${start}–${String(start + 1).slice(2)}`;
+};
 
-/** Payslips once a run is locked (RLS: only the employee's own, and only released runs). */
+/**
+ * Payslips once payroll is locked for the month (RLS: only your own, only released runs). Amounts stay hidden until
+ * you choose to show them, as on a shared screen.
+ */
 export default function Payslips() {
   const { workplace } = useSession();
-  const [slips, setSlips] = useState<Slip[]>([]);
-  const [open, setOpen] = useState<string | null>(null);
-  const [lines, setLines] = useState<Line[]>([]);
-  const [downloading, setDownloading] = useState<string | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
   const emp = workplace?.employeeId;
-
-  const [loaded, setLoaded] = useState(false);
-  const load = useCallback(async () => {
-    if (!emp) { setLoaded(true); return; }
-    const { data } = await supabase.from('payroll_run_employees').select('run_id, period_month, gross, deductions, net')
-      .eq('employee_id', emp).order('period_month', { ascending: false }).limit(24);
-    setSlips(((data ?? []) as Slip[]).map((x) => ({ ...x, gross: Number(x.gross), deductions: Number(x.deductions), net: Number(x.net) })));
-    setLoaded(true);
+  const [shown, setShown] = useState(false);
+  const { data, loading, error, reload } = useLoad(async () => {
+    if (!emp) return [] as Slip[];
+    const rows = must(await supabase.from('payroll_run_employees').select('run_id, period_month, gross, deductions, net')
+      .eq('employee_id', emp).order('period_month', { ascending: false }).limit(36)) as Slip[];
+    return rows.map((x) => ({ ...x, gross: Number(x.gross), deductions: Number(x.deductions), net: Number(x.net) }));
   }, [emp]);
-  useEffect(() => { void load(); }, [load]);
+  const money = (n: number) => (shown ? inr(n) : '₹ • • • •');
+  const year = data?.[0] ? fy(data[0].period_month) : null;
+  const inYear = data?.filter((s) => fy(s.period_month) === year) ?? [];
+  const groups = [...new Set((data ?? []).map((s) => fy(s.period_month)))];
 
-  const show = async (runId: string) => {
-    if (open === runId) return setOpen(null);
-    setOpen(runId);
-    const { data } = await supabase.from('payroll_line_items').select('code, name, kind, amount').eq('run_id', runId).eq('employee_id', emp!).order('kind');
-    setLines(((data ?? []) as Line[]).map((l) => ({ ...l, amount: Number(l.amount) })));
-  };
-
-  if (!loaded) return <LogoLoader />;
   return (
-    <ScrollView>
-      <Screen>
-        {slips.length === 0 && <Card><Text style={s.muted}>No payslips yet. They appear here once payroll is locked for the month.</Text></Card>}
-        {slips.map((p) => (
-          <Card key={p.run_id}>
-            <Pressable accessibilityRole="button" accessibilityLabel={`${month(p.period_month)}, net ${inr(p.net)}`} onPress={() => void show(p.run_id)} style={s.row}>
-              <Text style={{ fontWeight: '600' }}>{month(p.period_month)}</Text>
-              <Text style={{ fontWeight: '600', color: colors.primary }}>{inr(p.net)}</Text>
-            </Pressable>
-            {open === p.run_id && (
-              <View accessibilityLabel={`${month(p.period_month)} payslip`}>
-                {lines.filter((l) => l.kind !== 'employer').map((l) => (
-                  <View key={l.code} style={s.row}><Text>{l.name}</Text><Text>{l.kind === 'deduction' ? `−${inr(l.amount)}` : inr(l.amount)}</Text></View>
-                ))}
-                <View style={s.row}><Text style={s.muted}>Gross {inr(p.gross)} · Deductions {inr(p.deductions)}</Text></View>
-                <View style={{ marginTop: 10 }}>
-                  <Button label="Download PDF" variant="secondary" busy={downloading === p.run_id} onPress={() => void (async () => {
-                    if (!workplace) return;
-                    setDownloading(p.run_id);
-                    setProblem(await openPayslipPdf(workplace.orgId, p.run_id, p.period_month.slice(0, 7)));
-                    setDownloading(null);
-                  })()} />
-                </View>
-                {problem && <Message tone="danger" text={problem} />}
+    <Page onRefresh={reload}>
+      {loading ? <SkeletonList rows={4} /> : error ? <Card><ErrorState onRetry={() => void reload()} /></Card> : !data?.length ? (
+        <Card><EmptyState icon="wallet-outline" title="No payslips yet" body="Your payslip appears here once payroll is locked for the month. You’ll get a notification." /></Card>
+      ) : (
+        <>
+          <Card>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View style={{ flex: 1 }}>
+                <Text variant="footnote" tone="muted">Financial year {year} · {inYear.length} month{inYear.length === 1 ? '' : 's'}</Text>
+                <Text variant="figure" style={{ marginTop: 2 }}>{money(inYear.reduce((t, s) => t + s.net, 0))}</Text>
+                <Text variant="caption" tone="muted">Net pay so far</Text>
               </View>
-            )}
+              <Button label={shown ? 'Hide' : 'Show'} variant="tonal" size="sm" icon={shown ? 'eye-off-outline' : 'eye-outline'}
+                accessibilityLabel={shown ? 'Hide amounts' : 'Show amounts'} onPress={() => setShown((v) => !v)} />
+            </View>
+            <View style={{ flexDirection: 'row', marginTop: space.lg, gap: space.lg }}>
+              <View style={{ flex: 1 }}>
+                <Text variant="caption" tone="muted">Gross</Text>
+                <Text variant="headline">{money(inYear.reduce((t, s) => t + s.gross, 0))}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="caption" tone="muted">Deductions</Text>
+                <Text variant="headline">{money(inYear.reduce((t, s) => t + s.deductions, 0))}</Text>
+              </View>
+            </View>
           </Card>
-        ))}
-      </Screen>
-    </ScrollView>
+          {groups.map((g) => (
+            <ListGroup key={g} title={`FY ${g}`}>
+              {data.filter((s) => fy(s.period_month) === g).map((s) => (
+                <ListRow key={s.run_id} icon="document-text-outline" tone="success" title={monthYear(s.period_month)}
+                  subtitle={shown ? `Gross ${inr(s.gross)} · Deductions ${inr(s.deductions)}` : 'Tap to open'} value={money(s.net)}
+                  accessibilityLabel={`${monthYear(s.period_month)} payslip${shown ? `, net ${inr(s.net)}` : ''}`}
+                  onPress={() => router.push(`/payslip?run=${s.run_id}`)} />
+              ))}
+            </ListGroup>
+          ))}
+        </>
+      )}
+    </Page>
   );
 }

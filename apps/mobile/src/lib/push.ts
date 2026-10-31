@@ -70,7 +70,7 @@ export async function syncPush(token?: string): Promise<PushState> {
   return (await Notifications.getPermissionsAsync()).granted ? register(token) : 'blocked';
 }
 
-/** For Account settings: on, switched off, blocked in Android's settings, or not possible here. */
+/** For Me › Notifications: on, switched off, blocked in Android's settings, or not possible here. */
 export async function pushState(): Promise<PushState> {
   if (!configured) return 'unavailable';
   if ((await AsyncStorage.getItem(CHOICE)) !== 'on') return 'off';
