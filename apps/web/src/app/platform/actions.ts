@@ -30,6 +30,9 @@ const optionalDate = z.preprocess(blankToUndefined, z.iso.date().optional());
 /** RPC arguments without a default must be sent: supabase-js drops undefined ones, so a blank goes as null. */
 const nullable = <T>(v: T | undefined) => (v ?? null) as T;
 
+/** Who invitations from the console are from, in their email (platform admins have no employee record). */
+const PLATFORM_INVITER = 'The PeopleCore team';
+
 async function inviteRedirect() {
   const origin = (await headers()).get('origin') ?? '';
   return `${origin}/auth/callback?next=/app`;
@@ -73,7 +76,7 @@ export async function createOrganizationAction(_prev: ActionState, formData: For
   let ownerId: string | undefined;
   let invited = false;
   if (ownerEmail) {
-    const owner = await findOrInviteUser(ownerEmail, await inviteRedirect());
+    const owner = await findOrInviteUser(ownerEmail, await inviteRedirect(), { organization: name, inviter: PLATFORM_INVITER });
     if (!owner.ok) return { ok: false, message: owner.message, values: formValues(formData) };
     ownerId = owner.userId;
     invited = owner.invited;
@@ -211,9 +214,10 @@ export async function addOwnerAction(orgId: string, _prev: ActionState, formData
   if (!(await isVerifiedPlatformAdmin())) return DENIED;
   const email = z.email().safeParse(String(formData.get('email') ?? '').trim());
   if (!email.success) return { ok: false, fieldErrors: { email: 'Enter a valid email' }, values: formValues(formData) };
-  const account = await findOrInviteUser(email.data, await inviteRedirect());
-  if (!account.ok) return { ok: false, message: account.message, values: formValues(formData) };
   const supabase = await createClient();
+  const { data: org } = await supabase.from('organizations').select('name').eq('id', orgId).maybeSingle();
+  const account = await findOrInviteUser(email.data, await inviteRedirect(), org ? { organization: org.name, inviter: PLATFORM_INVITER } : undefined);
+  if (!account.ok) return { ok: false, message: account.message, values: formValues(formData) };
   const { error } = await supabase.rpc('platform_add_owner', { p_org: orgId, p_user: account.userId });
   if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
   refresh();

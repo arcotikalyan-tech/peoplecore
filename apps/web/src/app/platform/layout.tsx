@@ -16,6 +16,7 @@ const NAV = [
   { href: '/platform/plans', label: 'Plans' },
   { href: '/platform/requests', label: 'Sign-up requests', requests: true },
   { href: '/platform/activity', label: 'Activity' },
+  { href: '/platform/emails', label: 'Email templates' },
   { href: '/platform/settings', label: 'Settings' },
 ] as const;
 

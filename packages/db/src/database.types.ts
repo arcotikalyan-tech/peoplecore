@@ -5943,6 +5943,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      platform_email_layout: {
+        Row: {
+          id: boolean;
+          brand_name: string | null;
+          accent_color: string | null;
+          logo_url: string | null;
+          show_brand_name: boolean | null;
+          footer_text: string | null;
+          support_email: string | null;
+          address: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          brand_name?: string | null;
+          accent_color?: string | null;
+          logo_url?: string | null;
+          show_brand_name?: boolean | null;
+          footer_text?: string | null;
+          support_email?: string | null;
+          address?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          brand_name?: string | null;
+          accent_color?: string | null;
+          logo_url?: string | null;
+          show_brand_name?: boolean | null;
+          footer_text?: string | null;
+          support_email?: string | null;
+          address?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      platform_email_templates: {
+        Row: {
+          key: string;
+          subject: string;
+          heading: string;
+          body: string;
+          button_label: string | null;
+          note: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          key: string;
+          subject: string;
+          heading: string;
+          body: string;
+          button_label?: string | null;
+          note?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          key?: string;
+          subject?: string;
+          heading?: string;
+          body?: string;
+          button_label?: string | null;
+          note?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       platform_plans: {
         Row: {
           code: string;
@@ -10286,6 +10358,35 @@ export type Database = {
         Args: {
           p_org: string;
           p_user: string;
+        };
+        Returns: undefined;
+      };
+      platform_reset_email_template: {
+        Args: {
+          p_key: string;
+        };
+        Returns: undefined;
+      };
+      platform_set_email_layout: {
+        Args: {
+          p_brand_name: string;
+          p_accent_color: string;
+          p_logo_url: string;
+          p_show_brand_name: boolean;
+          p_footer_text: string;
+          p_support_email: string;
+          p_address: string;
+        };
+        Returns: undefined;
+      };
+      platform_set_email_template: {
+        Args: {
+          p_key: string;
+          p_subject: string;
+          p_heading: string;
+          p_body: string;
+          p_button_label: string;
+          p_note: string;
         };
         Returns: undefined;
       };
