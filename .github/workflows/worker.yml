@@ -35,11 +35,13 @@ jobs:
           if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_SECRET_KEY" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
           else echo "::notice::Worker secrets not set; skipping."; fi
       - if: steps.ready.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - if: steps.ready.outputs.ok == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
+          # v5+ caches pnpm's store by default, before `corepack enable` below has made pnpm available.
+          package-manager-cache: false
       - if: steps.ready.outputs.ok == 'true'
         run: corepack enable && pnpm install --frozen-lockfile --filter @peoplecore/worker...
       - if: steps.ready.outputs.ok == 'true'

@@ -60,11 +60,11 @@ jobs:
           if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ] && [ -n "$SUPABASE_PROJECT_REF" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
           else echo "::notice::Supabase secrets not set; skipping migrations."; fi
       - if: steps.ready.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
       - if: steps.ready.outputs.ok == 'true'
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
           version: 2.121.0
       - if: steps.ready.outputs.ok == 'true'
@@ -90,13 +90,15 @@ jobs:
           if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then echo "ok=true" >> "$GITHUB_OUTPUT";
           else echo "::notice::Vercel secrets not set; skipping the web deploy."; fi
       - if: steps.ready.outputs.ok == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
       - if: steps.ready.outputs.ok == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
+          # v5+ caches pnpm's store by default, before `corepack enable` below has made pnpm available.
+          package-manager-cache: false
       - if: steps.ready.outputs.ok == 'true'
         run: corepack enable && pnpm install --frozen-lockfile
       # Environment variables (Supabase keys, AI key) live in the Vercel project, not in this repository.

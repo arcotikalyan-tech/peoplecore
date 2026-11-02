@@ -13,10 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
+          # v5+ caches pnpm's store by default, before `corepack enable` below has made pnpm available.
+          package-manager-cache: false
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       # Typecheck, lint, unit tests and database/RLS tests (migrations applied to PGlite).
@@ -36,13 +38,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
+          # v5+ caches pnpm's store by default, before `corepack enable` below has made pnpm available.
+          package-manager-cache: false
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.121.0
       # Applies every migration (the same files `supabase db push` sends to the live project).
@@ -75,7 +79,7 @@ jobs:
           NEXT_TELEMETRY_DISABLED: '1'
       # Screenshots of failures only; they show synthetic demo data.
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-failures
           path: apps/web/test-results/
