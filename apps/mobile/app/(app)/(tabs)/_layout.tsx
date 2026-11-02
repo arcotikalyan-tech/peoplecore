@@ -36,7 +36,8 @@ export default function TabsLayout() {
         <Tabs.Screen key={t.name} name={t.name} options={{
           title: t.title, href: t.module && workplace?.off.includes(t.module) ? null : undefined, tabBarAccessibilityLabel: t.name === 'inbox' && waiting ? `Inbox, ${waiting} waiting` : t.title,
           tabBarBadge: t.name === 'inbox' && waiting ? (waiting > 99 ? '99+' : waiting) : undefined,
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? t.active : t.icon} color={color} size={24} />,
+          // The tint colors above are strings; React Native 0.88's ColorValue also allows null and numbers.
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? t.active : t.icon} color={typeof color === 'string' ? color : undefined} size={24} />,
         }} />
       ))}
     </Tabs>

@@ -91,8 +91,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export const useTheme = () => useContext(ThemeCtx);
 
+/** What StyleSheet.create accepts (React Native 0.88 dropped the public StyleSheet.NamedStyles type). */
+type StyleMap = Parameters<typeof StyleSheet.create>[0];
+
 /** Styles built from the theme's colors, made again only when the theme changes. */
-export function useStyles<T extends StyleSheet.NamedStyles<T>>(make: (c: Colors) => T): T {
+export function useStyles<T extends StyleMap>(make: (c: Colors) => T): Readonly<T> {
   const { colors } = useTheme();
   // `make` is a module-level function in every caller, so the colors are the only thing that changes.
   return useMemo(() => StyleSheet.create(make(colors)), [colors]);
