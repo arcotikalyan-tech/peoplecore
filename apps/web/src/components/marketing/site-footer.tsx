@@ -14,6 +14,7 @@ export function SiteFooter() {
           <Link href="/compliance" className="hover:text-fg">Compliance</Link>
           <Link href="/security" className="hover:text-fg">Security</Link>
           <Link href="/about" className="hover:text-fg">About</Link>
+          <Link href="/android" className="hover:text-fg">Android app</Link>
           <Link href="/login" className="hover:text-fg">Sign in</Link>
           <Link href="/signup" className="hover:text-fg">Sign up</Link>
         </nav>

@@ -1,10 +1,50 @@
 # Android app: building and installing
 
-The phone app (`apps/mobile`, Expo) is built in Expo's cloud (EAS Build). You need a free Expo account once; after
-that, each new version is one command. Nothing secret goes into the app: it uses the same public (publishable) key
-as the website, and RLS decides what each person sees.
+The team installs the phone app from **https://hrms.tazq.io/android**: a public page with the Download button, the
+version, a QR code (to open the page on a phone from a computer) and how to install. Nothing secret goes into the app: it
+uses the same public (publishable) key as the website, and RLS decides what each person sees.
 
-## Once
+## Publishing a new version (from the Mac)
+
+```sh
+cd ~/Projects/peoplecore && git pull
+deploy/publish-android.sh
+```
+
+Like `deploy/ship.sh`, it refuses unless HEAD is `origin/main` and CI passed on it (`--force` skips that, for
+emergencies). In 10 to 20 minutes it:
+
+1. builds the app from scratch (`expo prebuild --clean`, `gradlew assembleRelease`) for phones only (no x86, about half
+   the size), signed with the release key and with push notifications (`~/.peoplecore/android/google-services.json`,
+   or `GOOGLE_SERVICES_JSON`);
+2. points it at the website's Supabase project, read from the server's `/opt/peoplecore/.env` (a local
+   `apps/mobile/.env` is ignored), and checks the built app really contains that address;
+3. refuses a debug-signed build, a build signed with another key than the published one, or a version that isn't newer
+   (the version is the commit count, so commit something first);
+4. uploads it to `/opt/peoplecore/downloads/android/PeopleCore-<version>.apk` on the server with `latest.json`
+   describing it (the newest three builds are kept), and checks that /android offers it.
+
+The web container reads that folder directly, so a new phone version needs no website deploy. If a phone change
+needs new website code (an `/api/mobile` route, a page it opens), ship the website first: phones update over days.
+
+**What the team does:** open the link on the phone, Download, open the file and Install (the page explains Chrome's
+warning, allowing installs from the browser once, and Play Protect). Later versions: the app shows **Update
+PeopleCore** on Home (it asks the website at most once an hour); they tap it and install over the old one, staying
+signed in. Builds older than the first one with this check (2 Nov 2026) have to be updated once by hand from the page.
+
+**Going back:** Android won't install a lower version over a higher one, so there is no rollback for phones: fix
+forward and publish again.
+
+**The Mac needs:** the release signing key (`PEOPLECORE_UPLOAD_*` in `~/.gradle/gradle.properties`, see
+BUILD_STATUS.md › Android release signing), `~/.peoplecore/android/google-services.json`, the Android SDK in
+`~/Library/Android/sdk` (or `ANDROID_HOME`), Java 17 and SSH access to the server.
+
+## Building in Expo's cloud instead (EAS Build, not set up)
+
+The app can also be built in Expo's cloud. That needs a free Expo account once; after that, each new version is one
+command.
+
+### Once
 
 1. Create a free account at https://expo.dev/signup.
 2. On the Mac, in the project:
@@ -26,17 +66,17 @@ as the website, and RLS decides what each person sees.
    done
    ```
 
-## Each version: an installable APK (testing, or sharing with your team)
+### Each version: an installable APK
 
 ```sh
 cd ~/Projects/peoplecore/apps/mobile
 npx eas-cli@latest build --platform android --profile preview
 ```
 
-It takes 10 to 20 minutes and ends with a link and a QR code. Open the link on an Android phone, download the APK and
-install it (Android asks once to allow installs from the browser). Anyone with the link can install it.
+It takes 10 to 20 minutes and ends with a link and a QR code. EAS signs with its own key unless given PeopleCore's,
+and only builds with the same key can update apps installed from /android.
 
-## Google Play (later)
+### Google Play (later)
 
 `--profile production` builds the bundle Google Play wants; `npx eas-cli@latest submit --platform android` uploads it.
 That needs a Google Play developer account (a one-time fee) and the store listing.

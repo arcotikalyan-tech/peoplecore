@@ -20,7 +20,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <AuthLayout
       title="Welcome back"
       subtitle="Sign in to your PeopleCore workspace."
-      footer={<>New to PeopleCore? <Link href="/signup" className="font-medium text-primary hover:underline">Sign up</Link></>}
+      footer={<>
+        New to PeopleCore? <Link href="/signup" className="font-medium text-primary hover:underline">Sign up</Link>
+        <span aria-hidden="true" className="mx-2">·</span>
+        <Link href="/android" className="font-medium text-primary hover:underline">Android app</Link>
+      </>}
     >
       {!configured ? (
         <Alert tone="warning" title="Supabase isn’t configured yet">

@@ -1,7 +1,10 @@
 import { expect } from '@playwright/test';
 import { adminClient, domain, open, test } from './helpers';
 
-/** The public website: the home page, sign in and sign up from the header, and a sign-up request reaching the platform. */
+/**
+ * The public website: the home page, sign in and sign up from the header, the Android app's page, and a sign-up
+ * request reaching the platform.
+ */
 const run = Date.now().toString(36).slice(-5);
 const email = `owner.${run}@${domain}`;
 const admin = adminClient();
@@ -26,6 +29,15 @@ test('the header opens every page of the website', async ({ page }) => {
     await page.getByRole('banner').getByRole('link', { name: link, exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
   }
+});
+
+test('the sign-in page links to the Android app, which anyone can open', async ({ page }) => {
+  await open(page, '/login');
+  await page.getByRole('link', { name: 'Android app' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'PeopleCore on your phone' })).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe('/android');
+  // Where no build is published (CI, development), the page says so instead of offering a download.
+  await expect(page.getByRole('link', { name: 'Download for Android' }).or(page.getByRole('status').filter({ hasText: 'isn’t published here yet' }))).toBeVisible();
 });
 
 test('a company signs up and the request is recorded once', async ({ page }) => {

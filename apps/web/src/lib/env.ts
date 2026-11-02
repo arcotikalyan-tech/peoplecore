@@ -27,3 +27,8 @@ export function isProduction(): boolean {
 export function buildInfo(): { commit: string; deployedAt: string } {
   return { commit: process.env.APP_VERSION || process.env.VERCEL_GIT_COMMIT_SHA || '', deployedAt: process.env.APP_DEPLOYED_AT || '' };
 }
+
+/** The folder deploy/publish-android.sh uploads the Android app to (mounted on the server; none in development). */
+export function downloadsDir(): string | null {
+  return process.env.APP_DOWNLOADS_DIR || null;
+}

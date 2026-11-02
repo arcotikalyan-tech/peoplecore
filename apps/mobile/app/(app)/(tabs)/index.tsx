@@ -6,6 +6,7 @@ import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { AttendanceCard } from '@/components/attendance-card';
 import { MyTeamCard, TeamRoleBanner, WorkCard } from '@/components/desks';
 import { DateLeaf, QuickActions, Stat, type QuickAction } from '@/components/quick-actions';
+import { availableUpdate, UPDATE_PAGE } from '@/lib/app-update';
 import { useCounts } from '@/lib/counts';
 import { loadDesks } from '@/lib/desks';
 import { ago, dateParts, dateRange, dayMonth, days, firstName, greeting, inr, monthYear, plainText, relativeDay } from '@/lib/format';
@@ -26,9 +27,9 @@ interface Birthday { employee_id: string; name: string; next_birthday: string }
 const safe = <T,>(p: PromiseLike<T>, fallback: T): Promise<T> => Promise.resolve(p).catch(() => fallback);
 
 /**
- * Home: today's check-in first, then what needs you, a manager's team today, the work waiting in the person's role
- * (HR, payroll, finance, hiring), shortcuts, your leave and month, who's out, your latest payslip, holidays, birthdays
- * and announcements. Each part only appears when there's something in it, and only for
+ * Home: today's check-in first, then what needs you (a newer version of the app too), a manager's team today, the work
+ * waiting in the person's role (HR, payroll, finance, hiring), shortcuts, your leave and month, who's out, your latest
+ * payslip, holidays, birthdays and announcements. Each part only appears when there's something in it, and only for
  * modules the organization uses.
  */
 export default function Home() {
@@ -44,7 +45,7 @@ export default function Home() {
   const { data, loading, reload } = useLoad(async () => {
     if (!workplace) return null;
     const org = workplace.orgId;
-    const [facts, holidays, balances, month, birthdays, announcements, acks, completeness, approvals, out, slip] = await Promise.all([
+    const [facts, holidays, balances, month, birthdays, announcements, acks, completeness, approvals, out, slip, update] = await Promise.all([
       safe(supabase.rpc('org_setup_status', { p_org: org }).then((r) => r.data as SetupFacts | null), null),
       on('holidays') ? safe(loadHolidays(org, today, undefined, 3), []) : [],
       emp && on('leave') ? safe(supabase.rpc('leave_balances', { p_employee: emp }).then((r) => (r.data ?? []) as Balance[]), []) : [],
@@ -58,6 +59,7 @@ export default function Home() {
       on('leave') ? safe(supabase.rpc('team_leave_calendar', { p_org: org, p_from: today, p_to: today }).then((r) => (r.data ?? []) as Away[]), []) : [] as Away[],
       emp && on('payroll') ? safe(supabase.from('payroll_run_employees').select('run_id, period_month, net').eq('employee_id', emp)
         .order('period_month', { ascending: false }).limit(1).maybeSingle().then((r) => r.data), null) : null,
+      availableUpdate(),
     ]);
     const acked = new Set(acks.map((a) => a.announcement_id));
     const live = announcements.filter((a) => !a.expires_at || a.expires_at >= today);
@@ -70,6 +72,7 @@ export default function Home() {
       completeness, approvals,
       out: out.filter((o) => o.employee_id !== emp && o.status === 'approved'),
       slip: slip ? { ...slip, net: Number(slip.net) } : null,
+      update,
     };
   }, [workplace, today]);
 
@@ -103,6 +106,10 @@ export default function Home() {
     data.toAcknowledge > 0 && <ListRow key="ack" icon="megaphone-outline" tone="danger" title={`${data.toAcknowledge} announcement${data.toAcknowledge === 1 ? '' : 's'} to acknowledge`} onPress={() => router.push('/announcements')} />,
     emp && data.completeness && profileDone < PROFILE_PARTS.length && (
       <ListRow key="profile" icon="person-add-outline" tone="warning" title="Complete your profile" subtitle={`${profileDone} of ${PROFILE_PARTS.length} done · HR needs these to pay you`} onPress={() => router.push('/profile')} />
+    ),
+    data.update && (
+      <ListRow key="update" icon="arrow-down-circle-outline" tone="success" title="Update PeopleCore" external
+        subtitle={`Version ${data.update} is ready. Download it and install over this one; you stay signed in.`} onPress={() => void Linking.openURL(UPDATE_PAGE)} />
     ),
   ].filter(Boolean) : [];
 

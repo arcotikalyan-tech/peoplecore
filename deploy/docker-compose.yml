@@ -11,6 +11,9 @@ services:
       # Shown in Account settings, so anyone can see which build is live.
       APP_VERSION: ${TAG:-}
       APP_DEPLOYED_AT: ${DEPLOYED_AT:-}
+      APP_DOWNLOADS_DIR: /downloads
+    # Builds of the Android app, uploaded by deploy/publish-android.sh and offered at /android.
+    volumes: ['./downloads:/downloads:ro']
     ports: ['172.18.0.1:3200:3000']
     logging: &logs
       # Docker keeps container logs forever by default; cap them so they can't fill the disk.
