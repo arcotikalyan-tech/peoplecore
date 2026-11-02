@@ -4,8 +4,10 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { AttendanceCard } from '@/components/attendance-card';
+import { MyTeamCard, TeamRoleBanner, WorkCard } from '@/components/desks';
 import { DateLeaf, QuickActions, Stat, type QuickAction } from '@/components/quick-actions';
 import { useCounts } from '@/lib/counts';
+import { loadDesks } from '@/lib/desks';
 import { ago, dateParts, dateRange, dayMonth, days, firstName, greeting, inr, monthYear, plainText, relativeDay } from '@/lib/format';
 import { loadHolidays } from '@/lib/holidays';
 import { loadCompleteness, PROFILE_PARTS } from '@/lib/profile';
@@ -24,8 +26,9 @@ interface Birthday { employee_id: string; name: string; next_birthday: string }
 const safe = <T,>(p: PromiseLike<T>, fallback: T): Promise<T> => Promise.resolve(p).catch(() => fallback);
 
 /**
- * Home: today's check-in first, then what needs you, shortcuts, your leave and month, who's out, your latest
- * payslip, holidays, birthdays and announcements. Each part only appears when there's something in it, and only for
+ * Home: today's check-in first, then what needs you, a manager's team today, the work waiting in the person's role
+ * (HR, payroll, finance, hiring), shortcuts, your leave and month, who's out, your latest payslip, holidays, birthdays
+ * and announcements. Each part only appears when there's something in it, and only for
  * modules the organization uses.
  */
 export default function Home() {
@@ -70,7 +73,11 @@ export default function Home() {
     };
   }, [workplace, today]);
 
-  const refresh = () => Promise.all([reload(), refreshCounts(), refreshWorkplace()]);
+  // The role desks load on their own, so the rest of Home doesn't wait for them.
+  const desks = useLoad(async () => (workplace ? loadDesks(workplace.orgId, workplace.slug, today) : null), [workplace, today]);
+  const team = desks.data?.team ?? null;
+
+  const refresh = () => Promise.all([reload(), desks.reload(), refreshCounts(), refreshWorkplace()]);
   const profileDone = data?.completeness ? PROFILE_PARTS.filter((p) => data.completeness![p.key]).length : PROFILE_PARTS.length;
   const actions: QuickAction[] = [
     on('leave') && { key: 'leave', label: 'Apply leave', icon: 'airplane-outline', tone: 'primary', onPress: () => router.push('/apply-leave') },
@@ -133,6 +140,10 @@ export default function Home() {
           <ListGroup>{attention}</ListGroup>
         </View>
       )}
+
+      {team && team.members.length > 0 && <MyTeamCard team={team} tz={tz} now={new Date()} />}
+      {team && team.reports > 0 && team.members.length === 0 && <TeamRoleBanner reports={team.reports} />}
+      {desks.data && workplace && <WorkCard desks={desks.data} slug={workplace.slug} />}
 
       {actions.length > 0 && (
         <View>

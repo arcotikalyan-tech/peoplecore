@@ -4,6 +4,7 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
     "paths": { "@/*": ["./src/*"] }
   },
   "include": ["app", "src", "test", "expo-env.d.ts"]

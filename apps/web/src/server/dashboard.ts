@@ -1,5 +1,5 @@
 import 'server-only';
-import type { PunchKind } from '@peoplecore/shared';
+import { NO_DESKS, type Desks, type DeskSection } from '@peoplecore/shared';
 import { createClient } from './supabase';
 
 /**
@@ -119,60 +119,17 @@ export async function dashboardFigures(orgId: string, myEmployeeId: string | nul
   };
 }
 
-export type DeskSection = 'team' | 'hr' | 'payroll' | 'finance' | 'hiring' | 'audit' | 'devices';
-type Amount = { count: number; amount: number };
-
-export interface TeamMember {
-  id: string; name: string; code: string; title: string | null; direct: boolean; notice: boolean;
-  status: string | null; first_in: string | null; last_out: string | null; worked: number; late: number; breaks: number;
-  punches: Array<{ punched_at: string; kind: PunchKind | null }>;
-  leave: { what: string; status: 'approved' | 'pending'; half_day: boolean } | null;
-  request: 'wfh' | 'on_duty' | null;
-  month: { present: number; expected: number; late: number; leave: number; absent: number };
-}
-
-export interface Desks {
-  team: {
-    /** People reporting directly to the person, whatever their roles (members is empty without the manager role). */
-    reports: number;
-    members: TeamMember[];
-    away: Array<{ employee_id: string; name: string; start: string; end: string; days: number; what: string; status: 'approved' | 'pending' }>;
-    events: Array<{ kind: 'anniversary' | 'probation' | 'last_day' | 'joining'; employee_id: string; name: string; on: string; detail: string | null }>;
-    reviews: Array<{ cycle: string; self_due: string | null; manager_due: string | null; not_started: number; to_rate: number; done: number }>;
-  } | null;
-  hr: {
-    joining: number; joined_this_month: number; probation_due: number; probation_overdue: number; exits_to_decide: number; leaving: number;
-    onboarding: number; no_manager: number; leave_pending: number; attendance_pending: number; letters_pending: number; assets_pending: number;
-    moves: Array<{ kind: 'joining' | 'probation' | 'last_day'; employee_id: string; name: string; on: string; status?: string }>;
-  } | null;
-  payroll: {
-    period: string; run: { id: string; status: string; employee_count: number; total_net: number } | null;
-    leave_pending: number; attendance_pending: number; revisions_pending: number; declarations_to_review: number; loans_to_decide: number;
-    emis: Amount; joiners: number; leavers: number; no_salary: number;
-  } | null;
-  finance: {
-    runs_to_approve: Array<{ id: string; period_month: string; employee_count: number; total_net: number }>;
-    claims_to_pay: Amount; invoices_to_approve: Amount; invoices_to_pay: Amount; invoices_overdue: number; settlements: number;
-  } | null;
-  hiring: {
-    open_jobs: number; openings: number; stages: { applied: number; screening: number; interview: number; offer: number }; hired_this_month: number;
-    interviews_today: number; offers_to_approve: number; offers_to_send: number; offers_out: number;
-    interviews: Array<{ id: string; application_id: string; at: string; round: string; mode: string; candidate: string; job: string }>;
-  } | null;
-  audit: { today: number; recent: Array<{ id: number; at: string; action: string; entity: string; actor: string }> } | null;
-  devices: Array<{ id: string; name: string; serial: string; active: boolean; last_punch: string | null; today: number }> | null;
-}
+export type { DeskSection, Desks, TeamMember } from '@peoplecore/shared';
 
 /**
  * Each role's desk (dashboard_desks) in one database request, as the caller: row-level security decides what is read.
  * Only the desks asked for are read. A failure shows no desks rather than breaking the page.
  */
 export async function dashboardDesks(orgId: string, today: string, sections: DeskSection[]): Promise<Desks> {
-  const none: Desks = { team: null, hr: null, payroll: null, finance: null, hiring: null, audit: null, devices: null };
-  if (!sections.length) return none;
+  if (!sections.length) return NO_DESKS;
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('dashboard_desks', { p_org: orgId, p_today: today, p_sections: sections });
-  return error || !data ? none : { ...none, ...(data as unknown as Partial<Desks>) };
+  return error || !data ? NO_DESKS : { ...NO_DESKS, ...(data as unknown as Partial<Desks>) };
 }
 
 /** Recent payroll activity: runs and what happened to them, newest first. */

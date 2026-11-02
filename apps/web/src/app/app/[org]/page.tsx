@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 import { Sparkles } from 'lucide-react';
-import { addDays, dayProgress, nextPunches, punchLabels, punchState, todayIn } from '@peoplecore/shared';
+import {
+  addDays, dayProgress, directOnly, nextPunches, punchLabels, punchState, roleDesks, teamCounts, teamRow, todayIn, type DeskSection,
+} from '@peoplecore/shared';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/components/ui/cn';
 import { EmptyState } from '@/components/ui/surface';
@@ -13,7 +15,6 @@ import { orgControls } from '@/server/modules';
 import { getOrgContext } from '@/server/context';
 import {
   dashboardDesks, dashboardFigures, latestRun, myWork, payrollActivity, payrollTrend, upcomingBirthdays, upcomingHolidays, type DashboardSection,
-  type DeskSection, type Desks,
 } from '@/server/dashboard';
 import { listAnnouncements } from '@/server/engagement';
 import { getMyEmployee } from '@/server/employees';
@@ -30,7 +31,7 @@ import { hours } from './attendance/_tabs/status';
 import { DismissInsight, QuickAccess, type QuickTile } from './dashboard-client';
 import {
   ApprovalsCard, AuditDesk, DevicesDesk, FinanceDesk, HiringDesk, HrDesk, PayrollDesk, TeamAwayCard, TeamComingUpCard, TeamMonthCard,
-  TeamReviewsCard, TeamRoleHint, TeamTodayCard, teamCounts, teamRow,
+  TeamReviewsCard, TeamRoleHint, TeamTodayCard,
 } from './dashboard-desks';
 import { Card, inr, Kpi, monthName, num, plural, shortDay, shortMonth } from './dashboard-ui';
 import { SetupCard } from './setup/checklist';
@@ -60,15 +61,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
   const seesPayroll = admin && (ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org'));
   const seesAttendance = admin && ctx.can('attendance.read', 'org');
   // Each role's desk, read in one request. The team desk is everyone's (empty without reports) except in the Me view.
-  const desks = ([
-    [admin || !hasAdminView(ctx), 'team'],
-    [seesPeople && (ctx.can('org.manage', 'org') || ctx.can('onboarding.manage', 'org') || ctx.can('employee.update', 'org')), 'hr'],
-    [admin && ctx.can('payroll.prepare', 'org'), 'payroll'],
-    [admin && (ctx.can('payroll.approve', 'org') || ctx.can('expense.manage', 'org') || ctx.can('vendor.manage', 'org')), 'finance'],
-    [admin && ctx.can('recruitment.manage', 'org'), 'hiring'],
-    [admin && ctx.can('audit.read', 'org') && !ctx.can('org.manage', 'org'), 'audit'],
-    [admin && ctx.can('attendance.device.manage', 'org'), 'devices'],
-  ] as Array<[boolean, DeskSection]>).filter(([on]) => on).map(([, s]) => s);
+  const desks: DeskSection[] = [...(admin || !hasAdminView(ctx) ? ['team' as const] : []), ...(admin ? roleDesks(ctx.grants) : [])];
 
   // Every count in one request; a section is counted only for people who see it.
   const sections = ([
@@ -442,12 +435,6 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
 }
 
 const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-function directOnly(team: NonNullable<Desks['team']>): NonNullable<Desks['team']> {
-  const members = team.members.filter((m) => m.direct);
-  const ids = new Set(members.map((m) => m.id));
-  return { ...team, members, away: team.away.filter((a) => ids.has(a.employee_id)), events: team.events.filter((e) => ids.has(e.employee_id)) };
-}
 
 function Bars({ data, format, tone = 'primary' }: { data: Array<{ label: string; value: number }>; format?: (n: number) => string; tone?: 'primary' | 'success' }) {
   const max = Math.max(...data.map((d) => d.value), 0);

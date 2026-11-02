@@ -56,6 +56,7 @@ export default function AppLayout() {
           <Stack.Screen name="payslip" options={{ title: 'Payslip' }} />
           <Stack.Screen name="holidays" options={{ title: 'Holidays' }} />
           <Stack.Screen name="directory" options={{ title: 'Directory' }} />
+          <Stack.Screen name="team" options={{ title: 'My team' }} />
           <Stack.Screen name="announcements" options={{ title: 'Announcements' }} />
           <Stack.Screen name="profile" options={{ title: 'My profile' }} />
           <Stack.Screen name="organizations" options={{ title: 'Your organizations' }} />

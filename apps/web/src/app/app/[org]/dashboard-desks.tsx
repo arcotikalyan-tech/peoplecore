@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { ATTENDANCE_STATUS_LABELS, dayProgress, punchState, type AttendanceStatus, type Obligation } from '@peoplecore/shared';
+import type { Desks, Obligation, TeamMember, TeamRow } from '@peoplecore/shared';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/components/ui/cn';
 import { Badge } from '@/components/ui/surface';
 import { formatDateTime, humanize } from '@/lib/format';
-import type { Desks, TeamMember, myWork } from '@/server/dashboard';
+import type { myWork } from '@/server/dashboard';
 import { clock, hours } from './attendance/_tabs/status';
 import { decideApprovalAction } from './inbox/actions';
 import { ApprovalsPanel } from './inbox/inbox-forms';
@@ -17,40 +17,7 @@ import { Card, CardLink, TodoRow, inr, monthName, num, plural, shortDay } from '
  */
 
 type Team = NonNullable<Desks['team']>;
-type Tone = 'success' | 'warning' | 'danger' | 'primary' | 'neutral' | 'ai';
-type Group = 'in' | 'out' | 'leave' | 'away' | 'off' | 'not_in' | 'absent';
-export interface TeamRow { member: TeamMember; label: string; tone: Tone; group: Group; atWork: number; breaks: number }
-
-const AT_WORK = new Set(['present', 'half_day', 'wfh', 'on_duty']);
 const late = (m: number) => (m < 60 ? `${m}m` : hours(m));
-
-/** Where someone in the team is today, from their punches first, then leave, offs and requests. */
-export function teamRow(m: TeamMember, now: Date): TeamRow {
-  const progress = m.punches.length ? dayProgress(m.punches, now, { fullDayMinutes: 480, halfDayMinutes: 240, breakMinutes: 0 }) : null;
-  const row = (label: string, tone: Tone, group: Group): TeamRow => ({ member: m, label, tone, group, atWork: progress?.atWorkMinutes ?? m.worked, breaks: progress?.breakMinutes ?? m.breaks });
-  if (m.punches.length) {
-    const s = punchState(m.punches);
-    if (s.paused) return row(s.paused === 'lunch' ? 'At lunch' : 'On a break', 'warning', 'in');
-    if (s.checkedIn) return row(m.request === 'wfh' ? 'Working from home' : m.request === 'on_duty' ? 'On duty' : 'Checked in', 'success', 'in');
-    return row('Checked out', 'neutral', 'out');
-  }
-  if (m.status && AT_WORK.has(m.status)) return row(ATTENDANCE_STATUS_LABELS[m.status as AttendanceStatus], 'success', 'out');
-  if (m.leave?.status === 'approved') return row(m.leave.half_day ? `Half day · ${m.leave.what}` : m.leave.what, 'primary', 'leave');
-  if (m.status === 'on_leave') return row('On leave', 'primary', 'leave');
-  if (m.status === 'weekly_off' || m.status === 'holiday') return row(m.status === 'holiday' ? 'Holiday' : 'Weekly off', 'neutral', 'off');
-  if (m.request === 'on_duty') return row('On duty', 'primary', 'away');
-  if (m.status === 'absent') return row('Absent', 'danger', 'absent');
-  return row(m.request === 'wfh' ? 'WFH · not checked in' : m.leave ? 'Not checked in · leave asked' : 'Not checked in', 'warning', 'not_in');
-}
-
-export function teamCounts(rows: TeamRow[]) {
-  return {
-    in: rows.filter((r) => r.group === 'in' || r.group === 'out').length,
-    leave: rows.filter((r) => r.group === 'leave').length,
-    notIn: rows.filter((r) => r.group === 'not_in' || r.group === 'absent').length,
-    late: rows.filter((r) => r.member.late > 0).length,
-  };
-}
 
 const SHOWN = 15;
 /** Columns that only fit beside the name and status from tablet width; on a phone the times go under the status. */

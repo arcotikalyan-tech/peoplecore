@@ -208,7 +208,6 @@ Each section appears only when it has something in it, and only for modules in u
 | Priority | Feature | Notes |
 |---|---|---|
 | P1 | Expenses: claim from a receipt photo, track status | RPCs exist (`create_expense_claim`, `add_expense_item`, `submit_expense_claim`) |
-| P1 | Team view for managers: who's in, late, not checked in; team leave calendar | `attendance_week_counts`, `team_leave_calendar` |
 | P1 | Profile photos (signed links through the app server) | Avatars use initials until then |
 | P2 | Helpdesk: raise and follow tickets | `raise_ticket`, `ticket_thread`, `comment_ticket` |
 | P2 | Documents and letters: download your letters, request one | `request_letter`, `document_download` |
