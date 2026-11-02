@@ -16,7 +16,7 @@ const STATE: Record<'not_in' | 'in' | 'out', [string, Tone]> = {
  * that checks in or out (with location, and a selfie when the rule asks).
  */
 export function AttendanceCard() {
-  const { workplace } = useSession();
+  const { workplace, refreshWorkplace } = useSession();
   const { colors } = useTheme();
   const { day, ready, shift, pending, refused, needsSelfie, busy, message, punch, dismiss } = useToday();
   const tz = workplace?.timezone ?? 'Asia/Kolkata';
@@ -27,7 +27,8 @@ export function AttendanceCard() {
     return (
       <Card>
         <EmptyState compact icon="id-card-outline" title="No employee profile yet"
-          body="Your HR team hasn’t linked an employee profile to your sign-in. Once they do, you can check in, apply for leave and see your pay." />
+          body="Your HR team hasn’t linked an employee profile to your sign-in. Once they do, you can check in, apply for leave and see your pay."
+          action="Check again" onAction={() => void refreshWorkplace()} />
       </Card>
     );
   }

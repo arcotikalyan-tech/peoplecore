@@ -29,7 +29,7 @@ const safe = <T,>(p: PromiseLike<T>, fallback: T): Promise<T> => Promise.resolve
  * modules the organization uses.
  */
 export default function Home() {
-  const { workplace } = useSession();
+  const { workplace, refreshWorkplace } = useSession();
   const { unread, refresh: refreshCounts } = useCounts();
   const [showNet, setShowNet] = useState(false);
   const tz = workplace?.timezone ?? 'Asia/Kolkata';
@@ -70,7 +70,7 @@ export default function Home() {
     };
   }, [workplace, today]);
 
-  const refresh = () => Promise.all([reload(), refreshCounts()]);
+  const refresh = () => Promise.all([reload(), refreshCounts(), refreshWorkplace()]);
   const profileDone = data?.completeness ? PROFILE_PARTS.filter((p) => data.completeness![p.key]).length : PROFILE_PARTS.length;
   const actions: QuickAction[] = [
     on('leave') && { key: 'leave', label: 'Apply leave', icon: 'airplane-outline', tone: 'primary', onPress: () => router.push('/apply-leave') },
