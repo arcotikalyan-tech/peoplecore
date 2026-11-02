@@ -1,6 +1,6 @@
 # PeopleCore mobile (Expo)
 
-The employee app, built with Expo SDK 57 and expo-router. Its five tabs:
+The employee app, built with Expo SDK 58 (React Native 0.88) and expo-router. Its five tabs:
 - **Home**: a dashboard: check-in, what needs you, quick actions, leave, the month, who's out, payslip, holidays, birthdays, announcements.
 - **Attendance**: today's punches, a month calendar, corrections, work from home and on duty.
 - **Leave**: balances, apply, cancel, who's away.
