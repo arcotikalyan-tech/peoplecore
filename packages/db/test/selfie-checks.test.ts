@@ -54,7 +54,7 @@ describe('check-in photos', () => {
 
       // Sent now without one: refused. Made offline half an hour ago without one: counts, flagged for review.
       expect((await failure(tx, `select record_punch($1, null, 'mobile', null, null, null, $2)`, [`mob-${randomUUID()}`, f.orgA])).message)
-        .toBe('Your attendance rule needs a selfie to check in.');
+        .toBe('Your attendance rule needs a selfie with every punch.');
       const without = (await tx.query<{ id: string }>(`select record_punch($1, now() - interval '30 minutes', 'mobile', null, null, null, $2) as id`,
         [`mob-${randomUUID()}`, f.orgA])).rows[0]!.id;
       expect(await flags(without)).toEqual(expect.arrayContaining(['no_selfie', 'late_sync']));
@@ -66,7 +66,7 @@ describe('check-in photos', () => {
       expect(await msg(`${f.orgA}/${f.employees.icA}/${randomUUID()}`)).toBe('The selfie didn’t arrive. Please take it again.'); // never stored
       expect(await msg(`${f.orgA}/${f.employees.peerA}/${randomUUID()}`)).toBe('Invalid selfie.'); // someone else's folder
       expect((await failure(tx, `select record_punch($1, null, 'web', null, null, null, $2)`, [`w-${randomUUID()}`, f.orgA])).message)
-        .toBe('Your attendance rule needs a selfie to check in.');
+        .toBe('Your attendance rule needs a selfie with every punch.');
     });
   });
 });

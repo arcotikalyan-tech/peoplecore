@@ -847,6 +847,7 @@ export type Database = {
           early_out_minutes: number;
           overtime_minutes: number;
           expected_minutes: number;
+          break_minutes: number;
         };
         Insert: {
           organization_id: string;
@@ -866,6 +867,7 @@ export type Database = {
           early_out_minutes?: number;
           overtime_minutes?: number;
           expected_minutes?: number;
+          break_minutes?: number;
         };
         Update: {
           organization_id?: string;
@@ -885,6 +887,7 @@ export type Database = {
           early_out_minutes?: number;
           overtime_minutes?: number;
           expected_minutes?: number;
+          break_minutes?: number;
         };
         Relationships: [];
       };
@@ -964,6 +967,7 @@ export type Database = {
           created_by: string | null;
           selfie_path: string | null;
           ip: string | null;
+          kind: Database['public']['Enums']['punch_kind'] | null;
         };
         Insert: {
           id?: string;
@@ -980,6 +984,7 @@ export type Database = {
           created_by?: string | null;
           selfie_path?: string | null;
           ip?: string | null;
+          kind?: Database['public']['Enums']['punch_kind'] | null;
         };
         Update: {
           id?: string;
@@ -996,6 +1001,7 @@ export type Database = {
           created_by?: string | null;
           selfie_path?: string | null;
           ip?: string | null;
+          kind?: Database['public']['Enums']['punch_kind'] | null;
         };
         Relationships: [];
       };
@@ -10598,6 +10604,7 @@ export type Database = {
           p_org?: string;
           p_ip?: string;
           p_selfie_path?: string;
+          p_kind?: Database['public']['Enums']['punch_kind'];
         };
         Returns: string;
       };
@@ -11733,6 +11740,7 @@ export type Database = {
       payout_status: 'pending' | 'paid' | 'failed' | 'on_hold';
       payroll_status: 'draft' | 'computed' | 'approved' | 'locked' | 'cancelled';
       permission_scope: 'org' | 'team' | 'self';
+      punch_kind: 'in' | 'out' | 'lunch_start' | 'lunch_end' | 'break_start' | 'break_end';
       punch_method: 'web' | 'mobile' | 'biometric' | 'import' | 'regularization' | 'auto';
       recommendation: 'strong_yes' | 'yes' | 'no' | 'strong_no';
       requisition_status: 'open' | 'on_hold' | 'closed';
