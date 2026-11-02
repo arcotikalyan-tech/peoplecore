@@ -9659,6 +9659,14 @@ export type Database = {
         };
         Returns: string;
       };
+      dashboard_desks: {
+        Args: {
+          p_org: string;
+          p_today: string;
+          p_sections: string[];
+        };
+        Returns: Json;
+      };
       dashboard_figures: {
         Args: {
           p_org: string;

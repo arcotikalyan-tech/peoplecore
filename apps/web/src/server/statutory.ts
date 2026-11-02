@@ -1,5 +1,5 @@
 import 'server-only';
-import { applicableForms, evaluate, isStateCode, STAT_FORMS, type ScopeFacts, type StateCode } from '@peoplecore/shared';
+import { addDays, applicableForms, evaluate, isStateCode, obligationsDue, STAT_FORMS, type ScopeFacts, type StateCode } from '@peoplecore/shared';
 import { createClient } from './supabase';
 
 export interface Establishment {
@@ -57,6 +57,15 @@ export async function statutoryFilings(orgId: string): Promise<Filing[]> {
     .select('id, form_id, period_start, period_end, due_on, status, filed_on, reference, note, proof_name, retain_until')
     .eq('organization_id', orgId).order('period_start', { ascending: false });
   return (data ?? []) as Filing[];
+}
+
+/** The payroll desk's filings: due in the next `days` days, and how many are overdue (last 90 days), not yet filed or marked not applicable. */
+export async function filingsDue(orgId: string, today: string, days = 15) {
+  const [facts, filings] = await Promise.all([statutoryFacts(orgId), statutoryFilings(orgId)]);
+  const forms = applicableForms(scopeOf(facts), today);
+  const done = new Set(filings.map((x) => `${x.form_id}|${x.period_start}`));
+  const open = (from: string, to: string) => obligationsDue(forms, from, to).filter((o) => !done.has(`${o.form.id}|${o.periodStart}`));
+  return { next: open(today, addDays(today, days)), overdue: open(addDays(today, -90), addDays(today, -1)).length };
 }
 
 /** Data-quality alerts: what would make a filing wrong or impossible. */

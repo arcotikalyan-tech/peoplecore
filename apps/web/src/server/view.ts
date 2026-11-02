@@ -3,7 +3,10 @@ import { cookies } from 'next/headers';
 import type { ViewMode } from '@/components/shell/nav-model';
 import type { OrgContext } from './context';
 
-const ADMIN_PERMISSIONS = ['employee.read', 'leave.approve', 'attendance.read', 'payroll.prepare', 'payroll.approve', 'recruitment.read', 'org.manage', 'member.manage'] as const;
+const ADMIN_PERMISSIONS = [
+  'employee.read', 'leave.approve', 'attendance.read', 'payroll.prepare', 'payroll.approve', 'recruitment.read', 'org.manage', 'member.manage',
+  'expense.manage', 'vendor.manage',
+] as const;
 
 /** Whether this person administers anything beyond themselves, so the Admin / Me switch means something. */
 export function hasAdminView(ctx: OrgContext) {

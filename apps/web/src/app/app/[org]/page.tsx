@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 import { Sparkles } from 'lucide-react';
-import { dayProgress, nextPunches, punchLabels, punchState, todayIn } from '@peoplecore/shared';
+import { addDays, dayProgress, nextPunches, punchLabels, punchState, todayIn } from '@peoplecore/shared';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/components/ui/cn';
 import { EmptyState } from '@/components/ui/surface';
@@ -12,7 +12,8 @@ import { myRule } from '@/server/attendance-ops';
 import { orgControls } from '@/server/modules';
 import { getOrgContext } from '@/server/context';
 import {
-  dashboardFigures, latestRun, myWork, payrollActivity, payrollTrend, upcomingBirthdays, upcomingHolidays, type DashboardSection,
+  dashboardDesks, dashboardFigures, latestRun, myWork, payrollActivity, payrollTrend, upcomingBirthdays, upcomingHolidays, type DashboardSection,
+  type DeskSection, type Desks,
 } from '@/server/dashboard';
 import { listAnnouncements } from '@/server/engagement';
 import { getMyEmployee } from '@/server/employees';
@@ -21,22 +22,29 @@ import { createClient } from '@/server/supabase';
 import { profileProgress, type Completeness } from '@/lib/profile-checklist';
 import { getBalances } from '@/server/leave';
 import { orgSetup } from '@/server/setup';
-import { viewModeFor } from '@/server/view';
+import { filingsDue } from '@/server/statutory';
+import { hasAdminView, viewModeFor } from '@/server/view';
 import { punchAction } from './attendance/actions';
 import { PunchButtons } from './attendance/attendance-forms';
 import { hours } from './attendance/_tabs/status';
 import { DismissInsight, QuickAccess, type QuickTile } from './dashboard-client';
+import {
+  ApprovalsCard, AuditDesk, DevicesDesk, FinanceDesk, HiringDesk, HrDesk, PayrollDesk, TeamAwayCard, TeamComingUpCard, TeamMonthCard,
+  TeamReviewsCard, TeamRoleHint, TeamTodayCard, teamCounts, teamRow,
+} from './dashboard-desks';
+import { Card, inr, Kpi, monthName, num, plural, shortDay, shortMonth } from './dashboard-ui';
 import { SetupCard } from './setup/checklist';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
-const inr = (n: number) => (n >= 1e7 ? `₹${(n / 1e7).toFixed(2)} Cr` : n >= 1e5 ? `₹${(n / 1e5).toFixed(2)}L` : n >= 1e3 ? `₹${Math.round(n / 1e3)}K` : `₹${n.toLocaleString('en-IN')}`);
 const RUN_STATUS: Record<string, string> = { draft: 'Draft', computed: 'Computed', approved: 'Approved', locked: 'Locked' };
 
 /**
- * The dashboard, laid out like Kredily's: greeting, today's summary, headline figures, trends, today's attendance
- * snapshot, quick access, compliance and recent payroll activity; on the right work hours, announcements,
- * birthdays and holidays. The "Me" view shows the person's own month, leave and actions.
+ * The dashboard, laid out like Kredily's: greeting, today's summary, headline figures, what is waiting for approval,
+ * each role's desk, trends, today's attendance snapshot, quick access, compliance and recent payroll activity; on the
+ * right work hours, announcements, birthdays and holidays. A manager's figures and desk are their team (who is in,
+ * away and coming up); organization-wide figures are for people who read the whole organization. The "Me" view shows
+ * the person's own month, leave and actions.
  */
 export default async function Dashboard({ params }: { params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
@@ -48,9 +56,19 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
   const today = todayIn(tz);
   const monthStart = `${today.slice(0, 7)}-01`;
   const admin = view === 'admin';
-  const seesPeople = admin && (ctx.can('employee.read', 'org') || ctx.can('employee.read', 'team'));
+  const seesPeople = admin && ctx.can('employee.read', 'org');
   const seesPayroll = admin && (ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org'));
-  const seesAttendance = admin && (ctx.can('attendance.read', 'org') || ctx.can('attendance.read', 'team'));
+  const seesAttendance = admin && ctx.can('attendance.read', 'org');
+  // Each role's desk, read in one request. The team desk is everyone's (empty without reports) except in the Me view.
+  const desks = ([
+    [admin || !hasAdminView(ctx), 'team'],
+    [seesPeople && (ctx.can('org.manage', 'org') || ctx.can('onboarding.manage', 'org') || ctx.can('employee.update', 'org')), 'hr'],
+    [admin && ctx.can('payroll.prepare', 'org'), 'payroll'],
+    [admin && (ctx.can('payroll.approve', 'org') || ctx.can('expense.manage', 'org') || ctx.can('vendor.manage', 'org')), 'finance'],
+    [admin && ctx.can('recruitment.manage', 'org'), 'hiring'],
+    [admin && ctx.can('audit.read', 'org') && !ctx.can('org.manage', 'org'), 'audit'],
+    [admin && ctx.can('attendance.device.manage', 'org'), 'devices'],
+  ] as Array<[boolean, DeskSection]>).filter(([on]) => on).map(([, s]) => s);
 
   // Every count in one request; a section is counted only for people who see it.
   const sections = ([
@@ -58,9 +76,11 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
     [ctx.can('helpdesk.manage', 'org'), 'helpdesk'], [ctx.can('separation.manage', 'org'), 'separations'],
     [ctx.can('learning.manage', 'org'), 'learning'], [ctx.can('payroll.approve', 'org'), 'settlements'],
   ] as Array<[boolean, DashboardSection]>).filter(([on]) => on).map(([, s]) => s);
-  const [work, figures, run, pay, activity, holidays, birthdays, announcements, punches, balances, myDays, rule, setup, completeness] = await Promise.all([
+  const [work, figures, desk, filings, run, pay, activity, holidays, birthdays, announcements, punches, balances, myDays, rule, setup, completeness] = await Promise.all([
     myWork(orgId, me?.id ?? null, today),
     dashboardFigures(orgId, me?.id ?? null, today, sections),
+    dashboardDesks(orgId, today, desks),
+    desks.includes('payroll') && ctx.can('statutory.manage', 'org') ? filingsDue(orgId, today).catch(() => null) : null,
     ctx.can('payroll.prepare', 'org') || ctx.can('payroll.approve', 'org') ? latestRun(orgId) : null,
     seesPayroll ? payrollTrend(orgId, today) : null,
     seesPayroll ? payrollActivity(orgId) : [],
@@ -88,6 +108,14 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
   const nextHolidays = holidays.filter((h) => !seen.has(h.holiday_date + h.name) && seen.add(h.holiday_date + h.name)).slice(0, 4);
   const liveAnnouncements = announcements.filter((a) => !a.expires_at || a.expires_at >= today).slice(0, 3);
   const shift = rule?.shift ?? null;
+  const now = new Date();
+  // Someone who sees the whole organization's figures (an owner, HR) gets their direct reports here, not their whole line.
+  const team = desk.team && seesPeople ? directOnly(desk.team) : desk.team;
+  const teamRows = team ? team.members.map((m) => teamRow(m, now)) : [];
+  const teamNow = teamCounts(teamRows);
+  const teamIds = new Set(teamRows.map((r) => r.member.id));
+  const devices = desk.devices ?? [];
+  const teamBirthdays = controls.birthdays_visible ? birthdays.filter((b) => teamIds.has(b.employee_id) && b.next_birthday <= addDays(today, 30)) : [];
   // Today so far: a full day is the rule's day of work plus its break at work (8 hours and an hour: 9), longer by any
   // lunch and breaks past the hour.
   const progressState = punchState(todayPunches);
@@ -100,6 +128,9 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
     figures.tasks ? `${figures.tasks} open task${figures.tasks === 1 ? '' : 's'}` : null,
     snapshot && snapshot.onLeave.count ? `${snapshot.onLeave.count} on leave today` : null,
     snapshot && snapshot.late.count ? `${snapshot.late.count} late today` : null,
+    !snapshot && teamNow.notIn ? `${teamNow.notIn} of your team not checked in` : null,
+    !snapshot && teamNow.leave ? `${teamNow.leave} of your team on leave` : null,
+    !snapshot && teamNow.late ? `${teamNow.late} of your team late` : null,
     admin && attention.openTickets ? `${attention.openTickets} open helpdesk ticket${attention.openTickets === 1 ? '' : 's'}` : null,
     admin && attention.openSeparations ? `${attention.openSeparations} exit${attention.openSeparations === 1 ? '' : 's'} in progress` : null,
     admin && attention.overdueTraining ? `${attention.overdueTraining} overdue training` : null,
@@ -132,7 +163,7 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
       <div className="min-w-0 space-y-5">
         <header>
           <h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">{greeting}{me ? `, ${me.first_name}` : ''} <span aria-hidden="true">👋</span></h1>
-          <p className="mt-1 text-sm text-muted">{longDate} · {ctx.org.name}{admin && headcount !== null ? ` · ${headcount.toLocaleString('en-IN')} employees` : ''}</p>
+          <p className="mt-1 text-sm text-muted">{longDate} · {ctx.org.name}{admin && headcount !== null ? ` · ${headcount.toLocaleString('en-IN')} employees` : ''}{headcount === null && teamRows.length ? ` · your team: ${plural(teamRows.length, 'person', 'people')}` : ''}</p>
         </header>
 
         {setup && setup.percent < 100 && <SetupCard slug={slug} orgName={ctx.org.name} progress={setup} />}
@@ -145,13 +176,22 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
               <p className="mt-0.5 text-sm font-medium">{summary.length ? `${capitalise(summary.join(' · '))}.` : 'You’re all caught up. Nothing is waiting for you.'}</p>
             </div>
             <span className="flex items-center gap-2">
-              <Link href={work.approvals ? `${base}/inbox` : seesPeople ? `${base}/insights` : `${base}/inbox`} className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-fg">{work.approvals ? 'Review →' : 'View report →'}</Link>
+              <Link href={work.approvals ? `${base}/inbox` : seesPeople ? `${base}/insights` : teamRows.length ? `${base}/attendance?tab=logs` : `${base}/inbox`}
+                className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-fg">{work.approvals ? 'Review →' : seesPeople ? 'View report →' : teamRows.length ? 'Team’s day →' : 'Inbox →'}</Link>
               <DismissInsight today={today} />
             </span>
           </section>
         )}
 
-        {admin ? (
+        {admin && headcount === null && teamRows.length > 0 ? (
+          <section aria-label="Key figures" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+            <Kpi label="Checked in" value={String(teamNow.in)} note={`of ${plural(teamRows.length, 'person', 'people')} in your team`} tone="success" href={`${base}/attendance?tab=logs`} />
+            <Kpi label="On leave" value={String(teamNow.leave)} note="today" tone="info" href={`${base}/leave?tab=calendar`} />
+            <Kpi label="Not checked in" value={String(teamNow.notIn)} note="so far today" tone="warning" href={`${base}/attendance?tab=logs`} />
+            <Kpi label="Late today" value={String(teamNow.late)} note="checked in after their shift began" tone="danger" href={`${base}/attendance?tab=logs`} />
+            <Kpi label="Waiting for you" value={String(work.approvals ?? 0)} note="approvals" tone="primary" href={`${base}/inbox`} />
+          </section>
+        ) : admin ? (
           <section aria-label="Key figures" className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-5">
             {headcount !== null && <Kpi label="Headcount" value={headcount.toLocaleString('en-IN')} note="active employees" tone="primary" href={`${base}/employees?status=active`} />}
             {pay && <Kpi label="Monthly payroll" value={pay.latest ? inr(Number(pay.latest.total_net)) : '—'} note={pay.latest ? `${shortMonth(pay.latest.period_month)} · net payout` : 'no locked run yet'} tone="success" href={`${base}/payroll`} />}
@@ -167,6 +207,40 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
             <Kpi label="Leave balance" value={me ? num(leaveLeft) : '—'} note="days remaining" tone="primary" href={`${base}/leave`} />
             <Kpi label="Pending actions" value={String((work.approvals ?? 0) + (figures.tasks ?? 0))} note={(work.approvals ?? 0) + (figures.tasks ?? 0) ? 'waiting for you' : 'all clear'} tone="warning" href={`${base}/inbox`} />
           </section>
+        )}
+
+        {team && team.reports > 0 && teamRows.length === 0 && <TeamRoleHint reports={team.reports} />}
+
+        {admin && work.approvalItems.length > 0 && (
+          <ApprovalsCard slug={slug} base={base} tz={tz} total={work.approvals ?? work.approvalItems.length} items={work.approvalItems} />
+        )}
+
+        {desk.hr && <HrDesk hr={desk.hr} base={base} today={today} can={{ letters: ctx.can('letter.manage', 'org'), assets: ctx.can('asset.manage', 'org') }} />}
+        {(desk.payroll || desk.finance) && (
+          <div className={cn('grid gap-5', desk.payroll && desk.finance && '2xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]')}>
+            {desk.payroll && <PayrollDesk p={desk.payroll} base={base} filings={filings} />}
+            {desk.finance && <FinanceDesk f={desk.finance} base={base}
+              can={{ payroll: ctx.can('payroll.approve', 'org'), expenses: ctx.can('expense.manage', 'org'), vendors: ctx.can('vendor.manage', 'org') }} />}
+          </div>
+        )}
+        {desk.hiring && <HiringDesk h={desk.hiring} base={base} tz={tz} today={today} />}
+        {(devices.length > 0 || desk.audit) && (
+          <div className={cn('grid gap-5', devices.length > 0 && desk.audit && 'lg:grid-cols-2')}>
+            {devices.length > 0 && <DevicesDesk devices={devices} base={base} now={now} />}
+            {desk.audit && <AuditDesk a={desk.audit} base={base} tz={tz} />}
+          </div>
+        )}
+
+        {team && teamRows.length > 0 && (
+          <>
+            <TeamTodayCard rows={teamRows} base={base} tz={tz} />
+            <div className="grid gap-5 lg:grid-cols-2">
+              <TeamAwayCard away={team.away} base={base} today={today} />
+              <TeamComingUpCard team={team} birthdays={teamBirthdays} base={base} today={today} />
+            </div>
+            {team.reviews.length > 0 && <TeamReviewsCard reviews={team.reviews} base={base} />}
+            <TeamMonthCard members={team.members} base={base} monthStart={monthStart} />
+          </>
         )}
 
         {(trend || pay) && (
@@ -367,40 +441,12 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
   );
 }
 
-function monthName(iso: string) {
-  return new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`));
-}
-const shortMonth = (iso: string) => new Intl.DateTimeFormat('en-IN', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`));
-const shortDay = (iso: string) => new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`));
 const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const num = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
-const KPI_TONES = { primary: 'text-primary', success: 'text-success', info: 'text-info', warning: 'text-warning', danger: 'text-danger' } as const;
-
-function Kpi({ label, value, note, tone, href }: { label: string; value: string; note: string; tone: keyof typeof KPI_TONES; href?: string }) {
-  const body = (
-    <>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">{label}</p>
-      <p className={cn('mt-2 text-[26px] font-bold leading-none tabular-nums tracking-tight', KPI_TONES[tone])}>{value}</p>
-      <p className="mt-2 truncate text-xs text-muted">{note}</p>
-    </>
-  );
-  const cls = 'lift block rounded-2xl border border-line bg-surface p-4';
-  return href ? <Link href={href} className={cls}>{body}</Link> : <div className={cls}>{body}</div>;
-}
-
-function Card({ title, meta, badge, action, flush, children }: { title: string; meta?: string; badge?: string; action?: ReactNode; flush?: boolean; children: ReactNode }) {
-  return (
-    <section aria-label={title.replace(/^\W+\s*/u, '')} className="lift-soft rounded-2xl border border-line bg-surface">
-      <header className="flex flex-wrap items-center justify-between gap-3 px-5 pb-1 pt-4">
-        <h2 className="flex items-center gap-2 text-[15px] font-semibold">{title}
-          {badge && <span className="rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">{badge}</span>}
-        </h2>
-        {action ?? (meta && <span className="text-xs text-muted">{meta}</span>)}
-      </header>
-      <div className={flush ? 'pb-2 pt-2' : 'px-5 pb-5 pt-3'}>{children}</div>
-    </section>
-  );
+function directOnly(team: NonNullable<Desks['team']>): NonNullable<Desks['team']> {
+  const members = team.members.filter((m) => m.direct);
+  const ids = new Set(members.map((m) => m.id));
+  return { ...team, members, away: team.away.filter((a) => ids.has(a.employee_id)), events: team.events.filter((e) => ids.has(e.employee_id)) };
 }
 
 function Bars({ data, format, tone = 'primary' }: { data: Array<{ label: string; value: number }>; format?: (n: number) => string; tone?: 'primary' | 'success' }) {
