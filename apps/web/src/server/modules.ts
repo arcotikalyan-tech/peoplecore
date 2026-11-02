@@ -30,6 +30,6 @@ export async function requireModule(orgId: string, key: ModuleKey) {
 
 export const orgControls = cache(async (orgId: string) => {
   const supabase = await createClient();
-  const { data } = await supabase.from('org_controls').select('block_self_edit, salary_history_visible, birthdays_visible, require_mfa, notify_data_changes').eq('organization_id', orgId).maybeSingle();
-  return data ?? { block_self_edit: false, salary_history_visible: true, birthdays_visible: true, require_mfa: false, notify_data_changes: false };
+  const { data } = await supabase.from('org_controls').select('block_self_edit, salary_history_visible, birthdays_visible, require_mfa, notify_data_changes, auto_employee_record').eq('organization_id', orgId).maybeSingle();
+  return data ?? { block_self_edit: false, salary_history_visible: true, birthdays_visible: true, require_mfa: false, notify_data_changes: false, auto_employee_record: true };
 });

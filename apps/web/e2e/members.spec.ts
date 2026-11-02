@@ -58,9 +58,9 @@ test('HR invites someone with their employee record, re-roles, suspends and remo
   await expect(invite.getByRole('checkbox', { name: /^Organization owner/ })).toHaveCount(0);
   await expect(invite.getByRole('checkbox', { name: /^Employee/ })).toBeChecked();
 
-  // A new record is the default: without a first name nothing is sent.
+  // A new record is the default (Settings › Controls adds one for everyone): without a first name nothing is sent.
   await invite.getByLabel('Work email').fill(email);
-  await expect(invite.getByRole('radio', { name: /^Add their employee record/ })).toBeChecked();
+  await expect(invite.getByRole('checkbox', { name: /^Add their employee record/ })).toBeChecked();
   await invite.getByRole('button', { name: 'Send invitation' }).click();
   await expect(invite.getByText('First name is required')).toBeVisible();
   expect(await memberRoleKeys()).toEqual([]);
@@ -118,10 +118,14 @@ test('someone with the Employee role but no record is flagged under Employees, a
   await open(hr, '/app/demo/members');
   const invite = hr.locator('form').filter({ has: hr.getByRole('button', { name: 'Send invitation' }) });
   await invite.getByLabel('Work email').fill(unrecorded);
-  await invite.getByRole('radio', { name: /^No employee record/ }).check();
+  // Unticking leaves the record out and marks them as not an employee (an accountant, an auditor); Undo takes it back.
+  await invite.getByRole('checkbox', { name: /^Add their employee record/ }).uncheck();
+  await expect(invite.getByText('No employee record: they can sign in with their roles', { exact: false })).toBeVisible();
   await invite.getByRole('button', { name: 'Send invitation' }).click();
-  await expect(hr.getByText(`${unrecorded} already has a PeopleCore sign-in and was added.`, { exact: false })).toBeVisible();
+  await expect(hr.getByText(`${unrecorded} already has a PeopleCore sign-in and was added. Access starts the next time they open PeopleCore. They have no employee record.`)).toBeVisible();
   const row = hr.getByRole('row').filter({ hasText: unrecorded });
+  await expect(row.getByText('Not an employee: no employee record.')).toBeVisible();
+  await row.getByRole('button', { name: 'Undo' }).click();
   await expect(row.getByText('No employee record: they can’t punch in, apply for leave or be paid.', { exact: false })).toBeVisible();
 
   await open(hr, '/app/demo/employees');

@@ -35,7 +35,7 @@ export async function saveControlsAction(slug: string, _prev: ActionState, formD
   const supabase = await createClient();
   const { error } = await supabase.from('org_controls').update({
     block_self_edit: formData.get('blockSelfEdit') === 'on', salary_history_visible: formData.get('salaryHistory') === 'on', birthdays_visible: formData.get('birthdays') === 'on',
-    notify_data_changes: formData.get('notifyChanges') === 'on',
+    notify_data_changes: formData.get('notifyChanges') === 'on', auto_employee_record: formData.get('autoEmployeeRecord') === 'on',
   }).eq('organization_id', ctx.org.id);
   if (error) return { ok: false, message: toUserMessage(error) };
   return done(slug, 'Controls saved.');

@@ -78,7 +78,7 @@ export function EmailRulesForm({ action, events, audiences, personal = [], on }:
   );
 }
 
-export function ControlsForm({ action, c }: { action: Action; c: { block_self_edit: boolean; salary_history_visible: boolean; birthdays_visible: boolean; notify_data_changes: boolean } }) {
+export function ControlsForm({ action, c }: { action: Action; c: { block_self_edit: boolean; salary_history_visible: boolean; birthdays_visible: boolean; notify_data_changes: boolean; auto_employee_record: boolean } }) {
   const [state, formAction] = useActionState(action, initialActionState);
   const row = (name: string, on: boolean, title: string, note: string) => (
     <label className="flex items-start gap-3 rounded-xl border border-line p-4 text-sm">
@@ -89,6 +89,7 @@ export function ControlsForm({ action, c }: { action: Action; c: { block_self_ed
   return (
     <form action={formAction} aria-label="Controls" className="space-y-3">
       <FormMessage state={state} />
+      {row('autoEmployeeRecord', c.auto_employee_record, 'Add an employee record for everyone added', 'Whoever is invited, or made an owner, gets an employee record linked to their sign-in, so they can punch in, apply for leave and be paid. An invitation can still leave it out for an accountant or an auditor.')}
       {row('blockSelfEdit', c.block_self_edit, 'Nobody edits their own HR record', 'HR and managers can’t change their own employee record or pay. Owners are exempt.')}
       {row('salaryHistory', c.salary_history_visible, 'Employees see their salary revision history', 'Shown under My Pay › Salary structure.')}
       {row('birthdays', c.birthdays_visible, 'Show upcoming birthdays on the dashboard', 'Only names and days, never the year.')}

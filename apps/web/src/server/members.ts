@@ -12,6 +12,14 @@ export async function listMembers(orgId: string) {
 }
 export type Member = Awaited<ReturnType<typeof listMembers>>[number];
 
+/** Members marked as not employees (an accountant, an auditor): no record is added for them. */
+export async function notEmployeeMemberIds(orgId: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('organization_members').select('id').eq('organization_id', orgId).eq('without_employee_record', true);
+  if (error) throw new Error(`Failed to load members (${error.code})`);
+  return new Set(data.map((m) => m.id));
+}
+
 /** Every role in the organization, plus the ids the caller is allowed to grant. */
 export async function roleCatalog(orgId: string) {
   const supabase = await createClient();

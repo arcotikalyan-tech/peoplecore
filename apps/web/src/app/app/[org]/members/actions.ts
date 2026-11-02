@@ -29,11 +29,16 @@ function inviteValues(formData: FormData) {
 export async function inviteMemberAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await authorize(orgSlug);
   if (!ctx) return DENIED;
-  const field = (name: string) => formData.get(name) ?? undefined;
+  const field = (name: string) => formData.get(name) || undefined;
+  // The form's tick: on links the chosen record or adds a new one (or leaves it to the organization's rule when the
+  // inviter can't add employees); off means no record. Without the tick (older forms) `record` says it.
+  const shown = formData.get('recordShown') === '1';
+  const tick = formData.get('addRecord') === 'on';
+  const choice = !shown ? field('record') : !tick ? 'none' : field('employeeId') ? 'existing' : ctx.can('employee.create') ? 'new' : undefined;
   const parsed = inviteMemberSchema.safeParse({
     email: formData.get('email'),
     roleIds: formDataAll(formData, 'roleIds'),
-    record: field('record'),
+    record: choice,
     employeeId: field('employeeId'),
     firstName: field('firstName'),
     lastName: field('lastName'),
@@ -41,6 +46,8 @@ export async function inviteMemberAction(orgSlug: string, _prev: ActionState, fo
   });
   if (!parsed.success) return { ...invalid(parsed.error, formData), values: inviteValues(formData) };
   const { email, roleIds, record } = parsed.data;
+  // "No record" was chosen (not just left to the organization's rule): the member is marked as not an employee.
+  const withoutRecord = record === 'none' && (!shown || !tick);
   const failed = (message: string): ActionState => ({ ok: false, message, values: inviteValues(formData) });
   if (record === 'new' && !ctx.can('employee.create')) return failed('You don’t have permission to add employees.');
   const supabase = await createClient();
@@ -87,11 +94,13 @@ export async function inviteMemberAction(orgSlug: string, _prev: ActionState, fo
     p_user_id: account.userId,
     p_role_ids: roleIds,
     p_employee_id: employeeId,
+    p_without_record: withoutRecord,
   });
   if (error) return failedAfterRecord(record === 'new' ? `they couldn’t be given access: ${toUserMessage(error)}` : toUserMessage(error));
 
   revalidatePath(`/app/${orgSlug}/members`);
-  const added = record === 'new' ? ' Their employee record is added under Employees.' : '';
+  const added = record === 'new' ? ' Their employee record is added under Employees.'
+    : withoutRecord ? ' They have no employee record.' : record === 'none' ? ' An employee record is added for them if your organization adds one for everyone.' : '';
   return {
     ok: true,
     message: account.invited
@@ -203,4 +212,39 @@ export async function unlinkEmployeeAction(orgSlug: string, _prev: ActionState, 
   if (error) return { ok: false, message: toUserMessage(error) };
   revalidatePath(`/app/${ctx.org.slug}`, 'layout');
   return { ok: true, message: 'Unlinked.' };
+}
+
+/** Users & roles › Add their employee records: one for every member without one who isn't marked as not an employee. */
+export async function addMissingRecordsAction(orgSlug: string, _prev: ActionState): Promise<ActionState> {
+  const ctx = await authorize(orgSlug);
+  if (!ctx) return DENIED;
+  if (!ctx.can('employee.create')) return { ok: false, message: 'You don’t have permission to add employees.' };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('add_missing_employee_records', { p_org: ctx.org.id });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath(`/app/${orgSlug}`, 'layout');
+  return data
+    ? { ok: true, message: `Added ${data} employee record${data === 1 ? '' : 's'}, joining today. Fill in their details under Employees.` }
+    : { ok: true, message: 'Nobody needed one: the rest couldn’t be added (your plan’s employee limit) or are marked as not employees.' };
+}
+
+/** Marks a member as not an employee (an accountant, an auditor), or undoes it. */
+async function setWithoutRecord(orgSlug: string, formData: FormData, without: boolean): Promise<ActionState> {
+  const ctx = await authorize(orgSlug);
+  if (!ctx) return DENIED;
+  const memberId = z.uuid().safeParse(formData.get('memberId'));
+  if (!memberId.success) return { ok: false, message: 'Choose a member.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_member_without_record', { p_member: memberId.data, p_without: without });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath(`/app/${orgSlug}/members`);
+  return { ok: true, message: without ? 'Marked as not an employee.' : 'They can get an employee record again.' };
+}
+
+export async function markNotEmployeeAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  return setWithoutRecord(orgSlug, formData, true);
+}
+
+export async function unmarkNotEmployeeAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  return setWithoutRecord(orgSlug, formData, false);
 }

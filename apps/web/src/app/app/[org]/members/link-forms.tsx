@@ -26,6 +26,17 @@ export function LinkEmployeeForm({ action, memberId, email, options }: { action:
   );
 }
 
+/** A one-button form for the whole organization (add everyone's employee records). */
+export function OrgButton({ action, label, aria, variant = 'secondary' }: { action: Action; label: string; aria: string; variant?: 'ghost' | 'secondary' }) {
+  const [state, formAction] = useActionState(action, initialActionState);
+  return (
+    <form action={formAction} aria-label={aria} className="inline-flex flex-wrap items-center gap-2">
+      <SubmitButton size="sm" variant={variant} pendingLabel="Adding…">{label}</SubmitButton>
+      <Result state={state} />
+    </form>
+  );
+}
+
 /** A one-button form carrying the member id (unlink, send a password link). */
 export function MemberButton({ action, memberId, label, aria, variant = 'ghost' }: { action: Action; memberId: string; label: string; aria: string; variant?: 'ghost' | 'secondary' }) {
   const [state, formAction] = useActionState(action, initialActionState);

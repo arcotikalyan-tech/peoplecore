@@ -5283,6 +5283,7 @@ export type Database = {
           updated_at: string;
           require_mfa: boolean;
           notify_data_changes: boolean;
+          auto_employee_record: boolean;
         };
         Insert: {
           organization_id: string;
@@ -5292,6 +5293,7 @@ export type Database = {
           updated_at?: string;
           require_mfa?: boolean;
           notify_data_changes?: boolean;
+          auto_employee_record?: boolean;
         };
         Update: {
           organization_id?: string;
@@ -5301,6 +5303,7 @@ export type Database = {
           updated_at?: string;
           require_mfa?: boolean;
           notify_data_changes?: boolean;
+          auto_employee_record?: boolean;
         };
         Relationships: [];
       };
@@ -5361,6 +5364,7 @@ export type Database = {
           invited_by: string | null;
           created_at: string;
           updated_at: string;
+          without_employee_record: boolean;
         };
         Insert: {
           id?: string;
@@ -5370,6 +5374,7 @@ export type Database = {
           invited_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          without_employee_record?: boolean;
         };
         Update: {
           id?: string;
@@ -5379,6 +5384,7 @@ export type Database = {
           invited_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          without_employee_record?: boolean;
         };
         Relationships: [];
       };
@@ -9200,8 +9206,15 @@ export type Database = {
           p_user_id: string;
           p_role_ids: string[];
           p_employee_id?: string;
+          p_without_record?: boolean;
         };
         Returns: string;
+      };
+      add_missing_employee_records: {
+        Args: {
+          p_org: string;
+        };
+        Returns: number;
       };
       add_ticket_attachment: {
         Args: {
@@ -11093,6 +11106,13 @@ export type Database = {
         Args: {
           p_member: string;
           p_role_ids: string[];
+        };
+        Returns: undefined;
+      };
+      set_member_without_record: {
+        Args: {
+          p_member: string;
+          p_without: boolean;
         };
         Returns: undefined;
       };

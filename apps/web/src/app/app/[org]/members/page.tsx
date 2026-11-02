@@ -5,12 +5,14 @@ import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
 import { Table, Td, Th } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/format';
 import { requirePermission } from '@/server/context';
-import { listMembers, memberSignInStatus, roleCatalog, unlinkedEmployees } from '@/server/members';
+import { listMembers, memberSignInStatus, notEmployeeMemberIds, roleCatalog, unlinkedEmployees } from '@/server/members';
+import { orgControls } from '@/server/modules';
 import {
-  inviteMemberAction, linkEmployeeAction, removeMemberAction, sendPasswordLinkAction, setMemberRolesAction, setMemberStatusAction, unlinkEmployeeAction,
+  addMissingRecordsAction, inviteMemberAction, linkEmployeeAction, markNotEmployeeAction, removeMemberAction, sendPasswordLinkAction, setMemberRolesAction,
+  setMemberStatusAction, unlinkEmployeeAction, unmarkNotEmployeeAction,
 } from './actions';
 import { InviteForm } from './invite-form';
-import { LinkEmployeeForm, MemberButton } from './link-forms';
+import { LinkEmployeeForm, MemberButton, OrgButton } from './link-forms';
 import { MemberActions } from './member-actions';
 
 export const metadata: Metadata = { title: 'Users & roles' };
@@ -21,11 +23,13 @@ const statusLabel = { active: 'Active', invited: 'Invited', suspended: 'Suspende
 export default async function MembersPage({ params }: { params: Promise<{ org: string }> }) {
   const { org: slug } = await params;
   const ctx = await requirePermission(slug, 'member.manage', 'org');
-  const [members, { roles, grantableIds }, employees, signIn] = await Promise.all([
+  const [members, { roles, grantableIds }, employees, signIn, notEmployees, controls] = await Promise.all([
     listMembers(ctx.org.id),
     roleCatalog(ctx.org.id),
     unlinkedEmployees(ctx.org.id),
     memberSignInStatus(ctx.org.id),
+    notEmployeeMemberIds(ctx.org.id),
+    orgControls(ctx.org.id),
   ]);
   const canLink = ctx.can('employee.update', 'org');
   const canCreate = ctx.can('employee.create');
@@ -34,10 +38,21 @@ export default async function MembersPage({ params }: { params: Promise<{ org: s
   const grantable = new Set(grantableIds);
   const ownerLevel = ctx.can('role.manage', 'org');
   const employeeRole = roles.find((r) => r.key === 'employee');
+  // People who can sign in but have no employee record, so can't punch in, apply for leave or be paid.
+  const missing = members.filter((m) => !m.employee_id && m.status !== 'suspended' && !notEmployees.has(m.member_id)).length;
 
   return (
     <>
       <PageHeader title="Users & roles" description={`Who can sign in to ${ctx.org.name} and what they can do: employees, and anyone else you give access (an accountant, an auditor). Employee records themselves are under Employees. Every change is audited.`} />
+      {missing > 0 && canCreate && (
+        <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm">
+          <span>
+            <span className="font-medium">{missing} {missing === 1 ? 'person has' : 'people have'} no employee record</span>
+            <span className="block text-xs text-muted">Without one they can’t punch in, apply for leave or be paid. Mark anyone who doesn’t work for you (an accountant, an auditor) as not an employee first.</span>
+          </span>
+          <OrgButton action={addMissingRecordsAction.bind(null, slug)} label="Add their employee records" aria="Add employee records for everyone without one" />
+        </div>
+      )}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
           <Table caption="Users">
@@ -64,14 +79,20 @@ export default async function MembersPage({ params }: { params: Promise<{ org: s
                           <span>Employee: {m.employee_name}</span>
                           {canLink && (manageable || isSelf) && <MemberButton action={unlinkEmployeeAction.bind(null, slug)} memberId={m.member_id} label="Unlink" aria={`Unlink ${m.email} from ${m.employee_name}`} />}
                         </div>
+                      ) : notEmployees.has(m.member_id) ? (
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                          <span>Not an employee: no employee record.</span>
+                          {(manageable || isSelf) && <MemberButton action={unmarkNotEmployeeAction.bind(null, slug)} memberId={m.member_id} label="Undo" aria={`${m.email} is an employee after all`} />}
+                        </div>
                       ) : (
                         <>
                           {/* Without a record they can sign in but not punch in, apply for leave or be paid, and aren't under Employees. */}
-                          <div className={`text-xs ${employeeRole && m.role_ids.includes(employeeRole.id) ? 'text-warning' : 'text-muted'}`}>
-                            No employee record{employeeRole && m.role_ids.includes(employeeRole.id) ? ': they can’t punch in, apply for leave or be paid' : ''}.
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-warning">
+                            <span>No employee record: they can’t punch in, apply for leave or be paid.</span>
                             {canCreate && (manageable || isSelf) && m.email && (
-                              <> <Link href={`/app/${slug}/employees/new?workEmail=${encodeURIComponent(m.email)}`} className="font-medium text-primary hover:underline">Add employee record</Link></>
+                              <Link href={`/app/${slug}/employees/new?workEmail=${encodeURIComponent(m.email)}`} className="font-medium text-primary hover:underline">Add employee record</Link>
                             )}
+                            {(manageable || isSelf) && <MemberButton action={markNotEmployeeAction.bind(null, slug)} memberId={m.member_id} label="Not an employee" aria={`${m.email} doesn’t work here: no employee record`} />}
                           </div>
                           {canLink && (manageable || isSelf) && employees.length > 0 && (
                             <LinkEmployeeForm action={linkEmployeeAction.bind(null, slug)} memberId={m.member_id} email={m.email ?? ''} options={employees} />
@@ -131,6 +152,7 @@ export default async function MembersPage({ params }: { params: Promise<{ org: s
             defaultRoleIds={employeeRole ? [employeeRole.id] : []}
             employees={employees}
             newRecordDate={canCreate ? todayIn(ctx.org.timezone) : undefined}
+            recordByDefault={controls.auto_employee_record}
             rolesHint={ownerLevel ? undefined : 'HR administrator, payroll, auditor and owner roles can only be granted by an owner.'}
           />
         </Card>
