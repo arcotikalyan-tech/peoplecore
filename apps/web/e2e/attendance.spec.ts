@@ -55,10 +55,35 @@ test('the employee checks in from the browser', async ({ page }) => {
   await open(page, '/app/demo/attendance');
   const before = (await admin.from('attendance_punches').select('id').eq('employee_id', devId).gte('received_at', startedAt)).data!.length;
   await page.getByRole('button', { name: /^Check (in|out)$/ }).click();
-  await expect(page.getByText(/^Punch recorded at /)).toBeVisible();
-  const { data } = await admin.from('attendance_punches').select('method, source_key').eq('employee_id', devId).gte('received_at', startedAt);
+  await expect(page.getByText(/^Check-(in|out) at /)).toBeVisible();
+  const { data } = await admin.from('attendance_punches').select('method, source_key, kind').eq('employee_id', devId).gte('received_at', startedAt);
   expect(data).toHaveLength(before + 1);
-  expect(data!.at(-1)).toMatchObject({ method: 'web', source_key: expect.stringMatching(new RegExp(`^web:${devId}:`)) });
+  expect(data!.at(-1)).toMatchObject({ method: 'web', source_key: expect.stringMatching(new RegExp(`^web:${devId}:`)), kind: expect.stringMatching(/^(in|out)$/) });
+});
+
+test('the employee takes lunch and a break between check-in and check-out', async ({ page }) => {
+  await signIn(page, 'demo.employee');
+  await open(page, '/app/demo/attendance');
+  const today = page.getByRole('region', { name: 'Today' });
+  if (await today.getByRole('button', { name: 'Check in' }).isVisible()) {
+    await today.getByRole('button', { name: 'Check in' }).click();
+    await expect(page.getByText(/^Check-in at /)).toBeVisible();
+  }
+  // Checked in: lunch, a break or check-out. On lunch: only its end.
+  await today.getByRole('button', { name: 'Start lunch' }).click();
+  await expect(page.getByText(/^Lunch started at /)).toBeVisible();
+  await expect(today.getByRole('button', { name: 'Start break' })).toHaveCount(0);
+  await expect(today.getByRole('button', { name: 'Check out' })).toHaveCount(0);
+  await today.getByRole('button', { name: 'End lunch' }).click();
+  await expect(page.getByText(/^Lunch ended at /)).toBeVisible();
+  await today.getByRole('button', { name: 'Start break' }).click();
+  await expect(page.getByText(/^Break started at /)).toBeVisible();
+  await today.getByRole('button', { name: 'End break' }).click();
+  await expect(page.getByText(/^Break ended at /)).toBeVisible();
+  await expect(today.getByText(/Lunch started \d.*Lunch ended \d.*Break started \d.*Break ended \d/)).toBeVisible();
+
+  const { data } = await admin.from('attendance_punches').select('kind').eq('employee_id', devId).gte('received_at', startedAt).order('punched_at');
+  expect(data!.slice(-4).map((p) => p.kind)).toEqual(['lunch_start', 'lunch_end', 'break_start', 'break_end']);
 });
 
 test('a missed day is regularized and the manager approves it', async ({ browser }) => {

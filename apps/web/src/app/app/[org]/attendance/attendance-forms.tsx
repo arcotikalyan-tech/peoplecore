@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useRef, useState, useTransition } from 'react';
-import { describePenalty, PENALTY_METHOD_LABELS, PENALTY_METHODS, SHORT_HOURS_METHODS, type PenaltyMethod } from '@peoplecore/shared';
+import { describePenalty, PENALTY_METHOD_LABELS, PENALTY_METHODS, PUNCH_ACTIONS, SHORT_HOURS_METHODS, type PenaltyMethod, type PunchKind } from '@peoplecore/shared';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { Button } from '@/components/ui/button';
@@ -12,21 +12,24 @@ import type { RuleValues } from './rule-values';
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
 /**
- * Check in / check out. Each click gets its own punch id, so a retry after a network error is recorded once.
- * The location is sent when the browser allows it; without it the punch still counts (and may be flagged
- * for review where the workplace has a geofence).
+ * Check in, lunch, breaks, check out: a button for each punch that can come next (nextPunches). Each click gets its
+ * own punch id, so a retry after a network error is recorded once. The location is sent when the browser allows it;
+ * without it the punch still counts (and may be flagged for review where the workplace has a geofence). A photo is
+ * good for one punch: the next one needs a new selfie.
  */
-export function PunchButton({ action, label, selfie: needsSelfie = false }: { action: Action; label: string; selfie?: boolean }) {
+export function PunchButtons({ action, kinds, selfie: needsSelfie = false }: { action: Action; kinds: PunchKind[]; selfie?: boolean }) {
   const [state, formAction] = useActionState(action, initialActionState);
   const [pending, startTransition] = useTransition();
   const [locating, setLocating] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
-  // Show the camera when the rule asks for a selfie, or once a check-in was refused for lack of one.
+  const [shot, setShot] = useState(0);
+  // Show the camera when the rule asks for a selfie, or once a punch was refused for lack of one.
   const askSelfie = needsSelfie || (!state.ok && /selfie/i.test(state.message ?? ''));
 
-  async function punch() {
+  async function punch(kind: PunchKind) {
     const fd = new FormData();
     fd.set('clientId', crypto.randomUUID());
+    fd.set('kind', kind);
     setLocating(true);
     const pos = await new Promise<GeolocationPosition | null>((resolve) => {
       if (!('geolocation' in navigator)) return resolve(null);
@@ -38,14 +41,26 @@ export function PunchButton({ action, label, selfie: needsSelfie = false }: { ac
       fd.set('longitude', pos.coords.longitude.toFixed(6));
       fd.set('accuracy', String(Math.round(pos.coords.accuracy)));
     }
-    if (photo) fd.set('selfie', photo);
+    if (photo) {
+      fd.set('selfie', photo);
+      setPhoto(null);
+      setShot((n) => n + 1);
+    }
     startTransition(() => formAction(fd));
   }
 
+  const busy = pending || locating;
   return (
     <div className="space-y-2">
-      {askSelfie && <SelfieCamera onPhoto={setPhoto} />}
-      <Button onClick={punch} disabled={pending || locating || (askSelfie && !photo)}>{locating ? 'Getting location…' : pending ? 'Recording…' : label}</Button>
+      {askSelfie && <SelfieCamera key={shot} onPhoto={setPhoto} />}
+      <div className="flex flex-wrap gap-2">
+        {kinds.map((kind) => (
+          <Button key={kind} variant={kind === 'lunch_start' || kind === 'break_start' ? 'secondary' : 'primary'}
+            onClick={() => void punch(kind)} disabled={busy || (askSelfie && !photo)}>
+            {busy ? (locating ? 'Getting location…' : 'Recording…') : PUNCH_ACTIONS[kind]}
+          </Button>
+        ))}
+      </div>
       <FormMessage state={state} />
     </div>
   );
@@ -103,7 +118,7 @@ function SelfieCamera({ onPhoto }: { onPhoto: (file: File | null) => void }) {
   }
   return (
     <div className="space-y-2 text-sm" aria-label="Selfie">
-      <p className="text-muted">📸 Your attendance rule needs a selfie with each check-in and check-out.</p>
+      <p className="text-muted">📸 Your attendance rule needs a selfie with every punch: check-in, lunch, breaks and check-out.</p>
       {stream && <video ref={video} playsInline muted aria-label="Camera preview" onPlaying={() => setLive(true)} className="w-full max-w-xs -scale-x-100 rounded-lg bg-black" />}
       {/* eslint-disable-next-line @next/next/no-img-element -- a photo just taken, as a data URL */}
       {preview && <img src={preview} alt="Your selfie" className="w-full max-w-xs -scale-x-100 rounded-lg" />}

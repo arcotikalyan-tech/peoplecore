@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { SubTabs } from '@/components/ui/hub';
 import { Badge } from '@/components/ui/surface';
+import { punchLabels } from '@peoplecore/shared';
 import { formatDate, humanize } from '@/lib/format';
 import { getMyMonth, getRegularizations } from '@/server/attendance';
 import { aiAvailable } from '@/server/ai';
@@ -84,6 +85,9 @@ export async function AttendanceTab(p: ProfileProps) {
     // HR can ask the AI whether a check-in photo looks live (a suggestion; they decide whether to flag it).
     const photoCheck = !isSelf && ctx.can('attendance.manage', 'org') && punches.some((x) => x.selfie_path) && await aiAvailable(ctx);
     const day = (await getMyMonth(id, `${date.slice(0, 7)}-01`).catch(() => [] as Awaited<ReturnType<typeof getMyMonth>>)).find((d) => d.work_date === date);
+    // Lunch and break punches sit between the check-in and the check-out.
+    const labels = punchLabels(punches);
+    const checks = punches.filter((_, i) => labels[i] === 'Check-in' || labels[i] === 'Check-out');
     return (
       <>
         {nav}
@@ -92,9 +96,10 @@ export async function AttendanceTab(p: ProfileProps) {
           {date < today && <Link className="rounded-lg px-2 py-1 hover:bg-subtle" href={href('attendance', { view: 'logs', date: shiftDay(date, 1) })}>Next ›</Link>}
         </span>}>
           <Fields items={[
-            { label: '↓ Clock in', value: time(punches[0]?.punched_at ?? day?.first_in ?? null) },
-            { label: '↑ Clock out', value: punches.length > 1 ? time(punches.at(-1)!.punched_at) : time(day?.last_out ?? null) },
+            { label: '↓ Clock in', value: time(checks[0]?.punched_at ?? day?.first_in ?? null) },
+            { label: '↑ Clock out', value: checks.length > 1 ? time(checks.at(-1)!.punched_at) : time(day?.last_out ?? null) },
             { label: '⏱ Work duration', value: day?.worked_minutes ? hm(day.worked_minutes) : '—' },
+            { label: '☕ Lunch and breaks', value: day?.break_minutes ? hm(day.break_minutes) : '—' },
             { label: 'Status', value: day ? humanize(day.status) : '—' },
             { label: 'Late by', value: day?.late_minutes ? `${day.late_minutes} min` : '—' },
             { label: 'Regularized', value: day?.is_regularized ? 'Yes' : 'No' },
@@ -105,7 +110,7 @@ export async function AttendanceTab(p: ProfileProps) {
                 <thead className="text-left text-[11px] uppercase tracking-wider text-muted"><tr><th className="py-2">SI No</th><th>Time</th><th>Type</th><th>Location</th><th>Photo</th></tr></thead>
                 <tbody className="divide-y divide-line">
                   {punches.map((x, i) => (
-                    <tr key={x.id}><td className="py-2">{i + 1}</td><td>{time(x.punched_at)}</td><td>{i % 2 === 0 ? 'In' : 'Out'} · {humanize(x.method)}</td>
+                    <tr key={x.id}><td className="py-2">{i + 1}</td><td>{time(x.punched_at)}</td><td>{labels[i]} · {humanize(x.method)}</td>
                       <td>{x.latitude !== null && x.longitude !== null ? `${Number(x.latitude).toFixed(4)}, ${Number(x.longitude).toFixed(4)}` : '—'}</td>
                       <td className="py-1">{x.selfie_path ? (
                         <a href={`/app/${slug}/attendance/selfie/${x.id}`} target="_blank" rel="noreferrer" aria-label={`Check-in photo at ${time(x.punched_at)}`}>

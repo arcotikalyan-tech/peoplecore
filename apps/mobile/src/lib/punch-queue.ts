@@ -1,3 +1,5 @@
+import type { PunchKind } from '@peoplecore/shared/punches';
+
 /**
  * Offline-first check-in. A punch is stored on the device first, with a client id made once, and sent to
  * `record_punch` when there is a connection. The database records each client id once, so retries and a
@@ -18,6 +20,8 @@ export interface QueuedPunch {
   accuracyM: number | null;
   /** A selfie taken with the punch (a file on this device), when the attendance rule asks for one. */
   photoUri?: string;
+  /** Check in or out, start or end lunch or a break. Punches saved before this was kept have none (in or out by place). */
+  kind?: PunchKind;
   /** Set when the server refused it for good. */
   refused?: string;
 }

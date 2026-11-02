@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { sniffDocumentType } from '@peoplecore/shared';
+import { PUNCH_KINDS, sniffDocumentType } from '@peoplecore/shared';
 import { toUserMessage } from '@/lib/db-errors';
 import { APP_CORS, appCaller } from '@/server/app-token';
 import { removeDocumentFile, SELFIE_BUCKET, storeDocumentFile } from '@/server/document-storage';
 
 /**
- * A check-in or check-out from the phone app with a selfie (when the attendance rule asks for one): the website's
+ * A punch from the phone app (check in or out, lunch, a break) with a selfie (when the attendance rule asks for one): the website's
  * punchAction for the app. The app sends its sign-in token; the punch is recorded as that person (record_punch, RLS),
  * and the photo is stored by the server in the private bucket under their own employee folder, only after the token
  * and their employee record check out. Files never reach storage any other way. Punches without a photo go straight
@@ -22,6 +22,7 @@ const fields = z.object({
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   accuracy: z.coerce.number().int().min(0).max(100000).optional(),
+  kind: z.enum(PUNCH_KINDS).optional(),
 });
 
 const CORS = APP_CORS;
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
   const ip = (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || '').slice(0, 64) || undefined;
   const { data: id, error } = await supabase.rpc('record_punch', {
     p_client_id: p.clientId, p_punched_at: p.punchedAt, p_method: 'mobile', p_latitude: p.latitude, p_longitude: p.longitude,
-    p_accuracy_m: p.accuracy, p_org: p.orgId, p_ip: ip, p_selfie_path: path,
+    p_accuracy_m: p.accuracy, p_org: p.orgId, p_ip: ip, p_selfie_path: path, p_kind: p.kind,
   });
   if (error) {
     await removeDocumentFile(path, SELFIE_BUCKET);

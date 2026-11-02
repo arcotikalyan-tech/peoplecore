@@ -1,25 +1,45 @@
+import { dayProgress, nextPunches, punchState, type PauseKind, type PunchKind, type PunchLike } from '@peoplecore/shared/punches';
+
 /**
- * Today's attendance from the punches: they alternate in, out, in, out, so an odd count means checked in. Worked time
- * adds each in–out pair and, while checked in, the time since the last check-in. No React Native imports: tested in Node.
+ * Today's attendance from the punches (check in and out, with lunch and breaks between; a punch without a kind is a
+ * check-in or check-out by its place). A full day is the rule's day of work plus its break at work: 8 hours with an
+ * hour's break is 9 hours, and lunch and breaks beyond the hour add to it. No React Native imports: tested in Node.
  */
 export interface Day {
   state: 'not_in' | 'in' | 'out';
+  /** On lunch or a break that hasn't ended. */
+  paused: PauseKind | null;
   firstIn: string | null;
   lastOut: string | null;
-  workedMinutes: number;
+  /** Time at work so far: each check-in to its check-out, and up to now while checked in. */
+  atWorkMinutes: number;
+  /** Lunch and breaks so far. */
+  breakMinutes: number;
+  /** Time at work a full day takes: the day's work plus the rule's break, or the breaks taken if longer. */
+  fullDayMinutes: number;
+  /** What can be punched next. */
+  next: PunchKind[];
 }
 
-export function today(punchTimes: string[], now: Date): Day {
-  const times = [...punchTimes].sort();
-  let worked = 0;
-  for (let i = 0; i + 1 < times.length; i += 2) worked += Date.parse(times[i + 1]!) - Date.parse(times[i]!);
-  const checkedIn = times.length % 2 === 1;
-  if (checkedIn) worked += Math.max(0, now.getTime() - Date.parse(times[times.length - 1]!));
+/** The rule's day: minutes of work for a full and a half day, and the break that comes off a day longer than half. */
+export interface DayRule { fullDayMinutes: number; halfDayMinutes: number; breakMinutes: number }
+export const DEFAULT_DAY: DayRule = { fullDayMinutes: 480, halfDayMinutes: 240, breakMinutes: 60 };
+
+const isCheck = (p: PunchLike) => p.kind == null || p.kind === 'in' || p.kind === 'out';
+
+export function today(punches: readonly PunchLike[], now: Date, rule: DayRule = DEFAULT_DAY): Day {
+  const checks = punches.filter(isCheck).sort((a, b) => Date.parse(a.punched_at) - Date.parse(b.punched_at));
+  const state = punchState(punches);
+  const progress = dayProgress(punches, now, rule);
   return {
-    state: times.length === 0 ? 'not_in' : checkedIn ? 'in' : 'out',
-    firstIn: times[0] ?? null,
-    lastOut: !checkedIn && times.length ? times[times.length - 1]! : null,
-    workedMinutes: Math.floor(worked / 60_000),
+    state: checks.length === 0 ? 'not_in' : state.checkedIn ? 'in' : 'out',
+    paused: state.paused,
+    firstIn: checks[0]?.punched_at ?? null,
+    lastOut: !state.checkedIn && checks.length ? checks[checks.length - 1]!.punched_at : null,
+    atWorkMinutes: progress.atWorkMinutes,
+    breakMinutes: progress.breakMinutes,
+    fullDayMinutes: progress.atWorkMinutes + progress.toFullDayMinutes,
+    next: nextPunches(state),
   };
 }
 

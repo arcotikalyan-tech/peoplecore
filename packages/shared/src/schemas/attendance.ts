@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDate, optionalUuid, requiredText, uuid } from './common.ts';
+import { PUNCH_KINDS } from '../punches.ts';
 
 /** Mirrors the attendance enums and checks (migrations 20261018001300, 20261019000100). */
 export const ATTENDANCE_STATUSES = ['present', 'half_day', 'absent', 'on_leave', 'weekly_off', 'holiday', 'not_marked', 'wfh', 'on_duty'] as const;
@@ -17,6 +18,8 @@ export const punchSchema = z.object({
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   accuracy: z.coerce.number().int().min(0).max(100000).optional(),
+  /** Check in or out, start or end lunch or a break (record_punch keeps them in order). */
+  kind: z.enum(PUNCH_KINDS).optional(),
 });
 
 export const regularizationSchema = z

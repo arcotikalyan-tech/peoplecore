@@ -8,7 +8,7 @@ import { allRows } from './all-rows';
 export async function getPunches(orgId: string, employeeId: string, hoursBack: number) {
   const fromIso = new Date(Date.now() - hoursBack * 3600_000).toISOString();
   const supabase = await createClient();
-  const { data, error } = await supabase.from('attendance_punches').select('id, punched_at, method')
+  const { data, error } = await supabase.from('attendance_punches').select('id, punched_at, method, kind')
     .eq('organization_id', orgId).eq('employee_id', employeeId).gte('punched_at', fromIso).order('punched_at');
   if (error) throw new Error(`Failed to load punches (${error.code})`);
   return data;

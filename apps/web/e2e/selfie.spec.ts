@@ -52,7 +52,7 @@ test('on the website, the employee takes a selfie with the camera and checks in'
   await page.getByRole('button', { name: 'Take photo' }).click();
   await expect(page.getByRole('img', { name: 'Your selfie' })).toBeVisible();
   await punch.click();
-  await expect(page.getByText(/^Punch recorded at /)).toBeVisible();
+  await expect(page.getByText(/^Check-(in|out) at /)).toBeVisible();
   const { data } = await admin.from('attendance_punches').select('method, selfie_path').eq('employee_id', devId).gte('received_at', startedAt);
   expect(data!.at(-1)).toMatchObject({ method: 'web', selfie_path: expect.stringMatching(new RegExp(`^${orgId}/${devId}/`)) });
 });

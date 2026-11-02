@@ -1,22 +1,35 @@
 import { describe, expect, it } from 'vitest';
+import type { PunchKind } from '@peoplecore/shared/punches';
 import { daysToFix, monthTotals, shiftTime, today } from '../src/lib/worked';
 
 const at = (hhmm: string) => `2026-10-31T${hhmm}:00.000Z`;
+const p = (hhmm: string, kind: PunchKind | null = null) => ({ punched_at: at(hhmm), kind });
 
 describe('today’s attendance from punches', () => {
-  it('is not checked in with no punches', () => {
-    expect(today([], new Date(at('10:00')))).toEqual({ state: 'not_in', firstIn: null, lastOut: null, workedMinutes: 0 });
+  it('is not checked in with no punches, and offers check-in', () => {
+    expect(today([], new Date(at('10:00')))).toEqual({
+      state: 'not_in', paused: null, firstIn: null, lastOut: null, atWorkMinutes: 0, breakMinutes: 0, fullDayMinutes: 540, next: ['in'],
+    });
   });
-  it('counts the time since the check-in while checked in', () => {
-    const d = today([at('04:00')], new Date(at('06:30')));
-    expect(d).toMatchObject({ state: 'in', firstIn: at('04:00'), lastOut: null, workedMinutes: 150 });
+  it('counts down from 9 hours at work after checking in (8 hours of work and an hour’s break), not 8', () => {
+    const d = today([p('04:00', 'in')], new Date(at('04:05')));
+    expect(d).toMatchObject({ state: 'in', atWorkMinutes: 5, fullDayMinutes: 540, next: ['lunch_start', 'break_start', 'out'] });
+    expect(d.fullDayMinutes - d.atWorkMinutes).toBe(535); // 8h 55m to a full day
   });
-  it('adds each in–out pair, in time order whatever order they arrive in', () => {
-    const d = today([at('09:00'), at('04:00'), at('08:00'), at('06:00')], new Date(at('12:00')));
-    expect(d).toMatchObject({ state: 'out', firstIn: at('04:00'), lastOut: at('09:00'), workedMinutes: 180 });
+  it('a lunch that is on offers only its end; breaks past the hour make the day longer', () => {
+    const d = today([p('04:00', 'in'), p('08:00', 'lunch_start')], new Date(at('09:30')));
+    expect(d).toMatchObject({ state: 'in', paused: 'lunch', breakMinutes: 90, fullDayMinutes: 570, next: ['lunch_end'] });
+  });
+  it('adds each in–out pair, in time order whatever order they arrive in, and reads punches without a kind by place', () => {
+    const d = today([p('09:00'), p('04:00'), p('08:00'), p('06:00')], new Date(at('12:00')));
+    expect(d).toMatchObject({ state: 'out', firstIn: at('04:00'), lastOut: at('09:00'), atWorkMinutes: 180 });
+  });
+  it('takes the check-in and check-out from check punches, not lunch or breaks', () => {
+    const d = today([p('04:00', 'in'), p('08:00', 'lunch_start'), p('08:30', 'lunch_end'), p('13:00', 'out')], new Date(at('14:00')));
+    expect(d).toMatchObject({ state: 'out', firstIn: at('04:00'), lastOut: at('13:00'), atWorkMinutes: 540, breakMinutes: 30, fullDayMinutes: 540 });
   });
   it('never counts negative time when the phone clock is behind', () => {
-    expect(today([at('10:00')], new Date(at('09:00'))).workedMinutes).toBe(0);
+    expect(today([p('10:00', 'in')], new Date(at('09:00'))).atWorkMinutes).toBe(0);
   });
 });
 

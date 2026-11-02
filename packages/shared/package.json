@@ -8,6 +8,7 @@
     "./password": "./src/password.ts",
     "./org-setup": "./src/org-setup.ts",
     "./dates": "./src/dates.ts",
+    "./punches": "./src/punches.ts",
     "./email": "./src/email.ts"
   },
   "scripts": {

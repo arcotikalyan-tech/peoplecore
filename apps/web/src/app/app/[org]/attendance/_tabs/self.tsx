@@ -1,4 +1,4 @@
-import { addDays, ATTENDANCE_REQUEST_LABELS, ATTENDANCE_STATUS_LABELS, LEAVE_STATUS_LABELS, type AttendanceStatus } from '@peoplecore/shared';
+import { addDays, ATTENDANCE_REQUEST_LABELS, ATTENDANCE_STATUS_LABELS, LEAVE_STATUS_LABELS, nextPunches, punchLabels, punchState, type AttendanceStatus } from '@peoplecore/shared';
 import { BarChart } from '@/components/ui/charts';
 import { cn } from '@/components/ui/cn';
 import { Panel, StatCard } from '@/components/ui/hub';
@@ -9,7 +9,7 @@ import type { OrgContext } from '@/server/context';
 import { getMyMonth, getPunches, getRegularizations } from '@/server/attendance';
 import { attendanceRequests, myRule, regularizationCandidates, regularizationWindow } from '@/server/attendance-ops';
 import { bulkRegularizeAction, punchAction, regularizeAction, requestAttendanceAction } from '../actions';
-import { AttendanceRequestForm, PunchButton, RegularizeForm, RuleEditor, WorkWeekGrid } from '../attendance-forms';
+import { AttendanceRequestForm, PunchButtons, RegularizeForm, RuleEditor, WorkWeekGrid } from '../attendance-forms';
 import { ruleValues } from '../rule-values';
 import { BulkRegularizeForm } from '../automation-client';
 import { clock, hours, StatusChip } from './status';
@@ -61,9 +61,11 @@ export async function MyHub({ ctx, slug, me, today }: { ctx: OrgContext; slug: s
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Today · {formatDate(today)}</p>
             <p className="mt-1 text-lg font-semibold">{todayRow ? ATTENDANCE_STATUS_LABELS[todayRow.status as AttendanceStatus] : 'Not marked yet'}</p>
-            <p className="text-sm text-muted">{todayPunches.length ? `Punches: ${todayPunches.map((p) => time(p.punched_at)).join(', ')}` : 'No punches yet today.'}</p>
+            <p className="text-sm text-muted">{todayPunches.length
+              ? punchLabels(todayPunches).map((label, i) => `${label} ${time(todayPunches[i]!.punched_at)}`).join(' · ')
+              : 'No punches yet today.'}</p>
           </div>
-          <PunchButton action={punchAction.bind(null, slug)} label={todayPunches.length % 2 === 0 ? 'Check in' : 'Check out'} selfie={!!rule?.shift?.verify_selfie} />
+          <PunchButtons action={punchAction.bind(null, slug)} kinds={nextPunches(punchState(todayPunches))} selfie={!!rule?.shift?.verify_selfie} />
         </section>
         <section aria-label="This month at a glance" className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard label="Days present" value={f.present} note="incl. WFH and on duty" tone="success" />
@@ -71,7 +73,7 @@ export async function MyHub({ ctx, slug, me, today }: { ctx: OrgContext; slug: s
           <StatCard label="Average check-in" value={f.avgIn} note="this month" tone="info" />
           <StatCard label="Average worked" value={hours(f.avgWorked)} note="per day worked" tone="primary" />
         </section>
-        <Panel title="This month" meta="worked time excludes the shift break" flush>
+        <Panel title="This month" meta="worked time excludes the rule’s break, or the lunch and breaks taken if longer" flush>
           <Table caption="Your attendance this month">
             <thead><tr><Th>Day</Th><Th>Status</Th><Th>In</Th><Th>Out</Th><Th>Worked</Th><Th>Late</Th></tr></thead>
             <tbody>

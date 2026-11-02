@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import {
   attendanceRequestSchema, attendanceRuleSchema, bulkRegularizationSchema, checkDocumentFile, attendanceSettingsSchema, deviceSchema, geofenceSchema, parseCsv,
-  parseDeviceCsvRows, punchSchema, regularizationSchema, rosterSchema, shiftSchema, weekPatternFromForm, workWeekSchema, zonePoints, zoneSchema,
+  parseDeviceCsvRows, PUNCH_LABELS, punchSchema, regularizationSchema, rosterSchema, shiftSchema, weekPatternFromForm, workWeekSchema, zonePoints, zoneSchema,
 } from '@peoplecore/shared';
 import { z } from 'zod';
 import { formDataAll, formValues, invalid, sqlNull, type ActionState } from '@/lib/action-state';
@@ -38,13 +38,16 @@ export async function punchAction(orgSlug: string, _prev: ActionState, formData:
   const { error } = await supabase.rpc('record_punch', {
     p_client_id: parsed.data.clientId, p_method: 'web', p_latitude: parsed.data.latitude, p_longitude: parsed.data.longitude,
     p_accuracy_m: parsed.data.accuracy, p_org: ctx.org.id, p_ip: (await requestIp()) ?? undefined, p_selfie_path: selfie ?? undefined,
+    p_kind: parsed.data.kind,
   });
   if (error) {
     if (selfie) await removeDocumentFile(selfie, SELFIE_BUCKET);
     return { ok: false, message: toUserMessage(error) };
   }
   revalidatePath(`/app/${orgSlug}/attendance`);
-  return { ok: true, message: `Punch recorded at ${new Date().toLocaleTimeString('en-IN', { timeZone: ctx.org.timezone, hour: '2-digit', minute: '2-digit' })}.` };
+  const when = new Date().toLocaleTimeString('en-IN', { timeZone: ctx.org.timezone, hour: '2-digit', minute: '2-digit' });
+  revalidatePath(`/app/${orgSlug}`);
+  return { ok: true, message: `${parsed.data.kind ? PUNCH_LABELS[parsed.data.kind] : 'Punch recorded'} at ${when}.` };
 }
 
 const rotationSchema = z.object({

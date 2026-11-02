@@ -9,14 +9,18 @@ import { takeSelfie } from './selfie';
 import { selfieRequired } from './selfie-rule';
 import { useSession } from './session';
 import { supabase } from './supabase';
-import { today as dayFrom, type Day } from './worked';
+import type { PunchKind } from '@peoplecore/shared/punches';
+import { DEFAULT_DAY, today as dayFrom, type Day } from './worked';
 
-export interface Shift { name: string; start_time: string; end_time: string; full_day_minutes: number; verify_selfie: boolean }
+export interface Shift {
+  name: string; start_time: string; end_time: string; verify_selfie: boolean;
+  full_day_minutes: number; half_day_minutes: number; break_minutes: number;
+}
 export type PunchMessage = { tone: 'danger' | 'success' | 'muted'; text: string };
 
 interface TodayState {
   /** Today's punches the server has, and those still on this phone. */
-  punches: Array<{ id: string; punched_at: string; method: string }>;
+  punches: Array<{ id: string; punched_at: string; method: string; kind: PunchKind | null }>;
   pending: QueuedPunch[];
   refused: QueuedPunch[];
   day: Day;
@@ -26,7 +30,8 @@ interface TodayState {
   needsSelfie: boolean;
   busy: boolean;
   message: PunchMessage | null;
-  punch(): Promise<void>;
+  /** Check in or out, start or end lunch or a break. */
+  punch(kind: PunchKind): Promise<void>;
   sync(): Promise<void>;
   dismiss(clientId: string): Promise<void>;
 }
@@ -78,7 +83,7 @@ export function TodayProvider({ children }: { children: ReactNode }) {
     if (!workplace?.employeeId) { setPunches([]); setReady(true); return; }
     void checkSelfie();
     const start = startOfDayIn(todayIn(tz), tz).toISOString();
-    const { data } = await supabase.from('attendance_punches').select('id, punched_at, method')
+    const { data } = await supabase.from('attendance_punches').select('id, punched_at, method, kind')
       .eq('employee_id', workplace.employeeId).gte('punched_at', start).order('punched_at');
     setPunches(data ?? []);
     setReady(true);
@@ -102,7 +107,7 @@ export function TodayProvider({ children }: { children: ReactNode }) {
     return () => { net(); front.remove(); };
   }, [sync]);
 
-  const punch = useCallback(async () => {
+  const punch = useCallback(async (kind: PunchKind) => {
     if (!workplace || !ready) return;
     setBusy(true);
     setMessage(null);
@@ -110,16 +115,16 @@ export function TodayProvider({ children }: { children: ReactNode }) {
       const selfie = await checkSelfie();
       const where = await currentPosition();
       if ('error' in where) return setMessage({ tone: 'danger', text: where.error });
-      // The rule asks for a selfie with each check-in and check-out: the front camera first.
+      // The rule asks for a selfie with every punch (lunch and breaks too): the front camera first.
       let photoUri: string | undefined;
       if (selfie) {
         const shot = await takeSelfie();
         if (!shot || 'error' in shot) {
-          return setMessage(shot ? { tone: 'danger', text: shot.error } : { tone: 'muted', text: 'Take a selfie to check in.' });
+          return setMessage(shot ? { tone: 'danger', text: shot.error } : { tone: 'muted', text: 'Take a selfie to record the punch.' });
         }
         photoUri = shot.uri;
       }
-      await queue.add({ clientId: newClientId(), userId, orgId: workplace.orgId, ...where, ...(photoUri ? { photoUri } : {}) });
+      await queue.add({ clientId: newClientId(), userId, orgId: workplace.orgId, kind, ...where, ...(photoUri ? { photoUri } : {}) });
       await sync();
     } catch {
       setMessage({ tone: 'danger', text: 'Something went wrong. Try again.' });
@@ -134,7 +139,10 @@ export function TodayProvider({ children }: { children: ReactNode }) {
   const value = useMemo<TodayState>(() => {
     const pending = queued.filter((q) => !q.refused);
     const refused = queued.filter((q) => q.refused);
-    const day = dayFrom([...punches.map((p) => p.punched_at), ...pending.map((p) => p.punchedAt)], now);
+    const rule = shift
+      ? { fullDayMinutes: shift.full_day_minutes, halfDayMinutes: shift.half_day_minutes, breakMinutes: shift.break_minutes }
+      : DEFAULT_DAY;
+    const day = dayFrom([...punches, ...pending.map((p) => ({ punched_at: p.punchedAt, kind: p.kind ?? null }))], now, rule);
     return { punches, pending, refused, day, ready, shift, needsSelfie, busy, message, punch, sync, dismiss };
   }, [punches, queued, now, ready, shift, needsSelfie, busy, message, punch, sync, dismiss]);
 

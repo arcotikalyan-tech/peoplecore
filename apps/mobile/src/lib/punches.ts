@@ -21,7 +21,7 @@ async function send(p: QueuedPunch) {
   try {
     const { error } = await supabase.rpc('record_punch', {
       p_client_id: p.clientId, p_punched_at: p.punchedAt, p_method: 'mobile',
-      p_latitude: p.latitude, p_longitude: p.longitude, p_accuracy_m: p.accuracyM, p_org: p.orgId,
+      p_latitude: p.latitude, p_longitude: p.longitude, p_accuracy_m: p.accuracyM, p_org: p.orgId, ...(p.kind ? { p_kind: p.kind } : {}),
     } as never);
     return classify(error);
   } catch {
@@ -46,6 +46,7 @@ async function sendWithPhoto(p: QueuedPunch, photoUri: string) {
     if (p.latitude !== null) form.append('latitude', String(p.latitude));
     if (p.longitude !== null) form.append('longitude', String(p.longitude));
     if (p.accuracyM !== null) form.append('accuracy', String(p.accuracyM));
+    if (p.kind) form.append('kind', p.kind);
     if (Platform.OS === 'web') form.append('selfie', await (await fetch(photoUri)).blob(), 'selfie.jpg');
     // Expo's fetch reads the file itself; a bare { uri } part (React Native's old way) is refused.
     else form.append('selfie', new File(photoUri) as unknown as Blob, 'selfie.jpg');

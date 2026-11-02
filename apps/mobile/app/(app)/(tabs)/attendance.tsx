@@ -92,7 +92,8 @@ export default function Attendance() {
                 <>
                   <DetailRow label="Check in" value={live.firstIn ? clock(live.firstIn, tz) : '—'} />
                   <DetailRow label="Check out" value={live.lastOut ? clock(live.lastOut, tz) : '—'} />
-                  <DetailRow label="Worked so far" value={duration(live.workedMinutes)} last />
+                  <DetailRow label="Lunch and breaks" value={live.breakMinutes ? duration(live.breakMinutes) : '—'} />
+                  <DetailRow label="At work so far" value={duration(live.atWorkMinutes)} last />
                 </>
               ) : chosen ? (
                 <>

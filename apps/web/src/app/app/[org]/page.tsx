@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 import { Sparkles } from 'lucide-react';
-import { todayIn } from '@peoplecore/shared';
+import { dayProgress, nextPunches, punchLabels, punchState, todayIn } from '@peoplecore/shared';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/components/ui/cn';
 import { EmptyState } from '@/components/ui/surface';
@@ -23,7 +23,8 @@ import { getBalances } from '@/server/leave';
 import { orgSetup } from '@/server/setup';
 import { viewModeFor } from '@/server/view';
 import { punchAction } from './attendance/actions';
-import { PunchButton } from './attendance/attendance-forms';
+import { PunchButtons } from './attendance/attendance-forms';
+import { hours } from './attendance/_tabs/status';
 import { DismissInsight, QuickAccess, type QuickTile } from './dashboard-client';
 import { SetupCard } from './setup/checklist';
 
@@ -87,6 +88,12 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
   const nextHolidays = holidays.filter((h) => !seen.has(h.holiday_date + h.name) && seen.add(h.holiday_date + h.name)).slice(0, 4);
   const liveAnnouncements = announcements.filter((a) => !a.expires_at || a.expires_at >= today).slice(0, 3);
   const shift = rule?.shift ?? null;
+  // Today so far: a full day is the rule's day of work plus its break at work (8 hours and an hour: 9), longer by any
+  // lunch and breaks past the hour.
+  const progressState = punchState(todayPunches);
+  const progress = shift ? dayProgress(todayPunches, new Date(), {
+    fullDayMinutes: shift.full_day_minutes, halfDayMinutes: shift.half_day_minutes, breakMinutes: shift.break_minutes,
+  }) : null;
 
   const summary = [
     work.approvals ? `${work.approvals} approval${work.approvals === 1 ? '' : 's'} waiting for you` : null,
@@ -282,9 +289,17 @@ export default async function Dashboard({ params }: { params: Promise<{ org: str
         {me && (
           <section aria-label="Work hours" className="lift-soft rounded-2xl border border-primary/20 bg-gradient-to-b from-warning-soft/60 to-surface p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">⏱ Work hours</p>
-            {todayPunches.length > 0 && <p className="mt-1 text-sm text-muted">Punches today: {todayPunches.map((p) => time(p.punched_at)).join(', ')}</p>}
-            <div className="mt-3 [&_button]:h-11 [&_button]:w-full [&_button]:rounded-xl [&_button]:text-[15px]">
-              <PunchButton action={punchAction.bind(null, slug)} label={todayPunches.length % 2 === 0 ? '🕐 Clock In' : '🕐 Clock Out'} selfie={!!shift?.verify_selfie} />
+            {todayPunches.length > 0 && (
+              <p className="mt-1 text-sm text-muted">{punchLabels(todayPunches).map((label, i) => `${label} ${time(todayPunches[i]!.punched_at)}`).join(' · ')}</p>
+            )}
+            {progress && progress.atWorkMinutes > 0 && (
+              <p className="mt-1 text-sm">
+                At work {hours(progress.atWorkMinutes)}{progress.breakMinutes > 0 ? ` · breaks ${hours(progress.breakMinutes)}` : ''}
+                {progressState.checkedIn && ` · ${progress.toFullDayMinutes > 0 ? `${hours(progress.toFullDayMinutes)} to a full day` : 'full day done'}`}
+              </p>
+            )}
+            <div className="mt-3 [&_button]:h-11 [&_button]:min-w-[8rem] [&_button]:flex-1 [&_button]:rounded-xl [&_button]:text-[15px]">
+              <PunchButtons action={punchAction.bind(null, slug)} kinds={nextPunches(progressState)} selfie={!!shift?.verify_selfie} />
             </div>
             <p className="mt-2 text-center text-xs text-muted">Office hours: {shift ? `${shift.start_time.slice(0, 5)} – ${shift.end_time.slice(0, 5)}` : '—'}</p>
           </section>
