@@ -6,7 +6,8 @@ import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { AttendanceCard } from '@/components/attendance-card';
 import { MyTeamCard, TeamRoleBanner, WorkCard } from '@/components/desks';
 import { DateLeaf, QuickActions, Stat, type QuickAction } from '@/components/quick-actions';
-import { availableUpdate, UPDATE_PAGE } from '@/lib/app-update';
+import { UpdateSheet } from '@/components/update-sheet';
+import { availableUpdate } from '@/lib/app-update';
 import { useCounts } from '@/lib/counts';
 import { loadDesks } from '@/lib/desks';
 import { ago, dateParts, dateRange, dayMonth, days, firstName, greeting, inr, monthYear, plainText, relativeDay } from '@/lib/format';
@@ -36,6 +37,7 @@ export default function Home() {
   const { workplace, refreshWorkplace } = useSession();
   const { unread, refresh: refreshCounts } = useCounts();
   const [showNet, setShowNet] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const tz = workplace?.timezone ?? 'Asia/Kolkata';
   const today = todayIn(tz);
   const emp = workplace?.employeeId ?? null;
@@ -108,8 +110,8 @@ export default function Home() {
       <ListRow key="profile" icon="person-add-outline" tone="warning" title="Complete your profile" subtitle={`${profileDone} of ${PROFILE_PARTS.length} done · HR needs these to pay you`} onPress={() => router.push('/profile')} />
     ),
     data.update && (
-      <ListRow key="update" icon="arrow-down-circle-outline" tone="success" title="Update PeopleCore" external
-        subtitle={`Version ${data.update} is ready. Download it and install over this one; you stay signed in.`} onPress={() => void Linking.openURL(UPDATE_PAGE)} />
+      <ListRow key="update" icon="arrow-down-circle-outline" tone="success" title="Update PeopleCore"
+        subtitle={`Version ${data.update.versionCode} is ready (${Math.round(data.update.size / 1_000_000)} MB). Tap to update; you stay signed in.`} onPress={() => setUpdating(true)} />
     ),
   ].filter(Boolean) : [];
 
@@ -263,6 +265,7 @@ export default function Home() {
           </View>
         </View>
       )}
+      {updating && <UpdateSheet onClose={() => setUpdating(false)} />}
     </Page>
   );
 }

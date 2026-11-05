@@ -29,8 +29,15 @@ needs new website code (an `/api/mobile` route, a page it opens), ship the websi
 
 **What the team does:** open the link on the phone, Download, open the file and Install (the page explains Chrome's
 warning, allowing installs from the browser once, and Play Protect). Later versions: the app shows **Update
-PeopleCore** on Home (it asks the website at most once an hour); they tap it and install over the old one, staying
-signed in. Builds older than the first one with this check (2 Nov 2026) have to be updated once by hand from the page.
+PeopleCore** on Home (it asks the website at most once an hour). They tap it, the app downloads the update and opens
+Android's install screen, and they tap Update, staying signed in. The first time, Android asks once to allow installs
+from PeopleCore. Google Play Protect may also stop the install as an app it hasn't seen ("App scan recommended"): More
+details, then Install without scanning or Install anyway; the sheet says so. On a slow phone that check can take a
+minute or more behind "Updating…". Android allows no more than this outside a store: an app can't install itself
+silently. If the app can't finish, the sheet offers the download page.
+
+Versions 212 to 215 show the same notice but send people to the download page, so they update once that way. Versions
+before 212 have no notice and need the link.
 
 **Going back:** Android won't install a lower version over a higher one, so there is no rollback for phones: fix
 forward and publish again.
@@ -79,7 +86,9 @@ and only builds with the same key can update apps installed from /android.
 ### Google Play (later)
 
 `--profile production` builds the bundle Google Play wants; `npx eas-cli@latest submit --platform android` uploads it.
-That needs a Google Play developer account (a one-time fee) and the store listing.
+That needs a Google Play developer account (a one-time fee) and the store listing. Play updates apps itself and
+restricts `REQUEST_INSTALL_PACKAGES`, so a Play build should drop that permission and the in-app update
+(`availableUpdate`, `UpdateSheet`).
 
 ## What the app needs from the server
 

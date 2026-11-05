@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 const STEPS = [
   { icon: Download, t: 'Download', b: 'Tap Download on your Android phone. If Chrome says this type of file can harm your device, tap Download anyway: it comes straight from PeopleCore.' },
-  { icon: PackageCheck, t: 'Install', b: 'Open the file from the notification. The first time, Android asks to allow installs from your browser: tap Settings, turn on Allow from this source and go back. If Play Protect asks, choose Install anyway.' },
+  { icon: PackageCheck, t: 'Install', b: 'Open the file from the notification. The first time, Android asks to allow installs from your browser: tap Settings, turn on Allow from this source and go back. If Google Play Protect asks, tap More details, then Install without scanning or Install anyway.' },
   { icon: KeyRound, t: 'Sign in', b: 'Open PeopleCore and sign in with your work email and password, the same as on the website.' },
 ];
 
@@ -89,8 +89,9 @@ export default async function AndroidAppPage() {
             <div>
               <h3 className="font-semibold">Updates</h3>
               <p className="mt-2 text-sm text-muted">
-                When there’s a new version, the app shows <strong className="font-medium text-fg">Update PeopleCore</strong> on its Home screen. Tap it,
-                download and install over the old one: you stay signed in and nothing is lost. Android only for now; on an iPhone, use PeopleCore in Safari.
+                When there’s a new version, the app shows <strong className="font-medium text-fg">Update PeopleCore</strong> on its Home screen. Tap it, and
+                the app downloads the update and opens Android’s install screen to confirm: you stay signed in and nothing is lost. Android only for now; on an
+                iPhone, use PeopleCore in Safari.
               </p>
             </div>
           </div>
