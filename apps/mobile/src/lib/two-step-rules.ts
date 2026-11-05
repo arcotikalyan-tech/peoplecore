@@ -10,3 +10,14 @@ export function codeNeeded(s: { currentLevel: string | null | undefined; require
 export function groupKey(secret: string): string {
   return secret.replace(/\s+/g, '').match(/.{1,4}/g)?.join(' ') ?? '';
 }
+
+/**
+ * What to say when signing in fails. A connection that dropped or timed out isn't a wrong password: Supabase reports
+ * those as AuthRetryableFetchError (also for its own 502, 503 and 504).
+ */
+export function signInProblem(error: { name?: string } | null): string | null {
+  if (!error) return null;
+  return error.name === 'AuthRetryableFetchError'
+    ? 'Couldn’t reach PeopleCore. Check your connection and try again.'
+    : 'That email and password don’t match.';
+}

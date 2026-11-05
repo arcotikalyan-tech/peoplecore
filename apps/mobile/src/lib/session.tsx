@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { AppState } from 'react-native';
 import { forgetPhone } from './push';
 import { supabase } from './supabase';
-import { codeNeeded } from './two-step-rules';
+import { codeNeeded, signInProblem } from './two-step-rules';
 import { pickWorkplace, sameWorkplace, type OrgChoice } from './workplace-choice';
 
 export interface Workplace {
@@ -144,7 +144,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     refreshWorkplace,
     async signIn(email, password) {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      return error ? 'That email and password don’t match.' : null;
+      return signInProblem(error);
     },
     async verifyCode(code) {
       const { data: factors } = await supabase.auth.mfa.listFactors();

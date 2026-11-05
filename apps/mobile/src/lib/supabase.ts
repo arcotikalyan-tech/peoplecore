@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { chunkedStore } from './chunked-store';
+import { DATABASE_TIMEOUT_MS, timedFetch } from './timeout';
 
 /**
  * Supabase as the signed-in person: the publishable key only (RLS decides everything; the secret key never
@@ -18,7 +19,10 @@ const webStore = {
   removeItem: async (k: string) => { globalThis.localStorage?.removeItem(k); },
 };
 
+const global = { fetch: timedFetch(DATABASE_TIMEOUT_MS) };
+
 export const supabase = createClient(url ?? 'http://127.0.0.1:54321', key ?? 'not-configured', {
+  global,
   auth: {
     storage: Platform.OS === 'web' ? webStore : chunkedStore(SecureStore),
     autoRefreshToken: true,
@@ -31,6 +35,7 @@ export const supabase = createClient(url ?? 'http://127.0.0.1:54321', key ?? 'no
 export async function passwordIsRight(email: string, password: string): Promise<boolean> {
   const memory = new Map<string, string>();
   const check = createClient(url ?? 'http://127.0.0.1:54321', key ?? 'not-configured', {
+    global,
     auth: {
       persistSession: false, autoRefreshToken: false, detectSessionInUrl: false,
       storage: { getItem: async (k) => memory.get(k) ?? null, setItem: async (k, v) => { memory.set(k, v); }, removeItem: async (k) => { memory.delete(k); } },
