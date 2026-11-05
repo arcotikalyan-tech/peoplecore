@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { todayIn } from '@peoplecore/shared';
+import { newestUnread, todayIn } from '@peoplecore/shared';
 import { ActionForm } from '@/components/action-form';
 import { ButtonLink } from '@/components/ui/button';
 import { Card, CardHeader, PageHeader } from '@/components/ui/surface';
@@ -11,8 +11,9 @@ import { getMyEmployee } from '@/server/employees';
 import { getInbox } from '@/server/inbox';
 import { delegateApprovalsAction, endDelegationAction } from '../approvals/actions';
 import { DelegateForm } from '../approvals/approval-forms';
-import { completeTaskAction, decideApprovalAction, markNotificationsReadAction } from './actions';
+import { completeTaskAction, decideApprovalAction, markNotificationsSeenAction } from './actions';
 import { ApprovalsPanel, CompleteTask } from './inbox-forms';
+import { NotificationsCard } from './notifications-card';
 
 export const metadata: Metadata = { title: 'Inbox' };
 
@@ -28,7 +29,6 @@ export default async function InboxPage({ params }: { params: Promise<{ org: str
   ]);
   const memberName = new Map(members.map((m) => [m.user_id, m.name]));
   const base = `/app/${slug}`;
-  const unread = notifications.filter((n) => !n.read_at).length;
 
   return (
     <>
@@ -74,30 +74,15 @@ export default async function InboxPage({ params }: { params: Promise<{ org: str
           </Card>
         </div>
         <div className="space-y-6">
-        <Card>
-          <CardHeader
-            title="Notifications"
-            description={unread ? `${unread} unread` : 'All caught up'}
-            actions={unread > 0 && (
-              <form action={markNotificationsReadAction.bind(null, slug)}>
-                <button className="text-sm font-medium text-primary hover:underline">Mark all read</button>
-              </form>
-            )}
-          />
-          {notifications.length === 0 ? (
-            <p className="px-5 py-4 text-sm text-muted">No notifications yet.</p>
-          ) : (
-            <ul className="divide-y divide-line" aria-label="Notifications">
-              {notifications.map((n) => (
-                <li key={n.id} className={`px-5 py-3 text-sm ${n.read_at ? '' : 'bg-primary-soft/40'}`}>
-                  <p className="font-medium">{n.link ? <Link className="hover:underline" href={`${base}${n.link}`}>{n.title}</Link> : n.title}</p>
-                  {n.body && <p className="text-muted">{n.body}</p>}
-                  <p className="mt-0.5 text-xs text-muted">{formatDateTime(n.created_at, ctx.org.timezone)}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        <NotificationsCard
+          markSeen={markNotificationsSeenAction.bind(null, slug)}
+          through={newestUnread(notifications)}
+          items={notifications.map((n) => ({
+            id: n.id, title: n.title, body: n.body, unread: !n.read_at,
+            href: n.link ? `${base}${n.link}` : null,
+            when: formatDateTime(n.created_at, ctx.org.timezone),
+          }))}
+        />
         <Card>
           <CardHeader title="Away? Delegate your approvals"
             description="Requests from your team also go to a colleague for a few days. HR, finance and offer approvals aren’t delegated." />

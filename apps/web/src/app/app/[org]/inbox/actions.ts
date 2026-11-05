@@ -32,12 +32,15 @@ export async function decideApprovalAction(orgSlug: string, _prev: ActionState, 
   return { ok: true, message: data === 'pending' ? 'Approved. It moves to the next approver.' : data === 'approved' ? 'Approved.' : 'Rejected.' };
 }
 
-export async function markNotificationsReadAction(orgSlug: string): Promise<void> {
+/** The list has been on screen: marks read everything up to the newest shown (one arriving since stays unread). */
+export async function markNotificationsSeenAction(orgSlug: string, through: string): Promise<void> {
+  const seen = z.iso.datetime({ offset: true }).safeParse(through);
+  if (!seen.success) return;
   const ctx = await getOrgContext(orgSlug);
   const supabase = await createClient();
-  await supabase.from('notifications').update({ read_at: new Date().toISOString() })
-    .eq('organization_id', ctx.org.id).is('read_at', null);
-  revalidatePath(`/app/${orgSlug}`, 'layout');
+  const { error } = await supabase.from('notifications').update({ read_at: new Date().toISOString() })
+    .eq('organization_id', ctx.org.id).is('read_at', null).lte('created_at', seen.data);
+  if (!error) revalidatePath(`/app/${orgSlug}`, 'layout'); // otherwise they stay unread and the next visit tries again
 }
 
 export async function completeTaskAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

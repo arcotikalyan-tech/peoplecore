@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { screenFor } from '../src/lib/push-links';
+import { screenFor, tappedNotification } from '../src/lib/push-links';
+
+describe('the notification a tapped push was', () => {
+  it('is its kind and link, with an empty link read as none', () => {
+    expect(tappedNotification({ kind: 'leave.decided', link: '/leave', org: 'acme' })).toEqual({ kind: 'leave.decided', link: '/leave' });
+    expect(tappedNotification({ kind: 'payslip.ready', link: '' })).toEqual({ kind: 'payslip.ready', link: null });
+  });
+  it('is nothing for a push without a kind', () => {
+    expect(tappedNotification({ link: '/leave' })).toBeNull();
+    expect(tappedNotification(undefined)).toBeNull();
+  });
+});
 
 describe('tapping a notification', () => {
   it('opens the phone’s own screen for that part of the app, else the Inbox', () => {

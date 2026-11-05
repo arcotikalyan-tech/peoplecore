@@ -1,6 +1,7 @@
 export * from './permissions.ts';
 export * from './dates.ts';
 export * from './punches.ts';
+export * from './notifications.ts';
 export * from './desks.ts';
 export * from './pagination.ts';
 export * from './employee.ts';

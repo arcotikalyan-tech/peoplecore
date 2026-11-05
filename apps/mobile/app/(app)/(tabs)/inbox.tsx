@@ -1,15 +1,18 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { newestUnread, SEEN_AFTER_MS } from '@peoplecore/shared/notifications';
+import * as Notifications from 'expo-notifications';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Pressable, StyleSheet, View } from 'react-native';
 import { useCounts } from '@/lib/counts';
 import { decisionMessage, decisionProblem, refusalMessage } from '@/lib/decisions';
 import { ago } from '@/lib/format';
+import { pushSupported } from '@/lib/push';
 import { screenFor } from '@/lib/push-links';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import { must, useLoad } from '@/lib/use-load';
 import {
-  Avatar, Banner, Button, Card, EmptyState, ErrorState, Field, IconTile, LinkButton, Page, Pill, Segmented, Sheet, SkeletonList, space, TabHeader, Text,
+  Avatar, Banner, Button, Card, EmptyState, ErrorState, Field, IconTile, Page, Pill, Segmented, Sheet, SkeletonList, space, TabHeader, Text,
   useTheme, useToast, type IconName, type Tone,
 } from '@/ui';
 
@@ -27,7 +30,8 @@ const kindOf = (kind: string): [IconName, Tone] => KIND[kind.split('.')[0] ?? ''
 
 /**
  * The Inbox: requests waiting for your decision (approve, or reject with a reason, as on the website) and your
- * notifications. Tapping a notification marks it read and opens its screen.
+ * notifications. The list counts as read once it has been on screen for a moment, as on the website (see
+ * @peoplecore/shared/notifications); what was unread stays highlighted until the next visit. Tapping one opens its screen.
  */
 export default function Inbox() {
   const { workplace } = useSession();
@@ -58,6 +62,38 @@ export default function Inbox() {
   }, [data]);
   const refresh = () => Promise.all([reload(), counts.refresh()]);
 
+  // Seen means this tab on the Notifications view, with the app in front: tabs stay mounted behind one another.
+  const orgId = workplace?.orgId;
+  const refreshCounts = counts.refresh;
+  const [focused, setFocused] = useState(false);
+  const [active, setActive] = useState(AppState.currentState === 'active');
+  const [seenThrough, setSeenThrough] = useState<string | null>(null);
+  useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
+  // A notification that came while the app was away, or arrives now, joins the list instead of only moving the badge.
+  useEffect(() => {
+    const front = AppState.addEventListener('change', (state) => {
+      setActive(state === 'active');
+      if (state === 'active') void reload();
+    });
+    const arrived = pushSupported ? Notifications.addNotificationReceivedListener(() => void reload()) : null;
+    return () => { front.remove(); arrived?.remove(); };
+  }, [reload]);
+  const notes = data?.notes;
+  const through = notes ? newestUnread(notes) : null;
+  const markSeen = useCallback(async (upTo: string) => {
+    if (!orgId) return;
+    const { error } = await supabase.from('notifications').update({ read_at: new Date().toISOString() })
+      .eq('organization_id', orgId).is('read_at', null).lte('created_at', upTo);
+    if (error) return; // offline: they stay unread and the next visit tries again
+    setSeenThrough(upTo);
+    await refreshCounts();
+  }, [orgId, refreshCounts]);
+  useEffect(() => {
+    if (!focused || !active || view !== 'notifications' || !through || through === seenThrough) return;
+    const timer = setTimeout(() => void markSeen(through), SEEN_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, [focused, active, view, through, seenThrough, markSeen]);
+
   const decide = async (a: Approval, decision: 'approve' | 'reject', comment = '') => {
     const p = decisionProblem(decision, comment);
     if (p) return setProblem(p);
@@ -74,26 +110,17 @@ export default function Inbox() {
     toast(decisionMessage(r as string | null));
     await refresh();
   };
-  const open = async (n: Note) => {
-    if (!n.read_at) {
-      await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id);
-      void refresh();
-    }
+  const open = (n: Note) => {
+    if (through && through !== seenThrough) void markSeen(through); // a quick tap: leaving now would stop the timer
     const screen = screenFor(n.link);
     if (screen !== '/(app)/(tabs)/inbox') router.navigate(screen);
   };
-  const markAllRead = async () => {
-    if (!workplace) return;
-    await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('organization_id', workplace.orgId).is('read_at', null);
-    await refresh();
-  };
-  const unread = data?.notes.filter((n) => !n.read_at).length ?? 0;
+  const unread = notes?.filter((n) => !n.read_at && (seenThrough === null || n.created_at > seenThrough)).length ?? 0;
   const approvals = data?.approvals ?? [];
 
   return (
     <Page tab onRefresh={refresh} header={
-      <TabHeader title="Inbox" subtitle={approvals.length ? `${approvals.length} waiting for your decision` : unread ? `${unread} unread` : 'You’re all caught up'}
-        right={view === 'notifications' && unread > 0 ? <LinkButton label="Mark all read" onPress={() => void markAllRead()} /> : undefined} />
+      <TabHeader title="Inbox" subtitle={approvals.length ? `${approvals.length} waiting for your decision` : unread ? `${unread} unread` : 'You’re all caught up'} />
     }>
       <Segmented value={view} onChange={choose} options={[
         { value: 'approvals', label: 'Approvals', count: approvals.length },
@@ -134,7 +161,7 @@ export default function Inbox() {
             const [icon, tone] = kindOf(n.kind);
             return (
               <Pressable key={n.id} accessibilityRole="button" accessibilityLabel={`${n.read_at ? '' : 'Unread. '}${n.title}. ${n.body ?? ''}`}
-                onPress={() => void open(n)} android_ripple={{ color: colors.line }}
+                onPress={() => open(n)} android_ripple={{ color: colors.line }}
                 style={({ pressed }) => [{ flexDirection: 'row', gap: space.md, padding: space.lg, backgroundColor: pressed ? colors.subtle : n.read_at ? 'transparent' : colors.primarySoft },
                   i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.line }]}>
                 <IconTile icon={icon} tone={tone} size={36} />

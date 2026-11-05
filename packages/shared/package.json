@@ -9,6 +9,7 @@
     "./org-setup": "./src/org-setup.ts",
     "./dates": "./src/dates.ts",
     "./punches": "./src/punches.ts",
+    "./notifications": "./src/notifications.ts",
     "./desks": "./src/desks.ts",
     "./email": "./src/email.ts"
   },
