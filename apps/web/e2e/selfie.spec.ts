@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { adminClient, domain, liveEnv, open, signIn, test } from './helpers';
 
 /**
- * Check-in selfies on the demo tenant, with the attendance rules asking for one: Dev opens the camera on the website
- * (Chrome's fake camera), takes the photo and checks in, and HR sees it in his daily log; the phone app's endpoint records a punch with a photo for a
- * signed-in employee and refuses a missing token or a file that isn't a photo. HR asks the AI to check a photo the test
+ * Check-in selfies on the demo tenant, with the attendance rules asking for one: Dev presses a punch on the website, the
+ * camera opens (Chrome's fake camera) and taking the photo records it, every punch with a new photo; HR sees the photos in
+ * Attendance › Logs and in his daily log; the phone app's endpoint records a punch with a photo for a signed-in employee and refuses a missing token or a file that isn't a photo. HR asks the AI to check a photo the test
  * provider reads as a picture of a screen, and flags it for review. The rules and AI settings are put back and the
  * punches, photos and AI runs removed afterwards.
  */
@@ -42,25 +42,67 @@ test.afterAll(async () => {
   await admin.from('attendance_punches').delete().eq('employee_id', devId).gte('received_at', startedAt);
 });
 
-test('on the website, the employee takes a selfie with the camera and checks in', async ({ page }) => {
+test('on the website, pressing a punch asks for the selfie, and taking it records the punch', async ({ page }) => {
   await signIn(page, 'demo.employee');
   await open(page, '/app/demo/attendance');
-  const punch = page.getByRole('button', { name: /^Check (in|out)$/ });
-  await expect(punch).toBeDisabled(); // no photo yet
-  await page.getByRole('button', { name: 'Open camera' }).click();
-  await expect(page.getByLabel('Camera preview')).toBeVisible();
-  await page.getByRole('button', { name: 'Take photo' }).click();
-  await expect(page.getByRole('img', { name: 'Your selfie' })).toBeVisible();
+  const today = page.getByRole('region', { name: 'Today' });
+  const punch = today.getByRole('button', { name: /^Check (in|out)$/ });
+
+  // The button works before any photo. Changing your mind records nothing.
   await punch.click();
+  await expect(page.getByLabel('Camera preview')).toBeVisible();
+  await expect(today.getByText(/^📸 Take a selfie to check (in|out)\.$/)).toBeVisible();
+  await today.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByLabel('Camera preview')).toHaveCount(0);
+  expect((await admin.from('attendance_punches').select('id').eq('employee_id', devId).gte('received_at', startedAt)).data).toEqual([]);
+
+  await punch.click();
+  await today.getByRole('button', { name: 'Take photo' }).click();
   await expect(page.getByText(/^Check-(in|out) at /)).toBeVisible();
+  await expect(page.getByLabel('Camera preview')).toHaveCount(0);
   const { data } = await admin.from('attendance_punches').select('method, selfie_path').eq('employee_id', devId).gte('received_at', startedAt);
   expect(data!.at(-1)).toMatchObject({ method: 'web', selfie_path: expect.stringMatching(new RegExp(`^${orgId}/${devId}/`)) });
 });
 
-test('HR sees the photo with the punch in the employee’s daily log', async ({ page }) => {
+test('after checking in, lunch, a break and check-out work: each asks for a new selfie when pressed', async ({ page }) => {
+  await signIn(page, 'demo.employee');
+  await open(page, '/app/demo/attendance');
+  const today = page.getByRole('region', { name: 'Today' });
+  const withPhoto = async (name: string) => {
+    await today.getByRole('button', { name, exact: true }).click();
+    await today.getByRole('button', { name: 'Take photo' }).click();
+  };
+  if (await today.getByRole('button', { name: 'Check in' }).isVisible()) {
+    await withPhoto('Check in');
+    await expect(page.getByText(/^Check-in at /)).toBeVisible();
+  }
+  for (const name of ['Start lunch', 'Start break', 'Check out']) await expect(today.getByRole('button', { name, exact: true })).toBeEnabled();
+  await withPhoto('Start lunch');
+  await expect(page.getByText(/^Lunch started at /)).toBeVisible();
+  await withPhoto('End lunch');
+  await expect(page.getByText(/^Lunch ended at /)).toBeVisible();
+  const { data } = await admin.from('attendance_punches').select('kind, selfie_path').eq('employee_id', devId).gte('received_at', startedAt).order('punched_at');
+  const lunch = data!.slice(-2);
+  expect(lunch.map((p) => p.kind)).toEqual(['lunch_start', 'lunch_end']);
+  expect(lunch[0]!.selfie_path).toBeTruthy();
+  expect(lunch[1]!.selfie_path).toBeTruthy();
+  expect(lunch[0]!.selfie_path).not.toBe(lunch[1]!.selfie_path);
+});
+
+test('HR sees the photos in Attendance › Logs and in the employee’s daily log', async ({ page }) => {
   await signIn(page, 'demo.hr');
-  await open(page, `/app/demo/employees/${devId}?tab=attendance&view=logs`);
-  const photo = page.getByRole('table', { name: 'Punches' }).getByRole('img', { name: /^Check-in photo at / }).last();
+  await open(page, '/app/demo/attendance?tab=logs&view=daily&q=nair');
+  const row = page.getByRole('row', { name: /Dev Nair/ });
+  const inLog = row.getByRole('img', { name: /^Dev Nair: .* photo at / });
+  await expect(inLog).toHaveCount(2); // the day's first and last
+  await expect(inLog.first()).toHaveJSProperty('complete', true);
+  await expect.poll(() => inLog.first().evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  // The other photos are a click away, in the person's daily log.
+  await row.getByRole('link', { name: /^All \d+ photos of Dev Nair$/ }).click();
+
+  const punches = page.getByRole('table', { name: 'Punches' });
+  await expect(punches.getByRole('img', { name: /^Lunch started photo at / })).toBeVisible();
+  const photo = punches.getByRole('img', { name: /^Check-(in|out) photo at / }).last();
   await expect(photo).toBeVisible();
   const res = await page.request.get((await photo.getAttribute('src'))!);
   expect(res.status()).toBe(200);

@@ -12,70 +12,102 @@ import type { RuleValues } from './rule-values';
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
 /**
- * Check in, lunch, breaks, check out: a button for each punch that can come next (nextPunches). Each click gets its
- * own punch id, so a retry after a network error is recorded once. The location is sent when the browser allows it;
- * without it the punch still counts (and may be flagged for review where the workplace has a geofence). A photo is
- * good for one punch: the next one needs a new selfie.
+ * The browser's position, or null. Its own timeout doesn't run while its permission prompt waits for an answer, so this
+ * has a limit too: nobody stays on "Getting location…".
+ */
+function browserPosition(): Promise<GeolocationPosition | null> {
+  return new Promise((resolve) => {
+    if (!('geolocation' in navigator)) return resolve(null);
+    setTimeout(() => resolve(null), 10_000);
+    navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 4000, maximumAge: 60_000 });
+  });
+}
+
+/**
+ * Check in, lunch, breaks, check out: a button for each punch that can come next (nextPunches). Only the one pressed
+ * shows it's working; the others wait. When the rule asks for a selfie, pressing a button opens the camera and taking the
+ * photo records the punch, as on the phone, so every punch has a new photo. Each press gets its own punch id, so a retry
+ * after a network error is recorded once. The location is sent when the browser allows it; without it the punch still
+ * counts (and may be flagged for review where the workplace has a geofence).
  */
 export function PunchButtons({ action, kinds, selfie: needsSelfie = false }: { action: Action; kinds: PunchKind[]; selfie?: boolean }) {
   const [state, formAction] = useActionState(action, initialActionState);
   const [pending, startTransition] = useTransition();
   const [locating, setLocating] = useState(false);
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [shot, setShot] = useState(0);
-  // Show the camera when the rule asks for a selfie, or once a punch was refused for lack of one.
+  const [pressed, setPressed] = useState<PunchKind | null>(null);
+  const [camera, setCamera] = useState(false);
+  // A selfie is asked for when the rule wants one, or once a punch was refused for lack of one.
   const askSelfie = needsSelfie || (!state.ok && /selfie/i.test(state.message ?? ''));
 
-  async function punch(kind: PunchKind) {
+  async function record(kind: PunchKind, photo?: File) {
+    setCamera(false);
     const fd = new FormData();
     fd.set('clientId', crypto.randomUUID());
     fd.set('kind', kind);
     setLocating(true);
-    const pos = await new Promise<GeolocationPosition | null>((resolve) => {
-      if (!('geolocation' in navigator)) return resolve(null);
-      navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 4000, maximumAge: 60_000 });
-    });
+    const pos = await browserPosition();
     setLocating(false);
     if (pos) {
       fd.set('latitude', pos.coords.latitude.toFixed(6));
       fd.set('longitude', pos.coords.longitude.toFixed(6));
       fd.set('accuracy', String(Math.round(pos.coords.accuracy)));
     }
-    if (photo) {
-      fd.set('selfie', photo);
-      setPhoto(null);
-      setShot((n) => n + 1);
-    }
+    if (photo) fd.set('selfie', photo);
     startTransition(() => formAction(fd));
+  }
+
+  function press(kind: PunchKind) {
+    setPressed(kind);
+    if (askSelfie) setCamera(true);
+    else void record(kind);
   }
 
   const busy = pending || locating;
   return (
     <div className="space-y-2">
-      {askSelfie && <SelfieCamera key={shot} onPhoto={setPhoto} />}
-      <div className="flex flex-wrap gap-2">
-        {kinds.map((kind) => (
-          <Button key={kind} variant={kind === 'lunch_start' || kind === 'break_start' ? 'secondary' : 'primary'}
-            onClick={() => void punch(kind)} disabled={busy || (askSelfie && !photo)}>
-            {busy ? (locating ? 'Getting location…' : 'Recording…') : PUNCH_ACTIONS[kind]}
-          </Button>
-        ))}
-      </div>
+      {camera && pressed ? (
+        <SelfieCamera action={PUNCH_ACTIONS[pressed]} onPhoto={(file) => void record(pressed, file)} onCancel={() => setCamera(false)} />
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-2">
+            {kinds.map((kind) => (
+              <Button key={kind} variant={kind === 'lunch_start' || kind === 'break_start' ? 'secondary' : 'primary'}
+                onClick={() => press(kind)} disabled={busy}>
+                {busy && pressed === kind ? (locating ? 'Getting location…' : 'Recording…') : PUNCH_ACTIONS[kind]}
+              </Button>
+            ))}
+          </div>
+          {askSelfie && <p className="text-xs text-muted">📸 A selfie is taken with each punch.</p>}
+        </>
+      )}
       <FormMessage state={state} />
     </div>
   );
 }
 
 /**
- * The selfie for a check-in: the device's camera, live (front camera where there is one): open it, take the photo,
- * retake if needed. A browser without a camera (or that refuses it) can choose a photo instead.
+ * The selfie a punch asks for, once its button is pressed: the device's camera, live (front camera where there is one).
+ * Taking the photo records the punch. A browser without a camera (or that refuses it) can choose a photo instead.
  */
-function SelfieCamera({ onPhoto }: { onPhoto: (file: File | null) => void }) {
+function SelfieCamera({ action, onPhoto, onCancel }: { action: string; onPhoto: (file: File) => void; onCancel: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [noCamera, setNoCamera] = useState(false);
   const [live, setLive] = useState(false); // the camera's picture is showing (only then can a photo be taken)
+
+  useEffect(() => {
+    let closed = false;
+    void (async () => {
+      try {
+        const opened = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 } }, audio: false });
+        if (closed) opened.getTracks().forEach((t) => t.stop());
+        else setStream(opened);
+      } catch {
+        if (!closed) setNoCamera(true);
+      }
+    })();
+    return () => { closed = true; };
+  }, []);
 
   useEffect(() => {
     if (stream && video.current) {
@@ -85,17 +117,6 @@ function SelfieCamera({ onPhoto }: { onPhoto: (file: File | null) => void }) {
     return () => stream?.getTracks().forEach((t) => t.stop());
   }, [stream]);
 
-  async function open() {
-    setPreview(null);
-    setLive(false);
-    onPhoto(null);
-    try {
-      setStream(await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 } }, audio: false }));
-    } catch {
-      setNoCamera(true);
-    }
-  }
-
   function take() {
     const v = video.current;
     if (!v || !v.videoWidth) return;
@@ -103,28 +124,26 @@ function SelfieCamera({ onPhoto }: { onPhoto: (file: File | null) => void }) {
     canvas.width = Math.min(720, v.videoWidth);
     canvas.height = Math.round((v.videoHeight * canvas.width) / v.videoWidth);
     canvas.getContext('2d')?.drawImage(v, 0, 0, canvas.width, canvas.height);
-    setPreview(canvas.toDataURL('image/jpeg', 0.8));
-    canvas.toBlob((blob) => { if (blob) onPhoto(new File([blob], 'selfie.jpg', { type: 'image/jpeg' })); }, 'image/jpeg', 0.8);
-    setStream(null);
-    setLive(false);
+    setLive(false); // one photo a press
+    canvas.toBlob((blob) => {
+      if (blob) onPhoto(new File([blob], 'selfie.jpg', { type: 'image/jpeg' }));
+      else setLive(true);
+    }, 'image/jpeg', 0.8);
   }
 
-  if (noCamera) {
-    return (
-      <label className="block text-sm">📸 Your attendance rule needs a selfie, and this browser can’t open the camera. Take or choose a photo:
-        <input type="file" accept="image/jpeg,image/png" capture="user" aria-label="Selfie" onChange={(e) => onPhoto(e.target.files?.[0] ?? null)} className="mt-1 block text-sm" />
-      </label>
-    );
-  }
   return (
-    <div className="space-y-2 text-sm" aria-label="Selfie">
-      <p className="text-muted">📸 Your attendance rule needs a selfie with every punch: check-in, lunch, breaks and check-out.</p>
-      {stream && <video ref={video} playsInline muted aria-label="Camera preview" onPlaying={() => setLive(true)} className="w-full max-w-xs -scale-x-100 rounded-lg bg-black" />}
-      {/* eslint-disable-next-line @next/next/no-img-element -- a photo just taken, as a data URL */}
-      {preview && <img src={preview} alt="Your selfie" className="w-full max-w-xs -scale-x-100 rounded-lg" />}
+    <div role="group" aria-label="Selfie" className="space-y-2 text-sm">
+      <p className="font-medium">📸 Take a selfie to {action.toLowerCase()}.</p>
+      {noCamera ? (
+        <label className="block text-muted">This browser can’t open the camera. Take or choose a photo:
+          <input type="file" accept="image/jpeg,image/png" capture="user" aria-label="Choose a selfie" onChange={(e) => { const file = e.target.files?.[0]; if (file) onPhoto(file); }} className="mt-1 block text-sm" />
+        </label>
+      ) : (
+        <video ref={video} playsInline muted aria-label="Camera preview" onPlaying={() => setLive(true)} className="aspect-[4/3] w-full max-w-xs -scale-x-100 rounded-lg bg-black object-cover" />
+      )}
       <div className="flex flex-wrap gap-2">
-        {stream ? <Button type="button" size="sm" onClick={take} disabled={!live}>{live ? 'Take photo' : 'Starting camera…'}</Button>
-          : <Button type="button" size="sm" variant="secondary" onClick={() => void open()}>{preview ? 'Retake' : 'Open camera'}</Button>}
+        {!noCamera && <Button size="sm" onClick={take} disabled={!live}>{live ? 'Take photo' : 'Starting camera…'}</Button>}
+        <Button size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
       </div>
     </div>
   );

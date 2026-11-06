@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chunkedStore, type SecureStore } from '../src/lib/chunked-store';
-import { classify, classifyHttp, PunchQueue, type KeyValueStore, type QueuedPunch, type SendResult } from '../src/lib/punch-queue';
+import { classify, classifyHttp, PunchQueue, waitingPunches, type KeyValueStore, type QueuedPunch, type SendResult } from '../src/lib/punch-queue';
 
 const memory = (): KeyValueStore & { data: Map<string, string> } => {
   const data = new Map<string, string>();
@@ -135,5 +135,18 @@ describe('photo punches through the app server', () => {
     expect(classifyHttp(503, { ok: false, message: 'The selfie couldn’t be stored. It will be sent again.', permanent: false })).toMatchObject({ permanent: false });
     expect(classifyHttp(401, null)).toMatchObject({ permanent: false });
     expect(classifyHttp(0, null)).toEqual({ ok: false, permanent: false, message: 'No connection.' });
+  });
+});
+
+describe('the punches waiting to be sent', () => {
+  const queued = (clientId: string, refused?: string): QueuedPunch => ({ ...punch(clientId), punchedAt: new Date(T0).toISOString(), ...(refused ? { refused } : {}) });
+
+  it('leave out refused ones', () => {
+    expect(waitingPunches([queued('a'), queued('b', 'Too old.')]).map((p) => p.clientId)).toEqual(['a']);
+  });
+
+  it('leave out the one being made, so its button stays on screen until it has gone or is known to wait', () => {
+    expect(waitingPunches([queued('a'), queued('b')], 'b').map((p) => p.clientId)).toEqual(['a']);
+    expect(waitingPunches([queued('a'), queued('b')]).map((p) => p.clientId)).toEqual(['a', 'b']);
   });
 });

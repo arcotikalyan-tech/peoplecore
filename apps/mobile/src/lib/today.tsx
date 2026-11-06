@@ -3,7 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { startOfDayIn, todayIn } from '@peoplecore/shared/dates';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
-import type { QueuedPunch } from './punch-queue';
+import { waitingPunches, type QueuedPunch } from './punch-queue';
 import { currentPosition, newClientId, queue, sendPunch } from './punches';
 import { takeSelfie } from './selfie';
 import { selfieRequired } from './selfie-rule';
@@ -28,7 +28,8 @@ interface TodayState {
   ready: boolean;
   shift: Shift | null;
   needsSelfie: boolean;
-  busy: boolean;
+  /** The punch being made, from the press until it has gone or is known to wait. */
+  punching: PunchKind | null;
   message: PunchMessage | null;
   /** Check in or out, start or end lunch or a break. */
   punch(kind: PunchKind): Promise<void>;
@@ -52,7 +53,7 @@ export function TodayProvider({ children }: { children: ReactNode }) {
   const [queued, setQueued] = useState<QueuedPunch[]>([]);
   const [shift, setShift] = useState<Shift | null>(null);
   const [needsSelfie, setNeedsSelfie] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [making, setMaking] = useState<{ kind: PunchKind; clientId: string } | null>(null);
   const [message, setMessage] = useState<PunchMessage | null>(null);
   const [ready, setReady] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -109,7 +110,8 @@ export function TodayProvider({ children }: { children: ReactNode }) {
 
   const punch = useCallback(async (kind: PunchKind) => {
     if (!workplace || !ready) return;
-    setBusy(true);
+    const clientId = newClientId();
+    setMaking({ kind, clientId });
     setMessage(null);
     try {
       const selfie = await checkSelfie();
@@ -124,27 +126,27 @@ export function TodayProvider({ children }: { children: ReactNode }) {
         }
         photoUri = shot.uri;
       }
-      await queue.add({ clientId: newClientId(), userId, orgId: workplace.orgId, kind, ...where, ...(photoUri ? { photoUri } : {}) });
+      await queue.add({ clientId, userId, orgId: workplace.orgId, kind, ...where, ...(photoUri ? { photoUri } : {}) });
       await sync();
     } catch {
       setMessage({ tone: 'danger', text: 'Something went wrong. Try again.' });
     } finally {
       // Whatever happened, the button never keeps spinning.
-      setBusy(false);
+      setMaking(null);
     }
   }, [workplace, ready, checkSelfie, sync, userId]);
 
   const dismiss = useCallback(async (clientId: string) => { await queue.dismiss(clientId); await load(); }, [load]);
 
   const value = useMemo<TodayState>(() => {
-    const pending = queued.filter((q) => !q.refused);
+    const pending = waitingPunches(queued, making?.clientId);
     const refused = queued.filter((q) => q.refused);
     const rule = shift
       ? { fullDayMinutes: shift.full_day_minutes, halfDayMinutes: shift.half_day_minutes, breakMinutes: shift.break_minutes }
       : DEFAULT_DAY;
     const day = dayFrom([...punches, ...pending.map((p) => ({ punched_at: p.punchedAt, kind: p.kind ?? null }))], now, rule);
-    return { punches, pending, refused, day, ready, shift, needsSelfie, busy, message, punch, sync, dismiss };
-  }, [punches, queued, now, ready, shift, needsSelfie, busy, message, punch, sync, dismiss]);
+    return { punches, pending, refused, day, ready, shift, needsSelfie, punching: making?.kind ?? null, message, punch, sync, dismiss };
+  }, [punches, queued, now, ready, shift, needsSelfie, making, message, punch, sync, dismiss]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

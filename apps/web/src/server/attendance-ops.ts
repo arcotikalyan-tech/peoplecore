@@ -1,5 +1,5 @@
 import 'server-only';
-import { escapeLikePattern, legalName } from '@peoplecore/shared';
+import { addDays, escapeLikePattern, legalName, punchLabels, startOfDayIn } from '@peoplecore/shared';
 import { createClient } from './supabase';
 import { allRows } from './all-rows';
 
@@ -86,6 +86,25 @@ export async function peopleDay(orgId: string, date: string, opts: { q?: string;
     };
   });
   return { rows, total: people.count ?? rows.length, page, pages: Math.max(1, Math.ceil((people.count ?? 0) / PAGE)) };
+}
+
+/** The selfies on one local date for a page of people, in order, each named for what the punch was. */
+export async function dayPhotos(orgId: string, employeeIds: string[], date: string, timeZone: string) {
+  const byPerson = new Map<string, Array<{ id: string; label: string; at: string }>>();
+  if (!employeeIds.length) return byPerson;
+  const supabase = await createClient();
+  const { data, error } = await allRows((a, b) => supabase.from('attendance_punches').select('id, employee_id, punched_at, kind, selfie_path')
+    .eq('organization_id', orgId).in('employee_id', employeeIds)
+    .gte('punched_at', startOfDayIn(date, timeZone).toISOString()).lt('punched_at', startOfDayIn(addDays(date, 1), timeZone).toISOString())
+    .order('punched_at').order('id').range(a, b));
+  if (error) throw new Error(`Failed to load punches (${error.code})`);
+  for (const id of employeeIds) {
+    const punches = data.filter((p) => p.employee_id === id);
+    const labels = punchLabels(punches);
+    const photos = punches.flatMap((p, i) => (p.selfie_path ? [{ id: p.id, label: labels[i]!, at: p.punched_at }] : []));
+    if (photos.length) byPerson.set(id, photos);
+  }
+  return byPerson;
 }
 
 /** A month for a page of people: the calendar (muster) view. */

@@ -4,9 +4,9 @@ import { View } from 'react-native';
 import { clock, duration } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { useToday } from '@/lib/today';
-import { shiftTime } from '@/lib/worked';
+import { punchButton, shiftTime } from '@/lib/worked';
 import { Banner, Button, Card, EmptyState, IconTile, Pill, ProgressBar, Sheet, space, Text, useTheme, type Tone } from '@/ui';
-import { PUNCH_ACTIONS, type PauseKind } from '@peoplecore/shared/punches';
+import { PUNCH_ACTIONS, type PauseKind, type PunchKind } from '@peoplecore/shared/punches';
 
 const STATE: Record<'not_in' | 'in' | 'out', [string, Tone]> = {
   not_in: ['Not checked in', 'neutral'], in: ['Checked in', 'success'], out: ['Checked out', 'info'],
@@ -22,7 +22,8 @@ const PAUSED: Record<PauseKind, [string, Tone]> = { lunch: ['On lunch', 'warning
 export function AttendanceCard() {
   const { workplace, refreshWorkplace } = useSession();
   const { colors } = useTheme();
-  const { day, ready, shift, pending, refused, needsSelfie, busy, message, punch, dismiss } = useToday();
+  const { day, ready, shift, pending, refused, needsSelfie, punching, message, punch, dismiss } = useToday();
+  const button = (kind: PunchKind) => punchButton(kind, punching, ready);
   const tz = workplace?.timezone ?? 'Asia/Kolkata';
   // Checking out is asked first: a stray tap shouldn't end the day.
   const [confirming, setConfirming] = useState(false);
@@ -70,19 +71,19 @@ export function AttendanceCard() {
       {day.next.includes('out') ? (
         <View style={{ gap: space.sm }}>
           <View style={{ flexDirection: 'row', gap: space.sm }}>
-            <Button variant="tonal" busy={busy || !ready} icon="restaurant-outline" label={PUNCH_ACTIONS.lunch_start}
+            <Button variant="tonal" {...button('lunch_start')} icon="restaurant-outline" label={PUNCH_ACTIONS.lunch_start}
               onPress={() => void punch('lunch_start')} style={{ flex: 1 }} />
-            <Button variant="tonal" busy={busy || !ready} icon="cafe-outline" label={PUNCH_ACTIONS.break_start}
+            <Button variant="tonal" {...button('break_start')} icon="cafe-outline" label={PUNCH_ACTIONS.break_start}
               onPress={() => void punch('break_start')} style={{ flex: 1 }} />
           </View>
-          <Button size="lg" busy={busy || !ready} icon="log-out-outline" label={PUNCH_ACTIONS.out} onPress={() => setConfirming(true)} />
+          <Button size="lg" {...button('out')} icon="log-out-outline" label={PUNCH_ACTIONS.out} onPress={() => setConfirming(true)} />
         </View>
       ) : day.paused ? (
-        <Button size="lg" busy={busy || !ready} icon={day.paused === 'lunch' ? 'restaurant-outline' : 'cafe-outline'}
+        <Button size="lg" {...button(day.paused === 'lunch' ? 'lunch_end' : 'break_end')} icon={day.paused === 'lunch' ? 'restaurant-outline' : 'cafe-outline'}
           label={PUNCH_ACTIONS[day.paused === 'lunch' ? 'lunch_end' : 'break_end']}
           onPress={() => void punch(day.paused === 'lunch' ? 'lunch_end' : 'break_end')} />
       ) : (
-        <Button size="lg" busy={busy || !ready} icon="log-in-outline" label={day.state === 'out' ? 'Check in again' : PUNCH_ACTIONS.in}
+        <Button size="lg" {...button('in')} icon="log-in-outline" label={day.state === 'out' ? 'Check in again' : PUNCH_ACTIONS.in}
           onPress={() => void punch('in')} />
       )}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: space.sm, justifyContent: 'center' }}>

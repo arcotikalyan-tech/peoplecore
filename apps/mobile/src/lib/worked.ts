@@ -43,6 +43,14 @@ export function today(punches: readonly PunchLike[], now: Date, rule: DayRule = 
   };
 }
 
+/**
+ * One punch button: only the one pressed spins. The others wait without a spinner while it's working, and all of them
+ * wait until today's punches have been read.
+ */
+export function punchButton(kind: PunchKind, punching: PunchKind | null, ready: boolean): { busy: boolean; disabled: boolean } {
+  return { busy: punching === kind, disabled: !ready || punching !== null };
+}
+
 /** A shift's "09:30:00" as "09:30 am". */
 export function shiftTime(hhmmss: string): string {
   const [h = 0, m = 0] = hhmmss.split(':').map(Number);

@@ -109,7 +109,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setTwoStepRequired(Boolean(required));
     setNeedsCode(codeNeeded({ currentLevel: aal?.currentLevel, required: Boolean(required), hasAuthenticator: has }));
     const loaded = await loadWorkplace();
-    setWorkplace(loaded.workplace);
+    // Unchanged, it stays the same object: a signed-in session refreshing itself doesn't reload every screen.
+    setWorkplace((had) => (sameWorkplace(had, loaded.workplace) ? had : loaded.workplace));
     setWorkplaces(loaded.workplaces);
   }, []);
 

@@ -9,11 +9,12 @@ import { Badge } from '@/components/ui/surface';
 import { Pagination, Table, Td, Th } from '@/components/ui/table';
 import { formatDate } from '@/lib/format';
 import type { OrgContext } from '@/server/context';
-import { compOffLog, monthGrid, overtimeLog, peopleDay, penaltyLeaveTypes, penaltyLog, rulesSetup, savedViews, structureNames } from '@/server/attendance-ops';
+import { compOffLog, dayPhotos, monthGrid, overtimeLog, peopleDay, penaltyLeaveTypes, penaltyLog, rulesSetup, savedViews, structureNames } from '@/server/attendance-ops';
 import { namesFor } from '@/server/leave';
 import { ButtonAction } from '../../settings/settings-client';
 import { compOffBoardAction, deleteViewAction, overtimeBoardAction, penaltyBoardAction, runPenaltiesAction, saveViewAction } from '../actions';
 import { SaveViewForm, SelectBoard } from '../automation-client';
+import { PunchPhoto } from '../punch-photo';
 import { clock, hours, LEGEND, StatusChip } from './status';
 
 export interface LogParams {
@@ -57,7 +58,7 @@ export async function LogsTab({ ctx, slug, orgBase, base, today, p }: { ctx: Org
           <SaveViewForm action={saveViewAction.bind(null, slug, 'attendance.logs')} params={current} />
         </div>
       </details>
-      {view === 'daily' && <Daily ctx={ctx} orgBase={orgBase} base={base} today={today} p={p} />}
+      {view === 'daily' && <Daily ctx={ctx} slug={slug} orgBase={orgBase} base={base} today={today} p={p} />}
       {view === 'calendar' && <Calendar ctx={ctx} orgBase={orgBase} base={base} p={p} />}
       {view === 'penalty' && <Penalties ctx={ctx} slug={slug} base={base} today={today} p={p} manage={manage} />}
       {view === 'compoff' && <CompOff ctx={ctx} slug={slug} today={today} manage={manage} />}
@@ -91,12 +92,13 @@ function Filters({ base, view, p, dateField, depts }: { base: string; view: stri
   );
 }
 
-async function Daily({ ctx, orgBase, base, today, p }: { ctx: OrgContext; orgBase: string; base: string; today: string; p: LogParams }) {
+async function Daily({ ctx, slug, orgBase, base, today, p }: { ctx: OrgContext; slug: string; orgBase: string; base: string; today: string; p: LogParams }) {
   const date = p.date <= today ? p.date : today;
   const [log, names] = await Promise.all([
     peopleDay(ctx.org.id, date, { q: p.q || undefined, departmentId: p.dept || undefined, page: p.page }),
     structureNames(ctx.org.id),
   ]);
+  const photos = await dayPhotos(ctx.org.id, log.rows.map((r) => r.id), date, ctx.org.timezone);
   const dept = new Map(names.departments.map((d) => [d.id, d.name]));
   const time = clock(ctx.org.timezone);
   const qs = (page: number) => `${base}?${new URLSearchParams({ tab: 'logs', view: 'daily', date, q: p.q, dept: p.dept, page: String(page) })}`;
@@ -108,7 +110,7 @@ async function Daily({ ctx, orgBase, base, today, p }: { ctx: OrgContext; orgBas
       </div>}>
       <div className="px-5"><Filters base={base} view="daily" p={{ ...p, date }} dateField="date" depts={names.departments} /></div>
       <Table caption={`Attendance on ${formatDate(date)}`}>
-        <thead><tr><Th>Employee</Th><Th>Department</Th><Th>In</Th><Th>Out</Th><Th>Worked</Th><Th>Late</Th><Th>Early out</Th><Th>Overtime</Th><Th>Status</Th></tr></thead>
+        <thead><tr><Th>Employee</Th><Th>Department</Th><Th>In</Th><Th>Out</Th><Th>Worked</Th><Th>Late</Th><Th>Early out</Th><Th>Overtime</Th><Th>Status</Th><Th>Photos</Th></tr></thead>
         <tbody>
           {log.rows.map((r) => (
             <tr key={r.id}>
@@ -124,6 +126,7 @@ async function Daily({ ctx, orgBase, base, today, p }: { ctx: OrgContext; orgBas
               <Td className={cn('tabular-nums', r.earlyOut ? 'text-warning' : 'text-muted')}>{r.earlyOut ? `${r.earlyOut} min` : '—'}</Td>
               <Td className="tabular-nums text-muted">{r.overtime ? hours(r.overtime) : '—'}</Td>
               <Td><StatusChip status={r.status} />{r.regularized && <span className="ml-1.5 text-xs text-muted">regularized</span>}</Td>
+              <Td><DayPhotos slug={slug} name={r.name} photos={photos.get(r.id) ?? []} time={time} more={`${orgBase}/employees/${r.id}?tab=attendance&view=logs&date=${date}`} /></Td>
             </tr>
           ))}
           {log.rows.length === 0 && <tr><Td className="py-8 text-center text-muted">No one matches.</Td></tr>}
@@ -132,6 +135,18 @@ async function Daily({ ctx, orgBase, base, today, p }: { ctx: OrgContext; orgBas
       <div className="px-5 pt-3"><Pagination page={log.page} pageCount={log.pages} total={log.total} hrefFor={qs} /></div>
       <p className="px-5 pb-3 text-xs text-muted">{LEGEND}</p>
     </Panel>
+  );
+}
+
+/** The day's first and last selfie; the rest are one click away, in the person's daily log. */
+function DayPhotos({ slug, name, photos, time, more }: { slug: string; name: string; photos: Array<{ id: string; label: string; at: string }>; time: (iso: string | null) => string; more: string }) {
+  if (!photos.length) return <span className="text-muted">—</span>;
+  const shown = photos.length > 2 ? [photos[0]!, photos.at(-1)!] : photos;
+  return (
+    <span className="flex items-center gap-1.5">
+      {shown.map((p) => <PunchPhoto key={p.id} slug={slug} punchId={p.id} label={`${name}: ${p.label} photo at ${time(p.at)}`} className="size-8" />)}
+      {photos.length > 2 && <Link href={more} aria-label={`All ${photos.length} photos of ${name}`} className="text-xs font-medium text-primary hover:underline">+{photos.length - 2}</Link>}
+    </span>
   );
 }
 

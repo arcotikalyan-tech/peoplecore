@@ -124,6 +124,14 @@ export class PunchQueue {
   }
 }
 
+/**
+ * The punches waiting to be sent, without the one being made right now: that one counts once it has gone or is known to
+ * wait, so the button pressed stays on screen, working, instead of the next buttons appearing while it's still sending.
+ */
+export function waitingPunches(queued: QueuedPunch[], beingMade?: string): QueuedPunch[] {
+  return queued.filter((p) => !p.refused && p.clientId !== beingMade);
+}
+
 /** What the app server's photo endpoint (/api/mobile/punch) answered: its status and JSON body. */
 export function classifyHttp(status: number, body: { ok?: boolean; message?: string; permanent?: boolean } | null): SendResult {
   if (status === 200 && body?.ok) return { ok: true };

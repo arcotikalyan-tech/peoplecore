@@ -1,9 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import type { PunchKind } from '@peoplecore/shared/punches';
-import { daysToFix, monthTotals, shiftTime, today } from '../src/lib/worked';
+import { daysToFix, monthTotals, punchButton, shiftTime, today } from '../src/lib/worked';
 
 const at = (hhmm: string) => `2026-10-31T${hhmm}:00.000Z`;
 const p = (hhmm: string, kind: PunchKind | null = null) => ({ punched_at: at(hhmm), kind });
+
+describe('a punch button', () => {
+  it('spins only when it’s the one pressed; the others wait without a spinner', () => {
+    expect(punchButton('lunch_start', 'lunch_start', true)).toEqual({ busy: true, disabled: true });
+    expect(punchButton('break_start', 'lunch_start', true)).toEqual({ busy: false, disabled: true });
+    expect(punchButton('out', 'lunch_start', true)).toEqual({ busy: false, disabled: true });
+  });
+
+  it('can be pressed when nothing is being punched', () => {
+    expect(punchButton('in', null, true)).toEqual({ busy: false, disabled: false });
+  });
+
+  it('waits, without a spinner, until today’s punches have been read', () => {
+    expect(punchButton('in', null, false)).toEqual({ busy: false, disabled: true });
+  });
+});
 
 describe('today’s attendance from punches', () => {
   it('is not checked in with no punches, and offers check-in', () => {

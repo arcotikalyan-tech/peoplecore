@@ -69,9 +69,22 @@ test('the employee takes lunch and a break between check-in and check-out', asyn
     await today.getByRole('button', { name: 'Check in' }).click();
     await expect(page.getByText(/^Check-in at /)).toBeVisible();
   }
-  // Checked in: lunch, a break or check-out. On lunch: only its end.
+  // Checked in: lunch, a break or check-out. On lunch: only its end. While one punch is being recorded, only its
+  // button says so; the others keep their names and wait.
+  let answer = () => {};
+  const held = new Promise<void>((resolve) => { answer = resolve; });
+  await page.route('**/app/demo/attendance*', async (route) => {
+    if (route.request().method() === 'POST') await held;
+    await route.continue();
+  });
   await today.getByRole('button', { name: 'Start lunch' }).click();
+  await expect(today.getByRole('button', { name: 'Recording…' })).toHaveCount(1);
+  await expect(today.getByRole('button', { name: 'Start lunch' })).toHaveCount(0);
+  await expect(today.getByRole('button', { name: 'Start break' })).toBeDisabled();
+  await expect(today.getByRole('button', { name: 'Check out' })).toBeDisabled();
+  answer();
   await expect(page.getByText(/^Lunch started at /)).toBeVisible();
+  await page.unroute('**/app/demo/attendance*');
   await expect(today.getByRole('button', { name: 'Start break' })).toHaveCount(0);
   await expect(today.getByRole('button', { name: 'Check out' })).toHaveCount(0);
   await today.getByRole('button', { name: 'End lunch' }).click();
@@ -84,6 +97,17 @@ test('the employee takes lunch and a break between check-in and check-out', asyn
 
   const { data } = await admin.from('attendance_punches').select('kind').eq('employee_id', devId).gte('received_at', startedAt).order('punched_at');
   expect(data!.slice(-4).map((p) => p.kind)).toEqual(['lunch_start', 'lunch_end', 'break_start', 'break_end']);
+});
+
+test('a browser that never answers for the location doesn’t hold the punch up', async ({ page }) => {
+  // An unanswered permission prompt: the browser's own timeout doesn't run, and neither callback ever comes.
+  await page.addInitScript(() => { navigator.geolocation.getCurrentPosition = () => undefined; });
+  await signIn(page, 'demo.employee');
+  await open(page, '/app/demo/attendance');
+  const today = page.getByRole('region', { name: 'Today' });
+  await today.getByRole('button', { name: /^Check (in|out)$/ }).click();
+  await expect(today.getByRole('button', { name: 'Getting location…' })).toBeVisible();
+  await expect(page.getByText(/^Check-(in|out) at /)).toBeVisible({ timeout: 30_000 });
 });
 
 test('a missed day is regularized and the manager approves it', async ({ browser }) => {
