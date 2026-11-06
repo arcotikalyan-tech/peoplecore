@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { DateField } from '@/date-field';
 import { addDays } from '@/lib/calendar';
 import { useCounts } from '@/lib/counts';
-import { attendanceRequestProblem, correctionProblem, normalizeTime } from '@/lib/requests';
+import { attendanceRequestProblem, correctionProblem, typedTime } from '@/lib/requests';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import { useLoad } from '@/lib/use-load';
@@ -41,7 +41,7 @@ export default function AttendanceRequest() {
     if (!emp) return;
     setProblem(null);
     if (kind === 'correct') {
-      const r = { date: form.date, checkIn: normalizeTime(form.checkIn), checkOut: normalizeTime(form.checkOut), reason: form.reason };
+      const r = { date: form.date, checkIn: form.checkIn, checkOut: form.checkOut, reason: form.reason };
       const p = correctionProblem(r, today);
       if (p) return setProblem(p);
       setBusy(true);
@@ -69,11 +69,11 @@ export default function AttendanceRequest() {
       <Segmented value={kind} onChange={(k) => { setKind(k); setProblem(null); }} options={KINDS} />
       {kind === 'correct' ? (
         <View>
-          <Text variant="footnote" tone="muted" style={{ marginBottom: space.lg }}>A missed or wrong check-in or check-out, up to {back} days back. Leave a time empty to keep what was recorded.</Text>
+          <Text variant="footnote" tone="muted" style={{ marginBottom: space.lg }}>A missed or wrong check-in or check-out, up to {back} days back. Leave a time empty to keep what was recorded. Times are 24-hour: 6:30 pm is 18:30.</Text>
           <DateField label="Day" value={form.date} onChange={(d) => setForm({ ...form, date: d })} min={addDays(today, -back)} max={addDays(today, -1)} />
           <View style={{ flexDirection: 'row', gap: space.md }}>
-            <View style={{ flex: 1 }}><Field label="Check-in" value={form.checkIn} onChangeText={(v) => setForm({ ...form, checkIn: v })} placeholder="09:30" keyboardType="numbers-and-punctuation" /></View>
-            <View style={{ flex: 1 }}><Field label="Check-out" value={form.checkOut} onChangeText={(v) => setForm({ ...form, checkOut: v })} placeholder="18:30" keyboardType="numbers-and-punctuation" /></View>
+            <View style={{ flex: 1 }}><Field label="Check-in" value={form.checkIn} onChangeText={(v) => setForm({ ...form, checkIn: typedTime(v) })} placeholder="09:30" keyboardType="number-pad" maxLength={5} /></View>
+            <View style={{ flex: 1 }}><Field label="Check-out" value={form.checkOut} onChangeText={(v) => setForm({ ...form, checkOut: typedTime(v) })} placeholder="18:30" keyboardType="number-pad" maxLength={5} /></View>
           </View>
         </View>
       ) : (

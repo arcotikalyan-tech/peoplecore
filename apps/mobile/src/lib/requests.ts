@@ -2,12 +2,17 @@
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-/** "9:5", "0930" or "09.30" → "09:30"; anything else stays as typed (and fails the check). */
-export function normalizeTime(raw: string): string {
-  const t = raw.trim().replace('.', ':');
-  if (/^\d{4}$/.test(t)) return `${t.slice(0, 2)}:${t.slice(2)}`;
-  const m = /^(\d{1,2}):(\d{1,2})$/.exec(t);
-  return m ? `${m[1]!.padStart(2, '0')}:${m[2]!.padStart(2, '0')}` : t;
+/**
+ * What a time field holds as someone types: digits only, the colon added for them, and nothing that can't become a
+ * time. A first digit no hour starts with means 0x ("9" is 09), a separator after one digit closes the hour ("1.30" is
+ * 01:30; Android's number pad has a few symbols on it), and a digit that can't follow ("25", "09:7") isn't taken.
+ */
+export function typedTime(raw: string): string {
+  let d = raw.replace(/^\D+/, '').replace(/^(\d)\D/, '0$1').replace(/\D/g, '');
+  if (/^[3-9]/.test(d)) d = `0${d}`;
+  if (Number(d.slice(0, 2)) > 23) d = d.slice(0, 1);
+  else if (Number(d[2]) > 5) d = d.slice(0, 2);
+  return d.length > 2 ? `${d.slice(0, 2)}:${d.slice(2, 4)}` : d;
 }
 
 /** What's wrong with a correction for one day, or null. */
