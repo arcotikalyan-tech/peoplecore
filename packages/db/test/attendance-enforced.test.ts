@@ -77,6 +77,31 @@ describe('attendance rules enforced', () => {
     });
   });
 
+  it('a phone punch off the office network is recorded and flagged for review, under a rule that asks for the network', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      await tx.exec('reset role');
+      await tx.query(`insert into attendance_settings (organization_id, allowed_ips) values ($1, '{203.0.113.10}') on conflict (organization_id) do update set allowed_ips = excluded.allowed_ips`, [f.orgA]);
+      const flags = async () => {
+        await tx.exec('reset role');
+        return (await tx.query<{ n: number }>(`select count(*)::int as n from anomaly_flags where employee_id = $1 and rule = 'off_office_network'`, [f.employees.icA])).rows[0]!.n;
+      };
+      await tx.query('update shifts set verify_ip = false where organization_id = $1', [f.orgA]);
+      await as(tx, f.users.icA);
+      await tx.query(`select record_punch('punch-off-rule-1', null, 'mobile', p_org => $1)`, [f.orgA]);
+      expect(await flags()).toBe(0); // no such rule, no flag
+
+      await tx.query('update shifts set verify_ip = true where organization_id = $1', [f.orgA]);
+      await as(tx, f.users.icA);
+      await tx.query(`select record_punch('punch-off-rule-2', null, 'mobile', p_org => $1)`, [f.orgA]);
+      expect(await flags()).toBe(1);
+
+      // On an office address there's nothing to flag.
+      await tx.query(`insert into attendance_punches (organization_id, employee_id, punched_at, method, source_key, ip) values ($1, $2, now(), 'mobile', 'punch-off-rule-3', '203.0.113.10')`, [f.orgA, f.employees.icA]);
+      expect(await flags()).toBe(1);
+    });
+  });
+
   it('reminders go out once a day: missing check-out and late arrivals', async () => {
     const { f } = ctx;
     await ctx.t.asUser(f.users.hrA, async (tx) => {

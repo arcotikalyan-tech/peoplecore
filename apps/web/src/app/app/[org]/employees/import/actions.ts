@@ -9,6 +9,7 @@ import { toUserMessage } from '@/lib/db-errors';
 import { getOrgContext } from '@/server/context';
 import { createClient } from '@/server/supabase';
 import { readXlsx, XlsxError } from '@/server/xlsx';
+import { allRows } from '@/server/all-rows';
 
 export interface ImportState {
   stage: 'idle' | 'map' | 'preview' | 'done';
@@ -59,7 +60,7 @@ async function resolvers(orgId: string, table: string[][], mapping: Array<Import
   const [{ data: depts }, { data: locs }, { data: people }] = await Promise.all([
     supabase.from('departments').select('code, name').eq('organization_id', orgId).is('archived_at', null),
     supabase.from('locations').select('code, name, city').eq('organization_id', orgId).is('archived_at', null),
-    supabase.from('employees').select('employee_code, first_name, middle_name, last_name').eq('organization_id', orgId).neq('status', 'exited'),
+    allRows((a, b) => supabase.from('employees').select('id, employee_code, first_name, middle_name, last_name').eq('organization_id', orgId).neq('status', 'exited').order('id').range(a, b)),
   ]);
   const lower = (s: string | null | undefined) => (s ?? '').trim().toLowerCase();
   const unique = (pairs: Array<[string, string]>) => {

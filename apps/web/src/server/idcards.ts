@@ -5,6 +5,7 @@ import type { CardDesign, CardPerson, CustomLine } from '@/lib/id-cards';
 import { signImageUrl } from './document-storage';
 import { getStructure } from './structure';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** ID Studio data: designs, and the people on cards — read with the viewer's own rights (RLS). */
 
@@ -19,11 +20,13 @@ export async function cardDesigns(orgId: string): Promise<CardDesign[]> {
 
 export async function cardPeople(orgId: string, filter: { ids?: string[]; departmentId?: string } = {}): Promise<CardPerson[]> {
   const supabase = await createClient();
-  let q = supabase.from('employees').select('id, employee_code, first_name, last_name, work_email, work_phone, date_of_joining, department_id, designation_id, location_id, job_title, photo_path')
-    .eq('organization_id', orgId).in('status', ['active', 'on_notice', 'pre_joining']);
-  if (filter.ids) q = q.in('id', filter.ids.length ? filter.ids : ['00000000-0000-0000-0000-000000000000']);
-  if (filter.departmentId) q = q.eq('department_id', filter.departmentId);
-  const { data: emps, error } = await q.order('employee_code').limit(1000);
+  const { data: emps, error } = await allRows((a, b) => {
+    let q = supabase.from('employees').select('id, employee_code, first_name, last_name, work_email, work_phone, date_of_joining, department_id, designation_id, location_id, job_title, photo_path')
+      .eq('organization_id', orgId).in('status', ['active', 'on_notice', 'pre_joining']);
+    if (filter.ids) q = q.in('id', filter.ids.length ? filter.ids : ['00000000-0000-0000-0000-000000000000']);
+    if (filter.departmentId) q = q.eq('department_id', filter.departmentId);
+    return q.order('employee_code').order('id').range(a, b);
+  });
   if (error) throw new Error(`Failed to load employees (${error.code})`);
   const ids = emps.map((e) => e.id);
   const [structure, personal, emergency, addresses] = await Promise.all([

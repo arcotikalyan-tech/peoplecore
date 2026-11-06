@@ -155,11 +155,13 @@ export async function pendingAdjustments(orgId: string) {
 
 export async function runResults(runId: string) {
   const supabase = await createClient();
+  // Every row: a run has several line items per person, so the first page ran out at about 100 people and totals came up short.
   const [rows, lines] = await Promise.all([
-    supabase.from('payroll_run_employees').select('employee_id, payable_days, lop_days, gross, deductions, net, employer_cost, taxable, exceptions, has_blocking, input').eq('run_id', runId),
-    supabase.from('payroll_line_items').select('employee_id, code, name, kind, amount').eq('run_id', runId).order('id'),
+    allRows((a, b) => supabase.from('payroll_run_employees').select('employee_id, payable_days, lop_days, gross, deductions, net, employer_cost, taxable, exceptions, has_blocking, input').eq('run_id', runId).order('employee_id').range(a, b)),
+    allRows((a, b) => supabase.from('payroll_line_items').select('employee_id, code, name, kind, amount').eq('run_id', runId).order('id').range(a, b)),
   ]);
   fail('payroll results', rows.error);
+  fail('payroll results', lines.error);
   const byEmp = new Map<string, Array<{ code: string; name: string; kind: string; amount: number }>>();
   for (const l of lines.data ?? []) byEmp.set(l.employee_id, [...(byEmp.get(l.employee_id) ?? []), { code: l.code, name: l.name, kind: l.kind, amount: Number(l.amount) }]);
   return new Map((rows.data ?? []).map((r) => [r.employee_id, { ...r, lines: byEmp.get(r.employee_id) ?? [] }]));

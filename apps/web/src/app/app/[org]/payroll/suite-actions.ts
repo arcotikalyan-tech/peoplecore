@@ -10,6 +10,7 @@ import { getOrgContext } from '@/server/context';
 import { flash } from '@/server/flash';
 import { createClient } from '@/server/supabase';
 import type { Database } from '@peoplecore/db/types';
+import { allRows } from '@/server/all-rows';
 
 /**
  * Payroll workspace actions. Every write is checked again by the database (permissions, maker ≠ checker,
@@ -89,7 +90,7 @@ export async function lopImportAction(slug: string, _prev: ActionState, formData
   if (!m.success || !(file instanceof File) || file.size === 0) return { ok: false, message: 'Choose a CSV file.' };
   if (file.size > 512 * 1024) return { ok: false, message: 'The file is too large (512 KB at most).' };
   const supabase = await createClient();
-  const { data: emps } = await supabase.from('employees').select('id, employee_code').eq('organization_id', ctx.org.id);
+  const { data: emps } = await allRows((a, b) => supabase.from('employees').select('id, employee_code').eq('organization_id', ctx.org.id).order('id').range(a, b));
   const byCode = new Map((emps ?? []).map((e) => [e.employee_code.toUpperCase(), e.id]));
   const problems: string[] = [];
   const rows: Array<{ organization_id: string; employee_id: string; period_month: string; lop_days: number }> = [];
@@ -441,14 +442,11 @@ export async function bulkApproveDeclarationsAction(slug: string, _prev: ActionS
   const fy = z.string().regex(/^\d{4}-\d{2}$/).safeParse(formData.get('fy'));
   if (!fy.success) return { ok: false, message: 'Invalid request.' };
   const supabase = await createClient();
-  const { data, error } = await supabase.from('tax_declarations').select('id').eq('organization_id', ctx.org.id).eq('fy', fy.data).eq('status', 'submitted');
+  const { data, error } = await supabase.rpc('approve_tax_declarations', { p_org: ctx.org.id, p_fy: fy.data });
   if (error) return failed(error);
-  let ok = 0;
-  const problems: string[] = [];
-  for (const d of data ?? []) {
-    const r = await supabase.rpc('review_tax_declaration', { p_declaration: d.id, p_approve: true, p_items: [], p_note: 'Bulk approved' });
-    if (r.error) problems.push(toUserMessage(r.error)); else ok += 1;
-  }
+  const result = data as unknown as { decided: number; errors: Array<{ code?: string; message?: string | null }> };
+  const ok = result.decided;
+  const problems = result.errors.map((e) => toUserMessage({ code: e.code, message: e.message ?? undefined }));
   revalidatePath(`/app/${slug}/payroll`);
   if (problems.length) return { ok: ok > 0, message: `Approved ${ok}. ${[...new Set(problems)].join(' ')}` };
   return { ok: true, message: ok ? `Approved ${ok} declaration${ok === 1 ? '' : 's'}.` : 'Nothing waiting for review.' };

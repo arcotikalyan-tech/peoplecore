@@ -2,6 +2,7 @@ import 'server-only';
 import { headers } from 'next/headers';
 import { getStructure } from './structure';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** Timesheet reads. RLS decides what each person sees: admins everything, managers their reports, members their own. */
 
@@ -90,8 +91,8 @@ export async function myTimer(orgId: string) {
 export async function tsPeople(orgId: string): Promise<Map<string, Person>> {
   const supabase = await createClient();
   const [{ data }, structure] = await Promise.all([
-    supabase.from('employees').select('id, employee_code, first_name, last_name, work_email, department_id, designation_id')
-      .eq('organization_id', orgId).in('status', ['active', 'on_notice']).order('first_name'),
+    allRows((a, b) => supabase.from('employees').select('id, employee_code, first_name, last_name, work_email, department_id, designation_id')
+      .eq('organization_id', orgId).in('status', ['active', 'on_notice']).order('first_name').order('id').range(a, b)),
     getStructure(orgId),
   ]);
   const dept = new Map(structure.departments.map((d) => [d.id, d.name]));

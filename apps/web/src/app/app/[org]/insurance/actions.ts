@@ -9,6 +9,7 @@ import { CD_KINDS, rosterKeys, type CdKind } from '@/lib/insurance';
 import { getOrgContext } from '@/server/context';
 import { flash } from '@/server/flash';
 import { createClient } from '@/server/supabase';
+import { allRows } from '@/server/all-rows';
 
 /** Group health insurance: the policy, coverage and endorsements (insurance.manage; RLS and the database enforce). */
 
@@ -79,8 +80,8 @@ export async function coverAllAction(slug: string, _prev: ActionState): Promise<
   if (!ctx.can('insurance.manage', 'org')) return DENIED;
   const supabase = await createClient();
   const [emps, cov] = await Promise.all([
-    supabase.from('employees').select('id').eq('organization_id', ctx.org.id).in('status', ['active', 'on_notice']),
-    supabase.from('insurance_coverage').select('employee_id').eq('organization_id', ctx.org.id),
+    allRows((a, b) => supabase.from('employees').select('id').eq('organization_id', ctx.org.id).in('status', ['active', 'on_notice']).order('id').range(a, b)),
+    allRows((a, b) => supabase.from('insurance_coverage').select('employee_id').eq('organization_id', ctx.org.id).order('employee_id').range(a, b)),
   ]);
   const have = new Set((cov.data ?? []).map((c) => c.employee_id));
   const rows = (emps.data ?? []).filter((e) => !have.has(e.id)).map((e) => ({ organization_id: ctx.org.id, employee_id: e.id }));
@@ -120,7 +121,7 @@ export async function importCoverageAction(slug: string, _prev: ActionState, for
   const [ci, cv, si, fi] = ['employee_code', 'covered', 'sum_insured', 'covered_from'].map(col) as [number, number, number, number];
   if (ci < 0) return { ok: false, message: 'The file needs an employee_code column.' };
   const supabase = await createClient();
-  const { data: emps } = await supabase.from('employees').select('id, employee_code').eq('organization_id', ctx.org.id);
+  const { data: emps } = await allRows((a, b) => supabase.from('employees').select('id, employee_code').eq('organization_id', ctx.org.id).order('id').range(a, b));
   const byCode = new Map((emps ?? []).map((e) => [e.employee_code.toLowerCase(), e.id]));
   const problems: string[] = [];
   const records = body.flatMap((r, i) => {

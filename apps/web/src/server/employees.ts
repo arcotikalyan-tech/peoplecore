@@ -3,6 +3,7 @@ import { cache } from 'react';
 import type { Tables } from '@peoplecore/db/types';
 import { legalName, pageCount, parsePageRequest, type EmployeeListQuery, searchPatterns } from '@peoplecore/shared';
 import { createClient } from './supabase';
+import { allRows } from './all-rows';
 
 /** Employee reads. All go through the user's RLS-bound client; scopes (org/team/self) apply automatically. */
 
@@ -132,19 +133,19 @@ export async function namesForUsers(orgId: string, userIds: readonly string[]): 
 }
 
 /**
- * Manager picker options. Capped at 500: large tenants need a server-side search combobox
- * (tracked in BUILD_STATUS known issues).
+ * Manager picker options: everyone who can be a manager, however many there are.
  */
 export async function managerOptions(orgId: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data, error } = await allRows((a, b) => supabase
     .from('employees')
     .select('id, employee_code, first_name, middle_name, last_name')
     .eq('organization_id', orgId)
     .neq('status', 'exited')
     .order('first_name')
     .order('last_name')
-    .limit(500);
+    .order('id')
+    .range(a, b));
   if (error) throw new Error(`Failed to load managers (${error.code})`);
   return data.map((e) => ({ value: e.id, label: `${legalName(e)} (${e.employee_code})` }));
 }

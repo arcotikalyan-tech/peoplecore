@@ -8,6 +8,7 @@ import { toUserMessage } from '@/lib/db-errors';
 import { getOrgContext, type OrgContext } from '@/server/context';
 import { flash } from '@/server/flash';
 import { createClient } from '@/server/supabase';
+import { allRows } from '@/server/all-rows';
 
 /** Expense Admin actions (finance: expense.manage) and the hold / answer / skip steps of an approval. RLS and the database functions decide. */
 
@@ -158,7 +159,7 @@ export async function importExpensesAction(slug: string, _prev: ActionState, for
   if (body.length > 500) return { ok: false, message: 'Import at most 500 expenses at a time.' };
   const supabase = await createClient();
   const [{ data: emps }, { data: cats }] = await Promise.all([
-    supabase.from('employees').select('id, employee_code').eq('organization_id', ctx.org.id),
+    allRows((a, b) => supabase.from('employees').select('id, employee_code').eq('organization_id', ctx.org.id).order('id').range(a, b)),
     supabase.from('expense_categories').select('id, code').eq('organization_id', ctx.org.id).eq('is_active', true),
   ]);
   const emp = new Map((emps ?? []).map((e) => [e.employee_code.toLowerCase(), e.id]));

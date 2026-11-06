@@ -12,6 +12,7 @@ import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
 import { createClient } from '@/server/supabase';
+import { allRows } from '@/server/all-rows';
 
 /**
  * Leave actions. Every write goes through a database function or RLS that checks the caller's permission;
@@ -59,13 +60,11 @@ export async function decideLeaveAction(orgSlug: string, _prev: ActionState, for
   if (!decision.success || ids.length === 0) return { ok: false, message: 'Select at least one request.' };
   if (decision.data === 'reject' && !comment) return { ok: false, message: 'Give a reason when rejecting.', fieldErrors: { comment: 'Required when rejecting' } };
   const supabase = await createClient();
-  let ok = 0;
-  let firstError = '';
-  for (const id of ids.slice(0, 200)) {
-    const { error } = await supabase.rpc('decide_approval', { p_request: id, p_decision: decision.data, p_comment: sqlNull(comment || null) });
-    if (error) firstError ||= toUserMessage(error);
-    else ok++;
-  }
+  const { data, error } = await supabase.rpc('decide_approvals', { p_requests: ids.slice(0, 200), p_decision: decision.data, p_comment: sqlNull(comment || null) });
+  if (error) return { ok: false, message: toUserMessage(error) };
+  const result = data as unknown as { decided: number; errors: Array<{ code?: string; message?: string | null }> };
+  const ok = result.decided;
+  const firstError = result.errors[0] ? toUserMessage({ code: result.errors[0].code, message: result.errors[0].message ?? undefined }) : '';
   done(orgSlug);
   const verb = decision.data === 'approve' ? 'Approved' : 'Rejected';
   if (ok === 0) return { ok: false, message: firstError || 'Nothing was changed.' };
@@ -141,7 +140,7 @@ export async function importAssignmentsAction(orgSlug: string, _prev: ActionStat
   if (iCode < 0 || iRule < 0) return { ok: false, message: 'Use the template: Employee code, Leave rule, Effective from.' };
   const supabase = await createClient();
   const [emps, types] = await Promise.all([
-    supabase.from('employees').select('id, employee_code').eq('organization_id', ctx.org.id),
+    allRows((a, b) => supabase.from('employees').select('id, employee_code').eq('organization_id', ctx.org.id).order('id').range(a, b)),
     supabase.from('leave_types').select('id, code, name').eq('organization_id', ctx.org.id),
   ]);
   const emp = new Map((emps.data ?? []).map((e) => [e.employee_code.toLowerCase(), e.id]));

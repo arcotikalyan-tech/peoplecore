@@ -23,6 +23,54 @@ async function failure(tx: Transaction, sql: string, params: unknown[] = []): Pr
 }
 
 describe('pms settings, KRAs, skills', () => {
+  it('the goals weight sets the final rating: the manager’s rating at that weight, skills the rest', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      await tx.exec('reset role');
+      await tx.query(`insert into pms_settings (organization_id, goals_weight, goal_weightage) values ($1, 50, false) on conflict (organization_id) do update set goals_weight = 50, goal_weightage = false`, [f.orgA]);
+      const cycle = (await tx.query<{ id: string }>(`insert into review_cycles (organization_id, name, period_start, period_end) values ($1, 'Weighted', '2026-04-01', '2027-03-31') returning id`, [f.orgA])).rows[0]!.id;
+      const skill = (await tx.query<{ id: string }>(`insert into pms_skills (organization_id, name) values ($1, 'Weighing') returning id`, [f.orgA])).rows[0]!.id;
+      const other = (await tx.query<{ id: string }>(`insert into pms_skills (organization_id, name) values ($1, 'Balancing') returning id`, [f.orgA])).rows[0]!.id;
+      await tx.query('select activate_review_cycle($1)', [cycle]);
+      const reviewOf = async (e: string) => (await tx.query<{ id: string }>('select id from reviews where cycle_id = $1 and employee_id = $2', [cycle, e])).rows[0]!.id;
+      const rated = await reviewOf(f.employees.icA);
+      const final = async (r: string) => {
+        await tx.exec('reset role');
+        return (await tx.query<{ final_rating: number; manager_rating: number }>('select final_rating, manager_rating from reviews where id = $1', [r])).rows[0]!;
+      };
+
+      await as(tx, f.users.icA);
+      await tx.query(`select submit_self_review($1, 4::smallint, 'A good year with steady delivery.')`, [rated]);
+      await as(tx, f.users.leadA);
+      await tx.query(`select rate_review_skills($1, 'manager', $2)`, [rated, JSON.stringify({ [skill]: 2, [other]: 2 })]);
+      await tx.query(`select submit_manager_review($1, 5::smallint, 'Strong delivery on goals this year.')`, [rated]);
+      expect(await final(rated)).toEqual({ final_rating: 4, manager_rating: 5 }); // half of 5 and half of 2: 3.5, rounded
+
+      // Keeping what came out needs no reason; changing it does.
+      await as(tx, f.users.hrA);
+      expect((await failure(tx, 'select calibrate_review($1, 5::smallint, null)', [rated])).message).toContain('Say why');
+      await tx.query('select calibrate_review($1, 4::smallint, null)', [rated]);
+      expect((await final(rated)).final_rating).toBe(4);
+    });
+  });
+
+  it('no skills rated, and the final rating is the manager’s', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      await tx.exec('reset role');
+      await tx.query(`insert into pms_settings (organization_id, goals_weight, goal_weightage) values ($1, 50, false) on conflict (organization_id) do update set goals_weight = 50, goal_weightage = false`, [f.orgA]);
+      const cycle = (await tx.query<{ id: string }>(`insert into review_cycles (organization_id, name, period_start, period_end) values ($1, 'Plain', '2026-04-01', '2027-03-31') returning id`, [f.orgA])).rows[0]!.id;
+      await tx.query('select activate_review_cycle($1)', [cycle]);
+      const review = (await tx.query<{ id: string }>('select id from reviews where cycle_id = $1 and employee_id = $2', [cycle, f.employees.icA])).rows[0]!.id;
+      await as(tx, f.users.icA);
+      await tx.query(`select submit_self_review($1, 3::smallint, 'A steady year with solid delivery.')`, [review]);
+      await as(tx, f.users.leadA);
+      await tx.query(`select submit_manager_review($1, 5::smallint, 'Strong delivery on goals this year.')`, [review]);
+      await tx.exec('reset role');
+      expect((await tx.query<{ final_rating: number }>('select final_rating from reviews where id = $1', [review])).rows[0]!.final_rating).toBe(5);
+    });
+  });
+
   it('goal weightage gates the self review; skills are rated by the employee then the manager; manager ratings stay hidden until shared', async () => {
     const { f } = ctx;
     await ctx.t.asUser(f.users.hrA, async (tx) => {

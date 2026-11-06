@@ -9385,6 +9385,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      approve_tax_declarations: {
+        Args: {
+          p_org: string;
+          p_fy: string;
+        };
+        Returns: Json;
+      };
       assign_course: {
         Args: {
           p_course: string;
@@ -9692,6 +9699,14 @@ export type Database = {
           p_comment?: string;
         };
         Returns: Database['public']['Enums']['approval_status'];
+      };
+      decide_approvals: {
+        Args: {
+          p_requests: string[];
+          p_decision: string;
+          p_comment?: string;
+        };
+        Returns: Json;
       };
       decide_asset_request: {
         Args: {

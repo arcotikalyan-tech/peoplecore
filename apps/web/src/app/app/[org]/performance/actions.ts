@@ -7,6 +7,7 @@ import { toUserMessage } from '@/lib/db-errors';
 import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { createClient } from '@/server/supabase';
+import { allRows } from '@/server/all-rows';
 
 /** Performance actions; the database decides who may write what at which stage. */
 
@@ -204,10 +205,13 @@ export async function assignKraAction(orgSlug: string, _prev: ActionState, formD
   if (!parsed.success) return { ok: false, message: 'Choose a cycle.', fieldErrors: fields(parsed.error) };
   const supabase = await createClient();
   const { data: kra } = await supabase.from('pms_kras').select('title, description, weight').eq('organization_id', ctx.org.id).eq('id', parsed.data.kraId).single();
-  let q = supabase.from('employees').select('id').eq('organization_id', ctx.org.id).in('status', ['active', 'on_notice']);
-  if (parsed.data.departmentId) q = q.eq('department_id', parsed.data.departmentId);
+  const employees = () => {
+    const q = supabase.from('employees').select('id').eq('organization_id', ctx.org.id).in('status', ['active', 'on_notice']);
+    return parsed.data.departmentId ? q.eq('department_id', parsed.data.departmentId) : q;
+  };
   const [{ data: emps }, { data: existing }] = await Promise.all([
-    q, supabase.from('goals').select('employee_id').eq('organization_id', ctx.org.id).eq('cycle_id', parsed.data.cycleId).eq('title', kra?.title ?? ''),
+    allRows((a, b) => employees().order('id').range(a, b)),
+    allRows((a, b) => supabase.from('goals').select('id, employee_id').eq('organization_id', ctx.org.id).eq('cycle_id', parsed.data.cycleId).eq('title', kra?.title ?? '').order('id').range(a, b)),
   ]);
   if (!kra) return { ok: false, message: 'KRA not found.' };
   const have = new Set((existing ?? []).map((g) => g.employee_id));

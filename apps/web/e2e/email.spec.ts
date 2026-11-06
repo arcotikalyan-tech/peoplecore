@@ -101,6 +101,9 @@ test("an invitation from Supabase's default template (session in the URL fragmen
   expect(error).toBeNull();
   const guest = await (await browser.newContext()).newPage();
   await guest.goto(data.properties!.action_link);
+  // Nothing happens until the person has seen whose account it opens.
+  await expect(guest.getByText(plainInvitee)).toBeVisible();
+  await guest.getByRole('button', { name: 'Continue' }).click();
   await choosePassword(guest);
   await guest.waitForURL(/\/app\/demo(\/|$|\?)/);
   expect(guest.url()).not.toContain('access_token');
