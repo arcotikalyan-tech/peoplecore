@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { AttendanceCard } from '@/components/attendance-card';
+import { DayPunches } from '@/components/day-punches';
 import { DAY_STATUS, MonthCalendar } from '@/components/month-calendar';
 import { Stat } from '@/components/quick-actions';
 import { longDate, monthTitle, shiftMonth } from '@/lib/calendar';
@@ -24,7 +25,7 @@ interface DayRow { work_date: string; status: string; first_in: string | null; l
 export default function Attendance() {
   const { workplace } = useSession();
   const { colors } = useTheme();
-  const { sync, day: live } = useToday();
+  const { sync, day: live, punches } = useToday();
   const tz = workplace?.timezone ?? 'Asia/Kolkata';
   const today = todayIn(tz);
   const emp = workplace?.employeeId;
@@ -105,6 +106,9 @@ export default function Attendance() {
                   <DetailRow label="Corrected" value={chosen.is_regularized ? 'Yes' : 'No'} last />
                 </>
               ) : <Text variant="callout" tone="muted">Nothing recorded for this day.</Text>}
+              <View style={{ marginTop: space.lg }}>
+                <DayPunches employeeId={emp} date={selected} refresh={selected === today ? punches.length : 0} title="Punches" />
+              </View>
               {selected < today && (
                 <Button label="Correct this day" variant="tonal" icon="create-outline" style={{ marginTop: space.md }}
                   onPress={() => router.push(`/attendance-request?kind=correct&date=${selected}`)} />

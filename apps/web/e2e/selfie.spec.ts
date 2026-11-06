@@ -10,7 +10,10 @@ import { adminClient, domain, liveEnv, open, signIn, test } from './helpers';
  * punches, photos and AI runs removed afterwards.
  */
 test.describe.configure({ mode: 'serial' });
-test.use({ launchOptions: { args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] }, permissions: ['camera'] });
+test.use({ launchOptions: { args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] }, permissions: ['camera', 'geolocation'], geolocation: { latitude: 12.971599, longitude: 77.594563, accuracy: 18 } });
+
+const MAP = /query=12\.971599%2C77\.594563$/;
+const SPOT = '12.971599, 77.594563 · within 18 m';
 
 const admin = adminClient();
 const startedAt = new Date().toISOString();
@@ -87,27 +90,59 @@ test('after checking in, lunch, a break and check-out work: each asks for a new 
   expect(lunch[0]!.selfie_path).toBeTruthy();
   expect(lunch[1]!.selfie_path).toBeTruthy();
   expect(lunch[0]!.selfie_path).not.toBe(lunch[1]!.selfie_path);
+
+  // A busy day's punches keep their room: the buttons move below rather than squeeze them into a narrow column.
+  const list = (await today.locator('p', { hasText: /Lunch started .* · Lunch ended/ }).boundingBox())!;
+  expect(list.width).toBeGreaterThan((await today.boundingBox())!.width * 0.6);
 });
 
-test('HR sees the photos in Attendance › Logs and in the employee’s daily log', async ({ page }) => {
+test('HR sees the photos and the Google Maps location in Attendance › Logs and in the employee’s daily log; a full name finds them', async ({ page }) => {
   await signIn(page, 'demo.hr');
-  await open(page, '/app/demo/attendance?tab=logs&view=daily&q=nair');
+  await open(page, '/app/demo/attendance?tab=logs&view=daily&q=dev%20nair');
   const row = page.getByRole('row', { name: /Dev Nair/ });
   const inLog = row.getByRole('img', { name: /^Dev Nair: .* photo at / });
   await expect(inLog).toHaveCount(2); // the day's first and last
   await expect(inLog.first()).toHaveJSProperty('complete', true);
   await expect.poll(() => inLog.first().evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
-  // The other photos are a click away, in the person's daily log.
-  await row.getByRole('link', { name: /^All \d+ photos of Dev Nair$/ }).click();
+  const pins = row.getByRole('link', { name: /^Dev Nair: .* at .*, in Google Maps$/ });
+  await expect(pins).toHaveCount(2);
+  await expect(pins.first()).toHaveAttribute('href', MAP);
+  // The other punches are a click away, in the person's daily log.
+  await row.getByRole('link', { name: /^All \d+ punches of Dev Nair$/ }).click();
 
   const punches = page.getByRole('table', { name: 'Punches' });
   await expect(punches.getByRole('img', { name: /^Lunch started photo at / })).toBeVisible();
+  await expect(punches.getByRole('link', { name: /^Lunch started at .*, in Google Maps$/ })).toHaveAttribute('href', MAP);
+  await expect(punches.getByText(SPOT).first()).toBeVisible();
   const photo = punches.getByRole('img', { name: /^Check-(in|out) photo at / }).last();
   await expect(photo).toBeVisible();
   const res = await page.request.get((await photo.getAttribute('src'))!);
   expect(res.status()).toBe(200);
   expect(res.headers()['content-type']).toMatch(/^image\//);
 });
+
+test('the employee sees their own photos and locations under Attendance › Punches', async ({ page }) => {
+  await signIn(page, 'demo.employee');
+  await open(page, '/app/demo/attendance?tab=logs');
+  const table = page.getByRole('table', { name: 'Your punches' });
+  const photo = table.getByRole('img', { name: /^Lunch started photo at / }).first();
+  await expect(photo).toBeVisible();
+  await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  await expect(table.getByRole('link', { name: /^Lunch started at .*, in Google Maps$/ }).first()).toHaveAttribute('href', MAP);
+  await expect(table.getByText(SPOT).first()).toBeVisible();
+});
+
+for (const who of ['demo.manager', 'demo.payroll'] as const) {
+  test(`${who} sees them in Attendance › Logs too`, async ({ page }) => {
+    await signIn(page, who);
+    await open(page, '/app/demo/attendance?tab=logs&view=daily&q=dev%20nair');
+    const row = page.getByRole('row', { name: /Dev Nair/ });
+    const photo = row.getByRole('img', { name: /^Dev Nair: .* photo at / }).first();
+    await expect(photo).toBeVisible();
+    await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+    await expect(row.getByRole('link', { name: /^Dev Nair: .* at .*, in Google Maps$/ }).first()).toHaveAttribute('href', MAP);
+  });
+}
 
 test('the phone app’s endpoint records a punch with a photo, as the signed-in employee', async ({ baseURL }) => {
   const app = createClient(liveEnv().url, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false } });
@@ -128,6 +163,14 @@ test('the phone app’s endpoint records a punch with a photo, as the signed-in 
   const { data: row } = await admin.from('attendance_punches').select('method, selfie_path').eq('id', id).single();
   expect(row).toMatchObject({ method: 'mobile', selfie_path: expect.stringMatching(new RegExp(`^${orgId}/${devId}/`)) });
   expect((await admin.from('anomaly_flags').select('rule').eq('subject_id', id)).data!.map((f) => f.rule)).not.toContain('no_selfie');
+
+  // The phone reads a punch's photo through the app server, which checks who may see it.
+  const photoOf = (auth: string | null, punch: string) => fetch(`${baseURL}/api/mobile/punch-photo?punch=${punch}`, { headers: auth ? { Authorization: `Bearer ${auth}` } : {} });
+  const photo = await photoOf(token, id);
+  expect(photo.status).toBe(200);
+  expect(((await photo.json()) as { url: string }).url).toContain('attendance-selfies');
+  expect((await photoOf(null, id)).status).toBe(401);
+  expect((await photoOf(token, crypto.randomUUID())).status).toBe(404);
 
   expect((await send(null, JPEG)).status).toBe(401);
   const notPhoto = await send(token, Buffer.from('not a photo at all'));

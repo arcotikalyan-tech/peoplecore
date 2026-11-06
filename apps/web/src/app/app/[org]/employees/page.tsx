@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { todayIn } from '@peoplecore/shared';
+import { todayIn, hasEveryWord } from '@peoplecore/shared';
 import { buttonClass } from '@/components/ui/button';
 import { HubTabs, Panel } from '@/components/ui/hub';
 import { Alert, Badge } from '@/components/ui/surface';
@@ -223,7 +223,7 @@ async function PeopleTab({ ctx, slug, base, today, people, hr, manage, sp, stats
   const q = (sp.q ?? '').trim().toLowerCase();
   const rows = people.filter((p) => {
     if (sp.status) { if (p.status !== sp.status) return false; } else if (inactive ? CURRENT.has(p.status) : !CURRENT.has(p.status)) return false;
-    if (q && !`${p.name} ${p.code ?? ''} ${p.email ?? ''} ${p.department ?? ''} ${p.designation ?? ''}`.toLowerCase().includes(q)) return false;
+    if (q && !hasEveryWord(`${p.name} ${p.code ?? ''} ${p.email ?? ''} ${p.department ?? ''} ${p.designation ?? ''}`, q)) return false;
     if (sp.department && p.departmentId !== sp.department) return false;
     if (sp.flag === 'new' && !(p.joined && p.joined >= addDays(today, -30))) return false;
     if (sp.flag === 'probation' && !(p.probationEnd && p.probationEnd <= today && !p.confirmedOn)) return false;

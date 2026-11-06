@@ -1,3 +1,4 @@
+import { hasEveryWord } from '@peoplecore/shared';
 import Link from 'next/link';
 import { buttonClass } from '@/components/ui/button';
 import { monthInputs, payouts, payrollPeople, readiness, runResults } from '@/server/payroll-suite';
@@ -25,7 +26,7 @@ export async function RegisterTab({ ctx, slug, base, month, run, prepares, appro
   };
   const q = (sp.q ?? '').toLowerCase();
   const rows = people.filter((p) => {
-    if (q && !`${p.name} ${p.code} ${p.department ?? ''}`.toLowerCase().includes(q)) return false;
+    if (q && !hasEveryWord(`${p.name} ${p.code} ${p.department ?? ''}`, q)) return false;
     if (sp.dept && p.department !== sp.dept) return false;
     if (sp.flag === 'pan' && ready.get(p.id)?.pan) return false;
     if (sp.flag === 'bank' && ready.get(p.id)?.bank) return false;

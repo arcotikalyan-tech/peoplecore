@@ -1,5 +1,6 @@
 'use client';
 
+import { hasEveryWord } from '@peoplecore/shared';
 import { useActionState, useState, type ReactNode } from 'react';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
@@ -145,7 +146,7 @@ export function JourneyForm({ action, courses, journey }: {
 export function AssignJourneyForm({ action, journeyId, people, today }: { action: Action; journeyId: string; people: Opt[]; today: string }) {
   const { state, formAction, n } = useCounted(action);
   const [q, setQ] = useState('');
-  const shown = people.filter((x) => x.label.toLowerCase().includes(q.toLowerCase())).slice(0, 60);
+  const shown = people.filter((x) => hasEveryWord(x.label, q)).slice(0, 60);
   return (
     <form action={formAction} aria-label="Assign journey" className="space-y-2">
       <FormMessage state={state} />

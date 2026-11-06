@@ -1,5 +1,6 @@
 'use client';
 
+import { hasEveryWord } from '@peoplecore/shared';
 import { useActionState, useMemo, useState } from 'react';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
@@ -60,7 +61,7 @@ export function PoolForm({ action }: { action: Action }) {
 export function AddToPoolForm({ action, pools, candidates }: { action: Action; pools: Opt[]; candidates: Opt[] }) {
   const { state, formAction, n } = useCounted(action);
   const [q, setQ] = useState('');
-  const shown = candidates.filter((c) => c.label.toLowerCase().includes(q.toLowerCase())).slice(0, 60);
+  const shown = candidates.filter((c) => hasEveryWord(c.label, q)).slice(0, 60);
   if (pools.length === 0) return <p className="text-sm text-muted">Create a pool first.</p>;
   return (
     <form action={formAction} aria-label="Add candidates to a pool" className="space-y-3">

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { todayIn } from '@peoplecore/shared';
+import { todayIn, hasEveryWord } from '@peoplecore/shared';
 import { HubHeader, HubTabs, Panel, StatCard, SubTabs } from '@/components/ui/hub';
 import { Badge } from '@/components/ui/surface';
 import { Pagination, Table, Td, Th } from '@/components/ui/table';
@@ -395,7 +395,7 @@ async function Learners(p: Props) {
   const st = p.sp.status ?? '';
   const q = (p.sp.q ?? '').toLowerCase();
   const rows = live.filter((x) => (!st || (st === 'overdue' ? open(x.status) && !!x.due_on && x.due_on < p.today : x.status === st))
-    && (!q || `${dir.name.get(x.employee_id) ?? ''} ${courses.find((c) => c.id === x.course_id)?.title ?? ''}`.toLowerCase().includes(q)));
+    && (!q || hasEveryWord(`${dir.name.get(x.employee_id) ?? ''} ${courses.find((c) => c.id === x.course_id)?.title ?? ''}`, q)));
   const size = 25;
   const pages = Math.max(1, Math.ceil(rows.length / size));
   const page = Math.min(pages, Math.max(1, Number(p.sp.page) || 1));

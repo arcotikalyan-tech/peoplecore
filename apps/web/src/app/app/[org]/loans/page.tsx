@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { todayIn } from '@peoplecore/shared';
+import { todayIn, hasEveryWord } from '@peoplecore/shared';
 import { HubTabs, Panel, StatCard } from '@/components/ui/hub';
 import { Badge } from '@/components/ui/surface';
 import { formatDate, formatDateTime } from '@/lib/format';
@@ -225,7 +225,7 @@ function Tracker({ base, sp, loans, progress, who }: {
 }) {
   const q = (sp.q ?? '').trim().toLowerCase();
   const rows = loans.filter((l) => (!sp.status || l.status === sp.status) && (!sp.kind || l.kind === sp.kind)
-    && (!q || `${who.get(l.employee_id)?.name ?? ''} ${who.get(l.employee_id)?.code ?? ''} ${l.purpose}`.toLowerCase().includes(q)));
+    && (!q || hasEveryWord(`${who.get(l.employee_id)?.name ?? ''} ${who.get(l.employee_id)?.code ?? ''} ${l.purpose}`, q)));
   const sel = 'h-9 rounded-lg border border-line bg-surface px-2 text-sm';
   return (
     <Panel title="Loan Tracker" meta={`${rows.length}`} flush>

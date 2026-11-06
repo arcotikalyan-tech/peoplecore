@@ -30,3 +30,18 @@ export function pageCount(total: number, pageSize: number): number {
 export function escapeLikePattern(text: string): string {
   return text.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
+
+/**
+ * A search of people goes word by word, in any order: "dev nair" finds Dev Nair and Dev Kumar Nair, whatever lies
+ * between the names. One ILIKE pattern per word, all of which must match; no words, no filter. (The database's
+ * people_directory and colleague_directory do the same.)
+ */
+export function searchPatterns(query: string): string[] {
+  return query.toLowerCase().split(/\s+/).filter(Boolean).map((word) => `%${escapeLikePattern(word)}%`);
+}
+
+/** The same search, for a list already on the page. */
+export function hasEveryWord(text: string, query: string): boolean {
+  const haystack = text.toLowerCase();
+  return query.toLowerCase().split(/\s+/).every((word) => haystack.includes(word));
+}

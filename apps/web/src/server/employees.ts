@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import type { Tables } from '@peoplecore/db/types';
-import { escapeLikePattern, legalName, pageCount, parsePageRequest, type EmployeeListQuery } from '@peoplecore/shared';
+import { legalName, pageCount, parsePageRequest, type EmployeeListQuery, searchPatterns } from '@peoplecore/shared';
 import { createClient } from './supabase';
 
 /** Employee reads. All go through the user's RLS-bound client; scopes (org/team/self) apply automatically. */
@@ -16,7 +16,7 @@ export async function listEmployees(orgId: string, query: EmployeeListQuery) {
   const supabase = await createClient();
   const range = parsePageRequest({ page: query.page });
   let request = supabase.from('employees').select(LIST_COLUMNS, { count: 'exact' }).eq('organization_id', orgId);
-  if (query.q) request = request.ilike('search_text', `%${escapeLikePattern(query.q.toLowerCase())}%`);
+  for (const pattern of searchPatterns(query.q ?? '')) request = request.ilike('search_text', pattern);
   if (query.status) request = request.eq('status', query.status);
   if (query.department) request = request.eq('department_id', query.department);
 
@@ -167,7 +167,7 @@ export async function exportEmployees(orgId: string, query: Omit<EmployeeListQue
       .from('employees')
       .select('id, employee_code, first_name, middle_name, last_name, work_email, work_phone, status, employment_type, date_of_joining, probation_end_date, date_of_exit, department_id, designation_id, location_id, manager_employee_id')
       .eq('organization_id', orgId);
-    if (query.q) request = request.ilike('search_text', `%${escapeLikePattern(query.q.toLowerCase())}%`);
+    for (const pattern of searchPatterns(query.q ?? '')) request = request.ilike('search_text', pattern);
     if (query.status) request = request.eq('status', query.status);
     if (query.department) request = request.eq('department_id', query.department);
     const { data, error } = await request.order('employee_code').order('id').range(from, from + EXPORT_PAGE - 1);

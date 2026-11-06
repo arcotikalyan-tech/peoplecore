@@ -1,5 +1,5 @@
 import 'server-only';
-import { addDays, escapeLikePattern, legalName, punchLabels, startOfDayIn } from '@peoplecore/shared';
+import { addDays, legalName, punchLabels, startOfDayIn, searchPatterns } from '@peoplecore/shared';
 import { createClient } from './supabase';
 import { allRows } from './all-rows';
 
@@ -64,7 +64,7 @@ export async function peopleDay(orgId: string, date: string, opts: { q?: string;
   let q = supabase.from('employees')
     .select('id, employee_code, first_name, middle_name, last_name, department_id, location_id', { count: 'exact' })
     .eq('organization_id', orgId).in('status', ['active', 'on_notice']).lte('date_of_joining', date);
-  if (opts.q) q = q.ilike('search_text', `%${escapeLikePattern(opts.q.toLowerCase())}%`);
+  for (const pattern of searchPatterns(opts.q ?? '')) q = q.ilike('search_text', pattern);
   if (opts.departmentId) q = q.eq('department_id', opts.departmentId);
   const people = await q.order('first_name').order('id').range((page - 1) * PAGE, page * PAGE - 1);
   if (people.error) throw new Error(`Failed to load people (${people.error.code})`);
@@ -88,12 +88,12 @@ export async function peopleDay(orgId: string, date: string, opts: { q?: string;
   return { rows, total: people.count ?? rows.length, page, pages: Math.max(1, Math.ceil((people.count ?? 0) / PAGE)) };
 }
 
-/** The selfies on one local date for a page of people, in order, each named for what the punch was. */
-export async function dayPhotos(orgId: string, employeeIds: string[], date: string, timeZone: string) {
-  const byPerson = new Map<string, Array<{ id: string; label: string; at: string }>>();
+/** The punches with a photo or a location on one local date for a page of people, in order, each named for what it was. */
+export async function dayPunchDetails(orgId: string, employeeIds: string[], date: string, timeZone: string) {
+  const byPerson = new Map<string, Array<{ id: string; label: string; at: string; photo: boolean; latitude: number | null; longitude: number | null; accuracy_m: number | null }>>();
   if (!employeeIds.length) return byPerson;
   const supabase = await createClient();
-  const { data, error } = await allRows((a, b) => supabase.from('attendance_punches').select('id, employee_id, punched_at, kind, selfie_path')
+  const { data, error } = await allRows((a, b) => supabase.from('attendance_punches').select('id, employee_id, punched_at, kind, selfie_path, latitude, longitude, accuracy_m')
     .eq('organization_id', orgId).in('employee_id', employeeIds)
     .gte('punched_at', startOfDayIn(date, timeZone).toISOString()).lt('punched_at', startOfDayIn(addDays(date, 1), timeZone).toISOString())
     .order('punched_at').order('id').range(a, b));
@@ -101,8 +101,10 @@ export async function dayPhotos(orgId: string, employeeIds: string[], date: stri
   for (const id of employeeIds) {
     const punches = data.filter((p) => p.employee_id === id);
     const labels = punchLabels(punches);
-    const photos = punches.flatMap((p, i) => (p.selfie_path ? [{ id: p.id, label: labels[i]!, at: p.punched_at }] : []));
-    if (photos.length) byPerson.set(id, photos);
+    const details = punches.flatMap((p, i) => (p.selfie_path || p.latitude !== null
+      ? [{ id: p.id, label: labels[i]!, at: p.punched_at, photo: !!p.selfie_path, latitude: p.latitude, longitude: p.longitude, accuracy_m: p.accuracy_m }]
+      : []));
+    if (details.length) byPerson.set(id, details);
   }
   return byPerson;
 }
@@ -116,7 +118,7 @@ export async function monthGrid(orgId: string, month: string, opts: { q?: string
   let q = supabase.from('employees').select('id, employee_code, first_name, middle_name, last_name', { count: 'exact' })
     .eq('organization_id', orgId).neq('status', 'pre_joining').lte('date_of_joining', last)
     .or(`date_of_exit.is.null,date_of_exit.gte.${first}`);
-  if (opts.q) q = q.ilike('search_text', `%${escapeLikePattern(opts.q.toLowerCase())}%`);
+  for (const pattern of searchPatterns(opts.q ?? '')) q = q.ilike('search_text', pattern);
   if (opts.departmentId) q = q.eq('department_id', opts.departmentId);
   const people = await q.order('first_name').order('id').range((page - 1) * PAGE, page * PAGE - 1);
   if (people.error) throw new Error(`Failed to load people (${people.error.code})`);

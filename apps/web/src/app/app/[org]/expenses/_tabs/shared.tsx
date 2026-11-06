@@ -1,3 +1,4 @@
+import { hasEveryWord } from '@peoplecore/shared';
 import type { ReactNode } from 'react';
 import type { ClaimRow } from '@/server/expenses';
 
@@ -34,7 +35,7 @@ export function filterClaims(rows: ClaimRow[], sp: Record<string, string | undef
     if (sp.receipt === 'with' && c.receipts === 0) return false;
     if (sp.receipt === 'without' && c.receipts > 0) return false;
     if (sp.cycle && !(c.submitted_at ?? c.created_at).startsWith(sp.cycle)) return false;
-    if (q && !`${e?.employee_code ?? ''} ${e?.first_name ?? ''} ${e?.last_name ?? ''} ${c.title} ${c.merchant ?? ''}`.toLowerCase().includes(q)) return false;
+    if (q && !hasEveryWord(`${e?.employee_code ?? ''} ${e?.first_name ?? ''} ${e?.last_name ?? ''} ${c.title} ${c.merchant ?? ''}`, q)) return false;
     return true;
   });
 }

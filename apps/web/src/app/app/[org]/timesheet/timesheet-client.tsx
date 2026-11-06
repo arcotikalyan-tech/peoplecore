@@ -1,5 +1,6 @@
 'use client';
 
+import { hasEveryWord } from '@peoplecore/shared';
 import { useActionState, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
@@ -204,7 +205,7 @@ export function AdjustForm({ action, entryId, hours, billable, description }: { 
 export function AddMembersForm({ action, people }: { action: Action; people: Opt[] }) {
   const { state, formAction, n } = useCounted(action);
   const [q, setQ] = useState('');
-  const shown = people.filter((p) => p.label.toLowerCase().includes(q.toLowerCase()));
+  const shown = people.filter((p) => hasEveryWord(p.label, q));
   if (people.length === 0) return <p className="text-sm text-muted">Everyone in the directory is already a member.</p>;
   return (
     <form action={formAction} aria-label="Add from directory" className="space-y-3">

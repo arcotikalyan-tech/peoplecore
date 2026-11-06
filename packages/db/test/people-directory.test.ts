@@ -36,6 +36,23 @@ describe('people directory', () => {
     });
   });
 
+  it('search goes word by word, whatever lies between the names, and takes wildcards literally', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.icA, async (tx) => {
+      await tx.exec('reset role');
+      await tx.query(`update employees set first_name = 'Zaira', middle_name = 'Kumari', last_name = 'Quill' where id = $1`, [f.employees.peerA]);
+      await as(tx, f.users.icA);
+      for (const fn of ['people_directory', 'colleague_directory']) {
+        const found = async (q: string) => (await tx.query<{ id: string }>(`select id from ${fn}($1, $2)`, [f.orgA, q])).rows.map((r) => r.id);
+        expect(await found('zaira quill')).toEqual([f.employees.peerA]);    // the middle name in between
+        expect(await found('QUILL  zaira')).toEqual([f.employees.peerA]);   // any order, any spacing
+        expect(await found('zaira nobody')).toEqual([]);                    // every word must match
+        expect(await found('z%a')).toEqual([]);                             // a typed % isn't a wildcard
+        expect((await found('   ')).length).toBeGreaterThan(1);             // no words, no filter
+      }
+    });
+  });
+
   it('HR confirms probation; employees can’t', async () => {
     const { f } = ctx;
     expect(await pgError(ctx.t.asUser(f.users.icA, (tx) => tx.query('select confirm_probation($1, $2)', [f.orgA, [f.employees.icA]])))).toBe('42501');

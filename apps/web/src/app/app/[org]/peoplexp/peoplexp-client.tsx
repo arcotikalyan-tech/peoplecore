@@ -1,5 +1,6 @@
 'use client';
 
+import { hasEveryWord } from '@peoplecore/shared';
 import { useActionState, useState, type ReactNode } from 'react';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
@@ -42,7 +43,7 @@ export function RecognizeForm({ action, people, badges, pointsOn }: { action: Ac
   const [sel, setSel] = useState<{ n: number; ids: Set<string> }>({ n: 0, ids: new Set() });
   const round = state.ok ? n : sel.n;
   const picked = sel.n === round ? sel.ids : new Set<string>();
-  const shown = people.filter((p) => p.label.toLowerCase().includes(q.toLowerCase())).slice(0, 40);
+  const shown = people.filter((p) => hasEveryWord(p.label, q)).slice(0, 40);
   const toggle = (id: string) => { const x = new Set(picked); if (x.has(id)) x.delete(id); else x.add(id); setSel({ n: round, ids: x }); };
   return (
     <form action={formAction} noValidate aria-label="Recognize" className="space-y-3" onSubmit={() => undefined}>

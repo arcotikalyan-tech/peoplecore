@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { MONTH_NAMES, type LeaveStatus } from '@peoplecore/shared';
+import { MONTH_NAMES, type LeaveStatus, hasEveryWord } from '@peoplecore/shared';
 import { BarChart, SplitBar } from '@/components/ui/charts';
 import { buttonClass } from '@/components/ui/button';
 import { cn } from '@/components/ui/cn';
@@ -179,7 +179,7 @@ export async function ApprovalsTab({ ctx, slug, base, today, sp }: Ctx & { sp: R
   const q = (sp.q ?? '').trim().toLowerCase();
   const filtered = rows.filter((r) => {
     const e = emps.byId.get(r.employee_id);
-    return (!sp.dept || e?.departmentId === sp.dept) && (!q || `${e?.name ?? ''} ${e?.code ?? ''}`.toLowerCase().includes(q));
+    return (!sp.dept || e?.departmentId === sp.dept) && (!q || hasEveryWord(`${e?.name ?? ''} ${e?.code ?? ''}`, q));
   });
   const page = Math.max(1, Number(sp.page) || 1);
   const size = [25, 50, 100].includes(Number(sp.size)) ? Number(sp.size) : 50;
@@ -359,7 +359,7 @@ export async function BalancesTab({ ctx, slug, base, today, q, employee }: Ctx &
   const yearShare = (Date.parse(today) - Date.parse(cycle.start)) / (Date.parse(cycle.end) - Date.parse(cycle.start) + 86_400_000);
   const needle = q.trim().toLowerCase();
   const rows = ids.map((id) => emps.byId.get(id)).filter((e): e is NonNullable<typeof e> => !!e)
-    .filter((e) => !needle || `${e.name} ${e.code}`.toLowerCase().includes(needle))
+    .filter((e) => !needle || hasEveryWord(`${e.name} ${e.code}`, needle))
     .sort((a, b) => a.code.localeCompare(b.code));
   const editing = employee ? emps.byId.get(employee) : undefined;
 

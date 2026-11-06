@@ -1,6 +1,6 @@
 'use server';
 
-import { escapeLikePattern, legalName } from '@peoplecore/shared';
+import { legalName, searchPatterns } from '@peoplecore/shared';
 import { z } from 'zod';
 import { getOrgContext } from '@/server/context';
 import { createClient } from '@/server/supabase';
@@ -21,11 +21,11 @@ export async function searchPeopleAction(slug: string, raw: string): Promise<Per
   const ctx = await getOrgContext(slug);
   if (!ctx.can('employee.read')) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase.from('employees')
+  let people = supabase.from('employees')
     .select('id, first_name, middle_name, last_name, employee_code, status')
-    .eq('organization_id', ctx.org.id)
-    .ilike('search_text', `%${escapeLikePattern(q.data.toLowerCase())}%`)
-    .order('first_name').limit(8);
+    .eq('organization_id', ctx.org.id);
+  for (const pattern of searchPatterns(q.data)) people = people.ilike('search_text', pattern);
+  const { data, error } = await people.order('first_name').limit(8);
   if (error) return [];
   return data.map((e) => ({ id: e.id, name: legalName(e), code: e.employee_code, status: e.status }));
 }

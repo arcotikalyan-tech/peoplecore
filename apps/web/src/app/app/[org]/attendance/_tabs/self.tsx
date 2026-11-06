@@ -1,4 +1,4 @@
-import { addDays, ATTENDANCE_REQUEST_LABELS, ATTENDANCE_STATUS_LABELS, LEAVE_STATUS_LABELS, nextPunches, punchLabels, punchState, type AttendanceStatus } from '@peoplecore/shared';
+import { addDays, ATTENDANCE_REQUEST_LABELS, ATTENDANCE_STATUS_LABELS, LEAVE_STATUS_LABELS, nextPunches, PUNCH_LABELS, punchLabels, punchState, type AttendanceStatus, type PunchKind } from '@peoplecore/shared';
 import { BarChart } from '@/components/ui/charts';
 import { cn } from '@/components/ui/cn';
 import { Panel, StatCard } from '@/components/ui/hub';
@@ -10,6 +10,8 @@ import { getMyMonth, getPunches, getRegularizations } from '@/server/attendance'
 import { attendanceRequests, myRule, regularizationCandidates, regularizationWindow } from '@/server/attendance-ops';
 import { bulkRegularizeAction, punchAction, regularizeAction, requestAttendanceAction } from '../actions';
 import { AttendanceRequestForm, PunchButtons, RegularizeForm, RuleEditor, WorkWeekGrid } from '../attendance-forms';
+import { PunchPhoto } from '../punch-photo';
+import { PunchPlace } from '../punch-place';
 import { ruleValues } from '../rule-values';
 import { BulkRegularizeForm } from '../automation-client';
 import { clock, hours, StatusChip } from './status';
@@ -58,7 +60,8 @@ export async function MyHub({ ctx, slug, me, today }: { ctx: OrgContext; slug: s
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <div className="min-w-0 space-y-5">
         <section aria-label="Today" className="flex flex-wrap items-center gap-5 rounded-xl border border-primary/25 bg-gradient-to-r from-primary-soft to-surface p-5">
-          <div className="min-w-0 flex-1">
+          {/* Keeps room for a day's punches: the buttons move below rather than squeeze them into a narrow column. */}
+          <div className="min-w-0 flex-[1_1_24rem]">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Today · {formatDate(today)}</p>
             <p className="mt-1 text-lg font-semibold">{todayRow ? ATTENDANCE_STATUS_LABELS[todayRow.status as AttendanceStatus] : 'Not marked yet'}</p>
             <p className="text-sm text-muted">{todayPunches.length
@@ -161,16 +164,26 @@ export async function MyCalendar({ ctx, me, month }: { ctx: OrgContext; me: Me; 
   );
 }
 
-export async function MyLogs({ ctx, me }: { ctx: OrgContext; me: Me }) {
+export async function MyLogs({ ctx, slug, me }: { ctx: OrgContext; slug: string; me: Me }) {
   const punches = await getPunches(ctx.org.id, me.id, 24 * 30);
   return (
     <Panel title="My punches" meta="last 30 days" flush>
       <Table caption="Your punches">
-        <thead><tr><Th>When</Th><Th>How</Th></tr></thead>
+        <thead><tr><Th>When</Th><Th>What</Th><Th>How</Th><Th>Photo</Th><Th>Location</Th></tr></thead>
         <tbody>
-          {[...punches].reverse().map((p) => (
-            <tr key={p.id}><Td className="tabular-nums">{formatDateTime(p.punched_at, ctx.org.timezone)}</Td><Td className="capitalize text-muted">{p.method}</Td></tr>
-          ))}
+          {[...punches].reverse().map((p) => {
+            const when = formatDateTime(p.punched_at, ctx.org.timezone);
+            const what = p.kind ? PUNCH_LABELS[p.kind as PunchKind] : 'Punch';
+            return (
+              <tr key={p.id}>
+                <Td className="tabular-nums">{when}</Td>
+                <Td>{what}</Td>
+                <Td className="capitalize text-muted">{p.method}</Td>
+                <Td>{p.selfie_path ? <PunchPhoto slug={slug} punchId={p.id} label={`${what} photo at ${when}`} /> : <span className="text-muted">—</span>}</Td>
+                <Td><PunchPlace punch={p} label={`${what} at ${when}`} /></Td>
+              </tr>
+            );
+          })}
           {punches.length === 0 && <tr><Td className="py-6 text-center text-muted">No punches in the last 30 days.</Td></tr>}
         </tbody>
       </Table>

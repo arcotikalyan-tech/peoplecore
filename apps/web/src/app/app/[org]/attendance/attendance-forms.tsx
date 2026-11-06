@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useRef, useState, useTransition } from 'react';
-import { describePenalty, PENALTY_METHOD_LABELS, PENALTY_METHODS, PUNCH_ACTIONS, SHORT_HOURS_METHODS, type PenaltyMethod, type PunchKind } from '@peoplecore/shared';
+import { describePenalty, PENALTY_METHOD_LABELS, PENALTY_METHODS, PUNCH_ACTIONS, SHORT_HOURS_METHODS, type PenaltyMethod, type PunchKind, hasEveryWord } from '@peoplecore/shared';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { Button } from '@/components/ui/button';
@@ -12,14 +12,18 @@ import type { RuleValues } from './rule-values';
 type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
 /**
- * The browser's position, or null. Its own timeout doesn't run while its permission prompt waits for an answer, so this
- * has a limit too: nobody stays on "Getting location…".
+ * The browser's position, or null: a fresh, precise fix if it can get one in a few seconds, as the phone does, else a
+ * recent one from the last two minutes. The accuracy is stored with it, for whoever reads the map. The browser's own
+ * timeout doesn't run while its permission prompt waits for an answer, so this has a limit too: nobody stays on
+ * "Getting location…".
  */
 function browserPosition(): Promise<GeolocationPosition | null> {
   return new Promise((resolve) => {
     if (!('geolocation' in navigator)) return resolve(null);
     setTimeout(() => resolve(null), 10_000);
-    navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 4000, maximumAge: 60_000 });
+    navigator.geolocation.getCurrentPosition(resolve, () => {
+      navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 2000, maximumAge: 120_000 });
+    }, { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 });
   });
 }
 
@@ -529,7 +533,7 @@ export function AssignWorkWeekForm({ action, weeks, employees, today }: { action
   const [state, formAction] = useActionState(action, initialActionState);
   const [filter, setFilter] = useState('');
   const e = state.fieldErrors ?? {};
-  const shown = employees.filter((o) => o.label.toLowerCase().includes(filter.toLowerCase()));
+  const shown = employees.filter((o) => hasEveryWord(o.label, filter));
   return (
     <form action={formAction} noValidate aria-label="Assign a work week" className="space-y-4">
       <FormMessage state={state} />

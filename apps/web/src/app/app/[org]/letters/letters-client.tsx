@@ -1,5 +1,6 @@
 'use client';
 
+import { hasEveryWord } from '@peoplecore/shared';
 import { useActionState, useMemo, useRef, useState } from 'react';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
@@ -143,7 +144,7 @@ export function PickForm({ base, templates, people, current }: {
   const [chosen, setChosen] = useState<Set<string>>(new Set(current.employees));
   const types = [...new Set(templates.map((t) => t.letter_type))];
   const [type, setType] = useState(templates.find((t) => t.id === current.template)?.letter_type ?? '');
-  const list = useMemo(() => people.filter((p) => !q || `${p.name} ${p.code}`.toLowerCase().includes(q.toLowerCase())), [people, q]);
+  const list = useMemo(() => people.filter((p) => !q || hasEveryWord(`${p.name} ${p.code}`, q)), [people, q]);
   const toggle = (id: string) => setChosen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   return (
     <form method="get" action={base} aria-label="Generate a letter" className="space-y-4">

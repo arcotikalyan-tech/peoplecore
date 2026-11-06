@@ -8,6 +8,7 @@ import { aiAvailable } from '@/server/ai';
 import { checkPunchPhotoAction, flagPunchPhotoAction } from '../../../attendance/photo-check-actions';
 import { PhotoCheck } from '../../../attendance/photo-check';
 import { PunchPhoto } from '../../../attendance/punch-photo';
+import { PunchPlace } from '../../../attendance/punch-place';
 import { attendanceRequests, myRule } from '@/server/attendance-ops';
 import { punchesOn } from '@/server/profile';
 import { Empty, Fields, Panel, type ProfileProps } from './shared';
@@ -112,7 +113,7 @@ export async function AttendanceTab(p: ProfileProps) {
                 <tbody className="divide-y divide-line">
                   {punches.map((x, i) => (
                     <tr key={x.id}><td className="py-2">{i + 1}</td><td>{time(x.punched_at)}</td><td>{labels[i]} · {humanize(x.method)}</td>
-                      <td>{x.latitude !== null && x.longitude !== null ? `${Number(x.latitude).toFixed(4)}, ${Number(x.longitude).toFixed(4)}` : '—'}</td>
+                      <td className="py-1"><PunchPlace punch={x} label={`${labels[i]} at ${time(x.punched_at)}`} /></td>
                       <td className="py-1">{x.selfie_path ? <PunchPhoto slug={slug} punchId={x.id} label={`${labels[i]} photo at ${time(x.punched_at)}`} /> : '—'}
                         {x.selfie_path && photoCheck && (
                           <PhotoCheck check={checkPunchPhotoAction.bind(null, slug)} flag={flagPunchPhotoAction.bind(null, slug)} punchId={x.id} label={time(x.punched_at)} />

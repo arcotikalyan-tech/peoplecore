@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import Link from 'next/link';
 import {
   addMonths, APPLICATION_STAGE_LABELS, CANDIDATE_SOURCE_LABELS, CANDIDATE_SOURCES, monthCells, MOVABLE_STAGES, RECOMMENDATION_LABELS, REQUISITION_STATUS_LABELS,
-  todayIn, type ApplicationStage, type CandidateSource,
+  todayIn, type ApplicationStage, type CandidateSource, hasEveryWord,
 } from '@peoplecore/shared';
 import { HubHeader, HubTabs, Panel, StatCard, SubTabs } from '@/components/ui/hub';
 import { Badge, Card, CardHeader, PageHeader } from '@/components/ui/surface';
@@ -216,7 +216,7 @@ function Candidates(p: Props) {
   const stalled = p.sp.stalled === '1';
   const rows = p.data.applications.filter((a) => (!stage || a.stage === stage) && (!source || a.candidate.source === source) && (!job || a.requisitionId === job)
     && (!stalled || (ACTIVE.includes(a.stage) && days(a.stageChangedAt) >= p.settings.stall_days))
-    && (!q || `${a.candidate.name} ${a.candidate.email ?? ''} ${a.candidate.company ?? ''} ${jobTitle(p, a.requisitionId)}`.toLowerCase().includes(q)));
+    && (!q || hasEveryWord(`${a.candidate.name} ${a.candidate.email ?? ''} ${a.candidate.company ?? ''} ${jobTitle(p, a.requisitionId)}`, q)));
   const size = 25;
   const pages = Math.max(1, Math.ceil(rows.length / size));
   const page = Math.min(pages, Math.max(1, Number(p.sp.page) || 1));

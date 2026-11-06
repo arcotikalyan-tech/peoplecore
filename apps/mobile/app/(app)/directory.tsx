@@ -1,6 +1,8 @@
+import { todayIn } from '@peoplecore/shared/dates';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState } from 'react';
-import { Linking, TextInput, View } from 'react-native';
+import { Linking, ScrollView, TextInput, View } from 'react-native';
+import { DayPunches } from '@/components/day-punches';
 import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import { useLoad } from '@/lib/use-load';
@@ -67,6 +69,10 @@ export default function Directory() {
               {open.work_email && <Button label="Email" icon="mail-outline" variant="tonal" style={{ flex: 1 }} onPress={() => void Linking.openURL(`mailto:${open.work_email}`)} />}
             </View>
             {!open.work_email && !open.work_phone && <Text variant="footnote" tone="muted">Contact details aren’t shared in your organization’s directory.</Text>}
+            {/* Only for yourself, your team, or everyone if you're HR: what the database lets you read. */}
+            <ScrollView style={{ maxHeight: 340, marginTop: space.md }}>
+              <DayPunches employeeId={open.id} date={todayIn(workplace?.timezone ?? 'Asia/Kolkata')} title="Today’s punches" hideWhenEmpty />
+            </ScrollView>
           </>
         )}
       </Sheet>

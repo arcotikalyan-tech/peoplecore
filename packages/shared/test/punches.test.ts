@@ -1,5 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { dayProgress, nextPunches, punchLabels, punchState, type PunchKind, type PunchLike } from '../src/punches.ts';
+import { dayProgress, nextPunches, punchLabels, punchPlace, punchState, type PunchKind, type PunchLike } from '../src/punches.ts';
+
+describe('punchPlace', () => {
+  it('gives the exact coordinates, the accuracy and the Google Maps pin', () => {
+    expect(punchPlace({ latitude: '12.971599', longitude: '77.594563', accuracy_m: 18 })).toEqual({
+      coords: '12.971599, 77.594563',
+      accuracy: 'within 18 m',
+      mapsUrl: 'https://www.google.com/maps/search/?api=1&query=12.971599%2C77.594563',
+    });
+  });
+
+  it('copes with no accuracy and negative coordinates', () => {
+    expect(punchPlace({ latitude: -33.8, longitude: 151.2 })).toMatchObject({ coords: '-33.800000, 151.200000', accuracy: null });
+  });
+
+  it('is null when no location was recorded', () => {
+    expect(punchPlace({ latitude: null, longitude: null })).toBeNull();
+    expect(punchPlace({ latitude: 12.97, longitude: null })).toBeNull();
+    expect(punchPlace({})).toBeNull();
+  });
+});
 
 const at = (hhmm: string, kind: PunchKind | null = null): PunchLike => ({ punched_at: `2026-11-02T${hhmm}:00+05:30`, kind });
 const now = (hhmm: string) => new Date(`2026-11-02T${hhmm}:00+05:30`);

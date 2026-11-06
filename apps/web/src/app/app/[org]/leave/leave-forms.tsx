@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useMemo, useState } from 'react';
-import { LEAVE_CATEGORIES, LEAVE_CATEGORY_LABELS, MONTH_NAMES } from '@peoplecore/shared';
+import { LEAVE_CATEGORIES, LEAVE_CATEGORY_LABELS, MONTH_NAMES, hasEveryWord } from '@peoplecore/shared';
 import { FormMessage } from '@/components/form-message';
 import { SubmitButton } from '@/components/submit-button';
 import { Button } from '@/components/ui/button';
@@ -196,7 +196,7 @@ function useSelection(rows: PickEmployee[]) {
   const [dept, setDept] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const visible = useMemo(() => rows.filter((r) => (!dept || r.department === dept)
-    && (!q || `${r.name} ${r.code}`.toLowerCase().includes(q.toLowerCase()))), [rows, q, dept]);
+    && (!q || hasEveryWord(`${r.name} ${r.code}`, q))), [rows, q, dept]);
   const toggle = (id: string) => setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const all = () => setPicked(new Set(visible.map((r) => r.id)));
   const clear = () => setPicked(new Set());

@@ -100,7 +100,7 @@ export default async function AttendancePage({ params, searchParams }: { params:
         <>
           {tab === 'hub' && <MyHub ctx={ctx} slug={slug} me={me} today={today} />}
           {tab === 'calendar' && <MyCalendar ctx={ctx} me={me} month={month} />}
-          {tab === 'logs' && <MyLogs ctx={ctx} me={me} />}
+          {tab === 'logs' && <MyLogs ctx={ctx} slug={slug} me={me} />}
           {tab === 'rule' && <MyRule ctx={ctx} me={me} today={today} />}
           {tab === 'insights' && <MyInsights ctx={ctx} me={me} today={today} />}
         </>

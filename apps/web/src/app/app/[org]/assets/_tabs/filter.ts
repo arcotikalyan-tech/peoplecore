@@ -1,3 +1,4 @@
+import { hasEveryWord } from '@peoplecore/shared';
 import type { AssetRow } from '@/server/assets';
 
 /** The register's filters: search (tag, name, serial, category, holder), status, category, condition, location. */
@@ -8,7 +9,7 @@ export function filterAssets(rows: AssetRow[], sp: Record<string, string | undef
     if (sp.category && a.category_id !== sp.category) return false;
     if (sp.condition && a.condition !== sp.condition) return false;
     if (sp.location && a.location_id !== sp.location) return false;
-    if (q && !`${a.tag} ${a.name} ${a.serial_number ?? ''} ${a.category} ${a.issue ? holderName(a.issue.employee_id) : ''}`.toLowerCase().includes(q)) return false;
+    if (q && !hasEveryWord(`${a.tag} ${a.name} ${a.serial_number ?? ''} ${a.category} ${a.issue ? holderName(a.issue.employee_id) : ''}`, q)) return false;
     return true;
   });
 }

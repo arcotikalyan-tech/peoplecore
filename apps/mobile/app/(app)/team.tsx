@@ -1,6 +1,7 @@
 import { todayIn } from '@peoplecore/shared/dates';
 import { useState } from 'react';
-import { Linking } from 'react-native';
+import { Linking, ScrollView } from 'react-native';
+import { DayPunches } from '@/components/day-punches';
 import { TEAM_TONE, TeamFigures, teamLine, TeamRoleBanner, teamToday } from '@/components/desks';
 import { loadDesks } from '@/lib/desks';
 import { dateRange, days, relativeDay } from '@/lib/format';
@@ -8,7 +9,7 @@ import { useSession } from '@/lib/session';
 import { SITE_URL } from '@/lib/site';
 import { supabase } from '@/lib/supabase';
 import { useLoad } from '@/lib/use-load';
-import { Avatar, Card, EmptyState, ErrorState, ListGroup, ListRow, Page, Pill, ProgressBar, Segmented, SkeletonList, Text, type IconName, type Tone } from '@/ui';
+import { Avatar, Button, Card, EmptyState, ErrorState, ListGroup, ListRow, Page, Pill, ProgressBar, Segmented, Sheet, SkeletonList, space, Text, type IconName, type Tone } from '@/ui';
 
 type View = 'today' | 'away' | 'coming' | 'month';
 interface Birthday { employee_id: string; name: string; next_birthday: string }
@@ -28,6 +29,7 @@ export default function Team() {
   const tz = workplace?.timezone ?? 'Asia/Kolkata';
   const today = todayIn(tz);
   const [view, setView] = useState<View>('today');
+  const [person, setPerson] = useState<{ id: string; name: string } | null>(null);
   const { data, loading, error, reload } = useLoad(async () => {
     if (!workplace) return null;
     const [desks, birthdays] = await Promise.all([
@@ -70,10 +72,10 @@ export default function Team() {
           {view === 'today' && (
             <>
               <TeamFigures rows={rows} />
-              <ListGroup title={`${rows.length} ${rows.length === 1 ? 'person' : 'people'}`} footer="Tap someone to open their attendance on the website.">
+              <ListGroup title={`${rows.length} ${rows.length === 1 ? 'person' : 'people'}`} footer="Tap someone for today’s punches, with photos and location.">
                 {rows.map((r) => (
                   <ListRow key={r.member.id} leading={<Avatar name={r.member.name} size={34} />} title={r.member.name}
-                    subtitle={teamLine(r, tz)} right={<Pill label={r.label} tone={TEAM_TONE[r.tone]} />} onPress={() => profile(r.member.id)} />
+                    subtitle={teamLine(r, tz)} right={<Pill label={r.label} tone={TEAM_TONE[r.tone]} />} onPress={() => setPerson({ id: r.member.id, name: r.member.name })} />
                 ))}
               </ListGroup>
             </>
@@ -129,6 +131,17 @@ export default function Team() {
           )}
         </>
       )}
+
+      <Sheet visible={!!person} onClose={() => setPerson(null)} title={person?.name ?? ''}>
+        {person && (
+          <>
+            <ScrollView style={{ maxHeight: 460 }}>
+              <DayPunches employeeId={person.id} date={today} title="Today’s punches" />
+            </ScrollView>
+            <Button label="Full attendance on the website" variant="ghost" size="sm" style={{ marginTop: space.md }} onPress={() => profile(person.id)} />
+          </>
+        )}
+      </Sheet>
     </Page>
   );
 }

@@ -64,6 +64,35 @@ export function punchLabels(punches: readonly PunchLike[]): string[] {
   });
 }
 
+export interface PunchLocation {
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  accuracy_m?: number | null;
+}
+
+export interface PunchPlace {
+  /** The exact coordinates, as stored (six decimals: about 10 cm). */
+  coords: string;
+  /** How sure the device was: "within 18 m". A laptop's guess can be far rougher than a phone's GPS. */
+  accuracy: string | null;
+  /** The pin in Google Maps; opens the Maps app on a phone. */
+  mapsUrl: string;
+}
+
+/** Where a punch was made, or null when none was recorded. */
+export function punchPlace(p: PunchLocation): PunchPlace | null {
+  if (p.latitude == null || p.longitude == null) return null;
+  const lat = Number(p.latitude);
+  const lng = Number(p.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const coords = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  return {
+    coords,
+    accuracy: p.accuracy_m == null ? null : `within ${p.accuracy_m} m`,
+    mapsUrl: `https://www.google.com/maps/search/?api=1&query=${lat.toFixed(6)}%2C${lng.toFixed(6)}`,
+  };
+}
+
 export interface DayProgress {
   /** Time at work: each check-in to its check-out, and while checked in, up to now. */
   atWorkMinutes: number;
