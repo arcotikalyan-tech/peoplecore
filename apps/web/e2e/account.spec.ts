@@ -102,6 +102,9 @@ test('“Forgot password?” emails a link that works on another device', async 
   const { link } = await linkFromLatestEmail(email, since, /\/auth\/v1\/verify/);
   const phone = await (await browser.newContext()).newPage();
   await phone.goto(link);
+  // Nothing happens until the person has seen whose account it opens.
+  await expect(phone.getByText(email)).toBeVisible();
+  await phone.getByRole('button', { name: 'Continue' }).click();
   await phone.waitForURL(/\/set-password\?/);
   await expect(phone.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
   await phone.getByLabel(/^New password/).fill(passwords.reset);

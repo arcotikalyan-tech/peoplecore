@@ -1,7 +1,7 @@
 'use client';
 
 import { createBrowserClient } from '@supabase/ssr';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { publicEnv } from '@/lib/env';
 import { emailInToken } from '@/lib/token-email';
@@ -14,7 +14,11 @@ export function CompleteSignIn({ next }: { next: string }) {
   const [tokens, setTokens] = useState<{ access_token: string; refresh_token: string } | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const read = useRef(false);
   useEffect(() => {
+    // Once only: React can run this twice, and the first run clears what the second would look for.
+    if (read.current) return;
+    read.current = true;
     const hash = new URLSearchParams(window.location.hash.slice(1));
     // Drop the tokens from the address bar (and history) straight away.
     window.history.replaceState(null, '', window.location.pathname + window.location.search);
