@@ -12,6 +12,12 @@ export function tappedNotification(data: unknown): { kind: string; link: string 
 }
 
 /**
+ * The Inbox on its Notifications view, wherever it was left. `at` makes each press a new request: the tab keeps its
+ * params, so the same link a second time would otherwise change nothing and leave the person on Approvals.
+ */
+export const notificationsLink = (at = Date.now()) => `/inbox?view=notifications&at=${at}` as const;
+
+/**
  * Where tapping a notification takes you: its link names a website page; the phone opens its own screen for that
  * part of the app, and the Inbox (which lists every notification) for anything the phone doesn't have.
  */

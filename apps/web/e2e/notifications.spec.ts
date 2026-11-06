@@ -30,7 +30,7 @@ test.afterAll(async () => {
   await admin.from('notifications').delete().eq('organization_id', orgId).eq('kind', 'test.seen').like('title', `%${run}`);
 });
 
-test('another page leaves them unread; the Inbox marks them read, keeps them highlighted, and leaves a later one unread', async ({ page }) => {
+test('another page leaves them unread; the Inbox marks them read, they look read at once, and a later one stays unread', async ({ page }) => {
   const first = await notify('Your request was approved');
   await signIn(page, 'demo.employee');
   await open(page, '/app/demo');
@@ -42,10 +42,11 @@ test('another page leaves them unread; the Inbox marks them read, keeps them hig
   await badge.click();
   const list = page.getByRole('list', { name: 'Notifications' });
   const row = list.getByRole('listitem').filter({ hasText: `Your request was approved ${run}` });
-  await expect(row).toHaveAttribute('data-new', 'true');
+  await expect(row).toBeVisible();
   await expect.poll(() => readAt(first), { timeout: 20_000 }).not.toBeNull();
   await expect(badge).toHaveCount(0); // the count goes with them
-  await expect(row).toHaveAttribute('data-new', 'true'); // still marked as new for this visit
+  await expect(row).not.toHaveAttribute('data-new', 'true'); // looks read without leaving the page
+  await expect(page.getByText('All caught up')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Mark all read' })).toHaveCount(0);
 
   // Arrives after the list was read: not on screen yet, so not seen.
@@ -56,7 +57,7 @@ test('another page leaves them unread; the Inbox marks them read, keeps them hig
   await expect(list.getByRole('listitem').filter({ hasText: `Your payslip is ready ${run}` })).toBeVisible();
   await expect.poll(() => readAt(later), { timeout: 20_000 }).not.toBeNull();
   await page.reload();
-  await expect(row).not.toHaveAttribute('data-new', 'true'); // read on an earlier visit
+  await expect(row).not.toHaveAttribute('data-new', 'true');
 });
 
 test('opening one straight away still counts as having seen them', async ({ page }) => {

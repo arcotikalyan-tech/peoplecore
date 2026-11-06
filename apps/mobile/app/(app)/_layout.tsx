@@ -3,7 +3,7 @@ import { Redirect, router, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { CountsProvider } from '@/lib/counts';
 import { pushSupported, syncPush } from '@/lib/push';
-import { screenFor } from '@/lib/push-links';
+import { notificationsLink, screenFor } from '@/lib/push-links';
 import { useSession } from '@/lib/session';
 import { TodayProvider } from '@/lib/today';
 import { useTheme } from '@/ui';
@@ -33,7 +33,8 @@ export default function AppLayout() {
       Notifications.clearLastNotificationResponse(); // first, so switching organization below doesn't open it twice
       const data = r.notification.request.content.data;
       if (typeof data?.org === 'string' && data.org !== workplace?.slug) await switchWorkplace(data.org);
-      router.navigate(screenFor(data?.link));
+      const screen = screenFor(data?.link);
+      router.navigate(screen === '/(app)/(tabs)/inbox' ? notificationsLink() : screen); // to what was tapped, not to Approvals
     };
     void open(Notifications.getLastNotificationResponse());
     const sub = Notifications.addNotificationResponseReceivedListener((r) => void open(r));

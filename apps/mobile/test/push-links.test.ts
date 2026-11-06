@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { screenFor, tappedNotification } from '../src/lib/push-links';
+import { notificationsLink, screenFor, tappedNotification } from '../src/lib/push-links';
 
 describe('the notification a tapped push was', () => {
   it('is its kind and link, with an empty link read as none', () => {
@@ -24,5 +24,10 @@ describe('tapping a notification', () => {
     expect(screenFor('/payroll/runs/1')).toBe('/(app)/(tabs)/inbox'); // payroll admin pages aren't on the phone
     expect(screenFor('')).toBe('/(app)/(tabs)/inbox');
     expect(screenFor(undefined)).toBe('/(app)/(tabs)/inbox');
+  });
+
+  it('makes each press of the bell a new request for the Notifications view', () => {
+    expect(notificationsLink(1)).toBe('/inbox?view=notifications&at=1');
+    expect(notificationsLink(1)).not.toBe(notificationsLink(2));
   });
 });

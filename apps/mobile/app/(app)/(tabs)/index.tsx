@@ -13,6 +13,7 @@ import { loadDesks } from '@/lib/desks';
 import { ago, dateParts, dateRange, dayMonth, days, firstName, greeting, inr, monthYear, plainText, relativeDay } from '@/lib/format';
 import { loadHolidays } from '@/lib/holidays';
 import { loadCompleteness, PROFILE_PARTS } from '@/lib/profile';
+import { notificationsLink } from '@/lib/push-links';
 import { useSession } from '@/lib/session';
 import { SITE_URL } from '@/lib/site';
 import { supabase } from '@/lib/supabase';
@@ -120,7 +121,7 @@ export default function Home() {
       <TabHeader title={`${greeting(new Date(), tz)}${workplace?.employeeName ? `, ${firstName(workplace.employeeName)}` : ''}`}
         subtitle={`${dayMonth(today)} · ${workplace?.orgName ?? 'No organization'}`}
         right={<>
-          <IconButton icon="notifications-outline" label="Notifications" badge={unread} onPress={() => router.navigate('/inbox?view=notifications')} />
+          <IconButton icon="notifications-outline" label="Notifications" badge={unread} onPress={() => router.navigate(notificationsLink())} />
           <Pressable accessibilityRole="button" accessibilityLabel="My profile" onPress={() => router.push('/profile')} hitSlop={6}>
             <Avatar name={workplace?.employeeName ?? workplace?.orgName} size={40} />
           </Pressable>

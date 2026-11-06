@@ -34,7 +34,11 @@ export function CountsProvider({ children }: { children: ReactNode }) {
       supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).is('read_at', null),
     ]);
     if (!pending.error) setApprovals((pending.data ?? []).length);
-    if (!notes.error) setUnread(notes.count ?? 0);
+    if (!notes.error) {
+      setUnread(notes.count ?? 0);
+      // Read here or on the website: Android's tray and the app-icon dot shouldn't go on showing them.
+      if (pushSupported && notes.count === 0) void Notifications.dismissAllNotificationsAsync();
+    }
   }, [orgId]);
 
   useEffect(() => {

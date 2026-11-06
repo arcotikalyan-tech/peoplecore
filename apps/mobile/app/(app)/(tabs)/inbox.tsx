@@ -31,14 +31,14 @@ const kindOf = (kind: string): [IconName, Tone] => KIND[kind.split('.')[0] ?? ''
 /**
  * The Inbox: requests waiting for your decision (approve, or reject with a reason, as on the website) and your
  * notifications. The list counts as read once it has been on screen for a moment, as on the website (see
- * @peoplecore/shared/notifications); what was unread stays highlighted until the next visit. Tapping one opens its screen.
+ * @peoplecore/shared/notifications), and from then on it looks read. Tapping one opens its screen.
  */
 export default function Inbox() {
   const { workplace } = useSession();
   const { colors } = useTheme();
   const toast = useToast();
   const counts = useCounts();
-  const params = useLocalSearchParams<{ view?: string }>();
+  const params = useLocalSearchParams<{ view?: string; at?: string }>();
   const [view, setView] = useState<'approvals' | 'notifications'>(params.view === 'notifications' ? 'notifications' : 'approvals');
   const [rejecting, setRejecting] = useState<Approval | null>(null);
   const [reason, setReason] = useState('');
@@ -47,7 +47,7 @@ export default function Inbox() {
   // Chosen by a link, or by tapping a segment; otherwise the Inbox opens where something is.
   const chosen = useRef(false);
   const choose = (v: 'approvals' | 'notifications') => { chosen.current = true; setView(v); };
-  useEffect(() => { if (params.view === 'notifications' || params.view === 'approvals') choose(params.view); }, [params.view]);
+  useEffect(() => { if (params.view === 'notifications' || params.view === 'approvals') choose(params.view); }, [params.view, params.at]);
 
   const { data, loading, error, reload } = useLoad(async () => {
     if (!workplace) return { approvals: [] as Approval[], notes: [] as Note[] };
@@ -115,7 +115,8 @@ export default function Inbox() {
     const screen = screenFor(n.link);
     if (screen !== '/(app)/(tabs)/inbox') router.navigate(screen);
   };
-  const unread = notes?.filter((n) => !n.read_at && (seenThrough === null || n.created_at > seenThrough)).length ?? 0;
+  const isUnread = (n: Note) => !n.read_at && (seenThrough === null || n.created_at > seenThrough);
+  const unread = notes?.filter(isUnread).length ?? 0;
   const approvals = data?.approvals ?? [];
 
   return (
@@ -160,17 +161,17 @@ export default function Inbox() {
           {data!.notes.map((n, i) => {
             const [icon, tone] = kindOf(n.kind);
             return (
-              <Pressable key={n.id} accessibilityRole="button" accessibilityLabel={`${n.read_at ? '' : 'Unread. '}${n.title}. ${n.body ?? ''}`}
+              <Pressable key={n.id} accessibilityRole="button" accessibilityLabel={`${isUnread(n) ? 'Unread. ' : ''}${n.title}. ${n.body ?? ''}`}
                 onPress={() => open(n)} android_ripple={{ color: colors.line }}
-                style={({ pressed }) => [{ flexDirection: 'row', gap: space.md, padding: space.lg, backgroundColor: pressed ? colors.subtle : n.read_at ? 'transparent' : colors.primarySoft },
+                style={({ pressed }) => [{ flexDirection: 'row', gap: space.md, padding: space.lg, backgroundColor: pressed ? colors.subtle : isUnread(n) ? colors.primarySoft : 'transparent' },
                   i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.line }]}>
                 <IconTile icon={icon} tone={tone} size={36} />
                 <View style={{ flex: 1 }}>
-                  <Text variant="callout" style={{ fontWeight: n.read_at ? '500' : '700' }}>{n.title}</Text>
+                  <Text variant="callout" style={{ fontWeight: isUnread(n) ? '700' : '500' }}>{n.title}</Text>
                   {n.body ? <Text variant="footnote" tone="muted" numberOfLines={3}>{n.body}</Text> : null}
                   <Text variant="caption" tone="faint" style={{ marginTop: 4 }}>{ago(n.created_at)}</Text>
                 </View>
-                {!n.read_at && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary, marginTop: 6 }} />}
+                {isUnread(n) && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary, marginTop: 6 }} />}
               </Pressable>
             );
           })}
