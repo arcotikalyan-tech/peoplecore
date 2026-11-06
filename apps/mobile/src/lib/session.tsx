@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Session } from '@supabase/supabase-js';
+import { isAuthRetryableFetchError, type Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { forgetPhone } from './push';
-import { supabase } from './supabase';
+import { forgetWorkplace, rememberedWorkplace, rememberWorkplace } from './offline-memory';
+import { savedSession, supabase } from './supabase';
+import { within } from './timeout';
 import { codeNeeded, signInProblem } from './two-step-rules';
 import { pickWorkplace, sameWorkplace, type OrgChoice } from './workplace-choice';
 
@@ -50,6 +52,10 @@ interface SessionState {
 const Ctx = createContext<SessionState | null>(null);
 
 const CHOSEN = 'workplace.org';
+/** How long each step of opening the app waits on the network before going on with what the phone remembers. */
+const START_LIMIT_MS = 8000;
+/** A token is renewed in about a second with a connection. Longer than this, the app opens from what it remembers. */
+const TOKEN_LIMIT_MS = 4000;
 
 /** The workplace, and whether every read succeeded (a refresh keeps what it had when one failed). */
 async function loadWorkplace(): Promise<{ workplace: Workplace | null; workplaces: OrgChoice[]; complete: boolean }> {
@@ -99,19 +105,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setTwoStepRequired(false);
       return;
     }
-    const [{ data: aal }, { data: required }, { data: factors }] = await Promise.all([
+    // No signal, or one that has stalled: the app still opens, within a few seconds. Two-step is enforced by the server.
+    const steps = await within(Promise.all([
       supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
       supabase.rpc('my_mfa_requirement'),
       supabase.auth.mfa.listFactors(),
-    ]);
-    const has = (factors?.totp ?? []).length > 0;
-    setHasAuthenticator(has);
-    setTwoStepRequired(Boolean(required));
-    setNeedsCode(codeNeeded({ currentLevel: aal?.currentLevel, required: Boolean(required), hasAuthenticator: has }));
-    const loaded = await loadWorkplace();
-    // Unchanged, it stays the same object: a signed-in session refreshing itself doesn't reload every screen.
-    setWorkplace((had) => (sameWorkplace(had, loaded.workplace) ? had : loaded.workplace));
-    setWorkplaces(loaded.workplaces);
+    ]), START_LIMIT_MS, null);
+    if (steps) {
+      const [{ data: aal }, { data: required }, { data: factors }] = steps;
+      const has = (factors?.totp ?? []).length > 0;
+      setHasAuthenticator(has);
+      setTwoStepRequired(Boolean(required));
+      setNeedsCode(codeNeeded({ currentLevel: aal?.currentLevel, required: Boolean(required), hasAuthenticator: has }));
+    }
+    const loaded = await within(loadWorkplace(), START_LIMIT_MS, { workplace: null, workplaces: [], complete: false });
+    if (loaded.complete) {
+      if (loaded.workplace) void rememberWorkplace(AsyncStorage, s.user.id, loaded.workplace);
+      // Unchanged, it stays the same object: a signed-in session refreshing itself doesn't reload every screen.
+      setWorkplace((had) => (sameWorkplace(had, loaded.workplace) ? had : loaded.workplace));
+      setWorkplaces(loaded.workplaces);
+    } else {
+      // The read failed: keep what's open, or what was last known, so someone with no signal can still check in.
+      const known = await rememberedWorkplace<Workplace>(AsyncStorage, s.user.id);
+      setWorkplace((had) => had ?? known ?? loaded.workplace);
+    }
   }, []);
 
   const refreshWorkplace = useCallback(async () => {
@@ -123,8 +140,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => refresh(data.session)).finally(() => setLoading(false));
-    const { data } = supabase.auth.onAuthStateChange((_event, s) => { void refresh(s); });
+    const start = async () => {
+      const found = await within(supabase.auth.getSession(), TOKEN_LIMIT_MS, null);
+      if (found && !isAuthRetryableFetchError(found.error)) return refresh(found.data.session);
+      // An expired token can't be renewed with no signal, and Supabase keeps trying for 30 seconds. The session is still
+      // saved: open with what the phone remembers now, and it's renewed once there's a connection.
+      const saved = await savedSession();
+      if (saved) {
+        const known = await rememberedWorkplace<Workplace>(AsyncStorage, saved.user.id);
+        setSession(saved);
+        setWorkplace((had) => had ?? known);
+      }
+      setLoading(false);
+      return refresh(saved);
+    };
+    void start().finally(() => setLoading(false));
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      // At start-up this says "nobody" when an expired token couldn't be renewed; start() above has the real answer.
+      if (event !== 'INITIAL_SESSION') void refresh(s);
+    });
     // A record HR added (or a module switched) while the app sat in the background shows when it comes back.
     const front = AppState.addEventListener('change', (state) => { if (state === 'active') void refreshWorkplace(); });
     return () => { data.subscription.unsubscribe(); front.remove(); };
@@ -158,6 +192,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     async signOut() {
       await forgetPhone().catch(() => undefined); // offline: the server forgets it once pushes to it fail
       await AsyncStorage.removeItem(CHOSEN).catch(() => undefined);
+      if (session) await forgetWorkplace(AsyncStorage, session.user.id);
       await supabase.auth.signOut();
     },
   }), [loading, session, workplace, workplaces, needsCode, hasAuthenticator, twoStepRequired, refresh, refreshWorkplace]);

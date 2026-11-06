@@ -1,16 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { startOfDayIn, todayIn } from '@peoplecore/shared/dates';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { waitingPunches, type QueuedPunch } from './punch-queue';
 import { currentPosition, newClientId, queue, sendPunch } from './punches';
 import { takeSelfie } from './selfie';
 import { selfieRequired } from './selfie-rule';
+import { rememberedPunches, rememberPunches } from './offline-memory';
 import { useSession } from './session';
 import { supabase } from './supabase';
+import { within } from './timeout';
 import type { PunchKind } from '@peoplecore/shared/punches';
 import { DEFAULT_DAY, today as dayFrom, type Day } from './worked';
+
+/** How long the buttons wait on today's punches before going on with what the phone remembers. */
+const READ_LIMIT_MS = 5000;
 
 export interface Shift {
   name: string; start_time: string; end_time: string; verify_selfie: boolean;
@@ -57,6 +62,7 @@ export function TodayProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState<PunchMessage | null>(null);
   const [ready, setReady] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const latestRead = useRef(0);
 
   // The worked time keeps counting while checked in.
   useEffect(() => {
@@ -83,10 +89,28 @@ export function TodayProvider({ children }: { children: ReactNode }) {
     setNow(new Date());
     if (!workplace?.employeeId) { setPunches([]); setReady(true); return; }
     void checkSelfie();
-    const start = startOfDayIn(todayIn(tz), tz).toISOString();
-    const { data } = await supabase.from('attendance_punches').select('id, punched_at, method, kind')
-      .eq('employee_id', workplace.employeeId).gte('punched_at', start).order('punched_at');
-    setPunches(data ?? []);
+    const employeeId = workplace.employeeId;
+    const date = todayIn(tz);
+    const start = startOfDayIn(date, tz).toISOString();
+    const run = ++latestRead.current;
+    const got = (r: { data: TodayState['punches'] | null; error: unknown }) => {
+      if (r.error || !r.data) return false;
+      if (run === latestRead.current) {
+        setPunches(r.data);
+        void rememberPunches(AsyncStorage, employeeId, date, r.data);
+      }
+      return true;
+    };
+    const read = Promise.resolve(supabase.from('attendance_punches').select('id, punched_at, method, kind')
+      .eq('employee_id', employeeId).gte('punched_at', start).order('punched_at'));
+    const answer = await within(read, READ_LIMIT_MS, null);
+    if (!answer || !got(answer)) {
+      // Not read: today stays as it was last known, or someone checked in would be offered Check in again.
+      const known = await rememberedPunches<TodayState['punches'][number]>(AsyncStorage, employeeId, date);
+      const startMs = Date.parse(start);
+      setPunches((had) => { const stillToday = had.filter((p) => Date.parse(p.punched_at) >= startMs); return stillToday.length ? stillToday : known; });
+      if (!answer) void read.then(got); // a slow connection's answer still counts when it comes
+    }
     setReady(true);
   }, [workplace, tz, checkSelfie, userId]);
 
@@ -102,11 +126,20 @@ export function TodayProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMessage(null);
     setReady(false);
-    void sync();
+    // Today first, so the buttons don't wait while a saved punch tries to go on a bad connection.
+    void load().then(sync);
     const net = NetInfo.addEventListener((state) => { if (state.isConnected) void sync(); });
     const front = AppState.addEventListener('change', (state) => { if (state === 'active') void sync(); });
     return () => { net(); front.remove(); };
-  }, [sync]);
+  }, [load, sync]);
+
+  // A token renewed, as happens when the signal comes back: whatever was waiting for one can go now.
+  const token = session?.access_token;
+  const lastToken = useRef(token);
+  useEffect(() => {
+    if (token && lastToken.current && token !== lastToken.current) void sync();
+    lastToken.current = token;
+  }, [token, sync]);
 
   const punch = useCallback(async (kind: PunchKind) => {
     if (!workplace || !ready) return;

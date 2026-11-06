@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type Session } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { chunkedStore } from './chunked-store';
@@ -20,16 +20,33 @@ const webStore = {
 };
 
 const network = { fetch: timedFetch(DATABASE_TIMEOUT_MS) };
+const sessionStore = Platform.OS === 'web' ? webStore : chunkedStore(SecureStore);
 
 export const supabase = createClient(url ?? 'http://127.0.0.1:54321', key ?? 'not-configured', {
   global: network,
   auth: {
-    storage: Platform.OS === 'web' ? webStore : chunkedStore(SecureStore),
+    storage: sessionStore,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
   },
 });
+
+/**
+ * The session as saved on this device, when it can't be read the usual way: Supabase answers "nobody" while a token that
+ * has expired can't be renewed, though the session is safe and is renewed once there's a connection. Its key is the one
+ * Supabase uses by default.
+ */
+export async function savedSession(): Promise<Session | null> {
+  const key = `sb-${new URL(url ?? 'http://127.0.0.1:54321').hostname.split('.')[0]}-auth-token`;
+  try {
+    const saved = await sessionStore.getItem(key);
+    const session = saved ? (JSON.parse(saved) as Session) : null;
+    return session?.user?.id ? session : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Checks a password with a separate client that keeps nothing, so the signed-in session is untouched. */
 export async function passwordIsRight(email: string, password: string): Promise<boolean> {

@@ -19,6 +19,9 @@ export function sendPunch(p: QueuedPunch) {
 async function send(p: QueuedPunch) {
   if (p.photoUri) return sendWithPhoto(p, p.photoUri);
   try {
+    // Without a live session (a token not renewed yet) this would go out as nobody and be refused for good, losing the punch.
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return { ok: false as const, permanent: false, message: 'No connection.' };
     const { error } = await supabase.rpc('record_punch', {
       p_client_id: p.clientId, p_punched_at: p.punchedAt, p_method: 'mobile',
       p_latitude: p.latitude, p_longitude: p.longitude, p_accuracy_m: p.accuracyM, p_org: p.orgId, ...(p.kind ? { p_kind: p.kind } : {}),
