@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayProgress, nextPunches, punchLabels, punchPlace, punchState, type PunchKind, type PunchLike } from '../src/punches.ts';
+import { dayProgress, nextPunches, punchLabels, punchPlace, punchState, REPLACED_PUNCH_LABEL, type PunchKind, type PunchLike } from '../src/punches.ts';
 
 describe('punchPlace', () => {
   it('gives the exact coordinates, the accuracy and the Google Maps pin', () => {
@@ -66,5 +66,13 @@ describe('progress towards a full day (8 hours with an hour’s break: 9 hours a
     expect(dayProgress([at('09:00', 'in'), at('13:00', 'lunch_start')], now('13:20'), rule)).toMatchObject({ breakMinutes: 20 });
     expect(dayProgress([at('09:00', 'in'), at('17:00', 'lunch_start'), at('18:00', 'out')], now('19:00'), rule))
       .toMatchObject({ atWorkMinutes: 540, breakMinutes: 60, workedMinutes: 480 });
+  });
+});
+
+describe('punches replaced by a correction', () => {
+  it('say so and don’t count towards check-in and check-out', () => {
+    const p = (time: string, superseded_by: string | null = null): PunchLike => ({ punched_at: `2026-10-14T${time}:00+05:30`, superseded_by });
+    expect(punchLabels([p('08:00', 'r1'), p('09:30'), p('18:30'), p('21:00', 'r1')]))
+      .toEqual([REPLACED_PUNCH_LABEL, 'Check-in', 'Check-out', REPLACED_PUNCH_LABEL]);
   });
 });

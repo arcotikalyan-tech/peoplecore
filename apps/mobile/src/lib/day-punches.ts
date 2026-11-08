@@ -14,11 +14,12 @@ export interface DayPunch {
 
 interface PunchRow {
   id: string; punched_at: string; kind: PunchKind | null; latitude: number | null; longitude: number | null; accuracy_m: number | null; selfie_path: string | null;
+  superseded_by: string | null;
 }
 
 /** One person's punches on a local date. RLS decides who gets them: yourself, your team, or everyone for HR. */
 export async function loadDayPunches(orgId: string, employeeId: string, date: string, timeZone: string): Promise<DayPunch[]> {
-  const { data, error } = await supabase.from('attendance_punches').select('id, punched_at, kind, latitude, longitude, accuracy_m, selfie_path')
+  const { data, error } = await supabase.from('attendance_punches').select('id, punched_at, kind, latitude, longitude, accuracy_m, selfie_path, superseded_by')
     .eq('organization_id', orgId).eq('employee_id', employeeId)
     .gte('punched_at', startOfDayIn(date, timeZone).toISOString()).lt('punched_at', startOfDayIn(addDays(date, 1), timeZone).toISOString())
     .order('punched_at');

@@ -22,7 +22,12 @@ export const PUNCH_LABELS: Record<PunchKind, string> = {
 export interface PunchLike {
   punched_at: string;
   kind?: PunchKind | null;
+  /** The approved correction that replaced this punch: it stays on record but no longer counts. */
+  superseded_by?: string | null;
 }
+
+/** How a punch replaced by an approved correction reads in a day's list. */
+export const REPLACED_PUNCH_LABEL = 'Replaced by a correction';
 
 const isCheck = (k: PunchKind | null | undefined) => k == null || k === 'in' || k === 'out';
 const time = (p: PunchLike) => Date.parse(p.punched_at);
@@ -54,10 +59,14 @@ export function nextPunches(s: PunchState): PunchKind[] {
   return ['lunch_start', 'break_start', 'out'];
 }
 
-/** How a punch reads in a day's list: its kind, or for one without, check-in or check-out by its place. */
+/**
+ * How a punch reads in a day's list: its kind, or for one without, check-in or check-out by its place among the punches
+ * that count. One replaced by a correction says so and doesn't count.
+ */
 export function punchLabels(punches: readonly PunchLike[]): string[] {
   let checks = 0;
   return punches.map((p) => {
+    if (p.superseded_by) return REPLACED_PUNCH_LABEL;
     if (p.kind && !isCheck(p.kind)) return PUNCH_LABELS[p.kind];
     checks += 1;
     return p.kind ? PUNCH_LABELS[p.kind] : checks % 2 === 1 ? PUNCH_LABELS.in : PUNCH_LABELS.out;

@@ -93,7 +93,7 @@ export async function dayPunchDetails(orgId: string, employeeIds: string[], date
   const byPerson = new Map<string, Array<{ id: string; label: string; at: string; photo: boolean; latitude: number | null; longitude: number | null; accuracy_m: number | null }>>();
   if (!employeeIds.length) return byPerson;
   const supabase = await createClient();
-  const { data, error } = await allRows((a, b) => supabase.from('attendance_punches').select('id, employee_id, punched_at, kind, selfie_path, latitude, longitude, accuracy_m')
+  const { data, error } = await allRows((a, b) => supabase.from('attendance_punches').select('id, employee_id, punched_at, kind, selfie_path, latitude, longitude, accuracy_m, superseded_by')
     .eq('organization_id', orgId).in('employee_id', employeeIds)
     .gte('punched_at', startOfDayIn(date, timeZone).toISOString()).lt('punched_at', startOfDayIn(addDays(date, 1), timeZone).toISOString())
     .order('punched_at').order('id').range(a, b));

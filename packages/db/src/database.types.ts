@@ -968,6 +968,7 @@ export type Database = {
           selfie_path: string | null;
           ip: string | null;
           kind: Database['public']['Enums']['punch_kind'] | null;
+          superseded_by: string | null;
         };
         Insert: {
           id?: string;
@@ -985,6 +986,7 @@ export type Database = {
           selfie_path?: string | null;
           ip?: string | null;
           kind?: Database['public']['Enums']['punch_kind'] | null;
+          superseded_by?: string | null;
         };
         Update: {
           id?: string;
@@ -1002,6 +1004,7 @@ export type Database = {
           selfie_path?: string | null;
           ip?: string | null;
           kind?: Database['public']['Enums']['punch_kind'] | null;
+          superseded_by?: string | null;
         };
         Relationships: [];
       };

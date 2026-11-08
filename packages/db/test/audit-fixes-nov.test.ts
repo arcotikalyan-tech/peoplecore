@@ -201,3 +201,41 @@ describe('file paths stay in the organization (SEC-10)', () => {
     });
   });
 });
+
+describe('a correction replaces the punches it corrects (ATT-07)', () => {
+  it('a wrong early check-in and late check-out stop counting, stay on record, and a later correction replaces the earlier one', async () => {
+    const { f, t } = ctx;
+    await t.asUser(f.users.hrA, async (tx) => {
+      await tx.exec('reset role');
+      const day = '2026-10-14';
+      const punch = (time: string, kind: string, key: string) => tx.query(
+        `insert into attendance_punches (organization_id, employee_id, punched_at, method, source_key, kind) values ($1, $2, $3::timestamptz, 'web', $4, $5::punch_kind)`,
+        [f.orgA, f.employees.icA, `${day} ${time}+05:30`, `att07-${key}`, kind]);
+      await punch('08:00', 'in', 'early');
+      await punch('21:00', 'out', 'late');
+      const dayRow = async () => (await tx.query<{ i: string; o: string; n: number; r: boolean }>(
+        `select to_char(first_in at time zone 'Asia/Kolkata', 'HH24:MI') as i, to_char(last_out at time zone 'Asia/Kolkata', 'HH24:MI') as o, punch_count as n, is_regularized as r
+           from attendance_days where employee_id = $1 and work_date = $2`, [f.employees.icA, day])).rows[0];
+      expect(await dayRow()).toMatchObject({ i: '08:00', o: '21:00', n: 2 });
+
+      const correct = async (checkIn: string | null, checkOut: string | null) => {
+        const id = (await tx.query<{ id: string }>(`insert into regularization_requests (organization_id, employee_id, work_date, check_in, check_out, reason)
+          values ($1, $2, $3, $4, $5, 'Wrong punches') returning id`, [f.orgA, f.employees.icA, day, checkIn, checkOut])).rows[0]!.id;
+        await tx.query(`select app.on_regularization_decided($1, 'approved')`, [id]);
+        return id;
+      };
+      const first = await correct('09:30', '18:30');
+      expect(await dayRow()).toMatchObject({ i: '09:30', o: '18:30', n: 2, r: true });
+      const superseded = async () => (await tx.query<{ k: string; by: string | null }>(
+        `select source_key as k, superseded_by as by from attendance_punches where employee_id = $1 and punched_at::date between $2::date - 1 and $2::date + 1 order by punched_at`,
+        [f.employees.icA, day])).rows;
+      expect(await superseded()).toEqual([
+        { k: 'att07-early', by: first }, { k: `reg:${first}:in`, by: null }, { k: `reg:${first}:out`, by: null }, { k: 'att07-late', by: first },
+      ]);
+
+      const second = await correct('09:45', null);
+      expect(await dayRow()).toMatchObject({ i: '09:45', o: '18:30', n: 2 });
+      expect((await superseded()).find((p) => p.k === `reg:${first}:in`)?.by).toBe(second);
+    });
+  });
+});
