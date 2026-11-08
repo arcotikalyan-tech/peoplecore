@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
+import { clearDeviceFiles } from './device-files';
 import { SITE_URL } from './site';
 import { supabase } from './supabase';
 
@@ -23,6 +24,7 @@ export async function openPayslipPdf(orgId: string, runId: string, month: string
       link.click();
       return null;
     }
+    await clearDeviceFiles([], { payslips: true, photos: false }); // one payslip on the phone at a time
     const target = `${FileSystem.cacheDirectory}payslip-${month}.pdf`;
     const res = await FileSystem.downloadAsync(url, target, { headers: { Authorization: `Bearer ${token}` } });
     if (res.status !== 200) return 'The payslip couldn’t be downloaded. Try again.';

@@ -13,6 +13,7 @@ import { supabase } from './supabase';
 import { within } from './timeout';
 import type { PunchKind } from '@peoplecore/shared/punches';
 import { DEFAULT_DAY, today as dayFrom, type Day } from './worked';
+import { clearDeviceFiles } from './device-files';
 
 /** How long the buttons wait on today's punches before going on with what the phone remembers. */
 const READ_LIMIT_MS = 5000;
@@ -117,6 +118,8 @@ export function TodayProvider({ children }: { children: ReactNode }) {
   const sync = useCallback(async () => {
     if (!userId) return;
     const r = await queue.sync(sendPunch, userId);
+    // Photos of punches that have gone (or never got queued) aren't kept on the phone.
+    void queue.all().then((q) => clearDeviceFiles(q.flatMap((p) => (p.photoUri ? [p.photoUri] : [])), { payslips: false, photos: true }));
     if (r.sent) setMessage({ tone: 'success', text: r.sent === 1 ? 'Recorded.' : `${r.sent} punches recorded.` });
     // Saved either way; say why it didn't go (offline, or what the server said) so a stuck punch isn't a mystery.
     else if (r.waiting) setMessage({ tone: 'muted', text: r.reason && r.reason !== 'No connection.' ? `Saved on this phone, not sent yet: ${r.reason} Pull down to try again.` : 'Saved on this phone. It will be sent when you’re back online.' });

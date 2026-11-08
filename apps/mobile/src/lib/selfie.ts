@@ -1,3 +1,4 @@
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -11,5 +12,6 @@ export async function takeSelfie(): Promise<{ uri: string } | { error: string } 
   const shot = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], cameraType: ImagePicker.CameraType.front, quality: 0.8, allowsEditing: false });
   if (shot.canceled || !shot.assets[0]) return null;
   const small = await ImageManipulator.manipulateAsync(shot.assets[0].uri, [{ resize: { width: 720 } }], { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG });
+  void FileSystem.deleteAsync(shot.assets[0].uri, { idempotent: true }).catch(() => undefined); // the full-size copy isn't needed
   return { uri: small.uri };
 }

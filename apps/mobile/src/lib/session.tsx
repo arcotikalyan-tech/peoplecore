@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isAuthRetryableFetchError, type Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
+import { clearDeviceFiles } from './device-files';
+import { queue } from './punches';
 import { forgetPhone } from './push';
 import { forgetWorkplace, rememberedWorkplace, rememberWorkplace } from './offline-memory';
 import { savedSession, supabase } from './supabase';
@@ -191,6 +193,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     },
     async signOut() {
       await forgetPhone().catch(() => undefined); // offline: the server forgets it once pushes to it fail
+      // Payslips and punch photos don't stay on the phone; a punch still waiting to be sent keeps its photo.
+      const waiting = await queue.all().catch(() => []);
+      await clearDeviceFiles(waiting.flatMap((p) => (p.photoUri ? [p.photoUri] : [])), { payslips: true, photos: true }).catch(() => undefined);
       await AsyncStorage.removeItem(CHOSEN).catch(() => undefined);
       if (session) await forgetWorkplace(AsyncStorage, session.user.id);
       await supabase.auth.signOut();
