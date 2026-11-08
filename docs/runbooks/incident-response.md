@@ -4,7 +4,7 @@ Use this for a suspected breach, a leaked key, unexpected access to someone's da
 For a plain outage, see [operations.md](operations.md). The privacy notes in [07-threat-model.md](../07-threat-model.md) apply.
 
 **Roles:** the incident lead owns the response and the timeline. One person handles communications. Whoever
-has Supabase and Vercel access does the containment steps.
+has Supabase and server (SSH) access does the containment steps.
 
 ## 1. Detect and open the incident (first 15 minutes)
 
@@ -30,7 +30,7 @@ Then:
 | A user account is compromised | Platform console or Supabase Auth: sign the user out everywhere, reset the password, and remove their authenticator so they have to set it up again. Suspend their membership in each organization (Members page). |
 | A role grants too much | The owner removes the role (Members). Every grant change is in the audit log. |
 | A tenant must be frozen | Platform console → suspend the organization. Its members can't sign in to it; the data is untouched. |
-| Public careers page abused | Unpublish the affected requisitions. Then add an edge rate limit or block in Vercel. |
+| Public careers page abused | Unpublish the affected requisitions. Then add a rate limit or block in Caddy on the server. |
 | Payroll or bank file tampering suspected | Do not lock or pay the run. Cancel it (draft or computed), then compare the inputs fingerprint (`inputs_hash`) with a recomputation. Locked runs are immutable, and corrections go through arrears. |
 
 ## 3. Assess

@@ -62,7 +62,7 @@ command.
    npx eas-cli@latest init          # links this app to your Expo account; commit the projectId it adds to app.json
    ```
 
-3. Tell the builds which server to use (values from Vercel's `NEXT_PUBLIC_SUPABASE_URL` and
+3. Tell the builds which server to use (values from the server's `.env`, `NEXT_PUBLIC_SUPABASE_URL` and
    `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`; both are public by design):
 
    ```sh

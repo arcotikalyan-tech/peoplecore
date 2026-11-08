@@ -9,7 +9,7 @@ shown in an AI container. Records are only written when a person submits the mod
 AI needs two switches, and both must be on:
 
 1. **The server has a model provider.** Without one, every assistant says "AI isn't set up on this server yet". Set
-   these in the web app's environment (Vercel project settings, or `apps/web/.env.local` locally). They are server
+   these in the web app's environment (`/opt/peoplecore/.env` on the server, or `apps/web/.env.local` locally). They are server
    only; never prefix them with `NEXT_PUBLIC_`.
 
    | Variable | Default | Notes |

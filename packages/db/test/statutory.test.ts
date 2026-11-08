@@ -22,7 +22,8 @@ async function failure(tx: Transaction, sql: string, params: unknown[] = []): Pr
   throw new Error(`expected to fail: ${sql}`);
 }
 
-const PROOF = '00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000002';
+/** Stored under the organization's folder, as the app does (the database insists, audit SEC-10). */
+const proofIn = (org: string) => `${org}/00000000-0000-4000-8000-000000000002`;
 
 describe('statutory', () => {
   it('HR and payroll record filings, registrations and scope; employees and other tenants see nothing', async () => {
@@ -63,7 +64,7 @@ describe('statutory', () => {
     const { f } = ctx;
     await ctx.t.asUser(f.users.hrA, async (tx) => {
       const id = (await tx.query<{ id: string }>(`insert into statutory_filings (organization_id, form_id, period_start, period_end, status, filed_on, proof_path, proof_name)
-        values ($1, 'KA-LWF-01', '2025-01-01', '2025-12-31', 'filed', '2026-01-10', $2, 'lwf.pdf') returning id`, [f.orgA, PROOF])).rows[0]!.id;
+        values ($1, 'KA-LWF-01', '2025-01-01', '2025-12-31', 'filed', '2026-01-10', $2, 'lwf.pdf') returning id`, [f.orgA, proofIn(f.orgA)])).rows[0]!.id;
       expect((await tx.query<{ d: string }>(`select to_char(retain_until, 'YYYY-MM-DD') as d from statutory_filings where id = $1`, [id])).rows[0]!.d).toBe('2030-12-31');
       expect((await failure(tx, 'delete from statutory_filings where id = $1', [id])).message).toContain('Proof of filing is kept until 31 Dec 2030');
       expect((await failure(tx, 'update statutory_filings set proof_path = null, proof_name = null where id = $1', [id])).code).toBe('42501');

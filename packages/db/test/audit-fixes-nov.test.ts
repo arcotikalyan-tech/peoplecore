@@ -184,3 +184,20 @@ describe('reporting lines (EMP-03)', () => {
     });
   });
 });
+
+describe('file paths stay in the organization (SEC-10)', () => {
+  it('refuses a letter header, signature, ID-card logo or filing proof pointing at another organization', async () => {
+    const { f, t } = ctx;
+    await t.asUser(f.users.hrA, async (tx) => {
+      await tx.exec('reset role');
+      const other = `${f.orgB}/00000000-0000-4000-8000-000000000001`;
+      const mine = `${f.orgA}/00000000-0000-4000-8000-000000000002`;
+      await tx.query(`insert into letter_settings (organization_id, header_path) values ($1, $2) on conflict (organization_id) do update set header_path = excluded.header_path`, [f.orgA, mine]);
+      expect((await failure(tx, 'update letter_settings set header_path = $2 where organization_id = $1', [f.orgA, other])).code).toBe('23514');
+      expect((await failure(tx, 'update letter_settings set footer_path = $2 where organization_id = $1', [f.orgA, other])).code).toBe('23514');
+      const sig = await failure(tx, `insert into letter_signatories (organization_id, name, designation, signature_path) values ($1, 'A. Signer', 'Director', $2)`, [f.orgA, other]);
+      expect(sig.code).toBe('23514');
+      await tx.query(`insert into letter_signatories (organization_id, name, designation, signature_path) values ($1, 'A. Signer', 'Director', $2)`, [f.orgA, mine]);
+    });
+  });
+});

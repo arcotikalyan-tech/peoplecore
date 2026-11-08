@@ -16,7 +16,7 @@ Environment at Phase 0 (2026-10-17): macOS 27, Node 24.18, npm 11.16, corepack 0
 
 | Unit | Tech | Deploy target |
 |---|---|---|
-| `apps/web` | Next.js 16 App Router | Vercel (or any Node host) |
+| `apps/web` | Next.js 16 App Router | Hostinger server, Docker (any Node host) |
 | `apps/mobile` | Expo / React Native (single app; employee + manager experiences by role) | EAS Build |
 | `apps/worker` | Node process draining the job queue | Container / Fly / Render |
 | `supabase/` | Migrations, config, seed | Supabase project per environment |

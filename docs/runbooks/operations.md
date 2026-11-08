@@ -8,7 +8,7 @@ How PeopleCore runs in production, and what to do when something stops working. 
 
 | Part | Where | Needs |
 |---|---|---|
-| Web app (`apps/web`, Next.js) | Vercel (or any Node 24 host) | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`; optional `ANTHROPIC_API_KEY` ([ai.md](ai.md)) |
+| Web app (`apps/web`, Next.js) | Hostinger server, Docker ([server.md](server.md)); any Node 24 host works | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`; optional `ANTHROPIC_API_KEY` ([ai.md](ai.md)) |
 | Database, Auth, Storage | Supabase project **Peoplecore** | Migrations from `supabase/migrations` |
 | Worker (`apps/worker`) | An always-on Node process, **or** a scheduler running one pass every 5 minutes | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` |
 | Email | Supabase Auth over SMTP | [email.md](email.md) |
