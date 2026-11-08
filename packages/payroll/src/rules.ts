@@ -63,15 +63,37 @@ export type RuleSet = z.infer<typeof ruleSetSchema>;
 
 /**
  * FY 2025-26 values as understood when this was written (new tax regime from the Union Budget 2025, the old regime
- * with its usual deduction caps; EPF/ESI rates; Karnataka and Maharashtra professional tax). NOT professionally validated: the database marks rule sets
+ * with its usual deduction caps; EPF/ESI rates; professional tax). NOT professionally validated: the database marks rule sets
  * built from this as validated = false, and the app warns on every run until a professional signs one off.
+ *
+ * Professional tax: Karnataka, Maharashtra, and (since 8 Nov 2026) Andhra Pradesh, Telangana and Gujarat, whose monthly
+ * slabs every source agreed on; nothing for the states and UTs that levy none (`STATES` in @peoplecore/shared, less
+ * Chhattisgarh, Goa and Jammu & Kashmir, where sources disagree). Any other state stops the payslip until its slabs
+ * are added: West Bengal changed its slabs in October 2026, Tamil Nadu and Kerala charge by the half-year and by local
+ * body, and Madhya Pradesh, Odisha, Bihar and Jharkhand go by annual salary.
  */
+const NO_PT = [{ min: 0, max: null, amount: 0 }];
 export const IN_FY2025_26: RuleSet = {
   pf: { employeeRate: 0.12, employerEpsRate: 0.0833, employerTotalRate: 0.12, edliRate: 0.005, adminRate: 0.005, wageCeiling: 15000, capAtCeiling: true },
   esi: { employeeRate: 0.0075, employerRate: 0.0325, grossCeiling: 21000 },
   pt: {
     KA: [{ min: 0, max: 24999, amount: 0 }, { min: 25000, max: null, amount: 200, februaryAmount: 300 }],
     MH: [{ min: 0, max: 7500, amount: 0 }, { min: 7501, max: 10000, amount: 175 }, { min: 10001, max: null, amount: 200, februaryAmount: 300 }],
+    AP: [{ min: 0, max: 15000, amount: 0 }, { min: 15001, max: 20000, amount: 150 }, { min: 20001, max: null, amount: 200 }],
+    TS: [{ min: 0, max: 15000, amount: 0 }, { min: 15001, max: 20000, amount: 150 }, { min: 20001, max: null, amount: 200 }],
+    GJ: [{ min: 0, max: 11999, amount: 0 }, { min: 12000, max: null, amount: 200 }],
+    AN: NO_PT,
+    AR: NO_PT,
+    CH: NO_PT,
+    DH: NO_PT,
+    DL: NO_PT,
+    HP: NO_PT,
+    HR: NO_PT,
+    LA: NO_PT,
+    LD: NO_PT,
+    RJ: NO_PT,
+    UK: NO_PT,
+    UP: NO_PT,
   },
   incomeTax: {
     regime: 'new',

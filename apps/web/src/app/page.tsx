@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Clock, title: 'Attendance that checks itself', body: 'Check in from the web or the app with office network, geofence and selfie rules, shifts that rotate, and reminders before anyone forgets.' },
-  { icon: TreePalm, title: 'Leave without the back-and-forth', body: 'Accrual, carry-forward, encashment and sandwich rules per leave type. Approvals land in one inbox, balances update themselves.' },
+  { icon: TreePalm, title: 'Leave without the back-and-forth', body: 'Accrual, carry-forward, encashment, probation and notice-period rules per leave type. Approvals land in one inbox, balances update themselves.' },
   { icon: Wallet, title: 'Payroll you can explain', body: 'Structures, revisions with arrears, loans, reimbursements and tax declarations flow into one run you lock, pay and report on.' },
   { icon: Scale, title: 'Compliance on a calendar', body: 'PF, ESI, PT, LWF, TDS and labour-code registers tracked per state, with due dates, filings and proof in one place.' },
   { icon: Briefcase, title: 'Hiring to day one', body: 'Jobs, pipelines, interviews, scorecards and offers, then onboarding checklists that hand new joiners everything they need.' },

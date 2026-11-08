@@ -52,6 +52,19 @@ describe('professional tax', () => {
     expect(professionalTax(9000, null, '2026-10', rules.pt)).toBe(0);
     expect(professionalTax(9000, 'ZZ', '2026-10', rules.pt)).toBeNull();
   });
+
+  it('covers Andhra Pradesh, Telangana and Gujarat, and the states that levy none', () => {
+    for (const state of ['AP', 'TS']) {
+      expect([15000, 15001, 20000, 20001, 90000].map((g) => professionalTax(g, state, '2026-10', rules.pt))).toEqual([0, 150, 150, 200, 200]);
+      expect(professionalTax(90000, state, '2027-02', rules.pt)).toBe(200); // no February top-up
+    }
+    expect([11999, 12000, 90000].map((g) => professionalTax(g, 'GJ', '2026-10', rules.pt))).toEqual([0, 200, 200]);
+    for (const state of ['DL', 'HR', 'UP', 'RJ', 'HP', 'UK', 'CH', 'AR', 'AN', 'DH', 'LA', 'LD']) {
+      expect(professionalTax(250000, state, '2027-02', rules.pt)).toBe(0);
+    }
+    // Not set up, so the payslip stops rather than guessing.
+    for (const state of ['TN', 'WB', 'KL', 'GA', 'CG', 'JK']) expect(professionalTax(50000, state, '2026-10', rules.pt)).toBeNull();
+  });
 });
 
 describe('payslips', () => {

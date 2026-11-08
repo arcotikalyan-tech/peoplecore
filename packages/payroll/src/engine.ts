@@ -224,7 +224,10 @@ export function computePayslip(input: EmployeeInput, rules: RuleSet, period: Per
   const ptWages = gross - nonWageEarnings;
   const pt = professionalTax(ptWages, input.statutory.ptState, period.month, rules.pt);
   if (pt === null) {
-    exceptions.push({ code: 'pt_state', message: `No professional tax rules for state ${input.statutory.ptState}.`, blocking: true });
+    exceptions.push({
+      code: 'pt_state', blocking: true,
+      message: `Professional tax for state ${input.statutory.ptState} isn’t set up yet, so this payslip can’t be finished. Check the state on the employee’s statutory profile; if it’s right, ask for that state’s slabs to be added.`,
+    });
   } else if (pt > 0) {
     deductions.push({ code: 'PT', name: 'Professional tax', kind: 'deduction', amount: pt });
   }
