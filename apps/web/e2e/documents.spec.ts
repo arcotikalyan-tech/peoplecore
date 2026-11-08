@@ -124,6 +124,7 @@ test('HR deletes a document: it disappears and the stored file is removed', asyn
   const doc = (await admin.from('employee_documents').select('id, storage_path').eq('employee_id', subjectId).single()).data!;
   await signIn(page, 'demo.hr');
   await open(page, `/app/demo/employees/${subjectId}?tab=documents&view=work`);
+  page.once('dialog', (dialog) => void dialog.accept()); // it asks before removing
   await page.getByRole('button', { name: `Delete Offer letter ${run}` }).click();
   await expect(page.getByRole('link', { name: `Download Offer letter ${run}` })).toHaveCount(0);
 

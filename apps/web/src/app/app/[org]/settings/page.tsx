@@ -202,7 +202,7 @@ async function Roles({ ctx, slug, owner }: { ctx: OrgContext; slug: string; owne
 }
 
 function DeleteRole({ slug, roleId, name }: { slug: string; roleId: string; name: string }) {
-  return <ButtonAction action={async (prev) => { 'use server'; const fd = new FormData(); fd.set('roleId', roleId); return deleteRoleAction(slug, prev, fd); }} label="Delete" aria={`Delete role ${name}`} variant="ghost" />;
+  return <ButtonAction action={async (prev) => { 'use server'; const fd = new FormData(); fd.set('roleId', roleId); return deleteRoleAction(slug, prev, fd); }} label="Delete" aria={`Delete role ${name}`} variant="ghost" confirm={`Delete the role ${name}? People who have it lose its access.`} />;
 }
 
 async function Support({ ctx, slug }: { ctx: OrgContext; slug: string }) {

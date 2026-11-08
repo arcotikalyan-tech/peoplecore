@@ -89,6 +89,7 @@ test('HR keeps the company PAN proof, downloads it and removes it', async ({ pag
   const res = await page.request.get((await link.getAttribute('href'))!);
   expect(res.status()).toBe(200);
   expect((await res.body()).toString('utf8')).toContain(`E2E ${run}`);
+  page.once('dialog', (dialog) => void dialog.accept()); // it asks before removing
   await page.getByRole('form', { name: `Remove pan-${run}.pdf` }).getByRole('button', { name: 'Remove' }).click();
   await expect(link).toHaveCount(0);
   expect((await admin.from('company_documents').select('id').eq('organization_id', orgId).eq('file_name', `pan-${run}.pdf`)).data).toEqual([]);

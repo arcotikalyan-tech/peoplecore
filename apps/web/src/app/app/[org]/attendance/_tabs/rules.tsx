@@ -224,7 +224,7 @@ async function Rotations({ ctx, slug, shifts, employees, today, ruleName }: {
                         </ul>
                       )}
                       <div className="border-t border-line px-5 py-3">
-                        <ButtonAction action={deleteRotationAction.bind(null, slug, r.id)} aria={`Remove rotation ${r.name}`} label="Remove rotation" variant="ghost" />
+                        <ButtonAction action={deleteRotationAction.bind(null, slug, r.id)} aria={`Remove rotation ${r.name}`} label="Remove rotation" variant="ghost" confirm={`Remove the rotation ${r.name}?`} />
                       </div>
                     </div>
                   </details>

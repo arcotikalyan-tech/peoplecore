@@ -239,7 +239,7 @@ export function DeleteForm({ action, field, id, label: aria }: { action: Action;
     <form action={formAction} className="flex items-center gap-2">
       <input type="hidden" name={field} value={id} />
       {state.message && !state.ok && <span role="alert" className="text-xs text-danger">{state.message}</span>}
-      <SubmitButton size="sm" variant="ghost" pendingLabel="Removing…" aria-label={aria}>Remove</SubmitButton>
+      <SubmitButton size="sm" variant="ghost" pendingLabel="Removing…" aria-label={aria} confirm={`${aria}?`}>Remove</SubmitButton>
     </form>
   );
 }

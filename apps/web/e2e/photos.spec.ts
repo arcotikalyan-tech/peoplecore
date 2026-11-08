@@ -35,6 +35,14 @@ test('an employee adds and removes their profile photo', async ({ page }) => {
   await form.getByRole('button', { name: 'Replace' }).click();
   await expect(page.getByText('Use a JPEG or PNG picture.')).toBeVisible();
 
+  // Removing asks first: Cancel keeps the photo.
+  const asked: string[] = [];
+  page.once('dialog', (dialog) => { asked.push(dialog.message()); void dialog.dismiss(); });
+  await page.getByRole('form', { name: 'Remove photo' }).getByRole('button', { name: 'Remove' }).click();
+  await expect.poll(() => asked).toEqual(['Remove the photo?']);
+  await page.waitForTimeout(1000);
+  await expect(page.getByRole('button', { name: 'Account menu' }).locator('img')).toHaveCount(1);
+  page.once('dialog', (dialog) => void dialog.accept());
   await page.getByRole('form', { name: 'Remove photo' }).getByRole('button', { name: 'Remove' }).click();
   await expect(page.getByRole('button', { name: 'Account menu' }).locator('img')).toHaveCount(0);
 });
@@ -52,6 +60,7 @@ test('the owner adds the company logo; everyone sees it in the sidebar', async (
   await expect(colleague.getByRole('img', { name: /logo$/ }).first()).toBeVisible();
 
   await open(page, '/app/demo/company');
+  page.once('dialog', (dialog) => void dialog.accept()); // it asks before removing
   await page.getByRole('form', { name: 'Remove logo' }).getByRole('button', { name: 'Remove' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Logo removed.' })).toBeVisible();
   const orgId = (await admin.from('organizations').select('id').eq('slug', 'demo').single()).data!.id;

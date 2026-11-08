@@ -44,6 +44,7 @@ test('HR adds an optional holiday; an employee takes it and sees it on the calen
 
   await open(page, `/app/demo/holidays?tab=list&year=${year}`);
   await expect(page.getByRole('table', { name: 'Holidays' }).getByText('Optional · 1 chose')).toBeVisible();
+  page.once('dialog', (dialog) => void dialog.accept()); // it asks before removing
   await page.getByRole('form', { name: `Remove Founders Day ${run}` }).getByRole('button', { name: 'Remove' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Holiday removed.' }).first()).toBeVisible();
 });

@@ -43,7 +43,7 @@ function DeleteButton({ action, document }: { action: Action; document: Document
   return (
     <form action={formAction} className="inline">
       <input type="hidden" name="documentId" value={document.id} />
-      <SubmitButton size="sm" variant="ghost" pendingLabel="Deleting…" aria-label={`Delete ${document.title}`}>Delete</SubmitButton>
+      <SubmitButton size="sm" variant="ghost" pendingLabel="Deleting…" aria-label={`Delete ${document.title}`} confirm={`Delete ${document.title}? This can’t be undone.`}>Delete</SubmitButton>
       {!state.ok && state.message && <span role="alert" className="ml-2 text-xs font-medium text-danger">{state.message}</span>}
     </form>
   );

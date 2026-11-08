@@ -20,7 +20,7 @@ export function PictureForm({ action, remove, field, label, has }: { action: Act
       </form>
       {has && (
         <form action={removeAction} aria-label={`Remove ${field === 'photo' ? 'photo' : 'logo'}`}>
-          <SubmitButton size="sm" variant="ghost" pendingLabel="…">Remove</SubmitButton>
+          <SubmitButton size="sm" variant="ghost" pendingLabel="…" confirm={`Remove the ${field === 'photo' ? 'photo' : 'logo'}?`}>Remove</SubmitButton>
         </form>
       )}
       {shown.message && <span role={shown.ok ? 'status' : 'alert'} className={`text-xs ${shown.ok ? 'text-success' : 'text-danger'}`}>{shown.message}</span>}

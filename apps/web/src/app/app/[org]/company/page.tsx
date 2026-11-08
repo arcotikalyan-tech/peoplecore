@@ -311,7 +311,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
                             {latest.length ? latest.map((d) => (
                               <span key={d.id} className="block text-xs text-muted">
                                 <a href={`/app/${slug}/company/documents/${d.id}`} className="text-primary hover:underline">📎 {d.file_name}</a> · uploaded {formatDate(d.uploaded_at.slice(0, 10))}
-                                {manage && <span className="ml-2 inline-block align-middle"><ButtonAction action={removeCompanyDocumentAction.bind(null, slug, d.id)} aria={`Remove ${d.file_name}`} label="Remove" variant="ghost" /></span>}
+                                {manage && <span className="ml-2 inline-block align-middle"><ButtonAction action={removeCompanyDocumentAction.bind(null, slug, d.id)} aria={`Remove ${d.file_name}`} label="Remove" variant="ghost" confirm={`Remove ${d.file_name}?`} /></span>}
                               </span>
                             )) : <span className="block text-xs text-muted">Not uploaded</span>}
                           </span>

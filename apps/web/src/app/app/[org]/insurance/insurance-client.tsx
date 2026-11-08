@@ -215,11 +215,11 @@ export function SumInsuredForm({ action, employeeId, name, sumInsured }: { actio
   );
 }
 
-export function ButtonAction({ action, label, aria, pending = '…', variant = 'primary' }: { action: NoInput; label: string; aria: string; pending?: string; variant?: 'primary' | 'secondary' }) {
+export function ButtonAction({ action, label, aria, pending = '…', variant = 'primary', confirm }: { action: NoInput; label: string; aria: string; pending?: string; variant?: 'primary' | 'secondary'; confirm?: string }) {
   const [state, formAction] = useActionState(action, initialActionState);
   return (
     <form action={formAction} aria-label={aria} className="inline-flex flex-wrap items-center gap-2">
-      <SubmitButton size="sm" variant={variant} pendingLabel={pending}>{label}</SubmitButton>
+      <SubmitButton size="sm" variant={variant} pendingLabel={pending} confirm={confirm}>{label}</SubmitButton>
       {state.message && <span role={state.ok ? 'status' : 'alert'} className={`text-xs ${state.ok ? 'text-success' : 'text-danger'}`}>{state.message}</span>}
     </form>
   );

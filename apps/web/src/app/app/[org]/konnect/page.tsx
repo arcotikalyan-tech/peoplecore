@@ -120,7 +120,7 @@ export default async function KonnectPage({ params, searchParams }: { params: Pr
                     <ButtonAction action={moderateThreadAction.bind(null, slug, thread.id, thread.hidden ? 'unhide' : 'hide')} aria={thread.hidden ? 'Unhide' : 'Hide'} label={thread.hidden ? 'Unhide' : 'Hide'} variant="ghost" />
                   </span>
                 )}
-                {(thread.mine || thread.moderator) && <ButtonAction action={deleteThreadAction.bind(null, slug, thread.id)} aria="Remove this discussion" label="Remove" variant="ghost" />}
+                {(thread.mine || thread.moderator) && <ButtonAction action={deleteThreadAction.bind(null, slug, thread.id)} aria="Remove this discussion" label="Remove" variant="ghost" confirm="Remove this discussion and its replies?" />}
               </div>
               {thread.mine && (
                 <details className="mt-3 rounded-lg border border-line p-3">
@@ -139,7 +139,7 @@ export default async function KonnectPage({ params, searchParams }: { params: Pr
                         <p className="text-xs text-muted"><span className="font-medium text-fg">{r.author_name}</span> · {when(r.created_at)}{r.hidden ? ' · hidden' : ''}</p>
                         <p className="mt-1 whitespace-pre-line text-sm">{r.body}</p>
                         <div className="mt-1 flex gap-1">
-                          {(r.mine || thread.moderator) && <ButtonAction action={deleteReplyAction.bind(null, slug, r.id)} aria={`Remove reply by ${r.author_name}`} label="Remove" variant="ghost" />}
+                          {(r.mine || thread.moderator) && <ButtonAction action={deleteReplyAction.bind(null, slug, r.id)} aria={`Remove reply by ${r.author_name}`} label="Remove" variant="ghost" confirm="Remove this reply?" />}
                           {thread.moderator && <ButtonAction action={hideReplyAction.bind(null, slug, r.id, !r.hidden)} aria={`${r.hidden ? 'Unhide' : 'Hide'} reply by ${r.author_name}`} label={r.hidden ? 'Unhide' : 'Hide'} variant="ghost" />}
                         </div>
                       </div>

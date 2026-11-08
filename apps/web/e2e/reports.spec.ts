@@ -74,6 +74,7 @@ test('HR builds a custom report, saves it as a template, runs it and schedules a
   await expect(sch.getByText('Scheduled.', { exact: false })).toBeVisible();
   await open(page, '/app/demo/reports?view=scheduled');
   await expect(page.getByRole('list', { name: 'Schedules' }).getByText('Employee Master')).toBeVisible();
+  page.once('dialog', (dialog) => void dialog.accept()); // it asks before removing
   await page.getByRole('button', { name: 'Remove schedule for Employee Master' }).click();
   await expect(page.getByRole('list', { name: 'Schedules' })).toHaveCount(0);
 });

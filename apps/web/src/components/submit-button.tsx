@@ -13,6 +13,7 @@ export function SubmitButton({
   value,
   disabled,
   formAction,
+  confirm,
 }: {
   children: React.ReactNode;
   pendingLabel?: string;
@@ -26,10 +27,13 @@ export function SubmitButton({
   disabled?: boolean;
   /** A second action for the same form (e.g. "Send me a test" next to "Save"). */
   formAction?: React.ComponentProps<'button'>['formAction'];
+  /** Asked before anything is sent (deleting or removing something); Cancel sends nothing. */
+  confirm?: string;
 }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant={variant} size={size} name={name} value={value} formAction={formAction} disabled={pending || disabled} aria-live="polite" aria-label={ariaLabel}>
+    <Button type="submit" variant={variant} size={size} name={name} value={value} formAction={formAction} disabled={pending || disabled} aria-live="polite" aria-label={ariaLabel}
+      onClick={confirm ? (ev) => { if (!window.confirm(confirm)) ev.preventDefault(); } : undefined}>
       {pending ? pendingLabel : children}
     </Button>
   );

@@ -132,11 +132,11 @@ export function SupportForm({ action }: { action: Action }) {
   );
 }
 
-export function ButtonAction({ action, label, aria, variant = 'secondary' }: { action: NoInput; label: string; aria: string; variant?: 'secondary' | 'ghost' | 'danger' }) {
+export function ButtonAction({ action, label, aria, variant = 'secondary', confirm }: { action: NoInput; label: string; aria: string; variant?: 'secondary' | 'ghost' | 'danger'; confirm?: string }) {
   const [state, formAction] = useActionState(action, initialActionState);
   return (
     <form action={formAction} aria-label={aria} className="inline-flex items-center gap-2">
-      <SubmitButton size="sm" variant={variant} pendingLabel="…">{label}</SubmitButton>
+      <SubmitButton size="sm" variant={variant} pendingLabel="…" confirm={confirm}>{label}</SubmitButton>
       {state.message && <span role={state.ok ? 'status' : 'alert'} className={`text-xs ${state.ok ? 'text-success' : 'text-danger'}`}>{state.message}</span>}
     </form>
   );

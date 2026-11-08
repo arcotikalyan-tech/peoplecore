@@ -274,7 +274,7 @@ function CdAccount({ slug, policy, cd, entries, syncs, lives, balance, low, toda
                     <td className="px-3">{e.reference ?? '—'}</td><td className="px-3 tabular-nums">{e.lives ?? '—'}</td>
                     <td className={`px-3 text-right tabular-nums ${amount < 0 ? 'text-danger' : 'text-success'}`}>{amount < 0 ? '−' : '+'}{inr.format(Math.abs(amount))}</td>
                     <td className="px-3 text-right font-medium tabular-nums">{inr.format(e.balance)}</td>
-                    <td className="px-3"><ButtonAction action={deleteCdEntryAction.bind(null, slug, e.id)} label="Remove" aria={`Remove the ${formatDate(e.entry_date)} ${(CD_KINDS[e.kind as CdKind] ?? e.kind).toLowerCase()}`} variant="secondary" /></td>
+                    <td className="px-3"><ButtonAction action={deleteCdEntryAction.bind(null, slug, e.id)} label="Remove" aria={`Remove the ${formatDate(e.entry_date)} ${(CD_KINDS[e.kind as CdKind] ?? e.kind).toLowerCase()}`} variant="secondary" confirm="Remove this entry from the deposit account?" /></td>
                   </tr>
                 );
               })}

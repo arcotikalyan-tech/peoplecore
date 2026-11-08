@@ -537,7 +537,7 @@ export function RemoveHoliday({ action, holidayId, name }: { action: Action; hol
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <input type="hidden" name="holidayId" value={holidayId} />
-      <SubmitButton size="sm" variant="ghost" pendingLabel="Removing…" aria-label={`Remove ${name}`}>Remove</SubmitButton>
+      <SubmitButton size="sm" variant="ghost" pendingLabel="Removing…" aria-label={`Remove ${name}`} confirm={`Remove the holiday ${name}?`}>Remove</SubmitButton>
       {!state.ok && state.message && <span role="alert" className="text-xs text-danger">{state.message}</span>}
     </form>
   );

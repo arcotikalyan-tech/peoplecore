@@ -200,7 +200,7 @@ export function RemoveRow({ action, kind, id, label }: { action: Action; kind: '
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="rowId" value={id} />
       {state.message && !state.ok && <span role="alert" className="text-xs text-danger">{state.message}</span>}
-      <SubmitButton size="sm" variant="ghost" pendingLabel="Removing…" aria-label={`Remove ${label}`}>Remove</SubmitButton>
+      <SubmitButton size="sm" variant="ghost" pendingLabel="Removing…" aria-label={`Remove ${label}`} confirm={`Remove ${label}?`}>Remove</SubmitButton>
     </form>
   );
 }
@@ -252,7 +252,7 @@ function RemoveContact({ id, remove }: { id: string; remove: Action }) {
     <form action={action} className="flex items-center gap-2">
       <input type="hidden" name="contactId" value={id} />
       {state.message && !state.ok && <span role="alert" className="text-xs text-danger">{state.message}</span>}
-      <SubmitButton size="sm" variant="ghost" pendingLabel="Removing…">Remove</SubmitButton>
+      <SubmitButton size="sm" variant="ghost" pendingLabel="Removing…" confirm="Remove this contact?">Remove</SubmitButton>
     </form>
   );
 }

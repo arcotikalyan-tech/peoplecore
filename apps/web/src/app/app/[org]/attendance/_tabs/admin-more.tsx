@@ -189,7 +189,7 @@ export async function SettingsTab({ ctx, slug }: { ctx: OrgContext; slug: string
                       <ZoneEditor action={saveZoneAction.bind(null, slug)} locations={locations} zone={z} />
                       <div className="flex flex-wrap gap-2 border-t border-line pt-3">
                         <ButtonAction action={setZoneActiveAction.bind(null, slug, z.id, !z.is_active)} aria={`${z.is_active ? 'Switch off' : 'Switch on'} zone ${z.name}`} label={z.is_active ? 'Switch off' : 'Switch on'} variant="ghost" />
-                        <ButtonAction action={deleteZoneAction.bind(null, slug, z.id)} aria={`Remove zone ${z.name}`} label="Remove" variant="ghost" />
+                        <ButtonAction action={deleteZoneAction.bind(null, slug, z.id)} aria={`Remove zone ${z.name}`} label="Remove" variant="ghost" confirm={`Remove the zone ${z.name}?`} />
                       </div>
                     </div>
                   </details>

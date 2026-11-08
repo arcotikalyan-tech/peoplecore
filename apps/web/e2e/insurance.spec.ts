@@ -103,6 +103,7 @@ test('HR keeps the CD account: settings, a deposit, an endorsement charge with a
   expect(await mine()).toEqual([{ kind: 'deposit', amount: 50000 }, { kind: 'endorsement', amount: -4200 }]);
   await expect(page.getByRole('alert').filter({ hasText: 'below your alert level' }).first()).toBeVisible();
 
+  page.once('dialog', (dialog) => void dialog.accept()); // it asks before removing
   await page.getByRole('form', { name: /^Remove the .+ endorsement charge$/ }).getByRole('button', { name: 'Remove' }).click();
   await expect(statement.getByText(`DN ${run}`)).toHaveCount(0);
   expect(await mine()).toEqual([{ kind: 'deposit', amount: 50000 }]);

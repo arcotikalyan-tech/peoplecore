@@ -525,7 +525,7 @@ async function Pools(p: Props) {
                 return (
                   <tr key={m.candidate_id}><Td className="font-medium">{a?.candidate.name ?? 'Candidate'}<p className="text-xs text-muted">{a?.candidate.email ?? ''}</p></Td>
                     <Td>{a ? jobTitle(p, a.requisitionId) : '—'}</Td><Td>{a ? stageBadge(a.stage) : '—'}</Td><Td>{a ? CANDIDATE_SOURCE_LABELS[a.candidate.source as CandidateSource] : '—'}</Td><Td className="text-muted">{formatDate(m.added_at)}</Td>
-                    <Td className="text-right">{p.canManage && <OneButton action={removeFromPoolAction.bind(null, p.slug)} hidden={{ poolId: pool.id, candidateId: m.candidate_id }} label={`Remove ${a?.candidate.name ?? 'candidate'}`}>Remove</OneButton>}</Td></tr>
+                    <Td className="text-right">{p.canManage && <OneButton action={removeFromPoolAction.bind(null, p.slug)} hidden={{ poolId: pool.id, candidateId: m.candidate_id }} label={`Remove ${a?.candidate.name ?? 'candidate'}`} confirm={`Remove ${a?.candidate.name ?? 'this candidate'} from ${pool.name}?`}>Remove</OneButton>}</Td></tr>
                 );
               })}</tbody>
             </Table>
@@ -699,7 +699,7 @@ async function Analytics({ p, apps }: { p: Props; apps: HiringApplication[] }) {
         {spend.length > 0 && (
           <ul className="divide-y divide-line border-t border-line px-5 text-sm">{spend.slice(0, 20).map((x) => (
             <li key={x.id} className="flex items-center justify-between py-2"><span>{CANDIDATE_SOURCE_LABELS[x.source as CandidateSource]} · {x.month.slice(0, 7)}{x.note ? ` · ${x.note}` : ''}</span>
-              <span className="flex items-center gap-2 tabular-nums">{inr(x.amount)}{p.canManage && <OneButton action={deleteSpendAction.bind(null, p.slug)} hidden={{ spendId: x.id }} label="Remove spend">Remove</OneButton>}</span></li>
+              <span className="flex items-center gap-2 tabular-nums">{inr(x.amount)}{p.canManage && <OneButton action={deleteSpendAction.bind(null, p.slug)} hidden={{ spendId: x.id }} label="Remove spend" confirm="Remove this spend?">Remove</OneButton>}</span></li>
           ))}</ul>
         )}
       </Panel>
