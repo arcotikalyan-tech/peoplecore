@@ -20,7 +20,7 @@
     "prettier": "^3.9.10",
     "turbo": "2.11.9",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.71.2"
+    "typescript-eslint": "8.72.1"
   },
   "type": "module"
 }
