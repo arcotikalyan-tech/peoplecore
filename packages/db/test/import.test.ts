@@ -78,11 +78,27 @@ describe('import_employees', () => {
         { line: 4, message: 'Unknown or archived department code: “NOPE”.' },
         { line: 5, message: 'This employee code is already in use.' },
         { line: 6, message: 'Probation can’t end before the date of joining.' },
-        { line: 7, message: 'A value has the wrong format (dates are YYYY-MM-DD).' },
+        { line: 7, message: 'A value has the wrong format (dates are YYYY-MM-DD or DD/MM/YYYY).' },
         { line: 8, message: 'Unknown manager code “GHOST”.' },
         { line: 10, message: 'Another employee already uses this work email.' },
       ]);
       expect(await count(tx, f.orgA, 'Imp%')).toBe(0);
+    });
+  });
+
+  it('says what is wrong with a row instead of a generic message', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      const report = await importRows(tx, f.orgA, [
+        row(2, { employee_code: 'a-001' }),                                  // A-001 exists: codes ignore capitals
+        row(3, { work_phone: 'call me' }),
+        row(4, { last_name: 'x'.repeat(101) }),
+      ], true);
+      expect(report.errors).toEqual([
+        { line: 2, message: 'This employee code is already in use.' },
+        { line: 3, message: 'Work phone is not valid: use digits, spaces, - and an optional +, 7 to 20 characters.' },
+        { line: 4, message: 'Last name is too long (up to 100 characters).' },
+      ]);
     });
   });
 
