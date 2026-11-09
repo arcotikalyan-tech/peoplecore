@@ -2,15 +2,16 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { z } from 'zod';
+import { payslipLayout } from '@peoplecore/shared/payslip';
+import { PayslipSheet } from '@/components/payslip-sheet';
 import { buttonClass } from '@/components/ui/button';
-import { Card, CardHeader, DetailList, PageHeader } from '@/components/ui/surface';
+import { PageHeader } from '@/components/ui/surface';
 import { getOrgContext } from '@/server/context';
-import { getEmployee, getMyEmployee } from '@/server/employees';
-import { getPayslip } from '@/server/payroll';
-import { payrollSettings } from '@/server/payroll-suite';
-import { inr as inrWhole, monthLabel } from '../../payroll/format';
-
-const inrPaise = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+import { signImageUrls } from '@/server/document-storage';
+import { getMyEmployee } from '@/server/employees';
+import { payslipData } from '@/server/payslip-file';
+import { createClient } from '@/server/supabase';
+import { monthLabel } from '../../payroll/format';
 
 export const metadata: Metadata = { title: 'Payslip' };
 
@@ -22,41 +23,17 @@ export default async function PayslipPage({ params, searchParams }: { params: Pr
   const ctx = await getOrgContext(slug);
   const employeeId = requested ?? (await getMyEmployee(ctx.org.id, ctx.user.id))?.id;
   if (!employeeId) notFound();
-  const [slip, employee, settings] = await Promise.all([getPayslip(ctx.org.id, runId, employeeId), getEmployee(ctx.org.id, employeeId), payrollSettings(ctx.org.id)]);
+  const slip = await payslipData(await createClient(), ctx.org.id, ctx.org.name, runId, employeeId, { full: false });
   if (!slip) notFound();
-  const inr = settings?.payslip_show_paise ?? true ? inrPaise : inrWhole;
-  const group = (kind: string) => slip.lines.filter((l) => l.kind === kind);
-  const section = (title: string, kind: string) => (
-    <Card>
-      <CardHeader title={title} />
-      <ul className="divide-y divide-line text-sm" aria-label={title}>
-        {group(kind).map((l) => (
-          <li key={l.code} className="flex justify-between px-5 py-2"><span>{l.name}</span><span className="tabular-nums">{inr.format(Number(l.amount))}</span></li>
-        ))}
-        {group(kind).length === 0 && <li className="px-5 py-2 text-muted">None</li>}
-      </ul>
-    </Card>
-  );
+  const logo = slip.logoPath ? (await signImageUrls([slip.logoPath])).get(slip.logoPath) ?? null : null;
 
   return (
     <>
       <PageHeader eyebrow={<Link href={`/app/${slug}/payslips?tab=payslips`} className="hover:text-fg">← My Pay</Link>}
-        title={`Payslip · ${monthLabel(slip.period_month)}`}
-        description={employee ? `${[employee.first_name, employee.last_name].filter(Boolean).join(' ')} · ${employee.employee_code}` : undefined}
+        title={`Payslip · ${monthLabel(slip.data.periodMonth)}`}
+        description={`${slip.data.employee.name} · ${slip.data.employee.code} · PAN, UAN and account number show in full in the PDF.`}
         actions={<a href={`/app/${slug}/payslips/${runId}/pdf${requested ? `?employee=${requested}` : ''}`} download className={buttonClass('secondary')}>Download PDF</a>} />
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card>
-          <CardHeader title="Summary" />
-          <DetailList items={[
-            { label: 'Payable days', value: `${Number(slip.payable_days)} (loss of pay: ${Number(slip.lop_days)})` },
-            { label: 'Gross earnings', value: inr.format(Number(slip.gross)) },
-            { label: 'Deductions', value: inr.format(Number(slip.deductions)) },
-            { label: 'Net pay', value: <span className="text-lg font-semibold">{inr.format(Number(slip.net))}</span> },
-          ]} />
-        </Card>
-        {section('Earnings', 'earning')}
-        {section('Deductions', 'deduction')}
-      </div>
+      <PayslipSheet layout={payslipLayout(slip.data)} logo={logo} />
     </>
   );
 }

@@ -293,7 +293,7 @@ export async function saveSettingsAction(slug: string, _prev: ActionState, formD
   if (section === 'pay') {
     const p = z.object({
       payDay: z.preprocess((v) => (v === '' || v === 'last' ? null : v), z.coerce.number().int().min(1).max(31).nullable()),
-      lopFromAbsence: yes, payslipTemplate: z.enum(['modern', 'classic', 'compact']), payslipShowYtd: yes,
+      lopFromAbsence: yes,
       inputCycleStart: z.coerce.number().int().min(1).max(28).default(1),
       joinerCutoff: z.preprocess((v) => (v === '' || v === 'none' ? null : v), z.coerce.number().int().min(1).max(31).nullable()),
       payDaysBasis: z.enum(['calendar', 'working', 'fixed_30']).default('calendar'), holidaysPaid: yes,
@@ -302,7 +302,7 @@ export async function saveSettingsAction(slug: string, _prev: ActionState, formD
     }).safeParse(Object.fromEntries(formData));
     if (!p.success) return invalid(p.error, formData);
     patch = {
-      pay_day: p.data.payDay, lop_from_absence: p.data.lopFromAbsence, payslip_template: p.data.payslipTemplate, payslip_show_ytd: p.data.payslipShowYtd,
+      pay_day: p.data.payDay, lop_from_absence: p.data.lopFromAbsence,
       input_cycle_start_day: p.data.inputCycleStart, joiner_cutoff_day: p.data.joinerCutoff, pay_days_basis: p.data.payDaysBasis, holidays_paid: p.data.holidaysPaid,
       overtime_multiplier: p.data.overtimeMultiplier, overtime_in_esi: p.data.overtimeInEsi, payslip_show_paise: p.data.payslipShowPaise,
       show_tax_projection: p.data.showTaxProjection, show_tax_computation: p.data.showTaxComputation, da_enabled: p.data.daEnabled,

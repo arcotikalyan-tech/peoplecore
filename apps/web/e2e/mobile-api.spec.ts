@@ -55,6 +55,15 @@ test('the phone app downloads the employee’s own payslip as a PDF', async ({ b
   // The same payslip layout as the website's download.
   for (const t of ['Payslip  for the month of  APRIL 2019', 'Employee Name', 'STANDARD DAYS', 'DAYS WORKED']) expect(pdf, t).toContain(`(${t})`);
 
+  // The phone's payslip screen: the same layout as JSON, with the PAN, UAN and account number masked.
+  const view = await fetch(`${baseURL}/api/mobile/payslip?org=${orgId}&run=${runId}&format=json`, { headers: { Authorization: `Bearer ${token}` } });
+  expect(view.status).toBe(200);
+  const { month, layout } = await view.json();
+  expect(month).toBe(MONTH);
+  expect(layout.title).toBe('Payslip  for the month of  APRIL 2019');
+  expect(layout.left.map(([l]: [string, string]) => l)).toEqual(['Employee ID', 'Date of Birth', 'Designation', 'UAN Number', 'PF Number', 'Regime Type']);
+  expect(layout.days[0][0]).toBe('STANDARD DAYS');
+
   expect((await get(runId, null)).status).toBe(401);
   expect((await get(crypto.randomUUID(), token)).status).toBe(404);
 });
