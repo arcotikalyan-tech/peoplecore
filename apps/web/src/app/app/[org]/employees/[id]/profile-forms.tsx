@@ -36,8 +36,6 @@ export function WorkDetailsForm({ action, defaults, legalEntities }: { action: A
         <TextField idPrefix="work" name="firstName" label="First name" required defaultValue={val('firstName')} error={e.firstName} />
         <TextField idPrefix="work" name="middleName" label="Middle name" defaultValue={val('middleName')} error={e.middleName} />
         <TextField idPrefix="work" name="lastName" label="Last name" defaultValue={val('lastName')} error={e.lastName} />
-        <TextField idPrefix="work" name="workEmail" label="Work email" type="email" defaultValue={val('workEmail')} error={e.workEmail} />
-        <TextField idPrefix="work" name="workPhone" label="Work phone" type="tel" defaultValue={val('workPhone')} error={e.workPhone} />
         <TextField idPrefix="work" name="dateOfJoining" label="Date of joining" type="date" defaultValue={val('dateOfJoining')} error={e.dateOfJoining}
           hint="To correct a mistake. Leave and payroll already processed aren’t recalculated." />
         <TextField idPrefix="work" name="probationEndDate" label="Probation end date" type="date" defaultValue={val('probationEndDate')} error={e.probationEndDate} />

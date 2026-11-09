@@ -63,3 +63,20 @@ test('employees see no setup card and can’t open the checklist', async ({ page
   await open(page, '/app/demo/setup');
   await expectNotFound(page);
 });
+
+test('every setup step opens the page and tab where that step is done', async ({ page }) => {
+  test.setTimeout(120_000);
+  await signIn(page, 'demo.owner');
+  await open(page, '/app/demo/setup');
+  const links = page.getByRole('link', { name: /^(Start|Review): / });
+  const hrefs = await links.evaluateAll((as) => as.map((a) => [a.getAttribute('aria-label') ?? '', a.getAttribute('href') ?? ''] as const));
+  expect(hrefs.length).toBeGreaterThanOrEqual(12);
+  for (const [label, href] of hrefs) {
+    await open(page, href);
+    const url = new URL(href, 'http://x');
+    const tab = url.searchParams.get('tab');
+    // The tab the step asks for is the one shown (an unknown tab quietly falls back to the first one).
+    if (tab) await expect(page.locator(`a[aria-current="page"][href*="tab=${tab}"]`).first(), `${label} → ${href}`).toBeVisible();
+    if (url.hash) await expect(page.locator(url.hash), `${label} → ${href}`).toBeVisible();
+  }
+});

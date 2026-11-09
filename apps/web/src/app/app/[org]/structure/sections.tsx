@@ -146,7 +146,7 @@ export async function DesignationsSection({ ctx, slug }: { ctx: Ctx; slug: strin
 export async function LocationsSection({ ctx, slug }: { ctx: Ctx; slug: string }) {
   const { s, canManage, locActions, locs, actionsTh, archived } = await setup(ctx, slug);
   return (
-          <Card>
+          <Card id="locations" className="scroll-mt-24">
             <CardHeader title="Locations" description={`${locs.length} active`} />
             <Table caption="Locations">
               <thead>

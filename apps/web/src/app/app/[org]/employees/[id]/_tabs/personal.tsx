@@ -63,7 +63,7 @@ export async function PersonalTab(p: ProfileProps & { personal: Personal }) {
             view={<Fields items={[
               { label: 'Official email ID', value: employee.work_email },
               { label: 'Personal email ID', value: v.personal_email as string },
-              { label: 'Phone number', value: (v.personal_phone as string) ?? employee.work_phone },
+              { label: 'Personal phone', value: v.personal_phone as string },
               { label: 'Work phone', value: employee.work_phone },
               { label: 'Alternate phone number', value: v.alternate_phone as string },
               { label: 'LinkedIn', value: v.linkedin_url as string },

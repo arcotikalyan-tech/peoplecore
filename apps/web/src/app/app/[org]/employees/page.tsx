@@ -233,6 +233,7 @@ async function PeopleTab({ ctx, slug, base, today, people, hr, manage, sp, stats
     if (sp.department && p.departmentId !== sp.department) return false;
     if (sp.flag === 'new' && !(p.joined && p.joined >= addDays(today, -30))) return false;
     if (sp.flag === 'probation' && !(p.probationEnd && p.probationEnd <= today && !p.confirmedOn)) return false;
+    if (sp.flag === 'no_manager' && p.managerId) return false;
     if (sp.flag === 'incomplete' && !(gaps ? !gaps.get(p.id)?.pan : !p.departmentId || !p.designationId)) return false;
     return true;
   });
@@ -297,7 +298,7 @@ async function PeopleTab({ ctx, slug, base, today, people, hr, manage, sp, stats
           <Link href={keep({ view: 'list' })} aria-current={view === 'list' ? 'true' : undefined} className={`rounded-lg px-3 py-1 ${view === 'list' ? 'bg-primary text-primary-fg' : 'text-muted'}`}>☰ List</Link>
         </div>
       </div>
-      {sp.flag && <p className="text-sm text-muted">Showing {sp.flag === 'new' ? 'joiners from the last 30 days' : sp.flag === 'probation' ? 'people whose probation has ended and who aren’t confirmed yet' : gaps ? 'people with no PAN on file (add it under their profile’s Documents tab; payroll needs it for TDS)' : 'people without a department or designation'} · <Link href={keep({ flag: undefined })} className="text-primary">Show everyone</Link></p>}
+      {sp.flag && <p className="text-sm text-muted">Showing {sp.flag === 'no_manager' ? 'people with no reporting manager (tick them, choose “move to Manager” and pick the manager)' : sp.flag === 'new' ? 'joiners from the last 30 days' : sp.flag === 'probation' ? 'people whose probation has ended and who aren’t confirmed yet' : gaps ? 'people with no PAN on file (add it under their profile’s Documents tab; payroll needs it for TDS)' : 'people without a department or designation'} · <Link href={keep({ flag: undefined })} className="text-primary">Show everyone</Link></p>}
       <PeopleBoard cards={cards} view={view} today={today} bulk={hr && manage ? bulkPeopleAction.bind(null, slug) : null}
         options={{
           department: opt(people.map((p) => [p.departmentId, p.department])), location: opt(people.map((p) => [p.locationId, p.location])),

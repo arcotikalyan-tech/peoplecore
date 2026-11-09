@@ -4,14 +4,14 @@
  */
 export const PLAN: Array<{ week: number; title: string; steps: Array<{ key: string; title: string; note: string; auto?: string; href?: string }> }> = [
   { week: 1, title: 'Company and structure', steps: [
-    { key: 'company', title: 'Company details and statutory IDs', note: 'Legal name, PAN, TAN, GST, PF and ESI codes', auto: 'company', href: 'company' },
-    { key: 'locations', title: 'Offices and locations', note: 'Registered and working addresses', auto: 'locations', href: 'company?tab=offices' },
-    { key: 'structure', title: 'Departments and designations', note: 'With heads and grades', auto: 'structure', href: 'company?tab=departments' },
+    { key: 'company', title: 'Company details and statutory IDs', note: 'Legal name, PAN, TAN, GST, PF and ESI codes', auto: 'company', href: 'company?tab=statutory&edit=ids' },
+    { key: 'locations', title: 'Offices and locations', note: 'Registered and working addresses', auto: 'locations', href: 'company?tab=address#locations' },
+    { key: 'structure', title: 'Departments and designations', note: 'With heads and grades', auto: 'structure', href: 'company?tab=department' },
     { key: 'flows', title: 'Approval flows', note: 'Who approves leave, expenses, loans', auto: 'flows', href: 'workflows' },
   ] },
   { week: 2, title: 'People', steps: [
-    { key: 'employees', title: 'Import employees', note: 'CSV import with a dry run on the Employees page', auto: 'employees', href: 'employees' },
-    { key: 'managers', title: 'Reporting managers', note: 'Every employee reports to someone', auto: 'managers', href: 'employees' },
+    { key: 'employees', title: 'Import employees', note: 'CSV import with a dry run on the Employees page', auto: 'employees', href: 'employees?tab=people' },
+    { key: 'managers', title: 'Reporting managers', note: 'Every employee reports to someone', auto: 'managers', href: 'employees?tab=people&flag=no_manager' },
     { key: 'documents', title: 'Collect documents', note: 'ID proofs and bank details from employees', href: 'employees' },
   ] },
   { week: 3, title: 'Time', steps: [

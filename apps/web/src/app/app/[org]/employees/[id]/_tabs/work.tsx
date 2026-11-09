@@ -99,14 +99,11 @@ export async function WorkTab(p: ProfileProps) {
             { label: 'Total experience', value: (() => { const m = t.years * 12 + t.months + (employee.prior_experience_months ?? 0); return `${Math.floor(m / 12)} yr ${m % 12} mo`; })() },
             { label: 'Billing status', value: employee.billable ? 'Billable' : 'Non-Billable' },
             { label: 'Legal entity', value: lookup(entity, employee.legal_entity_id) },
-            { label: 'Work email', value: employee.work_email },
-            { label: 'Work phone', value: employee.work_phone },
             { label: 'Reporting manager', value: manager },
           ]} />}>
           <WorkDetailsForm action={updateWorkDetailsAction.bind(null, slug, id)} legalEntities={structureOptions(structure).legalEntities}
             defaults={{
-              firstName: employee.first_name, middleName: employee.middle_name, lastName: employee.last_name, workEmail: employee.work_email,
-              workPhone: employee.work_phone, dateOfJoining: employee.date_of_joining, probationEndDate: employee.probation_end_date, legalEntityId: employee.legal_entity_id,
+              firstName: employee.first_name, middleName: employee.middle_name, lastName: employee.last_name, dateOfJoining: employee.date_of_joining, probationEndDate: employee.probation_end_date, legalEntityId: employee.legal_entity_id,
               jobTitle: employee.job_title, billable: employee.billable ? 'yes' : 'no',
               priorYears: employee.prior_experience_months === null ? null : String(Math.floor(employee.prior_experience_months / 12)),
               priorMonths: employee.prior_experience_months === null ? null : String(employee.prior_experience_months % 12),
@@ -116,7 +113,7 @@ export async function WorkTab(p: ProfileProps) {
         <Panel title="Work Info">
           <Fields cols={2} items={[
             { label: 'Designation', value: lookup(desig, employee.designation_id) },
-            { label: 'Job title', value: employee.job_title ?? lookup(desig, employee.designation_id) },
+            { label: 'Job title', value: employee.job_title && employee.job_title !== lookup(desig, employee.designation_id) ? employee.job_title : 'Same as designation' },
             { label: 'Department', value: parent ? parent.name : d?.name ?? (employee.department_id ? 'Archived' : null) },
             { label: 'Sub department', value: parent ? d?.name : null },
           ]} />

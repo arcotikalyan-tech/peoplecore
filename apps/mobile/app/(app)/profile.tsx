@@ -83,7 +83,7 @@ export default function Profile() {
           <ListGroup title="Contact" footer="To change your details, edit your profile on the website; some changes need HR’s approval.">
             <ListRow icon="mail-outline" tone="info" title="Work email" value={p.workEmail ?? '—'} onPress={p.workEmail ? () => void Linking.openURL(`mailto:${p.workEmail}`) : undefined} />
             {p.workPhone && <ListRow icon="call-outline" tone="info" title="Work phone" value={p.workPhone} />}
-            <ListRow icon="log-in-outline" tone="info" title="Sign-in email" value={session?.user.email ?? '—'} />
+            {session?.user.email && session.user.email.toLowerCase() !== p.workEmail?.toLowerCase() && <ListRow icon="log-in-outline" tone="info" title="Sign-in email" value={session.user.email} />}
           </ListGroup>
           <Button label="Edit profile on the website" variant="outline" icon="open-outline" onPress={edit} />
         </>

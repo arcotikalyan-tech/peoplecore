@@ -86,9 +86,9 @@ export default async function OnboardingPage({ params, searchParams }: { params:
         );
         return (
           <div className="grid gap-5 lg:grid-cols-3">
-            {block('Departments', st.departments.map((d) => ({ id: d.id, name: d.name })), 'department_id', `${app}/company?tab=departments`)}
-            {block('Designations', st.designations.map((d) => ({ id: d.id, name: d.title })), 'designation_id', `${app}/company?tab=designations`)}
-            {block('Locations', st.locations.map((l) => ({ id: l.id, name: l.name })), 'location_id', `${app}/company?tab=offices`)}
+            {block('Departments', st.departments.map((d) => ({ id: d.id, name: d.name })), 'department_id', `${app}/company?tab=department`)}
+            {block('Designations', st.designations.map((d) => ({ id: d.id, name: d.title })), 'designation_id', `${app}/company?tab=designation`)}
+            {block('Locations', st.locations.map((l) => ({ id: l.id, name: l.name })), 'location_id', `${app}/company?tab=address#locations`)}
           </div>
         );
       })()}

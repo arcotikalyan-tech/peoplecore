@@ -57,8 +57,9 @@ export async function updateWorkDetailsAction(orgSlug: string, employeeId: strin
       first_name: v.firstName,
       middle_name: v.middleName ?? null,
       last_name: v.lastName ?? null,
-      work_email: v.workEmail ?? null,
-      work_phone: v.workPhone ?? null,
+      // The official email and work phone are edited in Personal › Contact Info; only touch them when a form sends them.
+      ...(formData.has('workEmail') ? { work_email: v.workEmail ?? null } : {}),
+      ...(formData.has('workPhone') ? { work_phone: v.workPhone ?? null } : {}),
       probation_end_date: v.probationEndDate ?? null,
       legal_entity_id: v.legalEntityId ?? null,
       ...(formData.has('jobTitle') ? { job_title: extra.data.jobTitle ?? null } : {}),
