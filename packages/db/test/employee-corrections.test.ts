@@ -32,6 +32,23 @@ describe('employee corrections', () => {
     });
   });
 
+  it('a second change on the same day replaces that day’s change, so the employee record follows', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      const id = (await tx.query<{ id: string }>(`select create_employee($1, 'Mona', 'permanent', '2025-01-01') as id`, [f.orgA])).rows[0]!.id;
+      const manager = async () => (await tx.query<{ m: string | null }>('select manager_employee_id as m from employees where id = $1', [id])).rows[0]!.m;
+      await tx.query(`select change_employee_assignment($1, app.org_today($2), 'manager_change', null, null, null, $3)`, [id, f.orgA, f.employees.managerA]);
+      expect(await manager()).toBe(f.employees.managerA);
+      // HR changes their mind the same day: it used to be refused ("effective date must be after ...").
+      await tx.query(`select change_employee_assignment($1, app.org_today($2), 'manager_change', null, null, null, $3)`, [id, f.orgA, f.employees.peerA]);
+      expect(await manager()).toBe(f.employees.peerA);
+      expect((await tx.query('select 1 from employment_records where employee_id = $1', [id])).rows).toHaveLength(2); // joining + today's change
+      // An earlier date than a booked change says which date is booked.
+      expect((await failure(tx, `select change_employee_assignment($1, app.org_today($2) - 1, 'manager_change', null, null, null, $3)`, [id, f.orgA, f.employees.leadA])).message)
+        .toMatch(/^There’s already a change dated .+\. Choose a date after it, or the same date to replace it\.$/);
+    });
+  });
+
   it('corrects a joining date, moving the joining entry and the status; never past a later change', async () => {
     const { f } = ctx;
     await ctx.t.asUser(f.users.hrA, async (tx) => {

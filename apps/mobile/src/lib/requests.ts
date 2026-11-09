@@ -18,7 +18,8 @@ export function typedTime(raw: string): string {
 /** What's wrong with a correction for one day, or null. */
 export function correctionProblem(r: { date: string; checkIn: string; checkOut: string; reason: string }, today: string): string | null {
   if (!r.date) return 'Choose the day to correct.';
-  if (r.date >= today) return 'You can correct days before today.';
+  // Today too (a check-in or check-out missed earlier today); the server refuses times later than now.
+  if (r.date > today) return 'You can’t correct a day that hasn’t started yet.';
   if (!r.checkIn && !r.checkOut) return 'Give a check-in time, a check-out time, or both.';
   if (r.checkIn && !TIME.test(r.checkIn)) return 'Write the check-in time like 09:30.';
   if (r.checkOut && !TIME.test(r.checkOut)) return 'Write the check-out time like 18:30.';

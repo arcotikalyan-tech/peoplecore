@@ -66,14 +66,21 @@ describe('change_employee_assignment', () => {
     });
   });
 
-  it('rejects effective dates on or before the current record start', async () => {
+  it('rejects effective dates before the current record start; the same date replaces it', async () => {
     const { f } = ctx;
     expect(
       await pgError(ctx.t.asUser(f.users.hrA, async (tx) => {
         const id = (await tx.query<{ id: string }>(`select create_employee($1, 'Wen', 'permanent', '2025-01-01') as id`, [f.orgA])).rows[0]!.id;
-        await tx.query(`select change_employee_assignment($1, '2025-01-01', 'transfer', null, null, null, null)`, [id]);
+        await tx.query(`select change_employee_assignment($1, '2024-12-31', 'transfer', null, null, null, null)`, [id]);
       })),
     ).toBe('22023');
+    await ctx.t.asUser(f.users.hrA, async (tx) => {
+      const id = (await tx.query<{ id: string }>(`select create_employee($1, 'Wes', 'permanent', '2025-01-01') as id`, [f.orgA])).rows[0]!.id;
+      // On the joining date itself: the joining entry gets the department and stays the joining entry.
+      await tx.query(`select change_employee_assignment($1, '2025-01-01', 'transfer', $2, null, null, null)`, [id, f.deptA]);
+      expect((await tx.query('select change_reason, department_id from employment_records where employee_id = $1', [id])).rows)
+        .toEqual([{ change_reason: 'joining', department_id: f.deptA }]);
+    });
   });
 
   it('the database itself refuses overlapping history', async () => {

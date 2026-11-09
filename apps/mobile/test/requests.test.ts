@@ -52,7 +52,8 @@ describe('attendance requests on the phone', () => {
   it('checks a correction before sending it', () => {
     const ok = { date: '2026-10-20', checkIn: '09:30', checkOut: '18:30', reason: 'Badge reader down' };
     expect(correctionProblem(ok, '2026-10-23')).toBeNull();
-    expect(correctionProblem({ ...ok, date: '2026-10-23' }, '2026-10-23')).toBe('You can correct days before today.');
+    expect(correctionProblem({ ...ok, date: '2026-10-24' }, '2026-10-23')).toBe('You can’t correct a day that hasn’t started yet.');
+    expect(correctionProblem({ ...ok, date: '2026-10-23' }, '2026-10-23')).toBeNull(); // today: a punch missed earlier
     expect(correctionProblem({ ...ok, checkIn: '', checkOut: '' }, '2026-10-23')).toBe('Give a check-in time, a check-out time, or both.');
     expect(correctionProblem({ ...ok, checkOut: '09:30' }, '2026-10-23')).toBe('Check-out can’t be the same as check-in.');
     expect(correctionProblem({ ...ok, checkIn: '22:00', checkOut: '06:00' }, '2026-10-23')).toBeNull(); // a night shift

@@ -212,6 +212,25 @@ describe('attendance days', () => {
 });
 
 describe('regularization', () => {
+  it('today can be corrected up to the present moment, and goes to the manager', async () => {
+    const { f } = ctx;
+    await ctx.t.asUser(f.users.icA, async (tx) => {
+      await as(tx, f.users.icA);
+      // A missed check-in earlier today: midnight is never later than now.
+      const id = (await tx.query<{ id: string }>(`select request_regularization($1, app.org_today($2), '00:00', null, 'Forgot to check in') as id`, [f.employees.icA, f.orgA])).rows[0]!.id;
+      expect((await tx.query<{ a: string | null }>('select approval_request_id as a from regularization_requests where id = $1', [id])).rows[0]!.a).not.toBeNull();
+      // A time later than now is refused (unless "later" wraps past midnight in the test's last minutes of the day).
+      const later = (await tx.query<{ t: string; wraps: boolean }>(
+        `select to_char(t, 'HH24:MI') as t, t < (now() at time zone o.timezone)::time as wraps
+           from organizations o, lateral (select ((now() at time zone o.timezone) + interval '30 minutes')::time as t) x where o.id = $1`, [f.orgA])).rows[0]!;
+      if (!later.wraps) {
+        // Checked before the one-pending-request-a-day rule, so the request above doesn't get in the way.
+        expect((await failure(tx, `select request_regularization($1, app.org_today($2), null, $3::time, 'Leaving soon')`, [f.employees.icA, f.orgA, later.t])).message)
+          .toBe('The check-out time can’t be later than now.');
+      }
+    });
+  });
+
   it('approval adds the missing punch, recomputes the day and resolves the flag', async () => {
     const { f } = ctx;
     const d = weekdays[2]!;
@@ -219,8 +238,8 @@ describe('regularization', () => {
       await tx.exec('reset role');
       await punch(tx, f.employees.icA, d, '09:35', 'r1');
       await as(tx, f.users.icA);
-      expect((await failure(tx, `select request_regularization($1, app.org_today($2), '09:30', '18:30', 'Forgot')`, [f.employees.icA, f.orgA])).message)
-        .toBe('Regularize days that have ended; today can still be punched.');
+      expect((await failure(tx, `select request_regularization($1, app.org_today($2) + 1, '09:30', '18:30', 'Forgot')`, [f.employees.icA, f.orgA])).message)
+        .toBe('You can’t correct a day that hasn’t started yet.');
       const id = (await tx.query<{ id: string }>(`select request_regularization($1, $2, null, '18:40', 'Forgot to check out') as id`, [f.employees.icA, d])).rows[0]!.id;
       expect((await failure(tx, `select request_regularization($1, $2, null, '18:45', 'Again')`, [f.employees.icA, d])).message)
         .toBe('There is already a pending regularization for that day.');

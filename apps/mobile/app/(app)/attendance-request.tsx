@@ -70,7 +70,7 @@ export default function AttendanceRequest() {
       {kind === 'correct' ? (
         <View>
           <Text variant="footnote" tone="muted" style={{ marginBottom: space.lg }}>A missed or wrong check-in or check-out, up to {back} days back. Leave a time empty to keep what was recorded. Times are 24-hour: 6:30 pm is 18:30.</Text>
-          <DateField label="Day" value={form.date} onChange={(d) => setForm({ ...form, date: d })} min={addDays(today, -back)} max={addDays(today, -1)} />
+          <DateField label="Day" value={form.date} onChange={(d) => setForm({ ...form, date: d })} min={addDays(today, -back)} max={today} />
           <View style={{ flexDirection: 'row', gap: space.md }}>
             <View style={{ flex: 1 }}><Field label="Check-in" value={form.checkIn} onChangeText={(v) => setForm({ ...form, checkIn: typedTime(v) })} placeholder="09:30" keyboardType="number-pad" maxLength={5} /></View>
             <View style={{ flex: 1 }}><Field label="Check-out" value={form.checkOut} onChangeText={(v) => setForm({ ...form, checkOut: typedTime(v) })} placeholder="18:30" keyboardType="number-pad" maxLength={5} /></View>
