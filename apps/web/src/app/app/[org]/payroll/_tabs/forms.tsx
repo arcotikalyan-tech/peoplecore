@@ -239,7 +239,7 @@ const check = (name: string, label: string, on: boolean, hint?: string) => (
 );
 
 export interface PaySettings {
-  pay_day: number | null; lop_from_absence: boolean; payslip_template: string; payslip_show_ytd: boolean;
+  pay_day: number | null; lop_from_absence: boolean; 
   pay_days_basis: string; holidays_paid: boolean; input_cycle_start_day: number; joiner_cutoff_day: number | null;
   overtime_multiplier: number | null; overtime_in_esi: boolean; payslip_show_paise: boolean; show_tax_projection: boolean; show_tax_computation: boolean;
   da_enabled: boolean;
@@ -276,10 +276,7 @@ export function PaySettingsForm({ action, s }: { action: Action; s: PaySettings 
             {check('overtimeInEsi', 'Include overtime in ESI and professional-tax wages', s.overtime_in_esi, 'The hourly rate is the month’s earnings ÷ pay days ÷ 8 hours.')}
           </fieldset>
           <fieldset className="space-y-3"><legend className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">Payslips and employee access</legend>
-            <SelectField idPrefix="pay" name="payslipTemplate" label="Payslip format" defaultValue={v.payslipTemplate ?? s.payslip_template}
-              options={[{ value: 'modern', label: 'Modern' }, { value: 'classic', label: 'Classic' }, { value: 'compact', label: 'Compact' }]} />
-            {check('payslipShowYtd', 'Show year-to-date totals on payslips', s.payslip_show_ytd)}
-            {check('payslipShowPaise', 'Show paise on payslips', s.payslip_show_paise, 'Amounts are calculated in whole rupees; this shows them as ₹12,345.00.')}
+            {check('payslipShowPaise', 'Show paise on payslips', s.payslip_show_paise, 'Amounts are calculated in whole rupees; this shows them as 12,345.00.')}
             {check('showTaxProjection', 'Employees see their tax projection', s.show_tax_projection)}
             {check('showTaxComputation', 'Employees see their tax computation', s.show_tax_computation)}
           </fieldset>

@@ -124,10 +124,16 @@ test('the employee sees their payslip in My Pay', async ({ page }) => {
   await open(page, '/app/demo/payslips?tab=payslips&fy=2026-27');
   await page.getByRole('link', { name: 'April 2026' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Payslip · April 2026' })).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Earnings' }).getByText('₹20,000')).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Earnings' }).getByText('Salary arrears')).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Deductions' }).getByText('Provident fund')).toBeVisible();
-  await expect(page.getByText('₹54,000').first()).toBeVisible();
+  // The one payslip format, as in the PDF: details, earnings beside deductions, the days and the net salary.
+  const sheet = page.getByRole('region', { name: 'Payslip' });
+  await expect(sheet.getByText('Payslip  for the month of  APRIL 2026')).toBeVisible();
+  await expect(sheet.getByText('Employee ID')).toBeVisible();
+  const lines = sheet.getByRole('table', { name: 'Earnings and deductions' });
+  await expect(lines.getByRole('cell', { name: '20,000.00' }).first()).toBeVisible();
+  await expect(lines.getByRole('cell', { name: 'Salary arrears' })).toBeVisible();
+  await expect(lines.getByRole('cell', { name: 'Provident fund' })).toBeVisible();
+  await expect(sheet.getByText('STANDARD DAYS')).toBeVisible();
+  await expect(sheet.getByText('Net Salary Rs. 54,000.00')).toBeVisible();
 
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Download PDF' }).click()]);
   expect(download.suggestedFilename()).toMatch(/^payslip-2026-04-.+\.pdf$/);

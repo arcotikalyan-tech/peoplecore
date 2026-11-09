@@ -4,7 +4,20 @@ import { bankSettings, components, payrollPeople, payrollSettings, readiness } f
 import { createClient } from '@/server/supabase';
 import { saveComponentAction, saveSettingsAction } from '../suite-actions';
 import { BankSettingsForm, ComponentForm, DeclarationWindowForm, PaySettingsForm, StatutorySettingsForm } from './forms';
+import { payslipLayout, type PayslipData } from '@peoplecore/shared/payslip';
+import { PayslipSheet } from '@/components/payslip-sheet';
 import { Card, inr, Pill, qs, type TabProps } from './shared';
+
+/** What the payslip looks like, with made-up details. */
+const SAMPLE_PAYSLIP = (organization: string, showPaise: boolean): PayslipData => ({
+  organization, periodMonth: '2026-09-01',
+  company: { addressLines: ['Registered office, as on Company Profile › Address,', 'City, State - PIN'] },
+  employee: { name: 'Sample Employee', code: 'EMP-0001', designation: 'Engineer', location: 'Head office', dateOfBirth: '1995-01-15', joiningDate: '2024-06-01', uan: '1000XXXXXXXX', pan: 'XXXXX1234X' },
+  regime: 'new', standardDays: 30, payableDays: 30, lopDays: 0, payment: { mode: 'BANK TRANSFER', accountNumber: 'XXXXXXXX1234' },
+  earnings: [{ name: 'Basic Salary', amount: 40000 }, { name: 'House Rent Allowance', amount: 20000 }, { name: 'Special Allowance', amount: 22000 }],
+  deductions: [{ name: 'Provident Fund', amount: 1800 }, { name: 'Professional Tax', amount: 200 }, { name: 'Income Tax', amount: 0 }],
+  totals: { gross: 82000, deductions: 2000, net: 80000 }, showPaise,
+});
 
 const CARDS = [
   { key: 'pay', icon: '⚙️', title: 'Pay Settings', sub: 'Cycle · payout date · LOP · payslip YTD' },
@@ -14,7 +27,7 @@ const CARDS = [
   { key: 'payout', icon: '🏦', title: 'Payout / Bank', sub: 'Per-employee bank · IFSC' },
   { key: 'declarations', icon: '📚', title: 'Declaration Window', sub: 'Monthly/yearly window · proof deadline' },
   { key: 'bank', icon: '🏦', title: 'Bank Integration', sub: 'HDFC · ICICI · SBI · NEFT advice file' },
-  { key: 'payslip', icon: '🧾', title: 'Payslip Format', sub: 'Template gallery · default' },
+  { key: 'payslip', icon: '🧾', title: 'Payslip Format', sub: 'The payslip layout · paise' },
 ];
 
 export async function SettingsTab({ ctx, slug, base, month, prepares, approves, sp }: TabProps) {
@@ -54,21 +67,8 @@ export async function SettingsTab({ ctx, slug, base, month, prepares, approves, 
         {view === 'payout' && <BankOverview ctx={ctx} slug={slug} month={month} />}
         {view === 'payslip' && settings && (
           <div className="space-y-5">
-            <ul className="grid gap-4 md:grid-cols-3">
-              {[['modern', 'Modern', 'Brand colour header, earnings and deductions side by side, net pay highlighted.'],
-                ['classic', 'Classic', 'Traditional bordered table, company letterhead, amount in words.'],
-                ['compact', 'Compact', 'One block, small type: fits two payslips on a page.']].map(([k, t, d]) => (
-                <li key={k} className={`rounded-2xl border p-4 ${settings.payslip_template === k ? 'border-primary ring-2 ring-primary/30' : 'border-line'}`}>
-                  <div aria-hidden="true" className="mb-3 space-y-1.5 rounded-lg border border-line bg-subtle/50 p-3">
-                    <div className={`h-3 rounded ${k === 'modern' ? 'bg-primary' : k === 'classic' ? 'border border-line-strong bg-surface' : 'bg-line-strong'}`} />
-                    <div className="grid grid-cols-2 gap-1.5">{Array.from({ length: k === 'compact' ? 4 : 6 }, (_, i) => <div key={i} className="h-1.5 rounded bg-line" />)}</div>
-                    <div className={`ml-auto h-2.5 w-1/3 rounded ${k === 'modern' ? 'bg-success' : 'bg-line-strong'}`} />
-                  </div>
-                  <p className="font-semibold">{t} {settings.payslip_template === k && <Pill tone="primary">Default</Pill>}</p>
-                  <p className="text-xs text-muted">{d}</p>
-                </li>
-              ))}
-            </ul>
+            <p className="text-sm text-muted">Every organization’s payslips use this layout, on the website, in the phone app and in the PDF. A sample:</p>
+            <PayslipSheet layout={payslipLayout(SAMPLE_PAYSLIP(ctx.org.name, settings.payslip_show_paise))} />
             {prepares ? <PaySettingsForm action={save} s={settings} /> : readOnly}
           </div>
         )}

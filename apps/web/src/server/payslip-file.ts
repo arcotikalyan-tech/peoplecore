@@ -1,6 +1,7 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { payslipPdf, type PdfImage } from '@peoplecore/payroll';
+import type { PayslipData } from '@peoplecore/shared/payslip';
 import type { Database } from '@peoplecore/db/types';
 import { readLogoFile } from './document-storage';
 import { pdfImage } from './pdf-image';
@@ -31,13 +32,13 @@ function addressLines(a: { line1: string; line2: string | null; city: string; st
 }
 
 /**
- * One payslip as a PDF, read with the caller's own client (the website's session, or the phone app's token): RLS
+ * One payslip's facts, read with the caller's own client (the website's session, or the phone app's token): RLS
  * decides whose payslips come back, so this never widens access. Null when there is no such payslip for them.
  *
- * The PAN, UAN and bank account print in full, as on any payslip, so they are read with the audited reveal calls
- * (the employee's own, or payroll's); someone without that access gets the masked values instead.
+ * `full` (the PDF): the PAN, UAN and bank account in full, as on any payslip, read with the audited reveal calls (the
+ * employee's own, or payroll's); without that access, or on screen, the masked values.
  */
-export async function payslipFile(supabase: SupabaseClient<Database>, orgId: string, orgName: string, runId: string, employeeId: string) {
+export async function payslipData(supabase: SupabaseClient<Database>, orgId: string, orgName: string, runId: string, employeeId: string, { full }: { full: boolean }) {
   const [row, lines, employee, settings, company, address, org] = await Promise.all([
     supabase.from('payroll_run_employees').select('*').eq('organization_id', orgId).eq('run_id', runId).eq('employee_id', employeeId).maybeSingle(),
     supabase.from('payroll_line_items').select('code, name, kind, amount').eq('run_id', runId).eq('employee_id', employeeId).order('id'),
@@ -50,13 +51,15 @@ export async function payslipFile(supabase: SupabaseClient<Database>, orgId: str
   const slip = row.data;
   const emp = employee.data;
   if (!slip || !emp || lines.error) return null;
-  const reveal = async <T,>(full: PromiseLike<{ data: T[] | null; error: unknown }>, masked: PromiseLike<{ data: T[] | null; error: unknown }>) => {
-    const a = await full;
-    if (!a.error && a.data?.[0]) return a.data[0];
+  const reveal = async <T,>(revealed: PromiseLike<{ data: T[] | null; error: unknown }>, masked: PromiseLike<{ data: T[] | null; error: unknown }>) => {
+    if (full) {
+      const a = await revealed;
+      if (!a.error && a.data?.[0]) return a.data[0];
+    }
     const b = await masked;
     return b.error ? null : b.data?.[0] ?? null;
   };
-  const [department, designation, location, personal, declaration, identity, bank, logo] = await Promise.all([
+  const [department, designation, location, personal, declaration, identity, bank] = await Promise.all([
     emp.department_id ? supabase.from('departments').select('name').eq('organization_id', orgId).eq('id', emp.department_id).maybeSingle() : null,
     emp.designation_id ? supabase.from('designations').select('title').eq('organization_id', orgId).eq('id', emp.designation_id).maybeSingle() : null,
     emp.location_id ? supabase.from('locations').select('name').eq('organization_id', orgId).eq('id', emp.location_id).maybeSingle() : null,
@@ -64,11 +67,10 @@ export async function payslipFile(supabase: SupabaseClient<Database>, orgId: str
     supabase.from('tax_declarations').select('regime').eq('organization_id', orgId).eq('employee_id', employeeId).eq('fy', fyOf(slip.period_month)).maybeSingle(),
     reveal(supabase.rpc('reveal_employee_identity', { p_employee: employeeId }), supabase.rpc('employee_identity_summary', { p_employee: employeeId })),
     reveal(supabase.rpc('reveal_employee_bank_account', { p_employee: employeeId }), supabase.rpc('employee_bank_summary', { p_employee: employeeId })),
-    logoFor(company.data?.logo_path),
   ]);
   const of = (kind: string) => (lines.data ?? []).filter((l) => l.kind === kind).map((l) => ({ name: l.name, amount: Number(l.amount) }));
   const input = (slip.input ?? {}) as { daysInPeriod?: number | string };
-  const pdf = payslipPdf({
+  const data: PayslipData = {
     organization: orgName,
     company: { legalName: company.data?.legal_name ?? null, addressLines: addressLines(address.data) },
     periodMonth: slip.period_month,
@@ -92,9 +94,15 @@ export async function payslipFile(supabase: SupabaseClient<Database>, orgId: str
     deductions: of('deduction'),
     totals: { gross: Number(slip.gross), deductions: Number(slip.deductions), net: Number(slip.net) },
     showPaise: settings.data?.payslip_show_paise ?? true,
-    logo,
     generatedAt: new Date(),
     timeZone: org.data?.timezone ?? 'Asia/Kolkata',
-  });
-  return { pdf, fileName: `payslip-${slip.period_month.slice(0, 7)}-${emp.employee_code.replace(/[^\w-]/g, '')}.pdf` };
+  };
+  return { data, logoPath: company.data?.logo_path ?? null, fileName: `payslip-${slip.period_month.slice(0, 7)}-${emp.employee_code.replace(/[^\w-]/g, '')}.pdf` };
+}
+
+/** One payslip as a PDF (null when there is no such payslip for the caller). */
+export async function payslipFile(supabase: SupabaseClient<Database>, orgId: string, orgName: string, runId: string, employeeId: string) {
+  const slip = await payslipData(supabase, orgId, orgName, runId, employeeId, { full: true });
+  if (!slip) return null;
+  return { pdf: payslipPdf({ ...slip.data, logo: await logoFor(slip.logoPath) }), fileName: slip.fileName };
 }
