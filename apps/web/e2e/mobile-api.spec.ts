@@ -50,7 +50,10 @@ test('the phone app downloads the employee’s own payslip as a PDF', async ({ b
   expect(ok.status).toBe(200);
   expect(ok.headers.get('content-type')).toBe('application/pdf');
   expect(ok.headers.get('content-disposition')).toMatch(/payslip-2019-04-/);
-  expect(Buffer.from(await ok.arrayBuffer()).subarray(0, 5).toString()).toBe('%PDF-');
+  const pdf = Buffer.from(await ok.arrayBuffer()).toString('latin1');
+  expect(pdf.startsWith('%PDF-')).toBe(true);
+  // The same payslip layout as the website's download.
+  for (const t of ['Payslip  for the month of  APRIL 2019', 'Employee Name', 'STANDARD DAYS', 'DAYS WORKED']) expect(pdf, t).toContain(`(${t})`);
 
   expect((await get(runId, null)).status).toBe(401);
   expect((await get(crypto.randomUUID(), token)).status).toBe(404);

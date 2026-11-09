@@ -1,7 +1,7 @@
 /**
  * A payslip as a PDF, with no dependencies: A4, the standard Helvetica fonts (so nothing is embedded), text, rules and
- * the company logo, uncompressed apart from the logo. The same input always gives the same bytes; there is no creation
- * date.
+ * the company logo, uncompressed apart from the logo. The same input always gives the same bytes; the only time in it is
+ * `generatedAt`, printed in the footer.
  *
  * The standard fonts cover Latin-1 only: other characters (for example a name in Devanagari) print as "?".
  * The on-screen payslip shows them correctly.
@@ -23,38 +23,73 @@ export interface PdfImage {
 }
 
 export interface PayslipDocument {
+  /** The organization's name, used when there is no legal name. */
   organization: string;
+  company?: { legalName?: string | null; addressLines?: string[] };
   /** First day of the month, ISO (yyyy-mm-dd). */
   periodMonth: string;
-  employee: { name: string; code: string; department?: string | null; designation?: string | null };
+  employee: {
+    name: string; code: string; designation?: string | null; department?: string | null;
+    /** ISO dates. */
+    dateOfBirth?: string | null; joiningDate?: string | null;
+    location?: string | null; uan?: string | null; pfNumber?: string | null; pan?: string | null; los?: string | null;
+  };
+  /** 'new' or 'old' income tax regime. */
+  regime?: string | null;
+  /** The month's days under the pay-days basis (calendar days, 30, or working days). */
+  standardDays?: number | null;
   payableDays: number;
   lopDays: number;
+  payment?: { mode?: string | null; accountNumber?: string | null };
   earnings: PayslipLine[];
   deductions: PayslipLine[];
   totals: { gross: number; deductions: number; net: number };
-  /** Two decimals (₹1,234.00, the default) or whole rupees (Payroll › Settings › Show paise). */
+  /** Two decimals (1,234.00, the default) or whole rupees (Payroll › Settings › Show paise). */
   showPaise?: boolean;
-  /** The company logo, top right on the first page (at most 160 × 40 pt, its proportions kept). */
+  /** The company logo, top left (at most 175 × 38 pt, its proportions kept). */
   logo?: PdfImage | null;
+  /** When the file was made, printed in the footer as local time in `timeZone`. Left out, the footer has no time. */
+  generatedAt?: Date | null;
+  timeZone?: string;
 }
 
-const LOGO_BOX = { width: 160, height: 40 };
+const LOGO_BOX = { width: 175, height: 38 };
+const PAGE = { width: 595, height: 842 };
+/** The bordered block and its columns (points from the left edge). */
+const BOX = { left: 18, right: 577, top: 793 };
+const COL = { amount1: 143.5, deductions: 207.5, amount2: 333, panel: 393 };
+const ROW = 12;
 
-const PAGE = { width: 595, height: 842, left: 56, right: 539, top: 786, bottom: 72 };
 const amountFormat = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-/** Amounts in Indian grouping with two decimals, e.g. 1,23,456.00. */
+/** Amounts in Indian grouping with two decimals, e.g. 1,23,456.00 (the on-screen payslip). */
 export const payslipAmount = (n: number) => amountFormat.format(n);
-const wholeFormat = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+/** The PDF's amounts: thousands grouping, e.g. 102,000.00. */
+const pdfAmount = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pdfWhole = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 export const payslipMonth = (iso: string) =>
   new Date(`${iso.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
-/** Helvetica and Helvetica-Bold share these widths (per 1000 units) for the characters amounts use. */
-const NUMBER_WIDTHS: Record<string, number> = { ',': 278, '.': 278, '-': 333, ' ': 278 };
-function numberWidth(s: string, size: number) {
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+/** 23-SEP-1997. */
+export const payslipDate = (iso: string | null | undefined) =>
+  iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(8, 10)}-${MONTHS[Number(iso.slice(5, 7)) - 1]}-${iso.slice(0, 4)}` : '';
+
+// Helvetica and Helvetica-Bold advance widths (per 1000 units) for printable ASCII, from the standard AFM files.
+const W_REGULAR = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556,
+  278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944,
+  667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556,
+  500, 722, 500, 500, 500, 334, 260, 334, 584];
+const W_BOLD = [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556,
+  333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944,
+  667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611,
+  556, 778, 556, 556, 500, 389, 280, 389, 584];
+type Font = 'F1' | 'F2' | 'F3'; // regular, bold, oblique
+/** The width of `s` in points (characters outside printable ASCII count as 556). */
+export function textWidth(s: string, size: number, font: Font = 'F1') {
+  const table = font === 'F2' ? W_BOLD : W_REGULAR;
   let w = 0;
-  for (const c of s) w += NUMBER_WIDTHS[c] ?? 556; // digits are 556
+  for (const c of s) { const i = c.charCodeAt(0) - 32; w += table[i] ?? 556; }
   return (w * size) / 1000;
 }
 
@@ -67,95 +102,162 @@ function pdfText(s: string) {
   return latin1.replace(/[\\()]/g, (c) => `\\${c}`);
 }
 
-class Pages {
-  pages: string[][] = [[]];
-  y = PAGE.top;
-  constructor(private readonly format: (n: number) => string = payslipAmount) {}
-  private get ops() { return this.pages[this.pages.length - 1]!; }
+/** Splits `s` into lines no wider than `width`. */
+function wrap(s: string, width: number, size: number, font: Font) {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of s.split(/\s+/).filter(Boolean)) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && textWidth(next, size, font) > width) { lines.push(line); line = word; } else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 
-  /** Moves down by `dy`, starting a new page when there's no room. */
-  down(dy: number) {
-    if (this.y - dy < PAGE.bottom) {
-      this.pages.push([]);
-      this.y = PAGE.top;
-    }
-    this.y -= dy;
+class Page {
+  ops: string[] = [];
+  text(x: number, y: number, s: string, size = 8, font: Font = 'F1', color?: string) {
+    if (!s) return;
+    this.ops.push(`BT ${color ?? '0 0 0'} rg /${font} ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${pdfText(s)}) Tj ET`);
   }
-  text(x: number, s: string, size = 10, bold = false) {
-    this.ops.push(`BT /${bold ? 'F2' : 'F1'} ${size} Tf ${x.toFixed(2)} ${this.y.toFixed(2)} Td (${pdfText(s)}) Tj ET`);
+  right(x: number, y: number, s: string, size = 8, font: Font = 'F1') { this.text(x - textWidth(s, size, font), y, s, size, font); }
+  center(x1: number, x2: number, y: number, s: string, size = 8, font: Font = 'F1', color?: string) {
+    this.text((x1 + x2 - textWidth(s, size, font)) / 2, y, s, size, font, color);
   }
-  amount(n: number, size = 10, bold = false) {
-    const s = this.format(n);
-    this.text(PAGE.right - numberWidth(s, size), s, size, bold);
+  line(x1: number, y1: number, x2: number, y2: number) {
+    this.ops.push(`${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S`);
   }
+  hline(y: number, x1 = BOX.left, x2 = BOX.right) { this.line(x1, y, x2, y); }
+  vline(x: number, y1: number, y2: number) { this.line(x, y1, x, y2); }
   image(x: number, y: number, w: number, h: number) {
     this.ops.push(`q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /Im1 Do Q`);
   }
-  rule(weight = 0.5) {
-    this.ops.push(`${weight} w ${PAGE.left} ${(this.y - 6).toFixed(2)} m ${PAGE.right} ${(this.y - 6).toFixed(2)} l S`);
-  }
 }
 
+const REGIMES: Record<string, string> = { new: 'New Regime', old: 'Old Regime' };
+
+/** The footer's time, as Java prints it: "Thu Oct 29 16:27:41 IST 2026", and the date "29/10/2026". */
+function stamp(at: Date, timeZone: string) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+    timeZone, weekday: 'short', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', year: 'numeric', timeZoneName: 'short',
+  }).formatToParts(at).map((p) => [p.type, p.value]));
+  const zone = timeZone === 'Asia/Kolkata' || timeZone === 'Asia/Calcutta' ? 'IST' : parts.timeZoneName ?? 'UTC';
+  return {
+    long: `${parts.weekday} ${parts.month} ${parts.day} ${parts.hour}:${parts.minute}:${parts.second} ${zone} ${parts.year}`,
+    short: new Intl.DateTimeFormat('en-GB', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' }).format(at),
+  };
+}
+
+/**
+ * One payslip on one A4 page, laid out like the payslip the owner gave (Dronevex, September 2026): logo and registered
+ * address, the month, the employee's details in two columns, earnings and deductions side by side with the days and
+ * payment beside them, the totals and net salary, then the notes and, at the foot of the page, the disclaimers.
+ */
 export function payslipPdf(doc: PayslipDocument): Uint8Array {
-  const p = new Pages(doc.showPaise === false ? (n) => wholeFormat.format(n) : payslipAmount);
+  const money = (n: number) => (doc.showPaise === false ? pdfWhole : pdfAmount).format(n);
+  const p = new Page();
+  p.ops.push('0.6 w 0 0 0 RG');
+  const legal = doc.company?.legalName?.trim() || doc.organization;
+  // The disclaimer names the company in title case even when the legal name is stored in capitals.
+  const named = legal === legal.toUpperCase() ? legal.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()) : legal;
+
+  // Header: logo, company name and address.
+  let nameX = BOX.left + 8;
   if (doc.logo) {
     const scale = Math.min(LOGO_BOX.width / doc.logo.width, LOGO_BOX.height / doc.logo.height);
     const [w, h] = [doc.logo.width * scale, doc.logo.height * scale];
-    // Top edge level with the top of the company name.
-    p.image(PAGE.right - w, PAGE.top + 14 - h, w, h);
+    p.image(BOX.left + 6, BOX.top - 4 - h, w, h);
+    nameX = BOX.left + 6 + w + 12;
   }
-  p.text(PAGE.left, doc.organization, 16, true);
-  p.down(22);
-  p.text(PAGE.left, `Payslip for ${payslipMonth(doc.periodMonth)}`, 12);
-  p.rule(1);
+  p.text(nameX, BOX.top - 15, legal.toUpperCase(), 12, 'F2');
+  (doc.company?.addressLines ?? []).slice(0, 3).forEach((l, i) => p.text(nameX, BOX.top - 26 - i * 9, l, 7.5));
 
-  const details: Array<[string, string]> = [
-    ['Employee', doc.employee.name],
-    ['Employee code', doc.employee.code],
-    ...(doc.employee.designation ? [['Designation', doc.employee.designation] as [string, string]] : []),
-    ...(doc.employee.department ? [['Department', doc.employee.department] as [string, string]] : []),
-    ['Payable days', String(doc.payableDays)],
-    ['Loss of pay days', String(doc.lopDays)],
+  // The month.
+  const month = new Date(`${doc.periodMonth.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).toUpperCase();
+  p.center(BOX.left, BOX.right, 719, `Payslip  for the month of  ${month}`, 9, 'F2', '0.1 0.1 0.95');
+  p.hline(714);
+
+  // Employee details: two columns of six and five rows.
+  const e = doc.employee;
+  const left: Array<[string, string]> = [
+    ['Employee ID', e.code], ['Date of Birth', payslipDate(e.dateOfBirth)], ['Designation', e.designation ?? ''],
+    ['UAN Number', e.uan ?? ''], ['PF Number', e.pfNumber ?? ''], ['Regime Type', doc.regime ? REGIMES[doc.regime] ?? doc.regime : ''],
   ];
-  p.down(14);
-  for (const [label, value] of details) {
-    p.down(16);
-    p.text(PAGE.left, label, 10);
-    p.text(PAGE.left + 130, value, 10, true);
-  }
+  const right: Array<[string, string]> = [
+    ['Employee Name', e.name], ['Joining Date', payslipDate(e.joiningDate)], ['Location', e.location ?? ''],
+    ['Pan Number', e.pan ?? ''], ['LOS', e.los ?? ''],
+  ];
+  left.forEach(([l, v], i) => { const y = 701 - i * 12.2; p.text(23, y, l); p.text(111, y, ':'); p.text(120, y, v); });
+  right.forEach(([l, v], i) => { const y = 701 - i * 12.2; p.text(303, y, l); p.text(392.5, y, ':'); p.text(400, y, v); });
 
-  const section = (title: string, lines: PayslipLine[], totalLabel: string, total: number) => {
-    p.down(30);
-    p.text(PAGE.left, title, 11, true);
-    p.text(PAGE.right - 70, 'Amount (INR)', 9);
-    p.rule();
-    p.down(4);
-    for (const l of lines) {
-      p.down(16);
-      p.text(PAGE.left, l.name);
-      p.amount(l.amount);
-    }
-    if (lines.length === 0) {
-      p.down(16);
-      p.text(PAGE.left, 'None');
-    }
-    p.rule();
-    p.down(20);
-    p.text(PAGE.left, totalLabel, 10, true);
-    p.amount(total, 10, true);
-  };
-  section('Earnings', doc.earnings, 'Gross earnings', doc.totals.gross);
-  section('Deductions', doc.deductions, 'Total deductions', doc.totals.deductions);
+  // Earnings and deductions, side by side, with the days and the payment in the panel on the right.
+  const top = 636;
+  p.hline(top);
+  p.text(21, top - 9, 'EARNINGS');
+  p.center(COL.amount1, COL.deductions, top - 9, 'Amount (Rs.)');
+  p.text(COL.deductions + 2, top - 9, 'DEDUCTIONS');
+  p.center(COL.amount2, COL.panel, top - 9, 'Amount (Rs.)');
+  const head = top - 12.4;
+  p.hline(head, BOX.left, COL.panel);
+  const rows = Math.max(6, doc.earnings.length, doc.deductions.length);
+  // Everything stays on one page: past about 36 lines the rows (and their type) get smaller.
+  const rowH = Math.min(ROW, (head - 165) / rows);
+  const size = Math.min(8, rowH - 1);
+  const bottom = head - rows * rowH;
+  const lineY = (i: number) => head - rowH + (rowH - size) / 2 + size * 0.2 - i * rowH + (rowH === ROW ? 0.6 : 0);
+  doc.earnings.forEach((l, i) => { p.text(21, lineY(i), l.name, size); p.right(COL.deductions - 2, lineY(i), money(l.amount), size); });
+  doc.deductions.forEach((l, i) => { p.text(COL.deductions + 2, lineY(i), l.name, size); p.right(COL.panel - 2, lineY(i), money(l.amount), size); });
+  for (const x of [COL.amount1, COL.deductions, COL.amount2, COL.panel]) p.vline(x, top, bottom);
+  const panel = (label: string, value: string, y: number) => { p.text(COL.panel + 5, y, label); p.text(489.5, y, ':'); p.text(503, y, value); };
+  const days = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(Number(n)));
+  panel('STANDARD DAYS', days(doc.standardDays), top - 11.5);
+  panel('DAYS WORKED', days(doc.payableDays), top - 23.5);
+  p.hline(top - 40.4, COL.panel, BOX.right);
+  panel('PAYMENT', doc.payment?.mode ?? '', top - 51.5);
+  panel('A/C No.', doc.payment?.accountNumber ?? '', top - 63);
 
-  p.down(20);
-  p.rule(1);
-  p.down(24);
-  p.text(PAGE.left, 'Net pay', 13, true);
-  p.amount(doc.totals.net, 13, true);
-  p.down(40);
-  p.text(PAGE.left, 'Amounts are in Indian rupees. This payslip is computer generated and needs no signature.', 8);
+  // Totals and net salary.
+  const totals = bottom - 11.6;
+  p.hline(bottom);
+  p.hline(totals);
+  p.vline(COL.deductions, bottom, totals);
+  p.vline(COL.panel, bottom, totals);
+  const ty = bottom - 8.6;
+  const totalEarnings = money(doc.totals.gross);
+  p.right(COL.deductions - 2, ty, totalEarnings, 8, 'F2');
+  p.right(COL.deductions - 2 - textWidth(totalEarnings, 8, 'F2') - 4, ty, 'Total Earnings Rs.', 8, 'F2');
+  const totalDeductions = money(doc.totals.deductions);
+  p.right(COL.panel - 2, ty, totalDeductions, 8, 'F2');
+  p.right(COL.panel - 2 - textWidth(totalDeductions, 8, 'F2') - 10, ty, 'Total Deductions Rs.', 8, 'F2');
+  p.right(BOX.right - 2, ty, `Net Salary Rs. ${money(doc.totals.net)}`, 8, 'F2');
 
-  return assemble(p.pages, doc.logo ?? null);
+  // An empty row, then the notes.
+  const blank = totals - 27.4;
+  p.vline(357, totals, blank);
+  p.hline(blank);
+  const notes = [
+    'Note: This is a system generated report. This does not require any signature.',
+    ...wrap(`Private and Confidential Disclaimer: This payslip has been generated by the ${named} payroll. All compensation information has been treated as confidential`, BOX.right - BOX.left - 8, 7, 'F2'),
+  ];
+  notes.forEach((l, i) => p.text(21, blank - 9 - i * 8, l, 7, 'F2'));
+  const boxBottom = blank - 9 - (notes.length - 1) * 8 - 6;
+  p.ops.push(`${BOX.left} ${boxBottom.toFixed(2)} ${BOX.right - BOX.left} ${(BOX.top - boxBottom).toFixed(2)} re S`);
+
+  // The foot of the page.
+  const foot = [
+    ...wrap('This is a system-generated payslip. Authorized signatory details and signature, where configured for the applicable Pay Group, Process Type and Pay Period, will be displayed on this document. Documents generated without a configured signature remain valid and do not require a physical signature.', BOX.right - BOX.left - 6, 7.5, 'F1')
+      .map((t) => ({ t, font: 'F1' as Font })),
+  ];
+  const at = doc.generatedAt ? stamp(doc.generatedAt, doc.timeZone ?? 'Asia/Kolkata') : null;
+  if (at) foot.push({ t: at.long, font: 'F3' });
+  foot.push({ t: 'This document contains confidential information. If you are not the intended recipient you are not authorized to use or disclose it in any form.', font: 'F1' });
+  foot.push({ t: 'If you received this in error please destroy it along with any copies and notify the sender immediately.', font: 'F1' });
+  if (at) foot.push({ t: at.short, font: 'F1' });
+  const gaps = foot.map((_, i): number => (i === 0 ? 0 : foot[i - 1]!.font === 'F3' || foot[i]!.font === 'F3' || (i === foot.length - 1 && at) ? 13 : 10));
+  let y = 18 + gaps.reduce((a, b) => a + b, 0);
+  foot.forEach((f, i) => { y -= gaps[i]!; p.text(BOX.left + 3, y, f.t, 7.5, f.font); });
+
+  return assemble([p.ops], doc.logo ?? null);
 }
 
 /** Bytes as a string of the same length (every character below 256), the form the rest of the file is built in. */
@@ -175,21 +277,22 @@ function imageObjects(img: PdfImage, id: number): string[] {
 }
 
 function assemble(pages: string[][], logo: PdfImage | null): Uint8Array {
-  // 1 catalog, 2 pages, 3 Helvetica, 4 Helvetica-Bold, then a page and its content stream per page, then the logo (and
+  // 1 catalog, 2 pages, 3 Helvetica, 4 Helvetica-Bold, 5 Helvetica-Oblique, then a page and its content stream per page, then the logo (and
   // its transparency), used by the first page.
-  const kids = pages.map((_, i) => `${5 + i * 2} 0 R`).join(' ');
-  const logoId = 5 + pages.length * 2;
+  const kids = pages.map((_, i) => `${6 + i * 2} 0 R`).join(' ');
+  const logoId = 6 + pages.length * 2;
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     `<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>',
   ];
   for (const [i, ops] of pages.entries()) {
     const content = ops.join('\n');
     objects.push(
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.width} ${PAGE.height}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${
-        logo && i === 0 ? ` /XObject << /Im1 ${logoId} 0 R >>` : ''} >> /Contents ${6 + i * 2} 0 R >>`,
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.width} ${PAGE.height}] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >>${
+        logo && i === 0 ? ` /XObject << /Im1 ${logoId} 0 R >>` : ''} >> /Contents ${7 + i * 2} 0 R >>`,
       `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
     );
   }

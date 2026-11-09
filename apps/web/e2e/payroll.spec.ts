@@ -133,7 +133,9 @@ test('the employee sees their payslip in My Pay', async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/^payslip-2026-04-.+\.pdf$/);
   const pdf = (await readFile(await download.path())).toString('latin1');
   expect(pdf.startsWith('%PDF-')).toBe(true);
-  expect(pdf).toContain('(54,000.00)');
+  // Laid out like the owner's payslip: the month, the details, earnings beside deductions, the days and the net salary.
+  for (const t of ['Payslip  for the month of  APRIL 2026', 'Employee ID', 'Date of Birth', 'Regime Type', 'Pan Number', 'EARNINGS', 'DEDUCTIONS',
+    'STANDARD DAYS', 'DAYS WORKED', 'Total Earnings Rs.', 'Total Deductions Rs.', 'Net Salary Rs. 54,000.00']) expect(pdf, t).toContain(`(${t})`);
 });
 
 test('the next month’s run shows what changed since the last locked run', async ({ page }) => {
