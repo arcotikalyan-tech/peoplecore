@@ -45,6 +45,15 @@ export async function getPolicies(orgId: string, myEmployeeId: string | null) {
   return policies.data.map((p) => ({ ...p, acknowledgedAt: acked.get(p.id) ?? null }));
 }
 
+/** Policy drafts, newest change first (RLS: only people who manage policies read them). */
+export async function getPolicyDrafts(orgId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('policy_drafts').select('id, title, body, source, updated_at')
+    .eq('organization_id', orgId).order('updated_at', { ascending: false });
+  if (error) throw new Error(`Failed to load policy drafts (${error.code})`);
+  return data;
+}
+
 export async function getAcknowledgementStatus(policyId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('policy_acknowledgement_status', { p_policy: policyId });

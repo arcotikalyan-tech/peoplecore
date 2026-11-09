@@ -6264,6 +6264,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      policy_drafts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          body: string;
+          source: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          body: string;
+          source?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          title?: string;
+          body?: string;
+          source?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       posh_case_steps: {
         Row: {
           grievance_id: string;

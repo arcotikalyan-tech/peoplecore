@@ -10,6 +10,7 @@ import { flash } from '@/server/flash';
 import { getOrgContext } from '@/server/context';
 import { getMyEmployee } from '@/server/employees';
 import { invitationFrom } from '@/server/invitation';
+import { STARTER_POLICIES, unfilled } from '@/lib/policy-library';
 import { createClient } from '@/server/supabase';
 
 /** Onboarding and policy actions; the database checks onboarding.manage / policy.manage and membership. */
@@ -78,25 +79,113 @@ export async function removeTemplateTaskAction(orgSlug: string, _prev: ActionSta
   return { ok: true, message: 'Removed.' };
 }
 
+const PolicyText = z.object({
+  title: z.string().trim().min(2, 'Title is required').max(120),
+  body: z.string().trim().min(10, 'Write the policy (at least a sentence)').max(50000),
+});
+
+/** Publishes a policy, or the next version of one with the same title (which everyone acknowledges again). */
+async function publish(supabase: Awaited<ReturnType<typeof createClient>>, orgId: string, title: string, body: string) {
+  // A new version of an existing title retires the old one.
+  const { data: previous } = await supabase.from('policy_documents').select('id, version')
+    .eq('organization_id', orgId).eq('title', title).is('retired_at', null).maybeSingle();
+  const { error } = await supabase.from('policy_documents').insert({ organization_id: orgId, title, body, version: (previous?.version ?? 0) + 1 });
+  if (error) return { error };
+  if (previous) await supabase.from('policy_documents').update({ retired_at: new Date().toISOString() }).eq('id', previous.id);
+  return { error: null, message: previous ? `Version ${previous.version + 1} published; everyone needs to acknowledge it again.` : 'Policy published.' };
+}
+
+/** Parts still marked [[like this]] (from a starter policy) must be filled in before anyone sees the policy. */
+const unfinished = (body: string) => {
+  const left = unfilled(body);
+  return left.length ? `Fill in the parts in double brackets first: ${left.slice(0, 4).join(', ')}${left.length > 4 ? ` and ${left.length - 4} more` : ''}.` : null;
+};
+
 export async function publishPolicyAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await hr(orgSlug, 'policy.manage');
   if (!ctx) return DENIED;
-  const parsed = z.object({
-    title: z.string().trim().min(2, 'Title is required').max(120),
-    body: z.string().trim().min(10, 'Write the policy (at least a sentence)').max(50000),
-  }).safeParse(Object.fromEntries(formData));
+  const parsed = PolicyText.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return invalid(parsed.error, formData);
-  const supabase = await createClient();
-  // A new version of an existing title retires the old one.
-  const { data: previous } = await supabase.from('policy_documents').select('id, version')
-    .eq('organization_id', ctx.org.id).eq('title', parsed.data.title).is('retired_at', null).maybeSingle();
-  const { error } = await supabase.from('policy_documents').insert({
-    organization_id: ctx.org.id, title: parsed.data.title, body: parsed.data.body, version: (previous?.version ?? 0) + 1,
-  });
-  if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
-  if (previous) await supabase.from('policy_documents').update({ retired_at: new Date().toISOString() }).eq('id', previous.id);
+  const left = unfinished(parsed.data.body);
+  if (left) return { ok: false, message: left, fieldErrors: { body: left }, values: formValues(formData) };
+  const r = await publish(await createClient(), ctx.org.id, parsed.data.title, parsed.data.body);
+  if (r.error) return { ok: false, message: toUserMessage(r.error), values: formValues(formData) };
   revalidatePath(`/app/${orgSlug}/policies`);
-  return { ok: true, message: previous ? `Version ${previous.version + 1} published; everyone needs to acknowledge it again.` : 'Policy published.' };
+  return { ok: true, message: r.message };
+}
+
+// ─── Policy drafts (migration 20261109120000): only people who manage policies see them ────────────────────
+
+/** Adds PeopleCore's starter policies as drafts, skipping any title already drafted or published. */
+export async function addStarterPoliciesAction(orgSlug: string, _prev: ActionState): Promise<ActionState> {
+  const ctx = await hr(orgSlug, 'policy.manage');
+  if (!ctx) return DENIED;
+  const supabase = await createClient();
+  const [{ data: published }, { data: drafts }] = await Promise.all([
+    supabase.from('policy_documents').select('title').eq('organization_id', ctx.org.id).is('retired_at', null),
+    supabase.from('policy_drafts').select('title').eq('organization_id', ctx.org.id),
+  ]);
+  const taken = new Set([...(published ?? []), ...(drafts ?? [])].map((p) => p.title.toLowerCase()));
+  const add = STARTER_POLICIES.filter((p) => !taken.has(p.title.toLowerCase()));
+  if (add.length === 0) return { ok: true, message: 'Every starter policy is already here, as a draft or published.' };
+  const { error } = await supabase.from('policy_drafts').insert(add.map((p) => ({ organization_id: ctx.org.id, title: p.title, body: p.body, source: 'starter' })));
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath(`/app/${orgSlug}/policies`);
+  // The button goes once every starter policy is in, taking its own message with it: say it at the top of the page.
+  const message = `${add.length} starter polic${add.length === 1 ? 'y' : 'ies'} added as drafts. Nobody else sees them until you publish.`;
+  await flash(message);
+  return { ok: true, message };
+}
+
+/** Saves a draft: a new one, or changes to an existing one (draftId). */
+export async function saveDraftAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await hr(orgSlug, 'policy.manage');
+  if (!ctx) return DENIED;
+  const parsed = PolicyText.extend({ draftId: z.preprocess((v) => (v === '' ? undefined : v), z.uuid().optional()) }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return invalid(parsed.error, formData);
+  const { draftId, title, body } = parsed.data;
+  const supabase = await createClient();
+  const { error } = draftId
+    ? await supabase.from('policy_drafts').update({ title, body, updated_at: new Date().toISOString() }).eq('organization_id', ctx.org.id).eq('id', draftId)
+    : await supabase.from('policy_drafts').insert({ organization_id: ctx.org.id, title, body });
+  if (error) {
+    const message = error.code === '23505' ? 'There’s already a draft with that title.' : toUserMessage(error);
+    return { ok: false, message, values: formValues(formData) };
+  }
+  revalidatePath(`/app/${orgSlug}/policies`);
+  return { ok: true, message: 'Draft saved.' };
+}
+
+/** Publishes a draft as it was last saved, then removes the draft. */
+export async function publishDraftAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await hr(orgSlug, 'policy.manage');
+  if (!ctx) return DENIED;
+  const id = z.uuid().safeParse(formData.get('draftId'));
+  if (!id.success) return { ok: false, message: 'Draft not found.' };
+  const supabase = await createClient();
+  const { data: draft } = await supabase.from('policy_drafts').select('id, title, body').eq('organization_id', ctx.org.id).eq('id', id.data).maybeSingle();
+  if (!draft) return { ok: false, message: 'Draft not found. It may have been published or deleted already.' };
+  const left = unfinished(draft.body);
+  if (left) return { ok: false, message: `${left} Edit the draft, save it, then publish.` };
+  const r = await publish(supabase, ctx.org.id, draft.title, draft.body);
+  if (r.error) return { ok: false, message: toUserMessage(r.error) };
+  await supabase.from('policy_drafts').delete().eq('organization_id', ctx.org.id).eq('id', draft.id);
+  revalidatePath(`/app/${orgSlug}/policies`);
+  await flash(`“${draft.title}”: ${r.message}`);
+  return { ok: true, message: r.message };
+}
+
+export async function deleteDraftAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await hr(orgSlug, 'policy.manage');
+  if (!ctx) return DENIED;
+  const id = z.uuid().safeParse(formData.get('draftId'));
+  if (!id.success) return { ok: false, message: 'Draft not found.' };
+  const supabase = await createClient();
+  const { error } = await supabase.from('policy_drafts').delete().eq('organization_id', ctx.org.id).eq('id', id.data);
+  if (error) return { ok: false, message: toUserMessage(error) };
+  revalidatePath(`/app/${orgSlug}/policies`);
+  await flash('Draft deleted.');
+  return { ok: true, message: 'Draft deleted.' };
 }
 
 export async function acknowledgePolicyAction(orgSlug: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

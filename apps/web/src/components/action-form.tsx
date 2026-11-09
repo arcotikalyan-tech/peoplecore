@@ -12,7 +12,7 @@ type Action = (prev: ActionState, formData: FormData) => Promise<ActionState>;
  * from (values, fieldErrors). `hidden` carries ids bound to the item the form acts on.
  */
 export function ActionForm({
-  action, label, submit, pendingLabel = 'Saving…', hidden, className, variant, size, children,
+  action, label, submit, pendingLabel = 'Saving…', hidden, className, variant, size, confirm, children,
 }: {
   action: Action;
   label: string;
@@ -22,6 +22,8 @@ export function ActionForm({
   className?: string;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   size?: 'sm' | 'md';
+  /** Asked before submitting (removing or deleting); Cancel sends nothing. */
+  confirm?: string;
   children?: (values: Record<string, string>, errors: Record<string, string>) => ReactNode;
 }) {
   const [state, formAction] = useActionState(action, initialActionState);
@@ -31,7 +33,7 @@ export function ActionForm({
       <FormMessage state={state} />
       {Object.entries(hidden ?? {}).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
       {children?.(values, state.fieldErrors ?? {})}
-      <SubmitButton pendingLabel={pendingLabel} variant={variant} size={size}>{submit}</SubmitButton>
+      <SubmitButton pendingLabel={pendingLabel} variant={variant} size={size} confirm={confirm}>{submit}</SubmitButton>
     </form>
   );
 }

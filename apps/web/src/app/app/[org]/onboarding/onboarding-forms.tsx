@@ -57,6 +57,27 @@ export function PublishPolicyForm({ action }: { action: Action }) {
   );
 }
 
+/** A policy draft: a new one, or changes to one (draftId). Saving keeps it a draft; nobody else sees it. */
+export function PolicyDraftForm({ action, draft }: { action: Action; draft?: { id: string; title: string; body: string } }) {
+  const id = draft ? `draft-${draft.id.slice(0, 8)}` : 'draft-new';
+  return (
+    <ActionForm action={action} label={draft ? `Edit draft ${draft.title}` : 'New draft'} submit="Save draft" variant="secondary" size="sm"
+      hidden={draft ? { draftId: draft.id } : undefined} className="space-y-3">
+      {(v, e) => (
+        <>
+          <TextField idPrefix={id} name="title" label="Title" required defaultValue={v.title ?? draft?.title} error={e.title} />
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-medium">Policy text <span className="text-danger" aria-hidden="true">*</span></span>
+            <textarea name="body" rows={14} defaultValue={v.body ?? draft?.body} aria-invalid={e.body ? true : undefined}
+              className="block w-full rounded-md border border-line-strong bg-surface px-3 py-2 font-mono text-[13px] leading-6" />
+            {e.body && <span className="mt-1 block text-xs font-medium text-danger">{e.body}</span>}
+          </label>
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
 /** Activation: tick employees without a sign-in and invite them (Employee role, linked to their record). */
 export function ActivationForm({ action, people }: { action: Action; people: Array<{ id: string; code: string; name: string; email: string | null }> }) {
   const [state, formAction] = useActionState(action, initialActionState);

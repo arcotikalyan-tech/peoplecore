@@ -113,13 +113,16 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
   );
 }
 
-function Figure({ icon, label, value, note, tone = 'text-primary' }: { icon: string; label: string; value: React.ReactNode; note: string; tone?: string }) {
+/** A headline figure; with `href` the whole tile opens the list behind it. */
+function Figure({ icon, label, value, note, tone = 'text-primary', href }: { icon: string; label: string; value: React.ReactNode; note: string; tone?: string; href?: string }) {
+  const Tile = href ? Link : 'div';
   return (
-    <div className="lift rounded-2xl border border-line bg-surface p-4">
+    <Tile href={href as string} aria-label={href ? `${label}: ${typeof value === 'number' ? value : ''} ${note}`.replace(/\s+/g, ' ') : undefined}
+      className="lift block rounded-2xl border border-line bg-surface p-4 focus-visible:outline-2 focus-visible:outline-primary">
       <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted"><span aria-hidden="true" className="grid size-7 place-items-center rounded-lg bg-primary-soft">{icon}</span>{label}</p>
       <p className={`mt-2 text-3xl font-semibold tabular-nums ${tone}`}>{value}</p>
       <p className="text-xs text-muted">{note}</p>
-    </div>
+    </Tile>
   );
 }
 
@@ -159,23 +162,26 @@ async function Overview({ slug, base, today, people, href }: { slug: string; bas
       <div className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary-soft/60 px-5 py-4">
         <span aria-hidden="true" className="grid size-10 place-items-center rounded-xl bg-primary text-primary-fg">✦</span>
         <div><p className="text-[11px] font-semibold uppercase tracking-wider text-primary">People insight</p>
-          <p className="text-sm font-medium">{gapCount} profile{gapCount === 1 ? '' : 's'} need attention{gaps ? ' (PAN not on file)' : ''} · {birthdays.length + anniversaries.length} celebration{birthdays.length + anniversaries.length === 1 ? '' : 's'} this week · {joiners.length} joined in the last 30 days.</p></div>
+          <p className="text-sm font-medium"><Link href={href({ tab: 'people', flag: 'incomplete' })} className="underline-offset-2 hover:underline">{gapCount} profile{gapCount === 1 ? '' : 's'} need attention{gaps ? ' (PAN not on file)' : ''}</Link> · {birthdays.length + anniversaries.length} celebration{birthdays.length + anniversaries.length === 1 ? '' : 's'} this week · {joiners.length} joined in the last 30 days.</p></div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Figure icon="👥" label="Headcount" value={current.length} note="active staff" />
-        <Figure icon="🌱" label="New joiners" value={joiners.length} note="last 30 days" tone="text-success" />
-        <Figure icon="⏱" label="Avg tenure" value={<>{avgTenure.toFixed(1)}<span className="text-sm text-muted"> y</span></>} note="across org" />
-        <Figure icon="⚖" label="Gender mix" value={knownGender ? <>{Math.round((gender!.female / knownGender) * 100)}<span className="text-sm text-muted"> % W</span></> : '—'} note={knownGender ? 'of those who shared it' : 'not recorded'} tone="text-danger" />
-        <Figure icon="⚠" label="Profile gaps" value={gapCount} note="need attention" tone="text-warning" />
+        <Figure icon="👥" label="Headcount" value={current.length} note="active staff" href={href({ tab: 'people' })} />
+        <Figure icon="🌱" label="New joiners" value={joiners.length} note="last 30 days" tone="text-success" href={href({ tab: 'people', flag: 'new' })} />
+        <Figure icon="⏱" label="Avg tenure" value={<>{avgTenure.toFixed(1)}<span className="text-sm text-muted"> y</span></>} note="across org" href={href({ tab: 'insights' })} />
+        <Figure icon="⚖" label="Gender mix" value={knownGender ? <>{Math.round((gender!.female / knownGender) * 100)}<span className="text-sm text-muted"> % W</span></> : '—'} note={knownGender ? 'of those who shared it' : 'not recorded'} tone="text-danger" href={href({ tab: 'insights' })} />
+        <Figure icon="⚠" label="Profile gaps" value={gapCount} note={gaps ? 'PAN not on file' : 'need attention'} tone="text-warning" href={href({ tab: 'people', flag: 'incomplete' })} />
       </div>
       <section className="lift-soft rounded-2xl border border-line bg-surface p-5" aria-label="Workforce lifecycle">
         <header className="mb-3 flex justify-between"><h2 className="font-semibold">👤 Workforce Lifecycle</h2><Link href={href({ tab: 'lifecycle' })} className="text-sm text-primary">Open pipeline →</Link></header>
         <div className="grid gap-3 sm:grid-cols-5">
-          {([['Prejoiners', lifecycle.pre, 'offer accepted · joining soon', 'border-l-info'], ['Onboarding', lifecycle.onboarding, 'in first 30 days', 'border-l-primary'], ['Active', lifecycle.active, 'confirmed staff', 'border-l-success'],
-            ['Notice', lifecycle.notice, 'serving notice', 'border-l-warning'], ['Exited 90d', lifecycle.exited, 'offboarded recently', 'border-l-danger']] as const).map(([l, n, s, c]) => (
-            <div key={l} className={`rounded-xl border border-line border-l-4 ${c} p-3`}>
+          {([['Prejoiners', lifecycle.pre, 'offer accepted · joining soon', 'border-l-info', { tab: 'people', status: 'pre_joining' }],
+            ['Onboarding', lifecycle.onboarding, 'in first 30 days', 'border-l-primary', { tab: 'people', flag: 'new' }],
+            ['Active', lifecycle.active, 'confirmed staff', 'border-l-success', { tab: 'people', status: 'active' }],
+            ['Notice', lifecycle.notice, 'serving notice', 'border-l-warning', { tab: 'people', status: 'on_notice' }],
+            ['Exited 90d', lifecycle.exited, 'offboarded recently', 'border-l-danger', { tab: 'people', status: 'exited' }]] as const).map(([l, n, s, c, to]) => (
+            <Link key={l} href={href(to)} aria-label={`${l}: ${n} ${s}`} className={`lift block rounded-xl border border-line border-l-4 ${c} p-3 focus-visible:outline-2 focus-visible:outline-primary`}>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">{l}</p><p className="text-2xl font-semibold tabular-nums">{n}</p><p className="text-xs text-muted">{s}</p>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
@@ -243,8 +249,8 @@ async function PeopleTab({ ctx, slug, base, today, people, hr, manage, sp, stats
   const cards: PersonCard[] = shown.map((p) => ({
     photo: photos.get(p.id) ?? null,
     id: p.id, name: p.name, code: p.code, designation: p.designation, department: p.department, location: p.location, email: p.email, phone: p.phone,
-    tenureYears: p.tenureYears, status: p.status, href: hr ? `${base}/${p.id}` : null, birthday: p.birthday, maritalStatus: p.maritalStatus, social: p.social,
-    badge: p.status === 'on_notice' ? 'Notice' : p.probationEnd && !p.confirmedOn && CURRENT.has(p.status) ? (p.probationEnd <= today ? 'Confirm' : 'Probation') : null,
+    tenureYears: p.tenureYears, status: p.status, href: hr ? `${base}/${p.id}${sp.flag === 'incomplete' && gaps ? '?tab=documents' : ''}` : null, birthday: p.birthday, maritalStatus: p.maritalStatus, social: p.social,
+    badge: sp.flag === 'incomplete' ? (gaps ? 'PAN missing' : 'Department or designation missing') : p.status === 'on_notice' ? 'Notice' : p.probationEnd && !p.confirmedOn && CURRENT.has(p.status) ? (p.probationEnd <= today ? 'Confirm' : 'Probation') : null,
   }));
   const opt = (pairs: Array<[string | null, string | null]>) => [...new Map(pairs.filter(([id, n]) => id && n) as Array<[string, string]>).entries()].map(([value, label]) => ({ value, label }))
     .sort((a, b) => a.label.localeCompare(b.label));
@@ -291,7 +297,7 @@ async function PeopleTab({ ctx, slug, base, today, people, hr, manage, sp, stats
           <Link href={keep({ view: 'list' })} aria-current={view === 'list' ? 'true' : undefined} className={`rounded-lg px-3 py-1 ${view === 'list' ? 'bg-primary text-primary-fg' : 'text-muted'}`}>☰ List</Link>
         </div>
       </div>
-      {sp.flag && <p className="text-sm text-muted">Showing {sp.flag === 'new' ? 'joiners from the last 30 days' : sp.flag === 'probation' ? 'people whose probation has ended and who aren’t confirmed yet' : 'profiles with missing details'} · <Link href={keep({ flag: undefined })} className="text-primary">Show everyone</Link></p>}
+      {sp.flag && <p className="text-sm text-muted">Showing {sp.flag === 'new' ? 'joiners from the last 30 days' : sp.flag === 'probation' ? 'people whose probation has ended and who aren’t confirmed yet' : gaps ? 'people with no PAN on file (add it under their profile’s Documents tab; payroll needs it for TDS)' : 'people without a department or designation'} · <Link href={keep({ flag: undefined })} className="text-primary">Show everyone</Link></p>}
       <PeopleBoard cards={cards} view={view} today={today} bulk={hr && manage ? bulkPeopleAction.bind(null, slug) : null}
         options={{
           department: opt(people.map((p) => [p.departmentId, p.department])), location: opt(people.map((p) => [p.locationId, p.location])),
