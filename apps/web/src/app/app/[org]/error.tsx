@@ -11,6 +11,14 @@ export default function OrgError({ error, reset }: { error: Error & { digest?: s
         We couldn’t load this page. Try again; if the problem continues, contact support
         {error.digest ? <> with reference <code className="text-fg">{error.digest}</code></> : null}.
       </p>
+      {/* No reference means it failed in the browser (a browser extension rewriting the page, for example); its message
+          says what, and is safe to show: server errors carry a reference instead and their details stay on the server. */}
+      {!error.digest && error.message ? (
+        <details className="mt-4 text-left text-xs text-muted">
+          <summary className="cursor-pointer">Details for support</summary>
+          <code className="mt-2 block break-words text-fg">{error.message.slice(0, 300)}</code>
+        </details>
+      ) : null}
       <Button className="mt-6" onClick={reset} variant="secondary">
         Try again
       </Button>
