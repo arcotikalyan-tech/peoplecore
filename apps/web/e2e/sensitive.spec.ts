@@ -56,11 +56,19 @@ test('HR edits work details and personal details', async ({ page }) => {
 
   const work = section(page, 'Basic Info');
   await work.getByRole('button', { name: 'Edit' }).click();
-  await work.getByLabel('Work phone').fill('+91 98450 12345');
+  // The work email and phone are edited only in Personal › Contact Info, not here as well.
+  await expect(work.getByLabel('Work phone')).toHaveCount(0);
+  await expect(work.getByLabel('Work email')).toHaveCount(0);
+  await work.getByLabel('Experience before joining (years)').fill('3');
   await work.getByRole('button', { name: 'Save work details' }).click();
-  await expect(work.getByText('+919845012345')).toBeVisible();
+  await expect(work.getByText('3 yr 0 mo')).toBeVisible();
 
   await open(page, `/app/demo/employees/${subjectId}?tab=personal`);
+  const contact = section(page, 'Contact Info');
+  await contact.getByRole('button', { name: 'Edit' }).click();
+  await contact.getByLabel('Work phone').fill('+91 98450 12345');
+  await contact.getByRole('button', { name: 'Save contact info' }).click();
+  await expect(contact.getByText('+919845012345')).toBeVisible();
   const personal = section(page, 'Personal Info');
   await personal.getByRole('button', { name: 'Edit' }).click();
   await personal.getByLabel('Date of birth').fill('1993-08-21');

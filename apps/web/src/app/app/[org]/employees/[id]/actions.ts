@@ -99,14 +99,13 @@ export async function savePersonalDetailsAction(orgSlug: string, employeeId: str
   }
   // The company's contact fields (official email, work phone) live on the employee record: HR only (RLS on employees).
   if (formData.has('workEmail') || formData.has('workPhone')) {
-    const work = z.object({
-      workEmail: z.union([z.literal(''), z.email('Enter a valid email address').max(254)]),
-      workPhone: z.string().trim().max(30, 'Use at most 30 characters'),
-    }).safeParse({ workEmail: String(formData.get('workEmail') ?? '').trim(), workPhone: String(formData.get('workPhone') ?? '') });
+    // The same checks (and phone tidying, e.g. "+91 98450 12345" → "+919845012345") as everywhere else work details are saved.
+    const work = updateWorkDetailsSchema.pick({ workEmail: true, workPhone: true })
+      .safeParse({ workEmail: String(formData.get('workEmail') ?? '').trim(), workPhone: String(formData.get('workPhone') ?? '') });
     if (!work.success) return invalid(work.error, formData);
     const supabase = await createClient();
     const { data, error } = await supabase.from('employees')
-      .update({ work_email: work.data.workEmail.toLowerCase() || null, work_phone: work.data.workPhone || null })
+      .update({ work_email: work.data.workEmail?.toLowerCase() || null, work_phone: work.data.workPhone || null })
       .eq('id', employeeIdSchema.parse(employeeId)).eq('organization_id', ctx.org.id).select('id');
     if (error) return { ok: false, message: toUserMessage(error), values: formValues(formData) };
     if (data.length === 0) return { ok: false, message: 'Only HR can change the official email and work phone.', values: formValues(formData) };
