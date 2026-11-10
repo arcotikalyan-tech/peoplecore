@@ -32,7 +32,7 @@ export function AttendanceCard() {
     return (
       <Card>
         <EmptyState compact icon="id-card-outline" title="No employee profile yet"
-          body="Your HR team hasn’t linked an employee profile to your sign-in. Once they do, you can check in, apply for leave and see your pay."
+          body={`You have no employee record in ${workplace?.orgName ?? 'this organization'}, so there’s nothing to check in to, no leave and no pay here yet. HR adds it on the website under Users & roles; an owner can add their own there too.`}
           action="Check again" onAction={() => void refreshWorkplace()} />
       </Card>
     );

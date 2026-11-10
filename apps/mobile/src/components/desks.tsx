@@ -3,13 +3,15 @@ import { router } from 'expo-router';
 import { Linking, View } from 'react-native';
 import { Stat } from '@/components/quick-actions';
 import { clock, duration, inr, monthYear } from '@/lib/format';
+import type { OrgToday } from '@/lib/org-today';
 import { SITE_URL } from '@/lib/site';
-import { Avatar, Banner, Card, ListGroup, ListRow, Pill, SectionHeader, type IconName, type Tone } from '@/ui';
+import { Avatar, Banner, Card, EmptyState, ListGroup, ListRow, Pill, SectionHeader, type IconName, type Tone } from '@/ui';
 
 /**
  * The role desks on the phone (the website's dashboard has the full ones): a manager's team today on Home and on the
- * My team screen, and for HR, payroll, finance, recruiters, auditors and device admins what is waiting for them, each
- * line opening the website page where it is done.
+ * My team screen, the whole organization today for owners and HR (Home and Everyone today), and for HR, payroll,
+ * finance, recruiters, auditors and device admins what is waiting for them, each line opening the website page where
+ * it is done.
  */
 
 export const TEAM_TONE: Record<TeamTone, Tone> = { success: 'success', warning: 'warning', danger: 'danger', primary: 'info', neutral: 'neutral', ai: 'accent' };
@@ -62,6 +64,37 @@ export function MyTeamCard({ team, tz, now }: { team: NonNullable<Desks['team']>
           {rows.slice(0, 4).map((r) => <TeamPersonRow key={r.member.id} row={r} tz={tz} />)}
           {rows.length > 4 && <ListRow icon="people-outline" title={`See all ${rows.length} people`} subtitle="Who’s away, coming up and this month" onPress={() => router.push('/team')} />}
         </ListGroup>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Home, for people who read the whole organization (an owner, HR): today's figures for everyone, the website's
+ * headcount, presence and exits, and the first few people who need a look, opening Everyone today.
+ */
+export function OrgTodayCard({ org, name, tz, now }: { org: OrgToday; name: string; tz: string; now: Date }) {
+  const rows = teamToday({ reports: 0, members: org.members, away: [], events: [], reviews: [] }, now);
+  return (
+    <View>
+      <SectionHeader title={`${name} today · ${rows.length}`} action="See all" onAction={() => router.push('/everyone')} />
+      <View style={{ gap: 8 }}>
+        <TeamFigures rows={rows} />
+        {(org.headcount != null || org.presence != null || org.exits != null) && (
+          <Card padded={false} style={{ flexDirection: 'row', paddingVertical: 8 }}>
+            {org.headcount != null && <Stat label="Headcount" value={org.headcount} />}
+            {org.presence != null && <Stat label="Present this month" value={`${org.presence}%`} tone="info" />}
+            {org.exits != null && <Stat label="Exits · 30 days" value={org.exits} tone={org.exits > 0 ? 'warning' : 'neutral'} />}
+          </Card>
+        )}
+        {rows.length === 0
+          ? <Card><EmptyState compact icon="people-outline" title="No one to show yet" body="Add employees on the website, and their day shows here." /></Card>
+          : (
+            <ListGroup>
+              {rows.slice(0, 4).map((r) => <TeamPersonRow key={r.member.id} row={r} tz={tz} />)}
+              <ListRow icon="people-outline" title={`See all ${rows.length} ${rows.length === 1 ? 'person' : 'people'}`} subtitle="Each person’s check-in, lunch and breaks, leave" onPress={() => router.push('/everyone')} />
+            </ListGroup>
+          )}
       </View>
     </View>
   );
