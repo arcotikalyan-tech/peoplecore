@@ -12,7 +12,7 @@
   "dependencies": {
     "@peoplecore/db": "workspace:*",
     "@peoplecore/shared": "workspace:*",
-    "@supabase/supabase-js": "2.118.0",
+    "@supabase/supabase-js": "2.119.0",
     "nodemailer": "10.3.1"
   },
   "devDependencies": {
